@@ -1,0 +1,60 @@
+---
+swagger: '2.0'
+info:
+  version: 1.0.0
+  title: Keykeeper server
+basePath: "/user"
+paths:
+  /list:
+    get:
+      produces:
+        - application/json
+      responses:
+        200:
+          description: A list of users.
+          schema:
+              type: array
+              items:
+                  $ref: "#/definitions/user"
+        default:
+          description: error
+          schema:
+              $ref: "#/definitions/error"
+definitions:
+  user:
+    type: object
+    required:
+      - UserID
+      - UserName
+    properties:
+      UserID:
+        type: string
+      UserName:
+        type: string
+      Problems:
+        type: array
+        items:
+          type: string
+      ThrottlingTill:
+        type: string
+        format: date-time
+      LastVisitSubnet:
+        type: string
+        format: date-time
+      LastVisitASName:
+        type: string
+        format: date-time
+      LastVisitASCountry:
+        type: string
+        format: date-time
+  error:
+    type: object
+    required:
+      - message
+    properties:
+      code:
+        type: integer
+        format: int64
+      message:
+        type: string
+

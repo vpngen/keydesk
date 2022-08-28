@@ -5,13 +5,14 @@
 //  Schemes:
 //    http
 //  Host: localhost
-//  BasePath: /user
+//  BasePath: /
 //  Version: 1.0.0
 //
 //  Consumes:
 //    - application/json
 //
 //  Produces:
+//    - application/binary
 //    - application/json
 //
 // swagger:meta

@@ -4,6 +4,7 @@ package restapi
 
 import (
 	"crypto/tls"
+	"io"
 	"net/http"
 	"strings"
 
@@ -36,11 +37,42 @@ func configureAPI(api *operations.UserAPI) http.Handler {
 
 	api.JSONConsumer = runtime.JSONConsumer()
 
+	api.ApplicationBinaryProducer = runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
+		return errors.NotImplemented("applicationBinary producer has not yet been implemented")
+	})
 	api.JSONProducer = runtime.JSONProducer()
 
-	if api.GetListHandler == nil {
-		api.GetListHandler = operations.GetListHandlerFunc(func(params operations.GetListParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetList has not yet been implemented")
+	// Applies when the "Authorization" header is set
+	if api.BearerAuth == nil {
+		api.BearerAuth = func(token string) (interface{}, error) {
+			return nil, errors.NotImplemented("api key auth (Bearer) Authorization from header param [Authorization] has not yet been implemented")
+		}
+	}
+
+	// Set your custom authorizer if needed. Default one is security.Authorized()
+	// Expected interface runtime.Authorizer
+	//
+	// Example:
+	// api.APIAuthorizer = security.Authorized()
+
+	if api.DeleteUserUserIDDeleteHandler == nil {
+		api.DeleteUserUserIDDeleteHandler = operations.DeleteUserUserIDDeleteHandlerFunc(func(params operations.DeleteUserUserIDDeleteParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operations.DeleteUserUserIDDelete has not yet been implemented")
+		})
+	}
+	if api.GetUserListHandler == nil {
+		api.GetUserListHandler = operations.GetUserListHandlerFunc(func(params operations.GetUserListParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operations.GetUserList has not yet been implemented")
+		})
+	}
+	if api.PostTokenHandler == nil {
+		api.PostTokenHandler = operations.PostTokenHandlerFunc(func(params operations.PostTokenParams) middleware.Responder {
+			return middleware.NotImplemented("operation operations.PostToken has not yet been implemented")
+		})
+	}
+	if api.PostUserAddHandler == nil {
+		api.PostUserAddHandler = operations.PostUserAddHandlerFunc(func(params operations.PostUserAddParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operations.PostUserAdd has not yet been implemented")
 		})
 	}
 

@@ -7,6 +7,7 @@ package operations
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -40,11 +41,30 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 
 		JSONConsumer: runtime.JSONConsumer(),
 
+		ApplicationBinaryProducer: runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
+			return errors.NotImplemented("applicationBinary producer has not yet been implemented")
+		}),
 		JSONProducer: runtime.JSONProducer(),
 
-		GetListHandler: GetListHandlerFunc(func(params GetListParams) middleware.Responder {
-			return middleware.NotImplemented("operation GetList has not yet been implemented")
+		DeleteUserUserIDDeleteHandler: DeleteUserUserIDDeleteHandlerFunc(func(params DeleteUserUserIDDeleteParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation DeleteUserUserIDDelete has not yet been implemented")
 		}),
+		GetUserListHandler: GetUserListHandlerFunc(func(params GetUserListParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation GetUserList has not yet been implemented")
+		}),
+		PostTokenHandler: PostTokenHandlerFunc(func(params PostTokenParams) middleware.Responder {
+			return middleware.NotImplemented("operation PostToken has not yet been implemented")
+		}),
+		PostUserAddHandler: PostUserAddHandlerFunc(func(params PostUserAddParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation PostUserAdd has not yet been implemented")
+		}),
+
+		// Applies when the "Authorization" header is set
+		BearerAuth: func(token string) (interface{}, error) {
+			return nil, errors.NotImplemented("api key auth (Bearer) Authorization from header param [Authorization] has not yet been implemented")
+		},
+		// default authorizer is authorized meaning no requests are blocked
+		APIAuthorizer: security.Authorized(),
 	}
 }
 
@@ -77,12 +97,28 @@ type UserAPI struct {
 	//   - application/json
 	JSONConsumer runtime.Consumer
 
+	// ApplicationBinaryProducer registers a producer for the following mime types:
+	//   - application/binary
+	ApplicationBinaryProducer runtime.Producer
 	// JSONProducer registers a producer for the following mime types:
 	//   - application/json
 	JSONProducer runtime.Producer
 
-	// GetListHandler sets the operation handler for the get list operation
-	GetListHandler GetListHandler
+	// BearerAuth registers a function that takes a token and returns a principal
+	// it performs authentication based on an api key Authorization provided in the header
+	BearerAuth func(string) (interface{}, error)
+
+	// APIAuthorizer provides access control (ACL/RBAC/ABAC) by providing access to the request and authenticated principal
+	APIAuthorizer runtime.Authorizer
+
+	// DeleteUserUserIDDeleteHandler sets the operation handler for the delete user user ID delete operation
+	DeleteUserUserIDDeleteHandler DeleteUserUserIDDeleteHandler
+	// GetUserListHandler sets the operation handler for the get user list operation
+	GetUserListHandler GetUserListHandler
+	// PostTokenHandler sets the operation handler for the post token operation
+	PostTokenHandler PostTokenHandler
+	// PostUserAddHandler sets the operation handler for the post user add operation
+	PostUserAddHandler PostUserAddHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -156,12 +192,28 @@ func (o *UserAPI) Validate() error {
 		unregistered = append(unregistered, "JSONConsumer")
 	}
 
+	if o.ApplicationBinaryProducer == nil {
+		unregistered = append(unregistered, "ApplicationBinaryProducer")
+	}
 	if o.JSONProducer == nil {
 		unregistered = append(unregistered, "JSONProducer")
 	}
 
-	if o.GetListHandler == nil {
-		unregistered = append(unregistered, "GetListHandler")
+	if o.BearerAuth == nil {
+		unregistered = append(unregistered, "AuthorizationAuth")
+	}
+
+	if o.DeleteUserUserIDDeleteHandler == nil {
+		unregistered = append(unregistered, "DeleteUserUserIDDeleteHandler")
+	}
+	if o.GetUserListHandler == nil {
+		unregistered = append(unregistered, "GetUserListHandler")
+	}
+	if o.PostTokenHandler == nil {
+		unregistered = append(unregistered, "PostTokenHandler")
+	}
+	if o.PostUserAddHandler == nil {
+		unregistered = append(unregistered, "PostUserAddHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -178,12 +230,21 @@ func (o *UserAPI) ServeErrorFor(operationID string) func(http.ResponseWriter, *h
 
 // AuthenticatorsFor gets the authenticators for the specified security schemes
 func (o *UserAPI) AuthenticatorsFor(schemes map[string]spec.SecurityScheme) map[string]runtime.Authenticator {
-	return nil
+	result := make(map[string]runtime.Authenticator)
+	for name := range schemes {
+		switch name {
+		case "Bearer":
+			scheme := schemes[name]
+			result[name] = o.APIKeyAuthenticator(scheme.Name, scheme.In, o.BearerAuth)
+
+		}
+	}
+	return result
 }
 
 // Authorizer returns the registered authorizer
 func (o *UserAPI) Authorizer() runtime.Authorizer {
-	return nil
+	return o.APIAuthorizer
 }
 
 // ConsumersFor gets the consumers for the specified media types.
@@ -209,6 +270,8 @@ func (o *UserAPI) ProducersFor(mediaTypes []string) map[string]runtime.Producer 
 	result := make(map[string]runtime.Producer, len(mediaTypes))
 	for _, mt := range mediaTypes {
 		switch mt {
+		case "application/binary":
+			result["application/binary"] = o.ApplicationBinaryProducer
 		case "application/json":
 			result["application/json"] = o.JSONProducer
 		}
@@ -251,10 +314,22 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
 
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/user/{UserID}/delete"] = NewDeleteUserUserIDDelete(o.context, o.DeleteUserUserIDDeleteHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/list"] = NewGetList(o.context, o.GetListHandler)
+	o.handlers["GET"]["/user/list"] = NewGetUserList(o.context, o.GetUserListHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/token"] = NewPostToken(o.context, o.PostTokenHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/user/add"] = NewPostUserAdd(o.context, o.PostUserAddHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

@@ -23,10 +23,71 @@ func init() {
     "title": "Keykeeper server",
     "version": "1.0.0"
   },
-  "basePath": "/user",
+  "basePath": "/",
   "paths": {
-    "/list": {
+    "/token": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "Token created.",
+            "schema": {
+              "$ref": "#/definitions/token"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/user/add": {
+      "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/binary"
+        ],
+        "responses": {
+          "201": {
+            "description": "New user created.",
+            "schema": {
+              "type": "file"
+            },
+            "headers": {
+              "Content-Disposition": {
+                "type": "string",
+                "description": "the value is ` + "`" + `attachment; filename=\"wg.conf\"` + "`" + `"
+              }
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/user/list": {
       "get": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -39,6 +100,43 @@ func init() {
                 "$ref": "#/definitions/user"
               }
             }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/user/{UserID}/delete": {
+      "delete": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "type": "string",
+            "name": "UserID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "User deleted."
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
           },
           "default": {
             "description": "error",
@@ -58,10 +156,20 @@ func init() {
       ],
       "properties": {
         "code": {
-          "type": "integer",
-          "format": "int64"
+          "type": "integer"
         },
         "message": {
+          "type": "string"
+        }
+      }
+    },
+    "token": {
+      "type": "object",
+      "required": [
+        "Token"
+      ],
+      "properties": {
+        "Token": {
           "type": "string"
         }
       }
@@ -102,6 +210,13 @@ func init() {
           "type": "string"
         }
       }
+    }
+  },
+  "securityDefinitions": {
+    "Bearer": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
     }
   }
 }`))
@@ -111,10 +226,71 @@ func init() {
     "title": "Keykeeper server",
     "version": "1.0.0"
   },
-  "basePath": "/user",
+  "basePath": "/",
   "paths": {
-    "/list": {
+    "/token": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "Token created.",
+            "schema": {
+              "$ref": "#/definitions/token"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/user/add": {
+      "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/binary"
+        ],
+        "responses": {
+          "201": {
+            "description": "New user created.",
+            "schema": {
+              "type": "file"
+            },
+            "headers": {
+              "Content-Disposition": {
+                "type": "string",
+                "description": "the value is ` + "`" + `attachment; filename=\"wg.conf\"` + "`" + `"
+              }
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/user/list": {
       "get": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -127,6 +303,43 @@ func init() {
                 "$ref": "#/definitions/user"
               }
             }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/user/{UserID}/delete": {
+      "delete": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "type": "string",
+            "name": "UserID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "User deleted."
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
           },
           "default": {
             "description": "error",
@@ -146,10 +359,20 @@ func init() {
       ],
       "properties": {
         "code": {
-          "type": "integer",
-          "format": "int64"
+          "type": "integer"
         },
         "message": {
+          "type": "string"
+        }
+      }
+    },
+    "token": {
+      "type": "object",
+      "required": [
+        "Token"
+      ],
+      "properties": {
+        "Token": {
           "type": "string"
         }
       }
@@ -190,6 +413,13 @@ func init() {
           "type": "string"
         }
       }
+    }
+  },
+  "securityDefinitions": {
+    "Bearer": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
     }
   }
 }`))

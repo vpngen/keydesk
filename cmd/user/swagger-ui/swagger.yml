@@ -53,7 +53,7 @@ paths:
                   type: string
                   description: the value is `attachment; filename="wg.conf"`
         403: 
-          description: 'You do not have necessary permissions for the resource'
+          description: 'You do not have necessary permissions for the resource.'
         default:
           description: error
           schema:
@@ -73,7 +73,7 @@ paths:
         204:
           description: User deleted.
         403: 
-          description: 'You do not have necessary permissions for the resource'
+          description: 'You do not have necessary permissions for the resource.'
         default:
           description: error
           schema:

@@ -30,7 +30,7 @@ func main() {
 	server := restapi.NewServer(api)
 	defer server.Shutdown()
 
-	server.Port = 8080
+	server.Port = 80
 
 	// TODO: Set Handle
 

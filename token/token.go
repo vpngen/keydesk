@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/golang-jwt/jwt"
-	"github.com/google/uuid"
 )
 
 // Tokens errors.
@@ -40,7 +39,10 @@ func ValidateBearer(BrigadierID string) func(string) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("%w: %v", ErrUnexpectedSigningMethod, token.Header["alg"])
 			}
-			return []byte(MySecretKeyForJWT), nil
+
+			jti, _ := claims["jti"].(string)
+
+			return fetchSecret(jti), nil
 		})
 		if err != nil {
 			return nil, fmt.Errorf("parse error: %w", err)
@@ -50,11 +52,11 @@ func ValidateBearer(BrigadierID string) func(string) (interface{}, error) {
 			return nil, ErrInvalidToken
 		}
 
-		if claims.VerifyExpiresAt(time.Now().Unix(), false) {
+		if !claims.VerifyExpiresAt(time.Now().Unix(), true) {
 			return nil, ErrExpiredToken
 		}
 
-		brigadier := claims["user"].(string)
+		brigadier, _ := claims["user"].(string)
 
 		if brigadier != BrigadierID {
 			return nil, ErrUnknownUser
@@ -67,18 +69,23 @@ func ValidateBearer(BrigadierID string) func(string) (interface{}, error) {
 // CreateToken - creaste JWT.
 func CreateToken(BrigadierID string, TokenLifeTime int64) func(operations.PostTokenParams) middleware.Responder {
 	return func(params operations.PostTokenParams) middleware.Responder {
+		_token, err := newToken(int(TokenLifeTime))
+		if err != nil {
+			return operations.NewPostTokenDefault(500)
+		}
+
 		// Create a new token object, specifying signing method and the claims
 		// you would like it to contain.
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"user": BrigadierID,
-			"jti":  uuid.New().String(),
-			"exp":  time.Now().Unix() + TokenLifeTime,
+			"jti":  _token.jti,
+			"exp":  _token.exp.Unix(),
 		})
 
 		// Sign and get the complete encoded token as a string using the secret
-		tokenString, err := token.SignedString([]byte(MySecretKeyForJWT))
+		tokenString, err := token.SignedString(_token.secret)
 		if err != nil {
-			return operations.NewPostTokenDefault(500).WithPayload(&models.Error{Message: &ErrCantSign})
+			return operations.NewPostTokenDefault(500)
 		}
 
 		return operations.NewPostTokenCreated().WithPayload(&models.Token{Token: &tokenString})

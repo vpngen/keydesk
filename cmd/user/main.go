@@ -29,11 +29,12 @@ func main() {
 	server := restapi.NewServer(api)
 	defer server.Shutdown()
 
-	server.Port = 80
+	server.Port = 8080
 
 	// TODO: Set Handle
 
 	api.BearerAuth = ValidateBearer
+	api.PostTokenHandler = operations.PostTokenHandlerFunc(CreateToken)
 
 	server.ConfigureAPI()
 
@@ -65,7 +66,7 @@ func ValidateBearer(bearerHeader string) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("%w: %v", ErrUnexpectedSigningMethod, token.Header["alg"])
 		}
-		return MySecretKeyForJWT, nil
+		return []byte(MySecretKeyForJWT), nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("parse error: %w", err)
@@ -87,7 +88,7 @@ func CreateToken(params operations.PostTokenParams) middleware.Responder {
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(MySecretKeyForJWT)
+	tokenString, err := token.SignedString([]byte(MySecretKeyForJWT))
 	if err != nil {
 		return operations.NewPostTokenDefault(500)
 	}

@@ -11,6 +11,7 @@ require (
 	github.com/go-openapi/swag v0.22.3
 	github.com/go-openapi/validate v0.22.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/google/uuid v1.1.1
 	github.com/jessevdk/go-flags v1.5.0
 	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b
 )

@@ -46,7 +46,37 @@ func init() {
         }
       }
     },
-    "/user/add": {
+    "/user": {
+      "get": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of users.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/user"
+              }
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
       "post": {
         "security": [
           {
@@ -81,39 +111,7 @@ func init() {
         }
       }
     },
-    "/user/list": {
-      "get": {
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "A list of users.",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/user"
-              }
-            }
-          },
-          "403": {
-            "description": "You do not have necessary permissions for the resource"
-          },
-          "default": {
-            "description": "error",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/user/{UserID}/delete": {
+    "/user/{UserID}": {
       "delete": {
         "security": [
           {
@@ -249,7 +247,37 @@ func init() {
         }
       }
     },
-    "/user/add": {
+    "/user": {
+      "get": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of users.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/user"
+              }
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
       "post": {
         "security": [
           {
@@ -284,39 +312,7 @@ func init() {
         }
       }
     },
-    "/user/list": {
-      "get": {
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "A list of users.",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/user"
-              }
-            }
-          },
-          "403": {
-            "description": "You do not have necessary permissions for the resource"
-          },
-          "default": {
-            "description": "error",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/user/{UserID}/delete": {
+    "/user/{UserID}": {
       "delete": {
         "security": [
           {

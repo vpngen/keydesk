@@ -17,6 +17,8 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
+//go:generate swagger generate server -t ../../gen -f ../../swagger/swagger.yml --exclude-main -A user
+
 func main() {
 	// load embedded swagger file
 	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")

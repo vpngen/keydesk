@@ -55,14 +55,14 @@ func configureAPI(api *operations.UserAPI) http.Handler {
 	// Example:
 	// api.APIAuthorizer = security.Authorized()
 
-	if api.DeleteUserUserIDDeleteHandler == nil {
-		api.DeleteUserUserIDDeleteHandler = operations.DeleteUserUserIDDeleteHandlerFunc(func(params operations.DeleteUserUserIDDeleteParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation operations.DeleteUserUserIDDelete has not yet been implemented")
+	if api.DeleteUserUserIDHandler == nil {
+		api.DeleteUserUserIDHandler = operations.DeleteUserUserIDHandlerFunc(func(params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operations.DeleteUserUserID has not yet been implemented")
 		})
 	}
-	if api.GetUserListHandler == nil {
-		api.GetUserListHandler = operations.GetUserListHandlerFunc(func(params operations.GetUserListParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetUserList has not yet been implemented")
+	if api.GetUserHandler == nil {
+		api.GetUserHandler = operations.GetUserHandlerFunc(func(params operations.GetUserParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operations.GetUser has not yet been implemented")
 		})
 	}
 	if api.PostTokenHandler == nil {
@@ -70,9 +70,9 @@ func configureAPI(api *operations.UserAPI) http.Handler {
 			return middleware.NotImplemented("operation operations.PostToken has not yet been implemented")
 		})
 	}
-	if api.PostUserAddHandler == nil {
-		api.PostUserAddHandler = operations.PostUserAddHandlerFunc(func(params operations.PostUserAddParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation operations.PostUserAdd has not yet been implemented")
+	if api.PostUserHandler == nil {
+		api.PostUserHandler = operations.PostUserHandlerFunc(func(params operations.PostUserParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operations.PostUser has not yet been implemented")
 		})
 	}
 
@@ -101,8 +101,6 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 	return handler
 }
 
-// The middleware configuration happens before anything, this middleware also applies to serving the swagger.json document.
-// So this is a good place to plug in a panic handling middleware, logging and metrics.
 func setupGlobalMiddleware(handler http.Handler) http.Handler {
 	return uiMiddleware(handler)
 }

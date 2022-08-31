@@ -18,7 +18,7 @@ paths:
           description: error
           schema:
               $ref: "#/definitions/error"
-  /user/list:
+  /user:
     get:
       security:
         - Bearer: []
@@ -37,7 +37,6 @@ paths:
           description: error
           schema:
               $ref: "#/definitions/error"
-  /user/add:
     post:
       security:
         - Bearer: []
@@ -58,7 +57,7 @@ paths:
           description: error
           schema:
               $ref: "#/definitions/error"
-  /user/{UserID}/delete:
+  /user/{UserID}:
     delete:
       security:
         - Bearer: []

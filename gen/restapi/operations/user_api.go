@@ -46,17 +46,17 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 		}),
 		JSONProducer: runtime.JSONProducer(),
 
-		DeleteUserUserIDDeleteHandler: DeleteUserUserIDDeleteHandlerFunc(func(params DeleteUserUserIDDeleteParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation DeleteUserUserIDDelete has not yet been implemented")
+		DeleteUserUserIDHandler: DeleteUserUserIDHandlerFunc(func(params DeleteUserUserIDParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation DeleteUserUserID has not yet been implemented")
 		}),
-		GetUserListHandler: GetUserListHandlerFunc(func(params GetUserListParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation GetUserList has not yet been implemented")
+		GetUserHandler: GetUserHandlerFunc(func(params GetUserParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation GetUser has not yet been implemented")
 		}),
 		PostTokenHandler: PostTokenHandlerFunc(func(params PostTokenParams) middleware.Responder {
 			return middleware.NotImplemented("operation PostToken has not yet been implemented")
 		}),
-		PostUserAddHandler: PostUserAddHandlerFunc(func(params PostUserAddParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation PostUserAdd has not yet been implemented")
+		PostUserHandler: PostUserHandlerFunc(func(params PostUserParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation PostUser has not yet been implemented")
 		}),
 
 		// Applies when the "Authorization" header is set
@@ -111,14 +111,14 @@ type UserAPI struct {
 	// APIAuthorizer provides access control (ACL/RBAC/ABAC) by providing access to the request and authenticated principal
 	APIAuthorizer runtime.Authorizer
 
-	// DeleteUserUserIDDeleteHandler sets the operation handler for the delete user user ID delete operation
-	DeleteUserUserIDDeleteHandler DeleteUserUserIDDeleteHandler
-	// GetUserListHandler sets the operation handler for the get user list operation
-	GetUserListHandler GetUserListHandler
+	// DeleteUserUserIDHandler sets the operation handler for the delete user user ID operation
+	DeleteUserUserIDHandler DeleteUserUserIDHandler
+	// GetUserHandler sets the operation handler for the get user operation
+	GetUserHandler GetUserHandler
 	// PostTokenHandler sets the operation handler for the post token operation
 	PostTokenHandler PostTokenHandler
-	// PostUserAddHandler sets the operation handler for the post user add operation
-	PostUserAddHandler PostUserAddHandler
+	// PostUserHandler sets the operation handler for the post user operation
+	PostUserHandler PostUserHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -203,17 +203,17 @@ func (o *UserAPI) Validate() error {
 		unregistered = append(unregistered, "AuthorizationAuth")
 	}
 
-	if o.DeleteUserUserIDDeleteHandler == nil {
-		unregistered = append(unregistered, "DeleteUserUserIDDeleteHandler")
+	if o.DeleteUserUserIDHandler == nil {
+		unregistered = append(unregistered, "DeleteUserUserIDHandler")
 	}
-	if o.GetUserListHandler == nil {
-		unregistered = append(unregistered, "GetUserListHandler")
+	if o.GetUserHandler == nil {
+		unregistered = append(unregistered, "GetUserHandler")
 	}
 	if o.PostTokenHandler == nil {
 		unregistered = append(unregistered, "PostTokenHandler")
 	}
-	if o.PostUserAddHandler == nil {
-		unregistered = append(unregistered, "PostUserAddHandler")
+	if o.PostUserHandler == nil {
+		unregistered = append(unregistered, "PostUserHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -317,11 +317,11 @@ func (o *UserAPI) initHandlerCache() {
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
-	o.handlers["DELETE"]["/user/{UserID}/delete"] = NewDeleteUserUserIDDelete(o.context, o.DeleteUserUserIDDeleteHandler)
+	o.handlers["DELETE"]["/user/{UserID}"] = NewDeleteUserUserID(o.context, o.DeleteUserUserIDHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/user/list"] = NewGetUserList(o.context, o.GetUserListHandler)
+	o.handlers["GET"]["/user"] = NewGetUser(o.context, o.GetUserHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -329,7 +329,7 @@ func (o *UserAPI) initHandlerCache() {
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/user/add"] = NewPostUserAdd(o.context, o.PostUserAddHandler)
+	o.handlers["POST"]["/user"] = NewPostUser(o.context, o.PostUserHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

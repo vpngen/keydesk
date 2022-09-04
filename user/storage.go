@@ -90,11 +90,7 @@ func newUser(boss bool) (*User, error) {
 		err      error
 	)
 
-	if boss {
-		fullname, person, err = namesgenerator.PeaceAwardee()
-	} else {
-		fullname, person, err = namesgenerator.PhysicsAwardee()
-	}
+	fullname, person, err = namesgenerator.PhysicsAwardee()
 
 	if err != nil {
 		return nil, fmt.Errorf("namegen: %w", err)

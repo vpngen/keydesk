@@ -14,7 +14,7 @@ import (
 )
 
 // AddUser - creaste user.
-func AddUser(params operations.PostUserParams, p interface{}) middleware.Responder {
+func AddUser(params operations.PostUserParams, principal interface{}) middleware.Responder {
 	user, err := newUser(false)
 	if err != nil {
 		return operations.NewPostUserDefault(500)
@@ -43,7 +43,7 @@ func constructContentDisposition(name, id string) string {
 }
 
 // DelUserUserID - creaste user.
-func DelUserUserID(params operations.DeleteUserUserIDParams, p interface{}) middleware.Responder {
+func DelUserUserID(params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
 	if storage.delete(params.UserID) {
 		return operations.NewDeleteUserUserIDNoContent()
 	}
@@ -52,7 +52,7 @@ func DelUserUserID(params operations.DeleteUserUserIDParams, p interface{}) midd
 }
 
 // GetUsers - .
-func GetUsers(params operations.GetUserParams, p interface{}) middleware.Responder {
+func GetUsers(params operations.GetUserParams, principal interface{}) middleware.Responder {
 	_users := storage.list()
 
 	users := make([]*models.User, len(_users))

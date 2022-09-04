@@ -1,5 +1,6 @@
 [Unit]
 Description = Keykeeper
+Requires=%p@.socket
 
 [Service]
 User=%i
@@ -8,4 +9,5 @@ WorkingDirectory=/opt/user
 ExecStart = /opt/user/user
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
+

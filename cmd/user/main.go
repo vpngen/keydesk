@@ -40,6 +40,7 @@ func main() {
 
 	api.PostUserHandler = operations.PostUserHandlerFunc(user.AddUser)
 	api.DeleteUserUserIDHandler = operations.DeleteUserUserIDHandlerFunc(user.DelUserUserID)
+	api.GetUserHandler = operations.GetUserHandlerFunc(user.GetUsers)
 
 	server.ConfigureAPI()
 

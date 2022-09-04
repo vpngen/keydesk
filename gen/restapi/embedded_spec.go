@@ -180,16 +180,21 @@ func init() {
       ],
       "properties": {
         "LastVisitASCountry": {
-          "type": "string",
-          "format": "date-time"
+          "type": "string"
         },
         "LastVisitASName": {
+          "type": "string"
+        },
+        "LastVisitHour": {
           "type": "string",
           "format": "date-time"
         },
         "LastVisitSubnet": {
-          "type": "string",
-          "format": "date-time"
+          "type": "string"
+        },
+        "MonthlyQuotaRemainingGB": {
+          "type": "number",
+          "format": "float"
         },
         "Problems": {
           "type": "array",
@@ -381,16 +386,21 @@ func init() {
       ],
       "properties": {
         "LastVisitASCountry": {
-          "type": "string",
-          "format": "date-time"
+          "type": "string"
         },
         "LastVisitASName": {
+          "type": "string"
+        },
+        "LastVisitHour": {
           "type": "string",
           "format": "date-time"
         },
         "LastVisitSubnet": {
-          "type": "string",
-          "format": "date-time"
+          "type": "string"
+        },
+        "MonthlyQuotaRemainingGB": {
+          "type": "number",
+          "format": "float"
         },
         "Problems": {
           "type": "array",

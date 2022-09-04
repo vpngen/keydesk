@@ -6,9 +6,11 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/vpngen/keykeeper/gen/models"
 	"github.com/vpngen/keykeeper/gen/restapi/operations"
 
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
 )
 
 // AddUser - creaste user.
@@ -47,4 +49,27 @@ func DelUserUserID(params operations.DeleteUserUserIDParams, p interface{}) midd
 	}
 
 	return operations.NewDeleteUserUserIDForbidden()
+}
+
+// GetUsers - .
+func GetUsers(params operations.GetUserParams, p interface{}) middleware.Responder {
+	_users := storage.list()
+
+	users := make([]*models.User, len(_users))
+	for i := range _users {
+		u := _users[i]
+		users[i] = &models.User{
+			UserID:                  &u.ID,
+			UserName:                &u.Name,
+			ThrottlingTill:          strfmt.DateTime(u.ThrottlingTill),
+			MonthlyQuotaRemainingGB: u.MonthlyQuotaRemainingGB,
+			LastVisitHour:           strfmt.DateTime(u.LastVisitHour),
+			LastVisitSubnet:         u.LastVisitSubnet,
+			LastVisitASCountry:      u.LastVisitASCountry,
+			LastVisitASName:         u.LastVisitASName,
+		}
+		copy(users[i].Problems, u.Problems)
+	}
+
+	return operations.NewGetUserOK().WithPayload(users)
 }

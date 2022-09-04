@@ -20,16 +20,20 @@ import (
 type User struct {
 
 	// last visit a s country
-	// Format: date-time
-	LastVisitASCountry strfmt.DateTime `json:"LastVisitASCountry,omitempty"`
+	LastVisitASCountry string `json:"LastVisitASCountry,omitempty"`
 
 	// last visit a s name
+	LastVisitASName string `json:"LastVisitASName,omitempty"`
+
+	// last visit hour
 	// Format: date-time
-	LastVisitASName strfmt.DateTime `json:"LastVisitASName,omitempty"`
+	LastVisitHour strfmt.DateTime `json:"LastVisitHour,omitempty"`
 
 	// last visit subnet
-	// Format: date-time
-	LastVisitSubnet strfmt.DateTime `json:"LastVisitSubnet,omitempty"`
+	LastVisitSubnet string `json:"LastVisitSubnet,omitempty"`
+
+	// monthly quota remaining g b
+	MonthlyQuotaRemainingGB float32 `json:"MonthlyQuotaRemainingGB,omitempty"`
 
 	// problems
 	Problems []string `json:"Problems"`
@@ -51,15 +55,7 @@ type User struct {
 func (m *User) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateLastVisitASCountry(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateLastVisitASName(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateLastVisitSubnet(formats); err != nil {
+	if err := m.validateLastVisitHour(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -81,36 +77,12 @@ func (m *User) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *User) validateLastVisitASCountry(formats strfmt.Registry) error {
-	if swag.IsZero(m.LastVisitASCountry) { // not required
+func (m *User) validateLastVisitHour(formats strfmt.Registry) error {
+	if swag.IsZero(m.LastVisitHour) { // not required
 		return nil
 	}
 
-	if err := validate.FormatOf("LastVisitASCountry", "body", "date-time", m.LastVisitASCountry.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *User) validateLastVisitASName(formats strfmt.Registry) error {
-	if swag.IsZero(m.LastVisitASName) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("LastVisitASName", "body", "date-time", m.LastVisitASName.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *User) validateLastVisitSubnet(formats strfmt.Registry) error {
-	if swag.IsZero(m.LastVisitSubnet) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("LastVisitSubnet", "body", "date-time", m.LastVisitSubnet.String(), formats); err != nil {
+	if err := validate.FormatOf("LastVisitHour", "body", "date-time", m.LastVisitHour.String(), formats); err != nil {
 		return err
 	}
 

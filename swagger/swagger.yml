@@ -102,15 +102,18 @@ definitions:
       ThrottlingTill:
         type: string
         format: date-time
+      MonthlyQuotaRemainingGB:
+        type: number
+        format: float
+      LastVisitHour:
+        type: string
+        format: date-time
       LastVisitSubnet:
         type: string
-        format: date-time
       LastVisitASName:
         type: string
-        format: date-time
       LastVisitASCountry:
         type: string
-        format: date-time
   error:
     type: object
     required:

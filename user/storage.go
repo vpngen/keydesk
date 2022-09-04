@@ -17,7 +17,7 @@ type User struct {
 	ID                      string
 	Name                    string
 	Person                  namesgenerator.Person
-	MonthlyQuotaRemainingGB float64
+	MonthlyQuotaRemainingGB float32
 	Problems                []string
 	ThrottlingTill          time.Time
 	LastVisitHour           time.Time
@@ -70,7 +70,7 @@ func (us *userStorage) delete(id string) bool {
 	return true
 }
 
-func (us *userStorage) list(id string) []*User {
+func (us *userStorage) list() []*User {
 	us.Lock()
 	defer us.Unlock()
 
@@ -105,6 +105,7 @@ func newUser(boss bool) (*User, error) {
 		Person:                  person,
 		MonthlyQuotaRemainingGB: MonthlyQuotaRemainingGB,
 		Boss:                    boss,
+		Problems:                make([]string, 0),
 	}
 
 	storage.put(user)

@@ -1,0 +1,11 @@
+[Unit]
+Description = Keykeeper
+
+[Service]
+User=%i
+Group=%i
+WorkingDirectory=/opt/user
+ExecStart = /opt/user/user
+
+[Install]
+WantedBy=default.target

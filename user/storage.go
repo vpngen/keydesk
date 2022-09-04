@@ -113,3 +113,9 @@ func newUser(boss bool) (*User, error) {
 
 	return user, nil
 }
+
+var brigadier *User
+
+func init() {
+	brigadier, _ = newUser(true)
+}

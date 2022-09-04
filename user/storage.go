@@ -24,6 +24,7 @@ type User struct {
 	LastVisitSubnet         string
 	LastVisitASName         string
 	LastVisitASCountry      string
+	Boss                    bool
 }
 
 type userStorage struct {
@@ -54,23 +55,19 @@ func (us *userStorage) put(u *User) {
 
 }
 
-func (us *userStorage) delete(u *User) {
+func (us *userStorage) delete(id string) bool {
 	us.Lock()
 	defer us.Unlock()
 
-	for {
-		id := uuid.New().String()
-		_, ok := us.m[id]
-		if ok {
-			continue
+	if u, ok := us.m[id]; ok {
+		if u.Boss {
+			return false
 		}
-
-		u.ID = id
-		us.m[id] = u
-
-		break
 	}
 
+	delete(us.m, id)
+
+	return true
 }
 
 func (us *userStorage) list(id string) []*User {
@@ -107,6 +104,7 @@ func newUser(boss bool) (*User, error) {
 		Name:                    fullname,
 		Person:                  person,
 		MonthlyQuotaRemainingGB: MonthlyQuotaRemainingGB,
+		Boss:                    boss,
 	}
 
 	storage.put(user)

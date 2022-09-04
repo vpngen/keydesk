@@ -37,7 +37,9 @@ func main() {
 
 	api.BearerAuth = token.ValidateBearer(BrigadierID)
 	api.PostTokenHandler = operations.PostTokenHandlerFunc(token.CreateToken(BrigadierID, TokenLifeTime))
+
 	api.PostUserHandler = operations.PostUserHandlerFunc(user.AddUser)
+	api.DeleteUserUserIDHandler = operations.DeleteUserUserIDHandlerFunc(user.DelUserUserID)
 
 	server.ConfigureAPI()
 

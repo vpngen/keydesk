@@ -40,8 +40,8 @@ func constructContentDisposition(name, id string) string {
 	return fmt.Sprintf("attachment; filename=%q; filename*=%q", "wg-"+id+".conf", "utf-8''"+url.QueryEscape(name+".conf"))
 }
 
-// DelUser - creaste user.
-func DelUser(params operations.DeleteUserUserIDParams, p interface{}) middleware.Responder {
+// DelUserUserID - creaste user.
+func DelUserUserID(params operations.DeleteUserUserIDParams, p interface{}) middleware.Responder {
 	if storage.delete(params.UserID) {
 		return operations.NewDeleteUserUserIDNoContent()
 	}

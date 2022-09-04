@@ -23,9 +23,6 @@ var (
 	ErrCantSign = "can't sign"
 )
 
-// MySecretKeyForJWT - moke.
-const MySecretKeyForJWT = "барракуда"
-
 // ValidateBearer - validate our key.
 func ValidateBearer(BrigadierID string) func(string) (interface{}, error) {
 	return func(bearerHeader string) (interface{}, error) {
@@ -67,7 +64,7 @@ func ValidateBearer(BrigadierID string) func(string) (interface{}, error) {
 	}
 }
 
-// CreateToken - creaste JWT.
+// CreateToken - create JWT.
 func CreateToken(BrigadierID string, TokenLifeTime int64) func(operations.PostTokenParams) middleware.Responder {
 	return func(params operations.PostTokenParams) middleware.Responder {
 		_token, err := newToken(int(TokenLifeTime))

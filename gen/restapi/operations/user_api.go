@@ -7,7 +7,6 @@ package operations
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
@@ -41,9 +40,7 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 
 		JSONConsumer: runtime.JSONConsumer(),
 
-		ApplicationBinaryProducer: runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
-			return errors.NotImplemented("applicationBinary producer has not yet been implemented")
-		}),
+		BinProducer:  runtime.ByteStreamProducer(),
 		JSONProducer: runtime.JSONProducer(),
 
 		DeleteUserUserIDHandler: DeleteUserUserIDHandlerFunc(func(params DeleteUserUserIDParams, principal interface{}) middleware.Responder {
@@ -97,9 +94,9 @@ type UserAPI struct {
 	//   - application/json
 	JSONConsumer runtime.Consumer
 
-	// ApplicationBinaryProducer registers a producer for the following mime types:
-	//   - application/binary
-	ApplicationBinaryProducer runtime.Producer
+	// BinProducer registers a producer for the following mime types:
+	//   - application/octet-stream
+	BinProducer runtime.Producer
 	// JSONProducer registers a producer for the following mime types:
 	//   - application/json
 	JSONProducer runtime.Producer
@@ -192,8 +189,8 @@ func (o *UserAPI) Validate() error {
 		unregistered = append(unregistered, "JSONConsumer")
 	}
 
-	if o.ApplicationBinaryProducer == nil {
-		unregistered = append(unregistered, "ApplicationBinaryProducer")
+	if o.BinProducer == nil {
+		unregistered = append(unregistered, "BinProducer")
 	}
 	if o.JSONProducer == nil {
 		unregistered = append(unregistered, "JSONProducer")
@@ -270,8 +267,8 @@ func (o *UserAPI) ProducersFor(mediaTypes []string) map[string]runtime.Producer 
 	result := make(map[string]runtime.Producer, len(mediaTypes))
 	for _, mt := range mediaTypes {
 		switch mt {
-		case "application/binary":
-			result["application/binary"] = o.ApplicationBinaryProducer
+		case "application/octet-stream":
+			result["application/octet-stream"] = o.BinProducer
 		case "application/json":
 			result["application/json"] = o.JSONProducer
 		}

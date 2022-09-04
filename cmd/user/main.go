@@ -8,6 +8,7 @@ import (
 	"github.com/vpngen/keykeeper/gen/restapi"
 	"github.com/vpngen/keykeeper/gen/restapi/operations"
 	"github.com/vpngen/keykeeper/token"
+	"github.com/vpngen/keykeeper/user"
 )
 
 //go:generate swagger generate server -t ../../gen -f ../../swagger/swagger.yml --exclude-main -A user
@@ -30,12 +31,13 @@ func main() {
 	server := restapi.NewServer(api)
 	defer server.Shutdown()
 
-	server.Port = 80
+	server.Port = 8080
 
 	// TODO: Set Handle
 
 	api.BearerAuth = token.ValidateBearer(BrigadierID)
 	api.PostTokenHandler = operations.PostTokenHandlerFunc(token.CreateToken(BrigadierID, TokenLifeTime))
+	api.PostUserHandler = operations.PostUserHandlerFunc(user.AddUser)
 
 	server.ConfigureAPI()
 

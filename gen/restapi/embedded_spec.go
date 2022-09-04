@@ -84,7 +84,7 @@ func init() {
           }
         ],
         "produces": [
-          "application/binary"
+          "application/octet-stream"
         ],
         "responses": {
           "201": {
@@ -285,7 +285,7 @@ func init() {
           }
         ],
         "produces": [
-          "application/binary"
+          "application/octet-stream"
         ],
         "responses": {
           "201": {

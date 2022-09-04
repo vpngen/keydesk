@@ -12,7 +12,7 @@
 //    - application/json
 //
 //  Produces:
-//    - application/binary
+//    - application/octet-stream
 //    - application/json
 //
 // swagger:meta

@@ -4,7 +4,6 @@ package restapi
 
 import (
 	"crypto/tls"
-	"io"
 	"net/http"
 	"strings"
 
@@ -37,9 +36,7 @@ func configureAPI(api *operations.UserAPI) http.Handler {
 
 	api.JSONConsumer = runtime.JSONConsumer()
 
-	api.ApplicationBinaryProducer = runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
-		return errors.NotImplemented("applicationBinary producer has not yet been implemented")
-	})
+	api.BinProducer = runtime.ByteStreamProducer()
 	api.JSONProducer = runtime.JSONProducer()
 
 	// Applies when the "Authorization" header is set
@@ -101,6 +98,8 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 	return handler
 }
 
+// The middleware configuration happens before anything, this middleware also applies to serving the swagger.json document.
+// So this is a good place to plug in a panic handling middleware, logging and metrics.
 func setupGlobalMiddleware(handler http.Handler) http.Handler {
 	return uiMiddleware(handler)
 }

@@ -1,7 +1,6 @@
 package token
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -9,16 +8,18 @@ import (
 	"github.com/vpngen/keykeeper/gen/models"
 	"github.com/vpngen/keykeeper/gen/restapi/operations"
 
+	"github.com/go-openapi/errors"
+
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/golang-jwt/jwt"
 )
 
 // Tokens errors.
 var (
-	ErrUnexpectedSigningMethod = errors.New("unexpected signing method")
-	ErrInvalidToken            = errors.New("invalid token")
-	ErrExpiredToken            = errors.New("token expired")
-	ErrUnknownUser             = errors.New("unknown user")
+	ErrUnexpectedSigningMethod = errors.New(401, "unexpected signing method")
+	ErrInvalidToken            = errors.New(401, "invalid token")
+	ErrExpiredToken            = errors.New(403, "token expired")
+	ErrUnknownUser             = errors.New(403, "unknown user")
 
 	ErrCantSign = "can't sign"
 )
@@ -28,7 +29,7 @@ func ValidateBearer(BrigadierID string) func(string) (interface{}, error) {
 	return func(bearerHeader string) (interface{}, error) {
 		_, bearerToken, ok := strings.Cut(bearerHeader, " ")
 		if !ok {
-			return nil, fmt.Errorf("decode error")
+			return nil, ErrInvalidToken
 		}
 
 		claims := jwt.MapClaims{}
@@ -43,7 +44,7 @@ func ValidateBearer(BrigadierID string) func(string) (interface{}, error) {
 			return fetchSecret(jti), nil
 		})
 		if err != nil {
-			return nil, fmt.Errorf("parse error: %w", err)
+			return nil, ErrInvalidToken
 		}
 
 		if !token.Valid {

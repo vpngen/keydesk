@@ -4,7 +4,10 @@ package restapi
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-openapi/errors"
@@ -113,7 +116,9 @@ func uiMiddleware(handler http.Handler) http.Handler {
 		}
 		// Serving ./swagger-ui/
 		if strings.Index(r.URL.Path, "/swagger-ui/") == 0 {
-			http.StripPrefix("/swagger-ui/", http.FileServer(http.Dir("swagger-ui"))).ServeHTTP(w, r)
+			pwd, _ := os.Getwd()
+			fmt.Println(pwd)
+			http.StripPrefix("/swagger-ui/", http.FileServer(http.Dir(filepath.Join(pwd, "swagger-ui")))).ServeHTTP(w, r)
 			return
 		}
 		handler.ServeHTTP(w, r)

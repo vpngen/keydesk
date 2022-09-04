@@ -12,7 +12,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 
-	"test/gen/restapi/operations"
+	"github.com/vpngen/keykeeper/gen/restapi/operations"
 )
 
 //go:generate swagger generate server --target ../../gen --name User --spec ../../swagger/swagger.yml --principal interface{} --exclude-main

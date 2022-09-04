@@ -1,4 +1,4 @@
-module test
+module github.com/vpngen/keykeeper
 
 go 1.19
 

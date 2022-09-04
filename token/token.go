@@ -4,9 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"test/gen/models"
-	"test/gen/restapi/operations"
 	"time"
+
+	"github.com/vpngen/keykeeper/gen/models"
+	"github.com/vpngen/keykeeper/gen/restapi/operations"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/golang-jwt/jwt"

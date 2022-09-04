@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-openapi/runtime"
 
-	"test/gen/models"
+	"github.com/vpngen/keykeeper/gen/models"
 )
 
 // PostUserCreatedCode is the HTTP code returned for type PostUserCreated

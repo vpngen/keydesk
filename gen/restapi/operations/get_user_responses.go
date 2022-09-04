@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-openapi/runtime"
 
-	"test/gen/models"
+	"github.com/vpngen/keykeeper/gen/models"
 )
 
 // GetUserOKCode is the HTTP code returned for type GetUserOK

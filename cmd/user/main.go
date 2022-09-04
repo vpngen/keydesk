@@ -5,9 +5,9 @@ import (
 
 	"github.com/go-openapi/loads"
 
-	"test/gen/restapi"
-	"test/gen/restapi/operations"
-	"test/token"
+	"github.com/vpngen/keykeeper/gen/restapi"
+	"github.com/vpngen/keykeeper/gen/restapi/operations"
+	"github.com/vpngen/keykeeper/token"
 )
 
 //go:generate swagger generate server -t ../../gen -f ../../swagger/swagger.yml --exclude-main -A user

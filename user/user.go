@@ -13,6 +13,9 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
+// MaxUsers - maximem limit.
+const MaxUsers = 500
+
 // AddUser - creaste user.
 func AddUser(params operations.PostUserParams, principal interface{}) middleware.Responder {
 	user, err := newUser(false)

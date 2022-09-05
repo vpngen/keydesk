@@ -1,6 +1,7 @@
 package user
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -11,6 +12,9 @@ import (
 
 // MonthlyQuotaRemainingGB - .
 const MonthlyQuotaRemainingGB = 100
+
+// ErrUserLimit - maximun user num exeeded.
+var ErrUserLimit = errors.New("num user limit exeeded")
 
 // User - user structure.
 type User struct {
@@ -36,7 +40,11 @@ var storage = &userStorage{
 	m: make(map[string]*User),
 }
 
-func (us *userStorage) put(u *User) {
+func (us *userStorage) put(u *User) error {
+	if len(us.m) >= MaxUsers {
+		return ErrUserLimit
+	}
+
 	us.Lock()
 	defer us.Unlock()
 
@@ -53,6 +61,7 @@ func (us *userStorage) put(u *User) {
 		break
 	}
 
+	return nil
 }
 
 func (us *userStorage) delete(id string) bool {
@@ -104,7 +113,9 @@ func newUser(boss bool) (*User, error) {
 		Problems:                make([]string, 0),
 	}
 
-	storage.put(user)
+	if err := storage.put(user); err != nil {
+		return nil, fmt.Errorf("put: %w", err)
+	}
 
 	return user, nil
 }

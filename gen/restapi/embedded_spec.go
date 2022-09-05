@@ -196,6 +196,15 @@ func init() {
           "type": "number",
           "format": "float"
         },
+        "PersonDesc": {
+          "type": "string"
+        },
+        "PersonDescLink": {
+          "type": "string"
+        },
+        "PersonName": {
+          "type": "string"
+        },
         "Problems": {
           "type": "array",
           "items": {
@@ -401,6 +410,15 @@ func init() {
         "MonthlyQuotaRemainingGB": {
           "type": "number",
           "format": "float"
+        },
+        "PersonDesc": {
+          "type": "string"
+        },
+        "PersonDescLink": {
+          "type": "string"
+        },
+        "PersonName": {
+          "type": "string"
         },
         "Problems": {
           "type": "array",

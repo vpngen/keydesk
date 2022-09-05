@@ -70,6 +70,9 @@ func GetUsers(params operations.GetUserParams, principal interface{}) middleware
 			LastVisitSubnet:         u.LastVisitSubnet,
 			LastVisitASCountry:      u.LastVisitASCountry,
 			LastVisitASName:         u.LastVisitASName,
+			PersonName:              u.Person.Name,
+			PersonDesc:              u.Person.Desc,
+			PersonDescLink:          u.Person.URL,
 		}
 		copy(users[i].Problems, u.Problems)
 	}

@@ -114,6 +114,12 @@ definitions:
         type: string
       LastVisitASCountry:
         type: string
+      PersonName:
+        type: string
+      PersonDesc:
+        type: string
+      PersonDescLink:
+        type: string
   error:
     type: object
     required:

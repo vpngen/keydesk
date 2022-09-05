@@ -4,11 +4,7 @@ package restapi
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
@@ -104,23 +100,5 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 // The middleware configuration happens before anything, this middleware also applies to serving the swagger.json document.
 // So this is a good place to plug in a panic handling middleware, logging and metrics.
 func setupGlobalMiddleware(handler http.Handler) http.Handler {
-	return uiMiddleware(handler)
-}
-
-func uiMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Shortcut helpers for swagger-ui
-		if r.URL.Path == "/swagger-ui" || r.URL.Path == "/api/help" {
-			http.Redirect(w, r, "/swagger-ui/", http.StatusFound)
-			return
-		}
-		// Serving ./swagger-ui/
-		if strings.Index(r.URL.Path, "/swagger-ui/") == 0 {
-			pwd, _ := os.Getwd()
-			fmt.Println(pwd)
-			http.StripPrefix("/swagger-ui/", http.FileServer(http.Dir(filepath.Join(pwd, "swagger-ui")))).ServeHTTP(w, r)
-			return
-		}
-		handler.ServeHTTP(w, r)
-	})
+	return handler
 }

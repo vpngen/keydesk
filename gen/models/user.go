@@ -35,6 +35,15 @@ type User struct {
 	// monthly quota remaining g b
 	MonthlyQuotaRemainingGB float32 `json:"MonthlyQuotaRemainingGB,omitempty"`
 
+	// person desc
+	PersonDesc string `json:"PersonDesc,omitempty"`
+
+	// person desc link
+	PersonDescLink string `json:"PersonDescLink,omitempty"`
+
+	// person name
+	PersonName string `json:"PersonName,omitempty"`
+
 	// problems
 	Problems []string `json:"Problems"`
 

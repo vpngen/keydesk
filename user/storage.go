@@ -33,11 +33,13 @@ type User struct {
 
 type userStorage struct {
 	sync.Mutex
-	m map[string]*User
+	m  map[string]*User
+	nm map[string]struct{}
 }
 
 var storage = &userStorage{
-	m: make(map[string]*User),
+	m:  make(map[string]*User),
+	nm: make(map[string]struct{}),
 }
 
 func (us *userStorage) put(u *User) error {
@@ -49,17 +51,30 @@ func (us *userStorage) put(u *User) error {
 	defer us.Unlock()
 
 	for {
-		id := uuid.New().String()
-		_, ok := us.m[id]
-		if ok {
-			continue
+		fullname, person, err := namesgenerator.PhysicsAwardee()
+		if err != nil {
+			return fmt.Errorf("namegen: %w", err)
 		}
 
-		u.ID = id
-		us.m[id] = u
+		if _, ok := us.nm[fullname]; !ok {
+			u.Name = fullname
+			u.Person = person
 
-		break
+			break
+		}
 	}
+
+	for {
+		id := uuid.New().String()
+		if _, ok := us.m[id]; !ok {
+			u.ID = id
+
+			break
+		}
+	}
+
+	us.m[u.ID] = u
+	us.nm[u.Name] = struct{}{}
 
 	return nil
 }
@@ -72,9 +87,13 @@ func (us *userStorage) delete(id string) bool {
 		if u.Boss {
 			return false
 		}
-	}
 
-	delete(us.m, id)
+		if _, ok := us.nm[u.Name]; ok {
+			delete(us.nm, u.Name)
+		}
+
+		delete(us.m, id)
+	}
 
 	return true
 }
@@ -93,21 +112,7 @@ func (us *userStorage) list() []*User {
 }
 
 func newUser(boss bool) (*User, error) {
-	var (
-		fullname string
-		person   namesgenerator.Person
-		err      error
-	)
-
-	fullname, person, err = namesgenerator.PhysicsAwardee()
-
-	if err != nil {
-		return nil, fmt.Errorf("namegen: %w", err)
-	}
-
 	user := &User{
-		Name:                    fullname,
-		Person:                  person,
 		MonthlyQuotaRemainingGB: MonthlyQuotaRemainingGB,
 		Boss:                    boss,
 		Problems:                make([]string, 0),

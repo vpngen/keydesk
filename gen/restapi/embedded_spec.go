@@ -20,7 +20,7 @@ func init() {
 	SwaggerJSON = json.RawMessage([]byte(`{
   "swagger": "2.0",
   "info": {
-    "title": "Keykeeper server",
+    "title": "Keydesk server",
     "version": "1.0.0"
   },
   "basePath": "/",
@@ -235,7 +235,7 @@ func init() {
 	FlatSwaggerJSON = json.RawMessage([]byte(`{
   "swagger": "2.0",
   "info": {
-    "title": "Keykeeper server",
+    "title": "Keydesk server",
     "version": "1.0.0"
   },
   "basePath": "/",

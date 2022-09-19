@@ -15,7 +15,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/vpngen/wordsgens v0.0.0-20220828154359-07922ea2603c
-	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b
+	golang.org/x/net v0.0.0-20220909164309-bea034e7d591
 )
 
 require (
@@ -28,7 +28,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	go.mongodb.org/mongo-driver v1.10.1 // indirect
-	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
+	go.mongodb.org/mongo-driver v1.10.2 // indirect
+	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

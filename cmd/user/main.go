@@ -99,7 +99,7 @@ func main() {
 		close(done)
 	}()
 
-	fmt.Printf("Starting %s keykeeper\n", BrigadierID)
+	fmt.Printf("Starting %s keydesk\n", BrigadierID)
 
 	// Start accepting connections.
 	if err := server.Serve(listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {

@@ -1,5 +1,5 @@
 [Unit]
-Description = Keykeeper
+Description = Keydesk
 Requires=%p@.socket
 
 [Service]

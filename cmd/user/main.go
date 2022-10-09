@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	goerrors "errors"
+	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -33,21 +35,9 @@ const TokenLifeTime = 3600
 
 func main() {
 
-	usr, err := osuser.Current()
+	listen, BrigadierID, err := bootstrap()
 	if err != nil {
-		log.Fatalf(err.Error())
-	}
-
-	BrigadierID := usr.Username
-
-	listeners, err := activation.Listeners()
-	if err != nil {
-		log.Panicf("cannot retrieve listeners: %s", err)
-	}
-
-	if len(listeners) != 1 {
-		log.Panicf("unexpected number of socket activation (%d != 1)",
-			len(listeners))
+		log.Fatalf("Can't init: %s\n", err)
 	}
 
 	// load embedded swagger file
@@ -102,7 +92,7 @@ func main() {
 	fmt.Printf("Starting %s keydesk\n", BrigadierID)
 
 	// Start accepting connections.
-	if err := server.Serve(listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+	if err := server.Serve(listen); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("Can't serve: %s\n", err)
 	}
 
@@ -125,4 +115,38 @@ func uiMiddleware(handler http.Handler) http.Handler {
 		}
 		handler.ServeHTTP(w, r)
 	})
+}
+
+func bootstrap() (net.Listener, string, error) {
+	listenAddr := flag.String("l", "", "Listen addr:port (for test)")
+	brigadierID := flag.String("id", "", "BrigadierID (for test)")
+	flag.Parse()
+
+	if *listenAddr != "" && *brigadierID != "" {
+		listen, err := net.Listen("tcp", *listenAddr)
+		if err != nil {
+			return nil, "", fmt.Errorf("cannot listen: %w", err)
+		}
+
+		return listen, *brigadierID, nil
+	}
+
+	usr, err := osuser.Current()
+	if err != nil {
+		return nil, "", fmt.Errorf("cannot define user: %w", err)
+	}
+
+	id := usr.Username
+
+	listeners, err := activation.Listeners()
+	if err != nil {
+		return nil, "", fmt.Errorf("cannot retrieve listeners: %w", err)
+	}
+
+	if len(listeners) != 1 {
+		return nil, "", fmt.Errorf("unexpected number of socket activation (%d != 1)",
+			len(listeners))
+	}
+
+	return listeners[0], id, nil
 }

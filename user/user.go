@@ -1,14 +1,19 @@
 package user
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io"
 	"net/url"
 	"strings"
 
+	"github.com/vpngen/keykeeper/env"
 	"github.com/vpngen/keykeeper/gen/models"
 	"github.com/vpngen/keykeeper/gen/restapi/operations"
+	"github.com/vpngen/vpngine/naclkey"
 	"github.com/vpngen/wordsgens/namesgenerator"
+	"golang.org/x/crypto/nacl/box"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -42,14 +47,22 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 	return operations.NewPostUserCreated().WithContentDisposition(constructContentDisposition(user.Name, user.ID)).WithPayload(rc)
 }
 
-func addUser(fullname string, person namesgenerator.Person, boss bool) (*User, error) {
-	user := &User{
+func addUser(fullname string, person namesgenerator.Person, boss bool) (*UserConfig, error) {
+	user := &UserConfig{
 		Name:                    fullname,
 		Person:                  person,
 		MonthlyQuotaRemainingGB: MonthlyQuotaRemainingGB,
 		Boss:                    boss,
-		Problems:                make([]string, 0),
 	}
+
+	wgPub, wgRouterPriv, wgShufflerPriv, err := genwgKey(&env.Env.RouterPublicKey, &env.Env.ShufflerPublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("wggen: %w", err)
+	}
+
+	user.WgPublicKey = wgPub
+	user.WgRouterPriv = wgRouterPriv
+	user.WgShufflerPriv = wgShufflerPriv
 
 	if err := storage.put(user); err != nil {
 		return nil, fmt.Errorf("put: %w", err)
@@ -95,4 +108,25 @@ func GetUsers(params operations.GetUserParams, principal interface{}) middleware
 	}
 
 	return operations.NewGetUserOK().WithPayload(users)
+}
+
+func genwgKey(ruouterPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) ([]byte, []byte, []byte, error) {
+	key, err := wgtypes.GenerateKey()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("gen wg key: %w", err)
+	}
+
+	routerKey, err := box.SealAnonymous(nil, key[:], ruouterPubkey, rand.Reader)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("router seal: %w", err)
+	}
+
+	shufflerKey, err := box.SealAnonymous(nil, key[:], shufflerPubkey, rand.Reader)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("shuffler seal: %w", err)
+	}
+
+	pub := key.PublicKey()
+
+	return pub[:], routerKey, shufflerKey, nil
 }

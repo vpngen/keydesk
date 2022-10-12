@@ -1,12 +1,14 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/vpngen/keykeeper/env"
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
 
@@ -35,6 +37,18 @@ type User struct {
 	Boss                    bool
 }
 
+// UserConfig - new user structure.
+type UserConfig struct {
+	ID                      string
+	Name                    string
+	Person                  namesgenerator.Person
+	MonthlyQuotaRemainingGB float32
+	Boss                    bool
+	WgPublicKey             []byte
+	WgRouterPriv            []byte
+	WgShufflerPriv          []byte
+}
+
 type userStorage struct {
 	sync.Mutex
 	m  map[string]*User
@@ -46,7 +60,14 @@ var storage = &userStorage{
 	nm: make(map[string]struct{}),
 }
 
-func (us *userStorage) put(u *User) error {
+func (us *userStorage) put(u *UserConfig) error {
+	tx, err := env.Env.DB.Begin(context.Background())
+	if err != nil {
+		return fmt.Errorf("Can't connect: %w", err)
+	}
+
+	defer tx.Rollback(context.Background())
+
 	if len(us.m) >= MaxUsers {
 		return ErrUserLimit
 	}
@@ -77,7 +98,7 @@ func (us *userStorage) put(u *User) error {
 		}
 	}
 
-	us.m[u.ID] = u
+	//us.m[u.ID] = u
 	us.nm[u.Name] = struct{}{}
 
 	return nil
@@ -115,11 +136,10 @@ func (us *userStorage) list() []*User {
 	return res
 }
 
-func newUser(boss bool) (*User, error) {
-	user := &User{
+func newUser(boss bool) (*UserConfig, error) {
+	user := &UserConfig{
 		MonthlyQuotaRemainingGB: MonthlyQuotaRemainingGB,
 		Boss:                    boss,
-		Problems:                make([]string, 0),
 	}
 
 	if err := storage.put(user); err != nil {
@@ -129,8 +149,8 @@ func newUser(boss bool) (*User, error) {
 	return user, nil
 }
 
-var brigadier *User
+/*var brigadier *User
 
 func init() {
 	brigadier, _ = newUser(true)
-}
+}*/

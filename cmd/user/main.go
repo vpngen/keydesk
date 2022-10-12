@@ -57,6 +57,8 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	defer env.Env.DB.Close()
+
 	// create new service API
 	api := operations.NewUserAPI(swaggerSpec)
 

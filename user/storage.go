@@ -13,8 +13,12 @@ import (
 // MonthlyQuotaRemainingGB - .
 const MonthlyQuotaRemainingGB = 100
 
-// ErrUserLimit - maximun user num exeeded.
-var ErrUserLimit = errors.New("num user limit exeeded")
+var (
+	// ErrUserLimit - maximun user num exeeded.
+	ErrUserLimit = errors.New("num user limit exeeded")
+	// ErrUserCollision - user name collision.
+	ErrUserCollision = errors.New("username exists")
+)
 
 // User - user structure.
 type User struct {

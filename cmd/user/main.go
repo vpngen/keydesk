@@ -20,6 +20,7 @@ import (
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
 
+	"github.com/vpngen/keykeeper/env"
 	"github.com/vpngen/keykeeper/gen/restapi"
 	"github.com/vpngen/keykeeper/gen/restapi/operations"
 	"github.com/vpngen/keykeeper/token"
@@ -42,6 +43,16 @@ func main() {
 
 	// load embedded swagger file
 	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	err = env.ReadConfigs()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	err = env.CreatePool()
 	if err != nil {
 		log.Fatalln(err)
 	}

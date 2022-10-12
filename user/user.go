@@ -8,6 +8,7 @@ import (
 
 	"github.com/vpngen/keykeeper/gen/models"
 	"github.com/vpngen/keykeeper/gen/restapi/operations"
+	"github.com/vpngen/wordsgens/namesgenerator"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -39,6 +40,22 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 	`))
 
 	return operations.NewPostUserCreated().WithContentDisposition(constructContentDisposition(user.Name, user.ID)).WithPayload(rc)
+}
+
+func addUser(fullname string, person namesgenerator.Person, boss bool) (*User, error) {
+	user := &User{
+		Name:                    fullname,
+		Person:                  person,
+		MonthlyQuotaRemainingGB: MonthlyQuotaRemainingGB,
+		Boss:                    boss,
+		Problems:                make([]string, 0),
+	}
+
+	if err := storage.put(user); err != nil {
+		return nil, fmt.Errorf("put: %w", err)
+	}
+
+	return user, nil
 }
 
 func constructContentDisposition(name, id string) string {

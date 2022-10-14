@@ -2,8 +2,10 @@ package user
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"io"
+	"net/netip"
 	"net/url"
 	"strings"
 
@@ -29,39 +31,30 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 		return operations.NewPostUserDefault(500)
 	}
 
-	user, err := addUser(fullname, person, false)
+	user, wgPriv, err := addUser(fullname, person, false)
 	if err != nil {
 		return operations.NewPostUserDefault(500)
 	}
 
-	rc := io.NopCloser(strings.NewReader(`[Interface]
-	# Name = laptop.example-vpn.dev
-	Address = 10.0.44.4/32
-	PrivateKey = OPmibSXYAAcMIYKNsWqr77zY06Kl750AEB1nWQi1T2o=
-	DNS = 1.1.1.1
-	
-	[Peer]
-	# Name = public-server1.example-vpn.tld
-	Endpoint = public-server1.example-vpn.tld:51820
-	PublicKey = q/+jwmL5tNuYSB3z+t9Caj00Pc1YQ8zf+uNPu/UE1wE=
-	# routes traffic to itself and entire subnet of peers as bounce server
-	AllowedIPs = 10.0.44.1/24
-	PersistentKeepalive = 25
-	`))
+	wgconf := genWgConf(user, wgPriv)
+
+	rc := io.NopCloser(strings.NewReader(wgconf))
 
 	return operations.NewPostUserCreated().WithContentDisposition(constructContentDisposition(user.Name, user.ID)).WithPayload(rc)
 }
 
-func addUser(fullname string, person namesgenerator.Person, boss bool) (*UserConfig, error) {
+func addUser(fullname string, person namesgenerator.Person, boss bool) (*UserConfig, []byte, error) {
 	user := &UserConfig{
 		Name:   fullname,
 		Person: person,
 		Boss:   boss,
 	}
 
-	wgPub, wgRouterPriv, wgShufflerPriv, err := genwgKey(&env.Env.RouterPublicKey, &env.Env.ShufflerPublicKey)
+	wgPub, wgPriv, wgRouterPriv, wgShufflerPriv, err := genwgKey(&env.Env.RouterPublicKey, &env.Env.ShufflerPublicKey)
 	if err != nil {
-		return nil, fmt.Errorf("wggen: %w", err)
+		fmt.Printf("wggen: %s", err)
+
+		return nil, nil, fmt.Errorf("wggen: %w", err)
 	}
 
 	user.WgPublicKey = wgPub
@@ -69,10 +62,36 @@ func addUser(fullname string, person namesgenerator.Person, boss bool) (*UserCon
 	user.WgShufflerPriv = wgShufflerPriv
 
 	if err := storage.put(user); err != nil {
-		return nil, fmt.Errorf("put: %w", err)
+		fmt.Printf("put: %s", err)
+
+		return nil, nil, fmt.Errorf("put: %w", err)
 	}
 
-	return user, nil
+	return user, wgPriv, nil
+}
+
+func genWgConf(u *UserConfig, wgPriv []byte) string {
+
+	tmpl := `[Interface]
+Address = %s
+PrivateKey = %s
+DNS = %s
+
+[Peer]
+Endpoint = %s:51820
+PublicKey = %s
+AllowedIPs = 0.0.0.0/0
+`
+
+	wgconf := fmt.Sprintf(tmpl,
+		netip.PrefixFrom(u.IPv4, 32).String()+","+netip.PrefixFrom(u.IPv6, 64).String(),
+		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPriv),
+		u.DNSv4.String()+","+u.DNSv6.String(),
+		u.EndpointIPv4.String(),
+		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.EndpointWgPublic),
+	)
+
+	return wgconf
 }
 
 func constructContentDisposition(name, id string) string {
@@ -114,23 +133,23 @@ func GetUsers(params operations.GetUserParams, principal interface{}) middleware
 	return operations.NewGetUserOK().WithPayload(users)
 }
 
-func genwgKey(ruouterPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) ([]byte, []byte, []byte, error) {
+func genwgKey(ruouterPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) ([]byte, []byte, []byte, []byte, error) {
 	key, err := wgtypes.GenerateKey()
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("gen wg key: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("gen wg key: %w", err)
 	}
 
 	routerKey, err := box.SealAnonymous(nil, key[:], ruouterPubkey, rand.Reader)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("router seal: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("router seal: %w", err)
 	}
 
 	shufflerKey, err := box.SealAnonymous(nil, key[:], shufflerPubkey, rand.Reader)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("shuffler seal: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("shuffler seal: %w", err)
 	}
 
 	pub := key.PublicKey()
 
-	return pub[:], routerKey, shufflerKey, nil
+	return pub[:], key[:], routerKey, shufflerKey, nil
 }

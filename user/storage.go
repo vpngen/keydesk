@@ -43,13 +43,18 @@ type User struct {
 
 // UserConfig - new user structure.
 type UserConfig struct {
-	ID             string
-	Name           string
-	Person         namesgenerator.Person
-	Boss           bool
-	WgPublicKey    []byte
-	WgRouterPriv   []byte
-	WgShufflerPriv []byte
+	ID               string
+	Name             string
+	Person           namesgenerator.Person
+	Boss             bool
+	WgPublicKey      []byte
+	WgPrivateKey     []byte
+	WgRouterPriv     []byte
+	WgShufflerPriv   []byte
+	DNSv4, DNSv6     netip.Addr
+	IPv4, IPv6       netip.Addr
+	EndpointIPv4     netip.Addr
+	EndpointWgPublic []byte
 }
 
 type userStorage struct {
@@ -95,7 +100,12 @@ func (us *userStorage) put(u *UserConfig) error {
 		return err
 	}
 
-	rows, err = tx.Query(context.Background(), fmt.Sprintf("SELECT user_id,user_callsign,wg_public,user_ipv4,user_ipv6 FROM %s ORDER BY is_brigadier", (pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()))
+	u.EndpointWgPublic = wg_public
+	u.EndpointIPv4 = endpoint_ipv4
+	u.DNSv4 = dns_ipv4
+	u.DNSv6 = dns_ipv6
+
+	rows, err = tx.Query(context.Background(), fmt.Sprintf("SELECT user_id,user_callsign,user_ipv4,user_ipv6 FROM %s ORDER BY is_brigadier", (pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()))
 	if err != nil {
 		tx.Rollback(context.Background())
 
@@ -110,7 +120,7 @@ func (us *userStorage) put(u *UserConfig) error {
 
 	ids := make(map[string]struct{})
 
-	_, err = pgx.ForEachRow(rows, []any{&user_id, &user_callsign, &wg_public, &user_ipv4, &user_ipv6}, func() error {
+	_, err = pgx.ForEachRow(rows, []any{&user_id, &user_callsign, &user_ipv4, &user_ipv6}, func() error {
 		if user_callsign == u.Name {
 			return ErrUserCollision
 		}
@@ -139,13 +149,15 @@ func (us *userStorage) put(u *UserConfig) error {
 		}
 	}
 
-	ip4, _ := netip.ParseAddr("100.65.2.33")
-	ip6, _ := netip.ParseAddr("fd01::15")
+	u.ID = newid.String()
+
+	u.IPv4, _ = netip.ParseAddr("100.65.2.33")
+	u.IPv6, _ = netip.ParseAddr("fd01::15")
 
 	_, err = tx.Exec(context.Background(),
 		fmt.Sprintf("INSERT INTO %s (user_id, user_callsign, is_brigadier, wg_public, wg_psk_router, wg_psk_shuffler, user_ipv4, user_ipv6) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 			(pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()),
-		newid.String(), u.Name, u.Boss, `\x`+hex.EncodeToString(u.WgPublicKey), `\x`+hex.EncodeToString(u.WgRouterPriv), `\x`+hex.EncodeToString(u.WgShufflerPriv), ip4.String(), ip6.String(),
+		u.ID, u.Name, u.Boss, `\x`+hex.EncodeToString(u.WgPublicKey), `\x`+hex.EncodeToString(u.WgRouterPriv), `\x`+hex.EncodeToString(u.WgShufflerPriv), u.IPv4.String(), u.IPv6.String(),
 	)
 	if err != nil {
 		tx.Rollback(context.Background())

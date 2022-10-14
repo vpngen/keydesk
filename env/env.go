@@ -23,6 +23,7 @@ const postgresqlSocket = "/var/run/postgresql"
 
 // KeykeeperEnv - struct type for shared vars.
 type KeykeeperEnv struct {
+	BrigadierID                        string
 	DBName                             string
 	RouterPublicKey, ShufflerPublicKey [naclkey.NaclBoxKeyLength]byte
 	DB                                 *pgxpool.Pool
@@ -59,6 +60,7 @@ func ReadConfigs() error {
 }
 
 func CreatePool() error {
+	//config, err := pgxpool.ParseConfig(fmt.Sprintf("host=%s user=%s dbname=%s", postgresqlSocket, Env.BrigadierID, Env.DBName))
 	config, err := pgxpool.ParseConfig(fmt.Sprintf("host=%s dbname=%s", postgresqlSocket, Env.DBName))
 	if err != nil {
 		return fmt.Errorf("Can't parse conn string: %w", err)

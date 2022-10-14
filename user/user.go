@@ -24,7 +24,12 @@ const MaxUsers = 500
 
 // AddUser - creaste user.
 func AddUser(params operations.PostUserParams, principal interface{}) middleware.Responder {
-	user, err := newUser(false)
+	fullname, person, err := namesgenerator.PhysicsAwardee()
+	if err != nil {
+		return operations.NewPostUserDefault(500)
+	}
+
+	user, err := addUser(fullname, person, false)
 	if err != nil {
 		return operations.NewPostUserDefault(500)
 	}
@@ -49,10 +54,9 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 
 func addUser(fullname string, person namesgenerator.Person, boss bool) (*UserConfig, error) {
 	user := &UserConfig{
-		Name:                    fullname,
-		Person:                  person,
-		MonthlyQuotaRemainingGB: MonthlyQuotaRemainingGB,
-		Boss:                    boss,
+		Name:   fullname,
+		Person: person,
+		Boss:   boss,
 	}
 
 	wgPub, wgRouterPriv, wgShufflerPriv, err := genwgKey(&env.Env.RouterPublicKey, &env.Env.ShufflerPublicKey)

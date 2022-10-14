@@ -2,14 +2,18 @@ package user
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/netip"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/vpngen/keykeeper/env"
 	"github.com/vpngen/wordsgens/namesgenerator"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // MonthlyQuotaRemainingGB - .
@@ -39,14 +43,13 @@ type User struct {
 
 // UserConfig - new user structure.
 type UserConfig struct {
-	ID                      string
-	Name                    string
-	Person                  namesgenerator.Person
-	MonthlyQuotaRemainingGB float32
-	Boss                    bool
-	WgPublicKey             []byte
-	WgRouterPriv            []byte
-	WgShufflerPriv          []byte
+	ID             string
+	Name           string
+	Person         namesgenerator.Person
+	Boss           bool
+	WgPublicKey    []byte
+	WgRouterPriv   []byte
+	WgShufflerPriv []byte
 }
 
 type userStorage struct {
@@ -66,9 +69,91 @@ func (us *userStorage) put(u *UserConfig) error {
 		return fmt.Errorf("Can't connect: %w", err)
 	}
 
-	defer tx.Rollback(context.Background())
+	var (
+		wg_public          []byte
+		endpoint_ipv4      netip.Addr
+		dns_ipv4, dns_ipv6 netip.Addr
+		ipv4_cgnat         netip.Prefix
+		ipv6_ula           netip.Prefix
+	)
 
-	if len(us.m) >= MaxUsers {
+	rows, err := tx.Query(context.Background(), fmt.Sprintf("SELECT wg_public,endpoint_ipv4,dns_ipv4,dns_ipv6,ipv4_cgnat,ipv6_ula FROM %s FOR UPDATE", (pgx.Identifier{env.Env.BrigadierID, "brigade"}).Sanitize()))
+	if err != nil {
+		tx.Rollback(context.Background())
+
+		return fmt.Errorf("Can't brigadier query: %w", err)
+	}
+
+	_, err = pgx.ForEachRow(rows, []any{&wg_public, &endpoint_ipv4, &dns_ipv4, &dns_ipv6, &ipv4_cgnat, &ipv6_ula}, func() error {
+		//fmt.Printf("Brigade:\nwg_public: %v\nendpoint_ipv4: %v\ndns_ipv4: %v\ndns_ipv6: %v\nipv4_cgnat: %v\nipv6_ula: %v\n", wg_public, endpoint_ipv4, dns_ipv4, dns_ipv6, ipv4_cgnat, ipv6_ula)
+
+		return nil
+	})
+	if err != nil {
+		tx.Rollback(context.Background())
+
+		return err
+	}
+
+	rows, err = tx.Query(context.Background(), fmt.Sprintf("SELECT user_id,user_callsign,wg_public,user_ipv4,user_ipv6 FROM %s ORDER BY is_brigadier", (pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()))
+	if err != nil {
+		tx.Rollback(context.Background())
+
+		return fmt.Errorf("Can't users query: %w", err)
+	}
+
+	var (
+		user_id              []byte
+		user_callsign        string
+		user_ipv4, user_ipv6 netip.Addr
+	)
+
+	ids := make(map[string]struct{})
+
+	_, err = pgx.ForEachRow(rows, []any{&user_id, &user_callsign, &wg_public, &user_ipv4, &user_ipv6}, func() error {
+		if user_callsign == u.Name {
+			return ErrUserCollision
+		}
+
+		id, err := uuid.FromBytes(user_id)
+		if err != nil {
+			return fmt.Errorf("cant convert: %w", err)
+		}
+
+		ids[id.String()] = struct{}{}
+
+		return nil
+	})
+	if err != nil {
+		tx.Rollback(context.Background())
+
+		return err
+	}
+
+	var newid uuid.UUID
+	for {
+		newid = uuid.New()
+
+		if _, ok := ids[newid.String()]; !ok {
+			break
+		}
+	}
+
+	ip4, _ := netip.ParseAddr("100.65.2.33")
+	ip6, _ := netip.ParseAddr("fd01::15")
+
+	_, err = tx.Exec(context.Background(),
+		fmt.Sprintf("INSERT INTO %s (user_id, user_callsign, is_brigadier, wg_public, wg_psk_router, wg_psk_shuffler, user_ipv4, user_ipv6) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+			(pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()),
+		newid.String(), u.Name, u.Boss, `\x`+hex.EncodeToString(u.WgPublicKey), `\x`+hex.EncodeToString(u.WgRouterPriv), `\x`+hex.EncodeToString(u.WgShufflerPriv), ip4.String(), ip6.String(),
+	)
+	if err != nil {
+		tx.Rollback(context.Background())
+
+		return err
+	}
+
+	/*if len(us.m) >= MaxUsers {
 		return ErrUserLimit
 	}
 
@@ -99,7 +184,9 @@ func (us *userStorage) put(u *UserConfig) error {
 	}
 
 	//us.m[u.ID] = u
-	us.nm[u.Name] = struct{}{}
+	us.nm[u.Name] = struct{}{}*/
+
+	tx.Commit(context.Background())
 
 	return nil
 }
@@ -136,10 +223,9 @@ func (us *userStorage) list() []*User {
 	return res
 }
 
-func newUser(boss bool) (*UserConfig, error) {
+/*func newUser(boss bool) (*UserConfig, error) {
 	user := &UserConfig{
-		MonthlyQuotaRemainingGB: MonthlyQuotaRemainingGB,
-		Boss:                    boss,
+		Boss: boss,
 	}
 
 	if err := storage.put(user); err != nil {
@@ -149,7 +235,7 @@ func newUser(boss bool) (*UserConfig, error) {
 	return user, nil
 }
 
-/*var brigadier *User
+var brigadier *User
 
 func init() {
 	brigadier, _ = newUser(true)

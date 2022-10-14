@@ -47,6 +47,8 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	env.Env.BrigadierID = BrigadierID
+
 	err = env.ReadConfigs()
 	if err != nil {
 		log.Fatalln(err)

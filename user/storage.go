@@ -48,7 +48,6 @@ type UserConfig struct {
 	Person           namesgenerator.Person
 	Boss             bool
 	WgPublicKey      []byte
-	WgPrivateKey     []byte
 	WgRouterPriv     []byte
 	WgShufflerPriv   []byte
 	DNSv4, DNSv6     netip.Addr
@@ -155,9 +154,20 @@ func (us *userStorage) put(u *UserConfig) error {
 	u.IPv6, _ = netip.ParseAddr("fd01::15")
 
 	_, err = tx.Exec(context.Background(),
-		fmt.Sprintf("INSERT INTO %s (user_id, user_callsign, is_brigadier, wg_public, wg_psk_router, wg_psk_shuffler, user_ipv4, user_ipv6) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+		fmt.Sprintf(`INSERT INTO %s (user_id, user_callsign, is_brigadier, wg_public, wg_psk_router, wg_psk_shuffler, user_ipv4, user_ipv6) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 			(pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()),
 		u.ID, u.Name, u.Boss, `\x`+hex.EncodeToString(u.WgPublicKey), `\x`+hex.EncodeToString(u.WgRouterPriv), `\x`+hex.EncodeToString(u.WgShufflerPriv), u.IPv4.String(), u.IPv6.String(),
+	)
+	if err != nil {
+		tx.Rollback(context.Background())
+
+		return err
+	}
+
+	_, err = tx.Exec(context.Background(),
+		fmt.Sprintf(`INSERT INTO %s (user_id, limit_monthly_remaining, limit_monthly_reset_on, os_counter_mtime, os_counter_value) VALUES ($1, $2, 'now', 'now', 0);`,
+			(pgx.Identifier{env.Env.BrigadierID, "quota"}).Sanitize()),
+		u.ID, MonthlyQuotaRemainingGB,
 	)
 	if err != nil {
 		tx.Rollback(context.Background())

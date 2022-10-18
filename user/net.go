@@ -58,7 +58,7 @@ func randomFrom8(src, dst []byte, mask uint64) {
 
 	x := uint64(0)
 	if mask > 0 {
-		x = uint64(rand.Int63n(int64(mask&maskCorrection)) * (-1 * (rand.Int63() / 2)))
+		x = uint64(rand.Int63n(int64(mask&maskCorrection)) * (-1 * (rand.Int63() % 2)))
 	}
 
 	binary.BigEndian.PutUint64(dst[:8], (x&mask)|addr)

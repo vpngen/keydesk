@@ -3,6 +3,7 @@ package user
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/netip"
@@ -26,14 +27,27 @@ const MaxUsers = 500
 
 // AddUser - create user.
 func AddUser(params operations.PostUserParams, principal interface{}) middleware.Responder {
-	fullname, person, err := namesgenerator.PhysicsAwardee()
-	if err != nil {
-		return operations.NewPostUserDefault(500)
-	}
+	var (
+		user   *UserConfig
+		wgPriv []byte
+	)
 
-	user, wgPriv, err := addUser(fullname, person, false)
-	if err != nil {
-		return operations.NewPostUserDefault(500)
+	for {
+		fullname, person, err := namesgenerator.PhysicsAwardee()
+		if err != nil {
+			return operations.NewPostUserDefault(500)
+		}
+
+		user, wgPriv, err = addUser(fullname, person, false)
+		if err != nil {
+			if errors.Is(err, ErrUserCollision) {
+				continue
+			}
+
+			return operations.NewPostUserDefault(500)
+		}
+
+		break
 	}
 
 	wgconf := genWgConf(user, wgPriv)

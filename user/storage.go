@@ -143,6 +143,10 @@ func (us *userStorage) put(u *UserConfig) error {
 		return err
 	}
 
+	if len(idL) >= MaxUsers {
+		return ErrUserLimit
+	}
+
 	for {
 		u.ID = uuid.New().String()
 

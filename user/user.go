@@ -24,7 +24,7 @@ import (
 // MaxUsers - maximem limit.
 const MaxUsers = 500
 
-// AddUser - creaste user.
+// AddUser - create user.
 func AddUser(params operations.PostUserParams, principal interface{}) middleware.Responder {
 	fullname, person, err := namesgenerator.PhysicsAwardee()
 	if err != nil {
@@ -41,6 +41,18 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 	rc := io.NopCloser(strings.NewReader(wgconf))
 
 	return operations.NewPostUserCreated().WithContentDisposition(constructContentDisposition(user.Name, user.ID)).WithPayload(rc)
+}
+
+// AddBrigadier - create brigadier user.
+func AddBrigadier(fullname string, person namesgenerator.Person) (string, error) {
+	user, wgPriv, err := addUser(fullname, person, false)
+	if err != nil {
+		return "", fmt.Errorf("addUser: %w", err)
+	}
+
+	wgconf := genWgConf(user, wgPriv)
+
+	return wgconf, nil
 }
 
 func addUser(fullname string, person namesgenerator.Person, boss bool) (*UserConfig, []byte, error) {

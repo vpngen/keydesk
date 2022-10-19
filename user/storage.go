@@ -70,7 +70,7 @@ var storage = &userStorage{
 func (us *userStorage) put(u *UserConfig) error {
 	tx, err := env.Env.DB.Begin(context.Background())
 	if err != nil {
-		return fmt.Errorf("Can't connect: %w", err)
+		return fmt.Errorf("connect: %w", err)
 	}
 
 	var (
@@ -85,7 +85,7 @@ func (us *userStorage) put(u *UserConfig) error {
 	if err != nil {
 		tx.Rollback(context.Background())
 
-		return fmt.Errorf("Can't brigadier query: %w", err)
+		return fmt.Errorf("brigadier query: %w", err)
 	}
 
 	_, err = pgx.ForEachRow(rows, []any{&wg_public, &endpoint_ipv4, &dns_ipv4, &dns_ipv6, &ipv4_cgnat, &ipv6_ula}, func() error {
@@ -96,7 +96,7 @@ func (us *userStorage) put(u *UserConfig) error {
 	if err != nil {
 		tx.Rollback(context.Background())
 
-		return err
+		return fmt.Errorf("brigadier row: %w", err)
 	}
 
 	u.EndpointWgPublic = wg_public
@@ -108,7 +108,7 @@ func (us *userStorage) put(u *UserConfig) error {
 	if err != nil {
 		tx.Rollback(context.Background())
 
-		return fmt.Errorf("Can't users query: %w", err)
+		return fmt.Errorf("user query: %w", err)
 	}
 
 	var (
@@ -128,7 +128,7 @@ func (us *userStorage) put(u *UserConfig) error {
 
 		id, err := uuid.FromBytes(user_id)
 		if err != nil {
-			return fmt.Errorf("cant convert: %w", err)
+			return fmt.Errorf("convert: %w", err)
 		}
 
 		idL[id.String()] = struct{}{}
@@ -140,10 +140,12 @@ func (us *userStorage) put(u *UserConfig) error {
 	if err != nil {
 		tx.Rollback(context.Background())
 
-		return err
+		return fmt.Errorf("user row: %w", err)
 	}
 
 	if len(idL) >= MaxUsers {
+		tx.Rollback(context.Background())
+
 		return ErrUserLimit
 	}
 
@@ -179,7 +181,7 @@ func (us *userStorage) put(u *UserConfig) error {
 	if err != nil {
 		tx.Rollback(context.Background())
 
-		return err
+		return fmt.Errorf("insert user: %w", err)
 	}
 
 	_, err = tx.Exec(context.Background(),
@@ -190,7 +192,7 @@ func (us *userStorage) put(u *UserConfig) error {
 	if err != nil {
 		tx.Rollback(context.Background())
 
-		return err
+		return fmt.Errorf("insert quota: %w", err)
 	}
 
 	_, err = tx.Exec(context.Background(),

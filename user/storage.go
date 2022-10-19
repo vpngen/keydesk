@@ -117,7 +117,9 @@ func (us *userStorage) put(u *UserConfig) error {
 		user_ipv4, user_ipv6 netip.Addr
 	)
 
-	ids := make(map[string]struct{})
+	idL := make(map[string]struct{})
+	ip4L := make(map[string]struct{})
+	ip6L := make(map[string]struct{})
 
 	_, err = pgx.ForEachRow(rows, []any{&user_id, &user_callsign, &user_ipv4, &user_ipv6}, func() error {
 		if user_callsign == u.Name {
@@ -129,7 +131,9 @@ func (us *userStorage) put(u *UserConfig) error {
 			return fmt.Errorf("cant convert: %w", err)
 		}
 
-		ids[id.String()] = struct{}{}
+		idL[id.String()] = struct{}{}
+		ip4L[user_ipv4.String()] = struct{}{}
+		ip6L[user_ipv6.String()] = struct{}{}
 
 		return nil
 	})
@@ -139,19 +143,29 @@ func (us *userStorage) put(u *UserConfig) error {
 		return err
 	}
 
-	var newid uuid.UUID
 	for {
-		newid = uuid.New()
+		u.ID = uuid.New().String()
 
-		if _, ok := ids[newid.String()]; !ok {
+		if _, ok := idL[u.ID]; !ok {
 			break
 		}
 	}
 
-	u.ID = newid.String()
+	for {
+		u.IPv4 = RandomAddrIPv4(ipv4_cgnat)
 
-	u.IPv4, _ = netip.ParseAddr("100.65.2.33")
-	u.IPv6, _ = netip.ParseAddr("fd01::15")
+		if _, ok := ip4L[u.IPv4.String()]; !ok {
+			break
+		}
+	}
+
+	for {
+		u.IPv6 = RandomAddrIPv6(ipv6_ula)
+
+		if _, ok := ip6L[u.IPv6.String()]; !ok {
+			break
+		}
+	}
 
 	_, err = tx.Exec(context.Background(),
 		fmt.Sprintf(`INSERT INTO %s (user_id, user_callsign, is_brigadier, wg_public, wg_psk_router, wg_psk_shuffler, user_ipv4, user_ipv6) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
@@ -165,7 +179,7 @@ func (us *userStorage) put(u *UserConfig) error {
 	}
 
 	_, err = tx.Exec(context.Background(),
-		fmt.Sprintf(`INSERT INTO %s (user_id, limit_monthly_remaining, limit_monthly_reset_on, os_counter_mtime, os_counter_value) VALUES ($1, $2, 'now', 'now', 0);`,
+		fmt.Sprintf(`INSERT INTO %s (user_id, limit_monthly_remaining, limit_monthly_reset_on, os_counter_mtime, os_counter_value) VALUES ($1, $2 :: int8 * 1024 * 1024 * 1024, 'now', 'now', 0);`,
 			(pgx.Identifier{env.Env.BrigadierID, "quota"}).Sanitize()),
 		u.ID, MonthlyQuotaRemainingGB,
 	)
@@ -175,38 +189,16 @@ func (us *userStorage) put(u *UserConfig) error {
 		return err
 	}
 
-	/*if len(us.m) >= MaxUsers {
-		return ErrUserLimit
+	_, err = tx.Exec(context.Background(),
+		fmt.Sprintf("SELECT pg_notify('vpngen', '{\"t\":\"new-user\",\"brigade_id\":%q,\"user_id\":%q}')",
+			env.Env.BrigadierID, u.ID,
+		),
+	)
+	if err != nil {
+		tx.Rollback(context.Background())
+
+		return fmt.Errorf("notify: %w", err)
 	}
-
-	us.Lock()
-	defer us.Unlock()
-
-	for {
-		fullname, person, err := namesgenerator.PhysicsAwardee()
-		if err != nil {
-			return fmt.Errorf("namegen: %w", err)
-		}
-
-		if _, ok := us.nm[fullname]; !ok {
-			u.Name = fullname
-			u.Person = person
-
-			break
-		}
-	}
-
-	for {
-		id := uuid.New().String()
-		if _, ok := us.m[id]; !ok {
-			u.ID = id
-
-			break
-		}
-	}
-
-	//us.m[u.ID] = u
-	us.nm[u.Name] = struct{}{}*/
 
 	tx.Commit(context.Background())
 
@@ -244,21 +236,3 @@ func (us *userStorage) list() []*User {
 
 	return res
 }
-
-/*func newUser(boss bool) (*UserConfig, error) {
-	user := &UserConfig{
-		Boss: boss,
-	}
-
-	if err := storage.put(user); err != nil {
-		return nil, fmt.Errorf("put: %w", err)
-	}
-
-	return user, nil
-}
-
-var brigadier *User
-
-func init() {
-	brigadier, _ = newUser(true)
-}*/

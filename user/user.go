@@ -135,7 +135,12 @@ func DelUserUserID(params operations.DeleteUserUserIDParams, principal interface
 
 // GetUsers - .
 func GetUsers(params operations.GetUserParams, principal interface{}) middleware.Responder {
-	_users := storage.list()
+	_users, err := storage.list()
+	if err != nil {
+		fmt.Printf("list: %s\n", err)
+
+		return operations.NewGetUserDefault(500)
+	}
 
 	users := make([]*models.User, len(_users))
 	for i := range _users {

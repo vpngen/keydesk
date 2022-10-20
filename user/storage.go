@@ -14,6 +14,7 @@ import (
 	"github.com/vpngen/wordsgens/namesgenerator"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // MonthlyQuotaRemainingGB - .
@@ -230,15 +231,75 @@ func (us *userStorage) delete(id string) bool {
 	return true
 }
 
-func (us *userStorage) list() []*User {
-	us.Lock()
-	defer us.Unlock()
+func (us *userStorage) list() ([]*User, error) {
+	ctx := context.Background()
 
-	res := make([]*User, 0, len(us.m))
-
-	for _, v := range us.m {
-		res = append(res, v)
+	tx, err := env.Env.DB.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("connect: %w", err)
 	}
 
-	return res
+	rows, err := tx.Query(ctx,
+		fmt.Sprintf(
+			`SELECT 
+				users.user_id,
+				users.user_callsign,
+				users.is_brigadier,
+				quota.limit_monthly_remaining,
+				quota.limit_monthly_reset_on,
+				quota.last_activity,
+				quota.last_origin,
+				quota.last_asn,
+				quota.p2p_slowdown_till
+				FROM %s JOIN %s ON users.user_id = quota.user_id
+			`,
+			(pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize(),
+			(pgx.Identifier{env.Env.BrigadierID, "quota"}).Sanitize(),
+		),
+	)
+	if err != nil {
+		tx.Rollback(ctx)
+
+		return nil, fmt.Errorf("users query: %w", err)
+	}
+
+	users := make([]*User, 0)
+
+	var (
+		user_id           string
+		user_callsign     string
+		is_brigadier      bool
+		lmr               pgtype.Int8
+		lmro              pgtype.Date
+		last_activity     pgtype.Timestamp
+		last_origin       pgtype.Text
+		last_asn          pgtype.Int4
+		p2p_slowdown_till pgtype.Timestamp
+	)
+
+	_, err = pgx.ForEachRow(rows, []any{&user_id, &user_callsign, &is_brigadier, &lmr, &lmro, &last_activity, &last_origin, &last_asn, &p2p_slowdown_till}, func() error {
+
+		u := &User{}
+		u.ID = user_id
+		u.Name = user_callsign
+		u.Boss = is_brigadier
+		u.LastVisitHour = last_activity.Time
+		u.MonthlyQuotaRemainingGB = float32(lmr.Int64 / 1024 / 1024 / 1024)
+		u.ThrottlingTill = p2p_slowdown_till.Time
+		u.LastVisitSubnet = last_origin.String
+		//u.LastVisitASName = last_asn
+
+		users = append(users, u)
+
+		return nil
+	})
+	if err != nil {
+		tx.Rollback(ctx)
+
+		return nil, fmt.Errorf("users rows: %w", err)
+	}
+
+	tx.Commit(ctx)
+
+	return users, nil
 }

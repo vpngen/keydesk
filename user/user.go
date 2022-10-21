@@ -126,11 +126,12 @@ func constructContentDisposition(name, id string) string {
 
 // DelUserUserID - creaste user.
 func DelUserUserID(params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
-	if storage.delete(params.UserID) {
-		return operations.NewDeleteUserUserIDNoContent()
+	err := storage.delete(params.UserID)
+	if err != nil {
+		return operations.NewDeleteUserUserIDForbidden()
 	}
 
-	return operations.NewDeleteUserUserIDForbidden()
+	return operations.NewDeleteUserUserIDNoContent()
 }
 
 // GetUsers - .

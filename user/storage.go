@@ -212,23 +212,37 @@ func (us *userStorage) put(u *UserConfig) error {
 	return nil
 }
 
-func (us *userStorage) delete(id string) bool {
-	us.Lock()
-	defer us.Unlock()
+func (us *userStorage) delete(id string) error {
+	ctx := context.Background()
 
-	if u, ok := us.m[id]; ok {
-		if u.Boss {
-			return false
-		}
-
-		if _, ok := us.nm[u.Name]; ok {
-			delete(us.nm, u.Name)
-		}
-
-		delete(us.m, id)
+	tx, err := env.Env.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("connect: %w", err)
 	}
 
-	return true
+	_, err = tx.Exec(ctx,
+		fmt.Sprintf("DELETE FROM %s WHERE user_id=$1", (pgx.Identifier{env.Env.BrigadierID, "quota"}).Sanitize()),
+		id,
+	)
+	if err != nil {
+		tx.Rollback(ctx)
+
+		return fmt.Errorf("delete: %w", err)
+	}
+
+	_, err = tx.Exec(ctx,
+		fmt.Sprintf("DELETE FROM %s WHERE user_id=$1", (pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()),
+		id,
+	)
+	if err != nil {
+		tx.Rollback(ctx)
+
+		return fmt.Errorf("delete: %w", err)
+	}
+
+	tx.Commit(ctx)
+
+	return nil
 }
 
 func (us *userStorage) list() ([]*User, error) {
@@ -278,7 +292,6 @@ func (us *userStorage) list() ([]*User, error) {
 	)
 
 	_, err = pgx.ForEachRow(rows, []any{&user_id, &user_callsign, &is_brigadier, &lmr, &lmro, &last_activity, &last_origin, &last_asn, &p2p_slowdown_till}, func() error {
-
 		u := &User{}
 		u.ID = user_id
 		u.Name = user_callsign

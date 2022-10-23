@@ -186,6 +186,17 @@ func (us *userStorage) put(u *UserConfig) error {
 	}
 
 	_, err = tx.Exec(context.Background(),
+		fmt.Sprintf(`INSERT INTO %s (user_id, person) VALUES ($1, $2 :: json);`,
+			(pgx.Identifier{env.Env.BrigadierID, "persons"}).Sanitize()),
+		u.ID, u.Person,
+	)
+	if err != nil {
+		tx.Rollback(context.Background())
+
+		return fmt.Errorf("insert person: %w", err)
+	}
+
+	_, err = tx.Exec(context.Background(),
 		fmt.Sprintf(`INSERT INTO %s (user_id, limit_monthly_remaining, limit_monthly_reset_on, os_counter_mtime, os_counter_value) VALUES ($1, $2 :: int8 * 1024 * 1024 * 1024, 'now', 'now', 0);`,
 			(pgx.Identifier{env.Env.BrigadierID, "quota"}).Sanitize()),
 		u.ID, MonthlyQuotaRemainingGB,
@@ -221,13 +232,23 @@ func (us *userStorage) delete(id string) error {
 	}
 
 	_, err = tx.Exec(ctx,
+		fmt.Sprintf("DELETE FROM %s WHERE user_id=$1", (pgx.Identifier{env.Env.BrigadierID, "persons"}).Sanitize()),
+		id,
+	)
+	if err != nil {
+		tx.Rollback(ctx)
+
+		return fmt.Errorf("delete persons: %w", err)
+	}
+
+	_, err = tx.Exec(ctx,
 		fmt.Sprintf("DELETE FROM %s WHERE user_id=$1", (pgx.Identifier{env.Env.BrigadierID, "quota"}).Sanitize()),
 		id,
 	)
 	if err != nil {
 		tx.Rollback(ctx)
 
-		return fmt.Errorf("delete: %w", err)
+		return fmt.Errorf("delete quota: %w", err)
 	}
 
 	_, err = tx.Exec(ctx,
@@ -237,7 +258,7 @@ func (us *userStorage) delete(id string) error {
 	if err != nil {
 		tx.Rollback(ctx)
 
-		return fmt.Errorf("delete: %w", err)
+		return fmt.Errorf("delete users: %w", err)
 	}
 
 	tx.Commit(ctx)
@@ -259,15 +280,19 @@ func (us *userStorage) list() ([]*User, error) {
 				users.user_id,
 				users.user_callsign,
 				users.is_brigadier,
+				persons.person,
 				quota.limit_monthly_remaining,
 				quota.limit_monthly_reset_on,
 				quota.last_activity,
 				quota.last_origin,
 				quota.last_asn,
 				quota.p2p_slowdown_till
-				FROM %s JOIN %s ON users.user_id = quota.user_id
+				FROM %s
+				JOIN %s ON users.user_id = persons.user_id
+				JOIN %s ON users.user_id = quota.user_id
 			`,
 			(pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize(),
+			(pgx.Identifier{env.Env.BrigadierID, "persons"}).Sanitize(),
 			(pgx.Identifier{env.Env.BrigadierID, "quota"}).Sanitize(),
 		),
 	)
@@ -283,6 +308,7 @@ func (us *userStorage) list() ([]*User, error) {
 		user_id           string
 		user_callsign     string
 		is_brigadier      bool
+		person            namesgenerator.Person
 		lmr               pgtype.Int8
 		lmro              pgtype.Date
 		last_activity     pgtype.Timestamp
@@ -291,11 +317,12 @@ func (us *userStorage) list() ([]*User, error) {
 		p2p_slowdown_till pgtype.Timestamp
 	)
 
-	_, err = pgx.ForEachRow(rows, []any{&user_id, &user_callsign, &is_brigadier, &lmr, &lmro, &last_activity, &last_origin, &last_asn, &p2p_slowdown_till}, func() error {
+	_, err = pgx.ForEachRow(rows, []any{&user_id, &user_callsign, &is_brigadier, &person, &lmr, &lmro, &last_activity, &last_origin, &last_asn, &p2p_slowdown_till}, func() error {
 		u := &User{}
 		u.ID = user_id
 		u.Name = user_callsign
 		u.Boss = is_brigadier
+		u.Person = person
 		u.LastVisitHour = last_activity.Time
 		u.MonthlyQuotaRemainingGB = float32(lmr.Int64 / 1024 / 1024 / 1024)
 		u.ThrottlingTill = p2p_slowdown_till.Time

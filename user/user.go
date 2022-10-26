@@ -23,7 +23,7 @@ import (
 )
 
 // MaxUsers - maximem limit.
-const MaxUsers = 500
+const MaxUsers = 250
 
 // AddUser - create user.
 func AddUser(params operations.PostUserParams, principal interface{}) middleware.Responder {

@@ -5,8 +5,8 @@ Requires=%p@.socket
 [Service]
 User=%i
 Group=%i
-WorkingDirectory=/opt/user
-ExecStart = /opt/user/user
+WorkingDirectory=/opt/keydesk
+ExecStart = /opt/keydesk/keydesk
 
 [Install]
 WantedBy=multi-user.target

@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/netip"
@@ -174,6 +175,26 @@ func (us *userStorage) put(u *UserConfig) error {
 		}
 	}
 
+	userNotify := &SrvNotify{
+		T: NotifyNewUser,
+		Brigadier: SrvBrigadier{
+			ID:          env.Env.BrigadierID,
+			WgPublicKey: wg_public,
+		},
+		User: SrvUser{
+			ID:          u.ID,
+			WgPublicKey: u.WgPublicKey,
+			IsBrigadier: u.Boss,
+		},
+	}
+
+	notify, err := json.Marshal(userNotify)
+	if err != nil {
+		tx.Rollback(context.Background())
+
+		return fmt.Errorf("marshal notify: %w", err)
+	}
+
 	_, err = tx.Exec(context.Background(),
 		fmt.Sprintf(`INSERT INTO %s (user_id, user_callsign, is_brigadier, wg_public, wg_psk_router, wg_psk_shuffler, user_ipv4, user_ipv6) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 			(pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()),
@@ -208,9 +229,8 @@ func (us *userStorage) put(u *UserConfig) error {
 	}
 
 	_, err = tx.Exec(context.Background(),
-		fmt.Sprintf("SELECT pg_notify('vpngen', '{\"t\":\"new-user\",\"brigade_id\":%q,\"user_id\":%q}')",
-			env.Env.BrigadierID, u.ID,
-		),
+		"SELECT pg_notify('vpngen', $1)",
+		notify,
 	)
 	if err != nil {
 		tx.Rollback(context.Background())

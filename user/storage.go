@@ -177,9 +177,9 @@ func (us *userStorage) put(u *UserConfig) error {
 
 	userNotify := &SrvNotify{
 		T: NotifyNewUser,
-		Brigadier: SrvBrigadier{
+		Brigade: SrvBrigade{
 			ID:          env.Env.BrigadierID,
-			WgPublicKey: wg_public,
+			IdentityKey: wg_public,
 		},
 		User: SrvUser{
 			ID:          u.ID,

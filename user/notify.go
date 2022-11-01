@@ -7,19 +7,19 @@ const (
 	NotifyDelUser    = "del-user"
 )
 
-type SrvBrigadier struct {
-	ID          string
-	WgPublicKey []byte
+type SrvBrigade struct {
+	ID          string `json:"id"`
+	IdentityKey []byte `json:"key"`
 }
 
 type SrvUser struct {
-	ID          string
-	WgPublicKey []byte
-	IsBrigadier bool
+	ID          string `json:"id,omitempty"`
+	WgPublicKey []byte `json:"wg_pub,omitempty"`
+	IsBrigadier bool   `json:"boss,omitempty"`
 }
 
 type SrvNotify struct {
-	T         string
-	Brigadier SrvBrigadier
-	User      SrvUser
+	T       string     `json:"type"`
+	Brigade SrvBrigade `json:"brigade"`
+	User    SrvUser    `json:"user,omitempty"`
 }

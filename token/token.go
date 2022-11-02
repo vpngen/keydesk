@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vpngen/keykeeper/gen/models"
-	"github.com/vpngen/keykeeper/gen/restapi/operations"
+	"github.com/vpngen/keydesk/gen/models"
+	"github.com/vpngen/keydesk/gen/restapi/operations"
 
 	"github.com/go-openapi/errors"
 

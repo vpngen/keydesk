@@ -20,11 +20,11 @@ import (
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
 
-	"github.com/vpngen/keykeeper/env"
-	"github.com/vpngen/keykeeper/gen/restapi"
-	"github.com/vpngen/keykeeper/gen/restapi/operations"
-	"github.com/vpngen/keykeeper/token"
-	"github.com/vpngen/keykeeper/user"
+	"github.com/vpngen/keydesk/env"
+	"github.com/vpngen/keydesk/gen/restapi"
+	"github.com/vpngen/keydesk/gen/restapi/operations"
+	"github.com/vpngen/keydesk/token"
+	"github.com/vpngen/keydesk/user"
 
 	"github.com/coreos/go-systemd/v22/activation"
 )

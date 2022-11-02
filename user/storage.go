@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/vpngen/keykeeper/env"
+	"github.com/vpngen/keydesk/env"
 	"github.com/vpngen/wordsgens/namesgenerator"
 
 	"github.com/jackc/pgx/v5"

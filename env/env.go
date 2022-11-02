@@ -21,8 +21,8 @@ const maxPostgresqlNameLen = 63
 
 const postgresqlSocket = "/var/run/postgresql"
 
-// KeykeeperEnv - struct type for shared vars.
-type KeykeeperEnv struct {
+// KeydeskEnv - struct type for shared vars.
+type KeydeskEnv struct {
 	BrigadierID                        string
 	DBName                             string
 	RouterPublicKey, ShufflerPublicKey [naclkey.NaclBoxKeyLength]byte
@@ -30,7 +30,7 @@ type KeykeeperEnv struct {
 }
 
 // Env - shared vars.
-var Env KeykeeperEnv
+var Env KeydeskEnv
 
 func ReadConfigs() error {
 	f, err := os.Open(dbnameFilename)

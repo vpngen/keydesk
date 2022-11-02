@@ -10,9 +10,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/vpngen/keykeeper/env"
-	"github.com/vpngen/keykeeper/gen/models"
-	"github.com/vpngen/keykeeper/gen/restapi/operations"
+	"github.com/vpngen/keydesk/env"
+	"github.com/vpngen/keydesk/gen/models"
+	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/vpngine/naclkey"
 	"github.com/vpngen/wordsgens/namesgenerator"
 	"golang.org/x/crypto/nacl/box"

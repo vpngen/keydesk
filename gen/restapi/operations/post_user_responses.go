@@ -11,13 +11,14 @@ import (
 
 	"github.com/go-openapi/runtime"
 
-	"github.com/vpngen/keykeeper/gen/models"
+	"github.com/vpngen/keydesk/gen/models"
 )
 
 // PostUserCreatedCode is the HTTP code returned for type PostUserCreated
 const PostUserCreatedCode int = 201
 
-/*PostUserCreated New user created.
+/*
+PostUserCreated New user created.
 
 swagger:response postUserCreated
 */
@@ -81,7 +82,8 @@ func (o *PostUserCreated) WriteResponse(rw http.ResponseWriter, producer runtime
 // PostUserForbiddenCode is the HTTP code returned for type PostUserForbidden
 const PostUserForbiddenCode int = 403
 
-/*PostUserForbidden You do not have necessary permissions for the resource
+/*
+PostUserForbidden You do not have necessary permissions for the resource
 
 swagger:response postUserForbidden
 */
@@ -102,7 +104,8 @@ func (o *PostUserForbidden) WriteResponse(rw http.ResponseWriter, producer runti
 	rw.WriteHeader(403)
 }
 
-/*PostUserDefault error
+/*
+PostUserDefault error
 
 swagger:response postUserDefault
 */

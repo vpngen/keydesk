@@ -10,13 +10,14 @@ import (
 
 	"github.com/go-openapi/runtime"
 
-	"github.com/vpngen/keykeeper/gen/models"
+	"github.com/vpngen/keydesk/gen/models"
 )
 
 // GetUserOKCode is the HTTP code returned for type GetUserOK
 const GetUserOKCode int = 200
 
-/*GetUserOK A list of users.
+/*
+GetUserOK A list of users.
 
 swagger:response getUserOK
 */
@@ -63,7 +64,8 @@ func (o *GetUserOK) WriteResponse(rw http.ResponseWriter, producer runtime.Produ
 // GetUserForbiddenCode is the HTTP code returned for type GetUserForbidden
 const GetUserForbiddenCode int = 403
 
-/*GetUserForbidden You do not have necessary permissions for the resource
+/*
+GetUserForbidden You do not have necessary permissions for the resource
 
 swagger:response getUserForbidden
 */
@@ -84,7 +86,8 @@ func (o *GetUserForbidden) WriteResponse(rw http.ResponseWriter, producer runtim
 	rw.WriteHeader(403)
 }
 
-/*GetUserDefault error
+/*
+GetUserDefault error
 
 swagger:response getUserDefault
 */

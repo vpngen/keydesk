@@ -10,13 +10,14 @@ import (
 
 	"github.com/go-openapi/runtime"
 
-	"github.com/vpngen/keykeeper/gen/models"
+	"github.com/vpngen/keydesk/gen/models"
 )
 
 // DeleteUserUserIDNoContentCode is the HTTP code returned for type DeleteUserUserIDNoContent
 const DeleteUserUserIDNoContentCode int = 204
 
-/*DeleteUserUserIDNoContent User deleted.
+/*
+DeleteUserUserIDNoContent User deleted.
 
 swagger:response deleteUserUserIdNoContent
 */
@@ -40,7 +41,8 @@ func (o *DeleteUserUserIDNoContent) WriteResponse(rw http.ResponseWriter, produc
 // DeleteUserUserIDForbiddenCode is the HTTP code returned for type DeleteUserUserIDForbidden
 const DeleteUserUserIDForbiddenCode int = 403
 
-/*DeleteUserUserIDForbidden You do not have necessary permissions for the resource
+/*
+DeleteUserUserIDForbidden You do not have necessary permissions for the resource
 
 swagger:response deleteUserUserIdForbidden
 */
@@ -61,7 +63,8 @@ func (o *DeleteUserUserIDForbidden) WriteResponse(rw http.ResponseWriter, produc
 	rw.WriteHeader(403)
 }
 
-/*DeleteUserUserIDDefault error
+/*
+DeleteUserUserIDDefault error
 
 swagger:response deleteUserUserIdDefault
 */

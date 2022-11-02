@@ -29,10 +29,10 @@ func NewPostToken(ctx *middleware.Context, handler PostTokenHandler) *PostToken 
 	return &PostToken{Context: ctx, Handler: handler}
 }
 
-/* PostToken swagger:route POST /token postToken
+/*
+	PostToken swagger:route POST /token postToken
 
 PostToken post token API
-
 */
 type PostToken struct {
 	Context *middleware.Context

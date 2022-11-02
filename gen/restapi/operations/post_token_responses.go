@@ -10,13 +10,14 @@ import (
 
 	"github.com/go-openapi/runtime"
 
-	"github.com/vpngen/keykeeper/gen/models"
+	"github.com/vpngen/keydesk/gen/models"
 )
 
 // PostTokenCreatedCode is the HTTP code returned for type PostTokenCreated
 const PostTokenCreatedCode int = 201
 
-/*PostTokenCreated Token created.
+/*
+PostTokenCreated Token created.
 
 swagger:response postTokenCreated
 */
@@ -57,7 +58,8 @@ func (o *PostTokenCreated) WriteResponse(rw http.ResponseWriter, producer runtim
 	}
 }
 
-/*PostTokenDefault error
+/*
+PostTokenDefault error
 
 swagger:response postTokenDefault
 */

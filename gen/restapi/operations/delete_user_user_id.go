@@ -29,10 +29,10 @@ func NewDeleteUserUserID(ctx *middleware.Context, handler DeleteUserUserIDHandle
 	return &DeleteUserUserID{Context: ctx, Handler: handler}
 }
 
-/* DeleteUserUserID swagger:route DELETE /user/{UserID} deleteUserUserId
+/*
+	DeleteUserUserID swagger:route DELETE /user/{UserID} deleteUserUserId
 
 DeleteUserUserID delete user user ID API
-
 */
 type DeleteUserUserID struct {
 	Context *middleware.Context

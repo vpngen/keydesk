@@ -29,10 +29,10 @@ func NewPostUser(ctx *middleware.Context, handler PostUserHandler) *PostUser {
 	return &PostUser{Context: ctx, Handler: handler}
 }
 
-/* PostUser swagger:route POST /user postUser
+/*
+	PostUser swagger:route POST /user postUser
 
 PostUser post user API
-
 */
 type PostUser struct {
 	Context *middleware.Context

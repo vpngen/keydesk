@@ -252,24 +252,47 @@ func (us *userStorage) delete(id string) error {
 		return fmt.Errorf("connect: %w", err)
 	}
 
-	_, err = tx.Exec(ctx,
-		fmt.Sprintf("DELETE FROM %s WHERE user_id=$1", (pgx.Identifier{env.Env.BrigadierID, "persons"}).Sanitize()),
-		id,
-	)
+	rows, err := tx.Query(context.Background(), fmt.Sprintf("SELECT brigade.endpoint_ipv4, brigade.wg_public, users.wg_public FROM %s,%s WHERE users.user_id=$1", (pgx.Identifier{env.Env.BrigadierID, "brigade"}).Sanitize(), (pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()), id)
 	if err != nil {
-		tx.Rollback(ctx)
+		tx.Rollback(context.Background())
 
-		return fmt.Errorf("delete persons: %w", err)
+		return fmt.Errorf("user query: %w", err)
 	}
 
-	_, err = tx.Exec(ctx,
-		fmt.Sprintf("DELETE FROM %s WHERE user_id=$1", (pgx.Identifier{env.Env.BrigadierID, "quota"}).Sanitize()),
-		id,
+	var (
+		endpoint_ipv4     netip.Addr
+		brigade_wg_public []byte
+		user_wg_public    []byte
 	)
-	if err != nil {
-		tx.Rollback(ctx)
 
-		return fmt.Errorf("delete quota: %w", err)
+	_, err = pgx.ForEachRow(rows, []any{&endpoint_ipv4, &brigade_wg_public, &user_wg_public}, func() error {
+
+		return nil
+	})
+	if err != nil {
+		tx.Rollback(context.Background())
+
+		return fmt.Errorf("user row: %w", err)
+	}
+
+	userNotify := &SrvNotify{
+		T:        NotifyDelUser,
+		Endpoint: NewEndpoint(endpoint_ipv4),
+		Brigade: SrvBrigade{
+			ID:          env.Env.BrigadierID,
+			IdentityKey: brigade_wg_public,
+		},
+		User: SrvUser{
+			ID:          id,
+			WgPublicKey: user_wg_public,
+		},
+	}
+
+	notify, err := json.Marshal(userNotify)
+	if err != nil {
+		tx.Rollback(context.Background())
+
+		return fmt.Errorf("marshal notify: %w", err)
 	}
 
 	_, err = tx.Exec(ctx,
@@ -280,6 +303,16 @@ func (us *userStorage) delete(id string) error {
 		tx.Rollback(ctx)
 
 		return fmt.Errorf("delete users: %w", err)
+	}
+
+	_, err = tx.Exec(context.Background(),
+		"SELECT pg_notify('vpngen', $1)",
+		notify,
+	)
+	if err != nil {
+		tx.Rollback(context.Background())
+
+		return fmt.Errorf("notify: %w", err)
 	}
 
 	tx.Commit(ctx)

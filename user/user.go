@@ -28,8 +28,8 @@ const MaxUsers = 250
 // AddUser - create user.
 func AddUser(params operations.PostUserParams, principal interface{}) middleware.Responder {
 	var (
-		user   *UserConfig
-		wgPriv []byte
+		user          *UserConfig
+		wgPriv, wgPSK []byte
 	)
 
 	for {
@@ -38,7 +38,7 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 			return operations.NewPostUserDefault(500)
 		}
 
-		user, wgPriv, err = addUser(fullname, person, false)
+		user, wgPriv, wgPSK, err = addUser(fullname, person, false)
 		if err != nil {
 			if errors.Is(err, ErrUserCollision) {
 				continue
@@ -50,7 +50,7 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 		break
 	}
 
-	wgconf := genWgConf(user, wgPriv)
+	wgconf := genWgConf(user, wgPriv, wgPSK)
 
 	rc := io.NopCloser(strings.NewReader(wgconf))
 
@@ -59,44 +59,44 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 
 // AddBrigadier - create brigadier user.
 func AddBrigadier(fullname string, person namesgenerator.Person) (string, error) {
-	user, wgPriv, err := addUser(fullname, person, false)
+	user, wgPriv, wgPSK, err := addUser(fullname, person, false)
 	if err != nil {
 		return "", fmt.Errorf("addUser: %w", err)
 	}
 
-	wgconf := genWgConf(user, wgPriv)
+	wgconf := genWgConf(user, wgPriv, wgPSK)
 
 	return wgconf, nil
 }
 
-func addUser(fullname string, person namesgenerator.Person, boss bool) (*UserConfig, []byte, error) {
+func addUser(fullname string, person namesgenerator.Person, boss bool) (*UserConfig, []byte, []byte, error) {
 	user := &UserConfig{
 		Name:   fullname,
 		Person: person,
 		Boss:   boss,
 	}
 
-	wgPub, wgPriv, wgRouterPriv, wgShufflerPriv, err := genwgKey(&env.Env.RouterPublicKey, &env.Env.ShufflerPublicKey)
+	wgPub, wgPriv, wgPSK, wgRouterPSK, wgShufflerPSK, err := genwgKey(&env.Env.RouterPublicKey, &env.Env.ShufflerPublicKey)
 	if err != nil {
 		fmt.Printf("wggen: %s", err)
 
-		return nil, nil, fmt.Errorf("wggen: %w", err)
+		return nil, nil, nil, fmt.Errorf("wggen: %w", err)
 	}
 
 	user.WgPublicKey = wgPub
-	user.WgRouterPriv = wgRouterPriv
-	user.WgShufflerPriv = wgShufflerPriv
+	user.WgRouterPSK = wgRouterPSK
+	user.WgShufflerPSK = wgShufflerPSK
 
 	if err := storage.put(user); err != nil {
 		fmt.Printf("put: %s", err)
 
-		return nil, nil, fmt.Errorf("put: %w", err)
+		return nil, nil, nil, fmt.Errorf("put: %w", err)
 	}
 
-	return user, wgPriv, nil
+	return user, wgPriv, wgPSK, nil
 }
 
-func genWgConf(u *UserConfig, wgPriv []byte) string {
+func genWgConf(u *UserConfig, wgPriv, wgPSK []byte) string {
 
 	tmpl := `[Interface]
 Address = %s
@@ -106,6 +106,7 @@ DNS = %s
 [Peer]
 Endpoint = %s:51820
 PublicKey = %s
+PresharedKey = %s
 AllowedIPs = 0.0.0.0/0
 `
 
@@ -115,6 +116,7 @@ AllowedIPs = 0.0.0.0/0
 		u.DNSv4.String()+","+u.DNSv6.String(),
 		u.EndpointIPv4.String(),
 		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.EndpointWgPublic),
+		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPSK),
 	)
 
 	return wgconf
@@ -165,23 +167,28 @@ func GetUsers(params operations.GetUserParams, principal interface{}) middleware
 	return operations.NewGetUserOK().WithPayload(users)
 }
 
-func genwgKey(ruouterPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) ([]byte, []byte, []byte, []byte, error) {
+func genwgKey(ruouterPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) ([]byte, []byte, []byte, []byte, []byte, error) {
 	key, err := wgtypes.GenerateKey()
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("gen wg key: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("gen wg psk: %w", err)
 	}
 
 	routerKey, err := box.SealAnonymous(nil, key[:], ruouterPubkey, rand.Reader)
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("router seal: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("router seal: %w", err)
 	}
 
 	shufflerKey, err := box.SealAnonymous(nil, key[:], shufflerPubkey, rand.Reader)
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("shuffler seal: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("shuffler seal: %w", err)
 	}
 
-	pub := key.PublicKey()
+	priv, err := wgtypes.GeneratePrivateKey()
+	if err != nil {
+		return nil, nil, nil, nil, nil, fmt.Errorf("gen wg psk: %w", err)
+	}
 
-	return pub[:], key[:], routerKey, shufflerKey, nil
+	pub := priv.PublicKey()
+
+	return pub[:], priv[:], key[:], routerKey, shufflerKey, nil
 }

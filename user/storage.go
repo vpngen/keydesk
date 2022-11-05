@@ -50,8 +50,8 @@ type UserConfig struct {
 	Person           namesgenerator.Person
 	Boss             bool
 	WgPublicKey      []byte
-	WgRouterPriv     []byte
-	WgShufflerPriv   []byte
+	WgRouterPSK      []byte
+	WgShufflerPSK    []byte
 	DNSv4, DNSv6     netip.Addr
 	IPv4, IPv6       netip.Addr
 	EndpointIPv4     netip.Addr
@@ -199,7 +199,7 @@ func (us *userStorage) put(u *UserConfig) error {
 	_, err = tx.Exec(context.Background(),
 		fmt.Sprintf(`INSERT INTO %s (user_id, user_callsign, is_brigadier, wg_public, wg_psk_router, wg_psk_shuffler, user_ipv4, user_ipv6) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 			(pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()),
-		u.ID, u.Name, u.Boss, `\x`+hex.EncodeToString(u.WgPublicKey), `\x`+hex.EncodeToString(u.WgRouterPriv), `\x`+hex.EncodeToString(u.WgShufflerPriv), u.IPv4.String(), u.IPv6.String(),
+		u.ID, u.Name, u.Boss, `\x`+hex.EncodeToString(u.WgPublicKey), `\x`+hex.EncodeToString(u.WgRouterPSK), `\x`+hex.EncodeToString(u.WgShufflerPSK), u.IPv4.String(), u.IPv6.String(),
 	)
 	if err != nil {
 		tx.Rollback(context.Background())

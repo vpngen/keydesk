@@ -59,7 +59,7 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 
 // AddBrigadier - create brigadier user.
 func AddBrigadier(fullname string, person namesgenerator.Person) (string, error) {
-	user, wgPriv, wgPSK, err := addUser(fullname, person, false)
+	user, wgPriv, wgPSK, err := addUser(fullname, person, true)
 	if err != nil {
 		return "", fmt.Errorf("addUser: %w", err)
 	}

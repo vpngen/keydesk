@@ -107,7 +107,7 @@ DNS = %s
 Endpoint = %s:51820
 PublicKey = %s
 PresharedKey = %s
-AllowedIPs = 0.0.0.0/0
+AllowedIPs = 0.0.0.0/0,::/0
 `
 
 	wgconf := fmt.Sprintf(tmpl,

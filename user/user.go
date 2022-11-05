@@ -123,7 +123,7 @@ AllowedIPs = 0.0.0.0/0
 }
 
 func constructContentDisposition(name, id string) string {
-	return fmt.Sprintf("attachment; filename=%q; filename*=%q", "wg-"+id+".conf", "utf-8''"+url.QueryEscape(name+".conf"))
+	return fmt.Sprintf("attachment; filename=%s; filename*=%s", "wg-"+id+".conf", "utf-8''"+url.QueryEscape(strings.ReplaceAll(name, " ", "_")+".conf"))
 }
 
 // DelUserUserID - creaste user.

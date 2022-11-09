@@ -120,8 +120,14 @@ func (us *userStorage) put(u *UserConfig) error {
 	)
 
 	idL := make(map[string]struct{})
-	ip4L := make(map[string]struct{})
-	ip6L := make(map[string]struct{})
+	ip4L := map[string]struct{}{
+		ipv4_cgnat.Addr().String():          {},
+		LastPrefixIPv4(ipv4_cgnat).String(): {},
+	}
+	ip6L := map[string]struct{}{
+		ipv6_ula.Addr().String():          {},
+		LastPrefixIPv6(ipv6_ula).String(): {},
+	}
 
 	_, err = pgx.ForEachRow(rows, []any{&user_id, &user_callsign, &user_ipv4, &user_ipv6}, func() error {
 		if user_callsign == u.Name {

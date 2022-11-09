@@ -3,6 +3,7 @@ module github.com/vpngen/keydesk
 go 1.19
 
 require (
+	github.com/alexsergivan/transliterator v1.0.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/go-openapi/errors v0.20.3
 	github.com/go-openapi/loads v0.21.2

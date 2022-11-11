@@ -12,7 +12,6 @@ import (
 	"os/signal"
 	osuser "os/user"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
 
@@ -34,9 +33,18 @@ import (
 // TokenLifeTime - token time to life.
 const TokenLifeTime = 3600
 
+// Default web config.
+const (
+	DefaultStaticDir = "/var/www"
+	DefaultIndexFile = "index.html"
+)
+
+// ErrStaticDirEmpty - no static dir name.
+var ErrStaticDirEmpty = goerrors.New("empty static dirname")
+
 func main() {
 
-	listen, BrigadierID, err := bootstrap()
+	listen, BrigadierID, staticDir, err := bootstrap()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 	}
@@ -88,7 +96,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	server := &http.Server{
-		Handler:     uiMiddleware(api.Serve(nil)),
+		Handler:     uiMiddleware(api.Serve(nil), staticDir),
 		IdleTimeout: 60 * time.Minute,
 	}
 
@@ -115,53 +123,67 @@ func main() {
 	<-done
 }
 
-func uiMiddleware(handler http.Handler) http.Handler {
+func uiMiddleware(handler http.Handler, dir string) http.Handler {
+	staticFS := http.Dir(dir)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Shortcut helpers for swagger-ui
-		if r.URL.Path == "/swagger-ui" || r.URL.Path == "/api/help" {
-			http.Redirect(w, r, "/swagger-ui/", http.StatusFound)
+		filename := filepath.Join(dir, r.URL.Path)
+		finfo, err := os.Stat(filename)
+
+		if err == nil && finfo.IsDir() {
+			_, err = os.Stat(filepath.Join(filename, DefaultIndexFile))
+		}
+
+		if err == nil {
+			http.FileServer(staticFS).ServeHTTP(w, r)
+
 			return
 		}
-		// Serving ./swagger-ui/
-		if strings.Index(r.URL.Path, "/swagger-ui/") == 0 {
-			pwd, _ := os.Getwd()
-			http.StripPrefix("/swagger-ui/", http.FileServer(http.Dir(filepath.Join(pwd, "swagger-ui")))).ServeHTTP(w, r)
-			return
-		}
+
 		handler.ServeHTTP(w, r)
 	})
 }
 
-func bootstrap() (net.Listener, string, error) {
+func bootstrap() (net.Listener, string, string, error) {
+	staticDir := flag.String("w", DefaultStaticDir, "Dir for web files (for test)")
 	listenAddr := flag.String("l", "", "Listen addr:port (for test)")
 	brigadierID := flag.String("id", "", "BrigadierID (for test)")
 	flag.Parse()
 
+	if *staticDir == "" {
+		return nil, "", "", ErrStaticDirEmpty
+	}
+
+	dir, err := filepath.Abs(*staticDir)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("static dir: %w", err)
+	}
+
 	if *listenAddr != "" && *brigadierID != "" {
 		listen, err := net.Listen("tcp", *listenAddr)
 		if err != nil {
-			return nil, "", fmt.Errorf("cannot listen: %w", err)
+			return nil, "", "", fmt.Errorf("cannot listen: %w", err)
 		}
 
-		return listen, *brigadierID, nil
+		return listen, *brigadierID, dir, nil
 	}
 
 	usr, err := osuser.Current()
 	if err != nil {
-		return nil, "", fmt.Errorf("cannot define user: %w", err)
+		return nil, "", "", fmt.Errorf("cannot define user: %w", err)
 	}
 
 	id := usr.Username
 
 	listeners, err := activation.Listeners()
 	if err != nil {
-		return nil, "", fmt.Errorf("cannot retrieve listeners: %w", err)
+		return nil, "", "", fmt.Errorf("cannot retrieve listeners: %w", err)
 	}
 
 	if len(listeners) != 1 {
-		return nil, "", fmt.Errorf("unexpected number of socket activation (%d != 1)",
+		return nil, "", "", fmt.Errorf("unexpected number of socket activation (%d != 1)",
 			len(listeners))
 	}
 
-	return listeners[0], id, nil
+	return listeners[0], id, dir, nil
 }

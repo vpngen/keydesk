@@ -35,7 +35,7 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 	)
 
 	for {
-		fullname, person, err := namesgenerator.PhysicsAwardee()
+		fullname, person, err := namesgenerator.PeaceAwardee()
 		if err != nil {
 			return operations.NewPostUserDefault(500)
 		}

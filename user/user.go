@@ -20,8 +20,6 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
-
-	"github.com/alexsergivan/transliterator"
 )
 
 // MaxUsers - maximem limit.
@@ -125,8 +123,7 @@ AllowedIPs = 0.0.0.0/0,::/0
 }
 
 func constructContentDisposition(name, id string) string {
-	trans := transliterator.NewTransliterator(nil)
-	filename := trans.Transliterate(strings.ReplaceAll(name, " ", "_"), "ru") + ".conf" // WARN! It's a hardcoded lang rule
+	filename := sanitizeFilename(name)
 
 	return fmt.Sprintf("attachment; filename=%s; filename*=%s", "wg-"+id+".conf", "utf-8''"+url.QueryEscape(filename))
 }

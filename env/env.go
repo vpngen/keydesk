@@ -6,15 +6,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vpngen/vpngine/naclkey"
 )
 
 const (
-	dbnameFilename            = "/etc/keydesk/dbname"
-	routerPublicKeyFilename   = "/etc/keydesk/router.pub"
-	shufflerPublicKeyFilename = "/etc/keydesk/shuffler.pub"
+	dbnameFilename            = "dbname"
+	routerPublicKeyFilename   = "router.pub"
+	shufflerPublicKeyFilename = "shuffler.pub"
+	etcDefaultPath            = "/etc/keydesk"
 )
 
 const maxPostgresqlNameLen = 63
@@ -32,8 +34,8 @@ type KeydeskEnv struct {
 // Env - shared vars.
 var Env KeydeskEnv
 
-func ReadConfigs() error {
-	f, err := os.Open(dbnameFilename)
+func ReadConfigs(path string) error {
+	f, err := os.Open(filepath.Join(path, dbnameFilename))
 	if err != nil {
 		return fmt.Errorf("can't open: %s: %w", dbnameFilename, err)
 	}
@@ -43,12 +45,12 @@ func ReadConfigs() error {
 		return fmt.Errorf("can't read: %s: %w", dbnameFilename, err)
 	}
 
-	routerPublicKey, err := naclkey.ReadPublicKeyFile(routerPublicKeyFilename)
+	routerPublicKey, err := naclkey.ReadPublicKeyFile(filepath.Join(path, routerPublicKeyFilename))
 	if err != nil {
 		return fmt.Errorf("router key: %w", err)
 	}
 
-	shufflerPublicKey, err := naclkey.ReadPublicKeyFile(shufflerPublicKeyFilename)
+	shufflerPublicKey, err := naclkey.ReadPublicKeyFile(filepath.Join(path, shufflerPublicKeyFilename))
 	if err != nil {
 		return fmt.Errorf("shuffler key: %w", err)
 	}

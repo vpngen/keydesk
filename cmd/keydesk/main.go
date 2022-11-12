@@ -36,6 +36,7 @@ const TokenLifeTime = 3600
 // Default web config.
 const (
 	DefaultStaticDir = "/var/www"
+	DefaultEtcDir    = "/etc/keydesk"
 	DefaultIndexFile = "index.html"
 )
 
@@ -44,7 +45,7 @@ var ErrStaticDirEmpty = goerrors.New("empty static dirname")
 
 func main() {
 
-	listen, BrigadierID, staticDir, err := bootstrap()
+	listen, BrigadierID, staticDir, etcDir, err := bootstrap()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 	}
@@ -57,7 +58,7 @@ func main() {
 
 	env.Env.BrigadierID = BrigadierID
 
-	err = env.ReadConfigs()
+	err = env.ReadConfigs(etcDir)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -144,46 +145,56 @@ func uiMiddleware(handler http.Handler, dir string) http.Handler {
 	})
 }
 
-func bootstrap() (net.Listener, string, string, error) {
+func bootstrap() (net.Listener, string, string, string, error) {
 	staticDir := flag.String("w", DefaultStaticDir, "Dir for web files (for test)")
+	etcDir := flag.String("c", DefaultEtcDir, "Dir for config files (for test)")
 	listenAddr := flag.String("l", "", "Listen addr:port (for test)")
 	brigadierID := flag.String("id", "", "BrigadierID (for test)")
 	flag.Parse()
 
 	if *staticDir == "" {
-		return nil, "", "", ErrStaticDirEmpty
+		return nil, "", "", "", ErrStaticDirEmpty
 	}
 
 	dir, err := filepath.Abs(*staticDir)
 	if err != nil {
-		return nil, "", "", fmt.Errorf("static dir: %w", err)
+		return nil, "", "", "", fmt.Errorf("static dir: %w", err)
+	}
+
+	if *etcDir == "" {
+		return nil, "", "", "", ErrStaticDirEmpty
+	}
+
+	etc, err := filepath.Abs(*etcDir)
+	if err != nil {
+		return nil, "", "", "", fmt.Errorf("etc dir: %w", err)
 	}
 
 	if *listenAddr != "" && *brigadierID != "" {
 		listen, err := net.Listen("tcp", *listenAddr)
 		if err != nil {
-			return nil, "", "", fmt.Errorf("cannot listen: %w", err)
+			return nil, "", "", "", fmt.Errorf("cannot listen: %w", err)
 		}
 
-		return listen, *brigadierID, dir, nil
+		return listen, *brigadierID, dir, etc, nil
 	}
 
 	usr, err := osuser.Current()
 	if err != nil {
-		return nil, "", "", fmt.Errorf("cannot define user: %w", err)
+		return nil, "", "", "", fmt.Errorf("cannot define user: %w", err)
 	}
 
 	id := usr.Username
 
 	listeners, err := activation.Listeners()
 	if err != nil {
-		return nil, "", "", fmt.Errorf("cannot retrieve listeners: %w", err)
+		return nil, "", "", "", fmt.Errorf("cannot retrieve listeners: %w", err)
 	}
 
 	if len(listeners) != 1 {
-		return nil, "", "", fmt.Errorf("unexpected number of socket activation (%d != 1)",
+		return nil, "", "", "", fmt.Errorf("unexpected number of socket activation (%d != 1)",
 			len(listeners))
 	}
 
-	return listeners[0], id, dir, nil
+	return listeners[0], id, dir, etc, nil
 }

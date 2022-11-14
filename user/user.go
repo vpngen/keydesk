@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/netip"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/vpngen/keydesk/env"
@@ -132,6 +133,8 @@ func constructContentDisposition(name, id string) string {
 func DelUserUserID(params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
 	err := storage.delete(params.UserID)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "delete user: %s :%s\n", params.UserID, err)
+
 		return operations.NewDeleteUserUserIDForbidden()
 	}
 

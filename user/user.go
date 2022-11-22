@@ -131,7 +131,7 @@ func constructContentDisposition(name, id string) string {
 
 // DelUserUserID - creaste user.
 func DelUserUserID(params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
-	err := storage.delete(params.UserID)
+	err := storage.delete(params.UserID, false)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "delete user: %s :%s\n", params.UserID, err)
 

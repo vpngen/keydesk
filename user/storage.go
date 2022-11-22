@@ -250,7 +250,7 @@ func (us *userStorage) put(u *UserConfig) error {
 	return nil
 }
 
-func (us *userStorage) delete(id string) error {
+func (us *userStorage) delete(id string, boss bool) error {
 	ctx := context.Background()
 
 	tx, err := env.Env.DB.Begin(ctx)
@@ -258,7 +258,7 @@ func (us *userStorage) delete(id string) error {
 		return fmt.Errorf("connect: %w", err)
 	}
 
-	rows, err := tx.Query(context.Background(), fmt.Sprintf("SELECT brigade.endpoint_ipv4, brigade.wg_public, users.wg_public FROM %s,%s WHERE users.user_id=$1", (pgx.Identifier{env.Env.BrigadierID, "brigade"}).Sanitize(), (pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()), id)
+	rows, err := tx.Query(context.Background(), fmt.Sprintf("SELECT brigade.endpoint_ipv4, brigade.wg_public, users.wg_public FROM %s,%s WHERE users.user_id=$1 AND users.is_brigadier=$2", (pgx.Identifier{env.Env.BrigadierID, "brigade"}).Sanitize(), (pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()), id, boss)
 	if err != nil {
 		tx.Rollback(context.Background())
 

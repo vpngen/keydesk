@@ -16,6 +16,6 @@ tar -zcf - \
         bin/keydesk \
         keydesk@.service \
         keydesk@.socket \
-        | base64 >> /data/extract.sh
+        | base64 >> /data/update-keydesk.sh
 
 chown ${USER_UID}:${USER_UID} /data/update-keydesk.sh

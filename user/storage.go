@@ -2,6 +2,8 @@ package user
 
 import (
 	"context"
+	"encoding/base32"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -180,6 +182,9 @@ func (us *userStorage) put(u *UserConfig) error {
 			break
 		}
 	}
+
+	userNum := blurIpv4Addr(u.IPv4, ipv4_cgnat.Bits(), extractUint32Salt(env.Env.BrigadierID))
+	u.Name = fmt.Sprintf("%03d %s", userNum, u.Name)
 
 	userNotify := &SrvNotify{
 		T:        NotifyNewUser,
@@ -402,4 +407,29 @@ func (us *userStorage) list() ([]*User, error) {
 	tx.Commit(ctx)
 
 	return users, nil
+}
+
+// Make pseudo rand salt for number bluring.
+func extractUint32Salt(s string) uint32 {
+	b, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(s)
+	if err != nil || len(b) < 16 {
+		return 0
+	}
+
+	buf := []byte{
+		b[b[0]&0x0f],
+		b[b[0]&0xf0>>4],
+		b[b[1]&0x0f],
+		b[b[1]&0xf0>>4],
+	}
+
+	return binary.BigEndian.Uint32(buf)
+}
+
+// Blur IPv4 address with uit32 salt.
+func blurIpv4Addr(ip netip.Addr, cidr int, b uint32) uint32 {
+	y := binary.BigEndian.Uint32(ip.AsSlice())
+	m := ^uint32(0) >> cidr
+
+	return (y ^ b) & m
 }

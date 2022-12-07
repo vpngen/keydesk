@@ -17,9 +17,9 @@ require (
 	github.com/jackc/pgx/v5 v5.0.2
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/vpngen/vpngine v0.0.0-20220907144237-dd0649935bc7
-	github.com/vpngen/wordsgens v0.0.0-20221023201324-185e9e3d78c7
-	golang.org/x/crypto v0.1.0
-	golang.org/x/net v0.1.0
+	github.com/vpngen/wordsgens v0.0.0-20221207004108-93481a4776f9
+	golang.org/x/crypto v0.3.0
+	golang.org/x/net v0.2.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20220504211119-3d4a969bb56b
 )
 
@@ -38,7 +38,7 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	go.mongodb.org/mongo-driver v1.10.2 // indirect
-	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

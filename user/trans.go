@@ -2,6 +2,7 @@ package user
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/alexsergivan/transliterator"
@@ -35,8 +36,23 @@ var trans = transliterator.NewTransliterator(&langOverrites)
 var vocabulary = []byte("0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz")
 
 func sanitizeFilename(name string) string {
+	userNum, after, ok := strings.Cut(name, " ")
+	if ok {
+		adjective, lname, ok := strings.Cut(after, " ")
+		if ok {
+			for _, c := range adjective {
+				name = fmt.Sprintf("%s %s %s", userNum, string(c), lname)
+				break
+			}
+		}
+	}
+
 	nameWithoutUnderscores := strings.ReplaceAll(name, " ", "_")
 	transliteratedName := trans.Transliterate(nameWithoutUnderscores, "ru")
+
+	if len(transliteratedName) > 15 {
+		transliteratedName = transliteratedName[:15]
+	}
 
 	buf := make([]byte, 0, len(transliteratedName))
 

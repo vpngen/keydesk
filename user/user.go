@@ -59,15 +59,15 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 }
 
 // AddBrigadier - create brigadier user.
-func AddBrigadier(fullname string, person namesgenerator.Person) (string, error) {
+func AddBrigadier(fullname string, person namesgenerator.Person) (string, string, error) {
 	user, wgPriv, wgPSK, err := addUser(fullname, person, true)
 	if err != nil {
-		return "", fmt.Errorf("addUser: %w", err)
+		return "", "", fmt.Errorf("addUser: %w", err)
 	}
 
 	wgconf := genWgConf(user, wgPriv, wgPSK)
 
-	return wgconf, nil
+	return wgconf, sanitizeFilename(user.Name), nil
 }
 
 func addUser(fullname string, person namesgenerator.Person, boss bool) (*UserConfig, []byte, []byte, error) {

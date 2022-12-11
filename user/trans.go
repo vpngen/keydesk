@@ -35,7 +35,7 @@ var trans = transliterator.NewTransliterator(&langOverrites)
 
 var vocabulary = []byte("0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz")
 
-func sanitizeFilename(name string) string {
+func SanitizeFilename(name string) string {
 	userNum, after, ok := strings.Cut(name, " ")
 	if ok {
 		adjective, lname, ok := strings.Cut(after, " ")

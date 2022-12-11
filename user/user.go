@@ -67,7 +67,7 @@ func AddBrigadier(fullname string, person namesgenerator.Person) (string, string
 
 	wgconf := genWgConf(user, wgPriv, wgPSK)
 
-	return wgconf, sanitizeFilename(user.Name), nil
+	return wgconf, SanitizeFilename(user.Name), nil
 }
 
 func addUser(fullname string, person namesgenerator.Person, boss bool) (*UserConfig, []byte, []byte, error) {
@@ -124,7 +124,7 @@ AllowedIPs = 0.0.0.0/0,::/0
 }
 
 func constructContentDisposition(name, id string) string {
-	filename := sanitizeFilename(name)
+	filename := SanitizeFilename(name)
 
 	return fmt.Sprintf("attachment; filename=%s; filename*=%s", "wg-"+id+".conf", "utf-8''"+url.QueryEscape(filename))
 }

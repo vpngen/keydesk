@@ -169,6 +169,9 @@ func (us *userStorage) put(u *UserConfig) error {
 
 	for {
 		u.IPv4 = RandomAddrIPv4(ipv4_cgnat)
+		if IsZeroEnding(u.IPv4) {
+			continue
+		}
 
 		if _, ok := ip4L[u.IPv4.String()]; !ok {
 			break
@@ -177,6 +180,9 @@ func (us *userStorage) put(u *UserConfig) error {
 
 	for {
 		u.IPv6 = RandomAddrIPv6(ipv6_ula)
+		if IsZeroEnding(u.IPv6) {
+			continue
+		}
 
 		if _, ok := ip6L[u.IPv6.String()]; !ok {
 			break

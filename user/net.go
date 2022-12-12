@@ -9,6 +9,19 @@ import (
 // kmaskCorrection for avoid negative value.
 const maskCorrection = (^uint64(0)) >> 1
 
+func IsZeroEnding(ip netip.Addr) bool {
+	if ip.Is4() && ip.As4()[3] == 0 {
+		return true
+	}
+
+	if ip.Is6() {
+		buf := ip.As16()
+		return binary.BigEndian.Uint16(buf[14:]) == 0
+	}
+
+	return false
+}
+
 func RandomAddrIPv4(p netip.Prefix) netip.Addr {
 	var buf [4]byte
 

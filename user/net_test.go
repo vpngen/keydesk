@@ -88,3 +88,25 @@ func TestRandomAddrIPv6(t *testing.T) {
 
 	}
 }
+
+var zend = [...]struct {
+	ip string
+	ze bool
+}{
+	{"16.17.17.0", true},
+	{"14.15.0.0", true},
+	{"12.11.0.1", false},
+	{"51.31.76.1", false},
+	{"fd00::1", false},
+	{"fd00:1::", true},
+	{"fd00::ebab:1", false},
+	{"fd00::ebab:0", true},
+}
+
+func TestIsZeroEnding(t *testing.T) {
+	for _, v := range zend {
+		if v.ze != IsZeroEnding(netip.MustParseAddr(v.ip)) {
+			t.Errorf("%s is zero ending expected: %v", v.ip, v.ze)
+		}
+	}
+}

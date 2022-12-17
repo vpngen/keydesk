@@ -72,7 +72,9 @@ var storage = &userStorage{
 }
 
 func (us *userStorage) put(u *UserConfig) error {
-	tx, err := env.Env.DB.Begin(context.Background())
+	ctx := context.Background()
+
+	tx, err := env.Env.DB.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("connect: %w", err)
 	}
@@ -85,9 +87,9 @@ func (us *userStorage) put(u *UserConfig) error {
 		ipv6_ula           netip.Prefix
 	)
 
-	rows, err := tx.Query(context.Background(), fmt.Sprintf("SELECT wg_public,endpoint_ipv4,dns_ipv4,dns_ipv6,ipv4_cgnat,ipv6_ula FROM %s FOR UPDATE", (pgx.Identifier{env.Env.BrigadierID, "brigade"}).Sanitize()))
+	rows, err := tx.Query(ctx, fmt.Sprintf("SELECT wg_public,endpoint_ipv4,dns_ipv4,dns_ipv6,ipv4_cgnat,ipv6_ula FROM %s FOR UPDATE", (pgx.Identifier{env.Env.BrigadierID, "brigade"}).Sanitize()))
 	if err != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return fmt.Errorf("brigadier query: %w", err)
 	}
@@ -98,7 +100,7 @@ func (us *userStorage) put(u *UserConfig) error {
 		return nil
 	})
 	if err != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return fmt.Errorf("brigadier row: %w", err)
 	}
@@ -108,9 +110,9 @@ func (us *userStorage) put(u *UserConfig) error {
 	u.DNSv4 = dns_ipv4
 	u.DNSv6 = dns_ipv6
 
-	rows, err = tx.Query(context.Background(), fmt.Sprintf("SELECT user_id,user_callsign,user_ipv4,user_ipv6 FROM %s ORDER BY is_brigadier", (pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()))
+	rows, err = tx.Query(ctx, fmt.Sprintf("SELECT user_id,user_callsign,user_ipv4,user_ipv6 FROM %s ORDER BY is_brigadier", (pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()))
 	if err != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return fmt.Errorf("user query: %w", err)
 	}
@@ -148,13 +150,13 @@ func (us *userStorage) put(u *UserConfig) error {
 		return nil
 	})
 	if err != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return fmt.Errorf("user row: %w", err)
 	}
 
 	if len(idL) >= MaxUsers {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return ErrUserLimit
 	}
@@ -208,55 +210,55 @@ func (us *userStorage) put(u *UserConfig) error {
 
 	notify, err := json.Marshal(userNotify)
 	if err != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return fmt.Errorf("marshal notify: %w", err)
 	}
 
-	_, err = tx.Exec(context.Background(),
+	_, err = tx.Exec(ctx,
 		fmt.Sprintf(`INSERT INTO %s (user_id, user_callsign, is_brigadier, wg_public, wg_psk_router, wg_psk_shuffler, user_ipv4, user_ipv6) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 			(pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()),
 		u.ID, u.Name, u.Boss, `\x`+hex.EncodeToString(u.WgPublicKey), `\x`+hex.EncodeToString(u.WgRouterPSK), `\x`+hex.EncodeToString(u.WgShufflerPSK), u.IPv4.String(), u.IPv6.String(),
 	)
 	if err != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return fmt.Errorf("insert user: %w", err)
 	}
 
-	_, err = tx.Exec(context.Background(),
+	_, err = tx.Exec(ctx,
 		fmt.Sprintf(`INSERT INTO %s (user_id, person) VALUES ($1, $2 :: json);`,
 			(pgx.Identifier{env.Env.BrigadierID, "persons"}).Sanitize()),
 		u.ID, u.Person,
 	)
 	if err != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return fmt.Errorf("insert person: %w", err)
 	}
 
-	_, err = tx.Exec(context.Background(),
+	_, err = tx.Exec(ctx,
 		fmt.Sprintf(`INSERT INTO %s (user_id, limit_monthly_remaining, limit_monthly_reset_on, os_counter_mtime, os_counter_value) VALUES ($1, $2 :: int8 * 1024 * 1024 * 1024, 'now', 'now', 0);`,
 			(pgx.Identifier{env.Env.BrigadierID, "quota"}).Sanitize()),
 		u.ID, MonthlyQuotaRemainingGB,
 	)
 	if err != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return fmt.Errorf("insert quota: %w", err)
 	}
 
-	_, err = tx.Exec(context.Background(),
+	_, err = tx.Exec(ctx,
 		"SELECT pg_notify('vpngen', $1)",
 		notify,
 	)
 	if err != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return fmt.Errorf("notify: %w", err)
 	}
 
-	tx.Commit(context.Background())
+	tx.Commit(ctx)
 
 	return nil
 }
@@ -269,9 +271,9 @@ func (us *userStorage) delete(id string, boss bool) error {
 		return fmt.Errorf("connect: %w", err)
 	}
 
-	rows, err := tx.Query(context.Background(), fmt.Sprintf("SELECT brigade.endpoint_ipv4, brigade.wg_public, users.wg_public FROM %s,%s WHERE users.user_id=$1 AND users.is_brigadier=$2", (pgx.Identifier{env.Env.BrigadierID, "brigade"}).Sanitize(), (pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()), id, boss)
+	rows, err := tx.Query(ctx, fmt.Sprintf("SELECT brigade.endpoint_ipv4, brigade.wg_public, users.wg_public FROM %s,%s WHERE users.user_id=$1 AND users.is_brigadier=$2", (pgx.Identifier{env.Env.BrigadierID, "brigade"}).Sanitize(), (pgx.Identifier{env.Env.BrigadierID, "users"}).Sanitize()), id, boss)
 	if err != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return fmt.Errorf("user query: %w", err)
 	}
@@ -287,7 +289,7 @@ func (us *userStorage) delete(id string, boss bool) error {
 		return nil
 	})
 	if err != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return fmt.Errorf("user row: %w", err)
 	}
@@ -307,7 +309,7 @@ func (us *userStorage) delete(id string, boss bool) error {
 
 	notify, err := json.Marshal(userNotify)
 	if err != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return fmt.Errorf("marshal notify: %w", err)
 	}
@@ -322,12 +324,12 @@ func (us *userStorage) delete(id string, boss bool) error {
 		return fmt.Errorf("delete users: %w", err)
 	}
 
-	_, err = tx.Exec(context.Background(),
+	_, err = tx.Exec(ctx,
 		"SELECT pg_notify('vpngen', $1)",
 		notify,
 	)
 	if err != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 
 		return fmt.Errorf("notify: %w", err)
 	}

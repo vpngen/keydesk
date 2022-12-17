@@ -26,6 +26,7 @@ import (
 	"github.com/vpngen/keydesk/user"
 
 	"github.com/coreos/go-systemd/v22/activation"
+	"github.com/rs/cors"
 )
 
 //go:generate swagger generate server -t ../../gen -f ../../swagger/swagger.yml --exclude-main -A user
@@ -44,8 +45,9 @@ const (
 var ErrStaticDirEmpty = goerrors.New("empty static dirname")
 
 func main() {
+	var handler http.Handler
 
-	listen, BrigadierID, staticDir, etcDir, err := bootstrap()
+	debug, listen, BrigadierID, staticDir, etcDir, err := bootstrap()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 	}
@@ -96,8 +98,21 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
+	switch debug {
+	case true:
+		handler = cors.New(
+			cors.Options{
+				AllowedMethods: []string{"POST", "GET", "DELETE"},
+			},
+		).Handler(
+			uiMiddleware(api.Serve(nil), staticDir),
+		)
+	default:
+		handler = uiMiddleware(api.Serve(nil), staticDir)
+	}
+
 	server := &http.Server{
-		Handler:     uiMiddleware(api.Serve(nil), staticDir),
+		Handler:     handler,
 		IdleTimeout: 60 * time.Minute,
 	}
 
@@ -145,7 +160,7 @@ func uiMiddleware(handler http.Handler, dir string) http.Handler {
 	})
 }
 
-func bootstrap() (net.Listener, string, string, string, error) {
+func bootstrap() (bool, net.Listener, string, string, string, error) {
 	staticDir := flag.String("w", DefaultStaticDir, "Dir for web files (for test)")
 	etcDir := flag.String("c", DefaultEtcDir, "Dir for config files (for test)")
 	listenAddr := flag.String("l", "", "Listen addr:port (for test)")
@@ -153,48 +168,48 @@ func bootstrap() (net.Listener, string, string, string, error) {
 	flag.Parse()
 
 	if *staticDir == "" {
-		return nil, "", "", "", ErrStaticDirEmpty
+		return false, nil, "", "", "", ErrStaticDirEmpty
 	}
 
 	dir, err := filepath.Abs(*staticDir)
 	if err != nil {
-		return nil, "", "", "", fmt.Errorf("static dir: %w", err)
+		return false, nil, "", "", "", fmt.Errorf("static dir: %w", err)
 	}
 
 	if *etcDir == "" {
-		return nil, "", "", "", ErrStaticDirEmpty
+		return false, nil, "", "", "", ErrStaticDirEmpty
 	}
 
 	etc, err := filepath.Abs(*etcDir)
 	if err != nil {
-		return nil, "", "", "", fmt.Errorf("etc dir: %w", err)
+		return false, nil, "", "", "", fmt.Errorf("etc dir: %w", err)
 	}
 
 	if *listenAddr != "" && *brigadierID != "" {
 		listen, err := net.Listen("tcp", *listenAddr)
 		if err != nil {
-			return nil, "", "", "", fmt.Errorf("cannot listen: %w", err)
+			return true, nil, "", "", "", fmt.Errorf("cannot listen: %w", err)
 		}
 
-		return listen, *brigadierID, dir, etc, nil
+		return true, listen, *brigadierID, dir, etc, nil
 	}
 
 	usr, err := osuser.Current()
 	if err != nil {
-		return nil, "", "", "", fmt.Errorf("cannot define user: %w", err)
+		return false, nil, "", "", "", fmt.Errorf("cannot define user: %w", err)
 	}
 
 	id := usr.Username
 
 	listeners, err := activation.Listeners()
 	if err != nil {
-		return nil, "", "", "", fmt.Errorf("cannot retrieve listeners: %w", err)
+		return false, nil, "", "", "", fmt.Errorf("cannot retrieve listeners: %w", err)
 	}
 
 	if len(listeners) != 1 {
-		return nil, "", "", "", fmt.Errorf("unexpected number of socket activation (%d != 1)",
+		return false, nil, "", "", "", fmt.Errorf("unexpected number of socket activation (%d != 1)",
 			len(listeners))
 	}
 
-	return listeners[0], id, dir, etc, nil
+	return false, listeners[0], id, dir, etc, nil
 }

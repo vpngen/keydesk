@@ -16,6 +16,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/jackc/pgx/v5 v5.0.2
 	github.com/jessevdk/go-flags v1.5.0
+	github.com/rs/cors v1.8.2
 	github.com/vpngen/vpngine v0.0.0-20220907144237-dd0649935bc7
 	github.com/vpngen/wordsgens v0.0.0-20221207004108-93481a4776f9
 	golang.org/x/crypto v0.4.0

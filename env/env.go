@@ -65,12 +65,12 @@ func CreatePool() error {
 	//config, err := pgxpool.ParseConfig(fmt.Sprintf("host=%s user=%s dbname=%s", postgresqlSocket, Env.BrigadierID, Env.DBName))
 	config, err := pgxpool.ParseConfig(fmt.Sprintf("host=%s dbname=%s", postgresqlSocket, Env.DBName))
 	if err != nil {
-		return fmt.Errorf("Can't parse conn string: %w", err)
+		return fmt.Errorf("parse conf: %w", err)
 	}
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
-		return fmt.Errorf("Can't create pool: %w", err)
+		return fmt.Errorf("create pool: %w", err)
 	}
 
 	Env.DB = pool

@@ -165,6 +165,8 @@ func bootstrap() (bool, net.Listener, string, string, string, error) {
 	etcDir := flag.String("c", DefaultEtcDir, "Dir for config files (for test)")
 	listenAddr := flag.String("l", "", "Listen addr:port (for test)")
 	brigadierID := flag.String("id", "", "BrigadierID (for test)")
+	debug := flag.Bool("debug", false, "Turn on debug")
+
 	flag.Parse()
 
 	if *staticDir == "" {
@@ -211,5 +213,5 @@ func bootstrap() (bool, net.Listener, string, string, string, error) {
 			len(listeners))
 	}
 
-	return false, listeners[0], id, dir, etc, nil
+	return *debug, listeners[0], id, dir, etc, nil
 }

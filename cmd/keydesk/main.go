@@ -47,7 +47,7 @@ var ErrStaticDirEmpty = goerrors.New("empty static dirname")
 func main() {
 	var handler http.Handler
 
-	debug, listen, BrigadierID, staticDir, etcDir, err := bootstrap()
+	pcors, listen, BrigadierID, staticDir, etcDir, err := bootstrap()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 	}
@@ -98,13 +98,9 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	switch debug {
+	switch pcors {
 	case true:
-		handler = cors.New(
-			cors.Options{
-				AllowedMethods: []string{"POST", "GET", "DELETE"},
-			},
-		).Handler(
+		handler = cors.AllowAll().Handler(
 			uiMiddleware(api.Serve(nil), staticDir),
 		)
 	default:
@@ -165,7 +161,7 @@ func bootstrap() (bool, net.Listener, string, string, string, error) {
 	etcDir := flag.String("c", DefaultEtcDir, "Dir for config files (for test)")
 	listenAddr := flag.String("l", "", "Listen addr:port (for test)")
 	brigadierID := flag.String("id", "", "BrigadierID (for test)")
-	debug := flag.Bool("debug", false, "Turn on debug")
+	pcors := flag.Bool("cors", false, "Turn on permessive CORS")
 
 	flag.Parse()
 
@@ -213,5 +209,5 @@ func bootstrap() (bool, net.Listener, string, string, string, error) {
 			len(listeners))
 	}
 
-	return *debug, listeners[0], id, dir, etc, nil
+	return *pcors, listeners[0], id, dir, etc, nil
 }

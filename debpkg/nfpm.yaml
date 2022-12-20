@@ -23,13 +23,13 @@ contents:
 - dst: /opt/keydesk
   type: dir
   file_info:
-    mode: 555
+    mode: 0555
     owner: root
     group: root
 - src: bin/keydesk
   dst: /opt/keydesk/keydesk
   file_info:
-    mode: 005
+    mode: 0005
     owner: root
     group: root
 - src: keydesk/systemd/keydesk@.service

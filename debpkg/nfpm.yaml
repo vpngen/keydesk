@@ -23,7 +23,7 @@ contents:
 - dst: /opt/keydesk
   type: dir
   file_info:
-    mode: 005
+    mode: 555
     owner: root
     group: root
 - src: ./keydesk

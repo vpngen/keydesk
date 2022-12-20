@@ -43,4 +43,6 @@ overrides:
       postinstall: /data/src/postinstall.sh
       preremove: /data/src/preremove.sh
       postremove: /data/src/postremove.sh
+deb:
+ compression: xz
 

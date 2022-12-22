@@ -4,12 +4,12 @@ platform: "linux"
 version: 0.0.1
 section: "default"
 priority: "extra"
+release: 2
 
 provides:
 - vgkeydesk
 depends:
 - vgkeydesk-conf
-- vgkeydesk-db
 - vgkeydesk-queue
 - vgkeydesk-web
 
@@ -45,4 +45,6 @@ overrides:
       postremove: /data/src/postremove.sh
 deb:
  compression: xz
+ fields:
+   Pre-Depends: vgkeydesk-db
 

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"os"
 	"sync"
 	"time"
 
@@ -238,7 +239,7 @@ func (us *userStorage) put(u *UserConfig) error {
 	}
 
 	_, err = tx.Exec(ctx,
-		fmt.Sprintf(`INSERT INTO %s (user_id, limit_monthly_remaining, limit_monthly_reset_on, os_counter_mtime, os_counter_value) VALUES ($1, $2 :: int8 * 1024 * 1024 * 1024, 'now', 'now', 0);`,
+		fmt.Sprintf(`INSERT INTO %s (user_id, limit_monthly_remaining, limit_monthly_reset_on, os_counter_mtime, os_counter_rx, os_counter_tx) VALUES ($1, $2 :: int8 * 1024 * 1024 * 1024, 'now', 'now', 0,0);`,
 			(pgx.Identifier{env.Env.BrigadierID, "quota"}).Sanitize()),
 		u.ID, MonthlyQuotaRemainingGB,
 	)
@@ -404,12 +405,23 @@ func (us *userStorage) list() ([]*User, error) {
 
 		users = append(users, u)
 
+		fmt.Fprintf(os.Stderr, "lastvisit: %v\n", last_activity)
+
 		return nil
 	})
 	if err != nil {
 		tx.Rollback(ctx)
 
 		return nil, fmt.Errorf("users rows: %w", err)
+	}
+
+	_, err = tx.Exec(ctx,
+		fmt.Sprintf("UPDATE %s SET last_visit=Now()", (pgx.Identifier{env.Env.BrigadierID, "keydesk"}).Sanitize()),
+	)
+	if err != nil {
+		tx.Rollback(ctx)
+
+		return users, fmt.Errorf("last visit: %w", err)
 	}
 
 	tx.Commit(ctx)

@@ -27,7 +27,7 @@ type User struct {
 
 	// last visit hour
 	// Format: date-time
-	LastVisitHour strfmt.DateTime `json:"LastVisitHour,omitempty"`
+	LastVisitHour *strfmt.DateTime `json:"LastVisitHour,omitempty"`
 
 	// last visit subnet
 	LastVisitSubnet string `json:"LastVisitSubnet,omitempty"`
@@ -49,7 +49,7 @@ type User struct {
 
 	// throttling till
 	// Format: date-time
-	ThrottlingTill strfmt.DateTime `json:"ThrottlingTill,omitempty"`
+	ThrottlingTill *strfmt.DateTime `json:"ThrottlingTill,omitempty"`
 
 	// user ID
 	// Required: true

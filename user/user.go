@@ -45,6 +45,8 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 				continue
 			}
 
+			fmt.Fprintf(os.Stderr, "Add error: %s\n", err)
+
 			return operations.NewPostUserDefault(500)
 		}
 
@@ -133,7 +135,7 @@ func constructContentDisposition(name, id string) string {
 func DelUserUserID(params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
 	err := storage.delete(params.UserID, false)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "delete user: %s :%s\n", params.UserID, err)
+		fmt.Fprintf(os.Stderr, "Delete user: %s :%s\n", params.UserID, err)
 
 		return operations.NewDeleteUserUserIDForbidden()
 	}
@@ -145,7 +147,7 @@ func DelUserUserID(params operations.DeleteUserUserIDParams, principal interface
 func GetUsers(params operations.GetUserParams, principal interface{}) middleware.Responder {
 	_users, err := storage.list()
 	if err != nil {
-		fmt.Printf("list: %s\n", err)
+		fmt.Fprintf(os.Stderr, "List error: %s\n", err)
 
 		return operations.NewGetUserDefault(500)
 	}
@@ -154,19 +156,29 @@ func GetUsers(params operations.GetUserParams, principal interface{}) middleware
 	for i := range _users {
 		u := _users[i]
 		users[i] = &models.User{
-			UserID:                  &u.ID,
-			UserName:                &u.Name,
-			ThrottlingTill:          strfmt.DateTime(u.ThrottlingTill),
+			UserID:   &u.ID,
+			UserName: &u.Name,
+			// ThrottlingTill:          (*strfmt.DateTime)(&u.ThrottlingTill),
 			MonthlyQuotaRemainingGB: u.MonthlyQuotaRemainingGB,
-			LastVisitHour:           strfmt.DateTime(u.LastVisitHour),
-			LastVisitSubnet:         u.LastVisitSubnet,
-			LastVisitASCountry:      u.LastVisitASCountry,
-			LastVisitASName:         u.LastVisitASName,
-			PersonName:              u.Person.Name,
-			PersonDesc:              u.Person.Desc,
-			PersonDescLink:          u.Person.URL,
+			// LastVisitHour:           strfmt.DateTime(u.LastVisitHour),
+			LastVisitSubnet:    u.LastVisitSubnet,
+			LastVisitASCountry: u.LastVisitASCountry,
+			LastVisitASName:    u.LastVisitASName,
+			PersonName:         u.Person.Name,
+			PersonDesc:         u.Person.Desc,
+			PersonDescLink:     u.Person.URL,
 		}
 		copy(users[i].Problems, u.Problems)
+
+		if !u.ThrottlingTill.IsZero() {
+			t := strfmt.DateTime(u.ThrottlingTill)
+			users[i].ThrottlingTill = &t
+		}
+
+		if !u.LastVisitHour.IsZero() {
+			t := strfmt.DateTime(u.LastVisitHour)
+			users[i].LastVisitHour = &t
+		}
 	}
 
 	return operations.NewGetUserOK().WithPayload(users)

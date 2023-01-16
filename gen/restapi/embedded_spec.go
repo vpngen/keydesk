@@ -187,7 +187,8 @@ func init() {
         },
         "LastVisitHour": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "x-nullable": true
         },
         "LastVisitSubnet": {
           "type": "string"
@@ -213,7 +214,8 @@ func init() {
         },
         "ThrottlingTill": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "x-nullable": true
         },
         "UserID": {
           "type": "string"
@@ -402,7 +404,8 @@ func init() {
         },
         "LastVisitHour": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "x-nullable": true
         },
         "LastVisitSubnet": {
           "type": "string"
@@ -428,7 +431,8 @@ func init() {
         },
         "ThrottlingTill": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "x-nullable": true
         },
         "UserID": {
           "type": "string"

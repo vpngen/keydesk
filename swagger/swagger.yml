@@ -102,12 +102,14 @@ definitions:
       ThrottlingTill:
         type: string
         format: date-time
+        x-nullable: true
       MonthlyQuotaRemainingGB:
         type: number
         format: float
       LastVisitHour:
         type: string
         format: date-time
+        x-nullable: true
       LastVisitSubnet:
         type: string
       LastVisitASName:

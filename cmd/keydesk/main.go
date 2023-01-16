@@ -152,6 +152,8 @@ func uiMiddleware(handler http.Handler, dir string) http.Handler {
 			return
 		}
 
+		fmt.Fprintf(os.Stderr, "Connect From: %s\n", r.RemoteAddr)
+
 		handler.ServeHTTP(w, r)
 	})
 }

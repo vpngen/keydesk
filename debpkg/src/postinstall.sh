@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS :"schema_name".keydesk (
 
 INSERT INTO :"schema_name".keydesk DEFAULT VALUES ON CONFLICT DO NOTHING;
 
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA :"schema_name" TO :"schema_name";
+
 COMMIT;
 EOF
 )
@@ -64,7 +66,7 @@ EOF
                 fi
         done
 
-	systemctl start 'keydesk@*.socket' 'keydesk@*.service' ||:
+	systemctl start --all 'keydesk@*.socket' ||:
 }
 
 # Step 2, check if this is a clean install or an upgrade

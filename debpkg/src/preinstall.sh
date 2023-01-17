@@ -1,21 +1,14 @@
 #!/bin/sh
 
 cleanInstall() {
-	printf "\033[32m Post Install of an clean install\033[0m\n"
+	printf "\033[32m Pre Install of an clean install\033[0m\n"
 	# Step 3 (clean install), enable the service in the proper way for this platform
-
-        set -e
-
-    	printf "\033[32m Reload the service unit from disk\033[0m\n"
-    	systemctl daemon-reload ||:
 }
 
 upgrade() {
-    	printf "\033[32m Post Install of an upgrade\033[0m\n"
+    	printf "\033[32m Pre Install of an upgrade\033[0m\n"
     	# Step 3(upgrade), do what you need
-    	printf "\033[32m Reload the service unit from disk\033[0m\n"
-    	systemctl daemon-reload ||:
-	systemctl restart --all 'keydesk@*.socket' ||:
+        systemctl stop --force 'keydesk@*.socket' 'keydesk@*.service' ||:
 }
 
 # Step 2, check if this is a clean install or an upgrade

@@ -20,7 +20,7 @@ BRIGADE_MAKER_APP_PATH="/opt/keydesk/create"
 set -e
 
 printdef () {
-        echo "Usage: spawn <brigabe_id_encoded> <endpoint IPv4> <CGNAT IPv4> <IPv6 ULA> <DNS IPv4> <DNS IPv6> <keydesk IPv6> <Brigadier Name :: base64> <Person Name :: base64> <Person Desc :: base64> <Person URL :: base64>"
+        echo "Usage: $0 <brigabe_id_encoded> <endpoint IPv4> <CGNAT IPv4> <IPv6 ULA> <DNS IPv4> <DNS IPv6> <keydesk IPv6> <Brigadier Name :: base64> <Person Name :: base64> <Person Desc :: base64> <Person URL :: base64>"
         exit 1
 }
 
@@ -53,6 +53,9 @@ useradd -p '*' -M -s /usr/sbin/nologin -d "${BASE_HOME_DIR}/${brigade_id}" "${br
 
 # Create brigadier record
 # Create special brigadier wg-user, get brigadier IPv6 and wg.conf
+
+#? create brigade config
+#? create brigadier
 
 wgconf=$(sudo -i -u ${brigade_id} ${BRIGADE_MAKER_APP_PATH} ${chunked} -id "${brigade_id}" -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}" -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}")
 

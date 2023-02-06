@@ -11,7 +11,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/vpngen/keydesk/env"
 	"github.com/vpngen/keydesk/gen/models"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/kdlib"
@@ -28,7 +27,7 @@ import (
 const MaxUsers = 250
 
 // AddUser - create user.
-func AddUser(params operations.PostUserParams, principal interface{}) middleware.Responder {
+func AddUser(params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
 	var (
 		user          *UserConfig
 		wgPriv, wgPSK []byte
@@ -40,7 +39,7 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 			return operations.NewPostUserDefault(500)
 		}
 
-		user, wgPriv, wgPSK, err = addUser(fullname, person, false)
+		user, wgPriv, wgPSK, err = addUser(fullname, person, false, routerPublicKey, shufflerPublicKey)
 		if err != nil {
 			if errors.Is(err, ErrUserCollision) {
 				continue
@@ -58,46 +57,37 @@ func AddUser(params operations.PostUserParams, principal interface{}) middleware
 
 	rc := io.NopCloser(strings.NewReader(wgconf))
 
-	return operations.NewPostUserCreated().WithContentDisposition(constructContentDisposition(user.Name, user.ID)).WithPayload(rc)
+	return operations.NewPostUserCreated().WithContentDisposition(constructContentDisposition(user.Name, user.ID.String())).WithPayload(rc)
 }
 
 // AddBrigadier - create brigadier user.
-func AddBrigadier(fullname string, person namesgenerator.Person) (string, string, error) {
-	user, wgPriv, wgPSK, err := addUser(fullname, person, true)
+func AddBrigadier(fullname string, person namesgenerator.Person, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, error) {
+	userconf, wgPriv, wgPSK, err := addUser(fullname, person, true, routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return "", "", fmt.Errorf("addUser: %w", err)
 	}
 
-	wgconf := genWgConf(user, wgPriv, wgPSK)
+	wgconf := genWgConf(userconf, wgPriv, wgPSK)
 
-	return wgconf, kdlib.SanitizeFilename(user.Name), nil
+	return wgconf, kdlib.SanitizeFilename(userconf.Name), nil
 }
 
-func addUser(fullname string, person namesgenerator.Person, boss bool) (*UserConfig, []byte, []byte, error) {
-	user := &UserConfig{
-		Name:   fullname,
-		Person: person,
-		Boss:   boss,
-	}
-
-	wgPub, wgPriv, wgPSK, wgRouterPSK, wgShufflerPSK, err := genwgKey(&env.Env.RouterPublicKey, &env.Env.ShufflerPublicKey)
+func addUser(fullname string, person namesgenerator.Person, IsBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*UserConfig, []byte, []byte, error) {
+	wgPub, wgPriv, wgPSK, wgRouterPSK, wgShufflerPSK, err := genwgKey(routerPublicKey, shufflerPublicKey)
 	if err != nil {
-		fmt.Printf("wggen: %s", err)
+		fmt.Printf("wg gen: %s", err)
 
-		return nil, nil, nil, fmt.Errorf("wggen: %w", err)
+		return nil, nil, nil, fmt.Errorf("wg gen: %w", err)
 	}
 
-	user.WgPublicKey = wgPub
-	user.WgRouterPSK = wgRouterPSK
-	user.WgShufflerPSK = wgShufflerPSK
-
-	if err := storage.put(user); err != nil {
+	userconf, err := storage.put(fullname, person, IsBrigadier, wgPub, wgRouterPSK, wgShufflerPSK)
+	if err != nil {
 		fmt.Printf("put: %s", err)
 
 		return nil, nil, nil, fmt.Errorf("put: %w", err)
 	}
 
-	return user, wgPriv, wgPSK, nil
+	return userconf, wgPriv, wgPSK, nil
 }
 
 func genWgConf(u *UserConfig, wgPriv, wgPSK []byte) string {
@@ -146,67 +136,62 @@ func DelUserUserID(params operations.DeleteUserUserIDParams, principal interface
 
 // GetUsers - .
 func GetUsers(params operations.GetUserParams, principal interface{}) middleware.Responder {
-	_users, err := storage.list()
+	storageUsers, err := storage.list()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "List error: %s\n", err)
 
 		return operations.NewGetUserDefault(500)
 	}
 
-	users := make([]*models.User, len(_users))
-	for i := range _users {
-		u := _users[i]
-		users[i] = &models.User{
-			UserID:   &u.ID,
-			UserName: &u.Name,
-			// ThrottlingTill:          (*strfmt.DateTime)(&u.ThrottlingTill),
-			MonthlyQuotaRemainingGB: u.MonthlyQuotaRemainingGB,
-			// LastVisitHour:           strfmt.DateTime(u.LastVisitHour),
-			LastVisitSubnet:    u.LastVisitSubnet,
-			LastVisitASCountry: u.LastVisitASCountry,
-			LastVisitASName:    u.LastVisitASName,
-			PersonName:         u.Person.Name,
-			PersonDesc:         u.Person.Desc,
-			PersonDescLink:     u.Person.URL,
+	apiUsers := make([]*models.User, len(storageUsers))
+	for i := range storageUsers {
+		user := storageUsers[i]
+		id := user.UserID.String()
+		apiUsers[i] = &models.User{
+			UserID:                  &id,
+			UserName:                &user.Name,
+			MonthlyQuotaRemainingGB: float32(user.Quota.LimitMonthlyRemaining),
+			LastVisitHour:           (*strfmt.DateTime)(&user.Quota.LastActivity),
+			PersonName:              user.Person.Name,
+			PersonDesc:              user.Person.Desc,
+			PersonDescLink:          user.Person.URL,
 		}
-		copy(users[i].Problems, u.Problems)
+		//copy(apiUsers[i].Problems, user.Problems)
 
-		if !u.ThrottlingTill.IsZero() {
-			t := strfmt.DateTime(u.ThrottlingTill)
-			users[i].ThrottlingTill = &t
+		if !user.Quota.ThrottlingTill.IsZero() {
+			apiUsers[i].ThrottlingTill = (*strfmt.DateTime)(&user.Quota.ThrottlingTill)
 		}
 
-		if !u.LastVisitHour.IsZero() {
-			t := strfmt.DateTime(u.LastVisitHour)
-			users[i].LastVisitHour = &t
+		if !user.Quota.LastActivity.IsZero() {
+			apiUsers[i].LastVisitHour = (*strfmt.DateTime)(&user.Quota.LastActivity)
 		}
 	}
 
-	return operations.NewGetUserOK().WithPayload(users)
+	return operations.NewGetUserOK().WithPayload(apiUsers)
 }
 
-func genwgKey(ruouterPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) ([]byte, []byte, []byte, []byte, []byte, error) {
-	key, err := wgtypes.GenerateKey()
+func genwgKey(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) ([]byte, []byte, []byte, []byte, []byte, error) {
+	wgPSK, err := wgtypes.GenerateKey()
 	if err != nil {
-		return nil, nil, nil, nil, nil, fmt.Errorf("gen wg psk: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("psk: %w", err)
 	}
 
-	routerKey, err := box.SealAnonymous(nil, key[:], ruouterPubkey, rand.Reader)
+	routerWgPSK, err := box.SealAnonymous(nil, wgPSK[:], routerPublicKey, rand.Reader)
 	if err != nil {
-		return nil, nil, nil, nil, nil, fmt.Errorf("router seal: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("psk router seal: %w", err)
 	}
 
-	shufflerKey, err := box.SealAnonymous(nil, key[:], shufflerPubkey, rand.Reader)
+	shufflerWgPSK, err := box.SealAnonymous(nil, wgPSK[:], shufflerPublicKey, rand.Reader)
 	if err != nil {
-		return nil, nil, nil, nil, nil, fmt.Errorf("shuffler seal: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("psk shuffler seal: %w", err)
 	}
 
-	priv, err := wgtypes.GeneratePrivateKey()
+	wgPrivKey, err := wgtypes.GeneratePrivateKey()
 	if err != nil {
-		return nil, nil, nil, nil, nil, fmt.Errorf("gen wg psk: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("priv: %w", err)
 	}
 
-	pub := priv.PublicKey()
+	wgPubKey := wgPrivKey.PublicKey()
 
-	return pub[:], priv[:], key[:], routerKey, shufflerKey, nil
+	return wgPubKey[:], wgPrivKey[:], wgPSK[:], routerWgPSK, shufflerWgPSK, nil
 }

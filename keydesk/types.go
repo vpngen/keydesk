@@ -16,7 +16,7 @@ type Quota struct {
 	LimitMonthlyRemaining uint64    `json:"limit_monthly_remaining"`
 	LimitMonthlyResetOn   time.Time `json:"limit_monthly_reset_on"`
 	LastActivity          time.Time `json:"last_activity"`
-	P2PSlowdownTill       time.Time `json:"p2p_slowdown_till"`
+	ThrottlingTill        time.Time `json:"throttling_till"`
 }
 
 // User - user structure.
@@ -51,17 +51,12 @@ type Brigade struct {
 	Users                []User       `json:"users,omitempty"`
 }
 
-// UserConfig2 - new user structure.
-type UserConfig2 struct {
-	ID               string
+// UserConfig - new user structure.
+type UserConfig struct {
+	ID               uuid.UUID
 	Name             string
-	Person           namesgenerator.Person
-	Boss             bool
-	WgPublicKey      []byte
-	WgRouterPSK      []byte
-	WgShufflerPSK    []byte
+	EndpointWgPublic []byte
 	DNSv4, DNSv6     netip.Addr
 	IPv4, IPv6       netip.Addr
 	EndpointIPv4     netip.Addr
-	EndpointWgPublic []byte
 }

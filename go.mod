@@ -1,8 +1,9 @@
 module github.com/vpngen/keydesk
 
-go 1.19
+go 1.20
 
 require (
+	github.com/alexsergivan/transliterator v1.0.0
 	github.com/go-openapi/errors v0.20.3
 	github.com/go-openapi/loads v0.21.2
 	github.com/go-openapi/runtime v0.25.0
@@ -13,7 +14,11 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/jessevdk/go-flags v1.5.0
+	github.com/vpngen/vpngine v0.0.0-20230118125738-d4e77dbdf581
+	github.com/vpngen/wordsgens v0.0.0-20221214131824-ff06c1f70d47
+	golang.org/x/crypto v0.5.0
 	golang.org/x/net v0.5.0
+	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20221104135756-97bc4ad4a1cb
 )
 
 require (

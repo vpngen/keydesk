@@ -11,8 +11,11 @@ import (
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
 
-// MonthlyQuotaRemainingGB - .
-const MonthlyQuotaRemainingGB = 100 * 1024 * 1204 * 1024
+// Filenames.
+const (
+	BrigadeFilename = "brigade.json"
+	StatsFilename   = "stats.json"
+)
 
 var (
 	// ErrUserLimit - maximun user num exeeded.

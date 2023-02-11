@@ -26,6 +26,9 @@ import (
 // MaxUsers - maximem limit.
 const MaxUsers = 250
 
+// MonthlyQuotaRemainingGB - .
+const MonthlyQuotaRemainingGB = 100 * 1024 * 1204 * 1024
+
 // AddUser - create user.
 func AddUser(db BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
 	var (
@@ -150,7 +153,7 @@ func GetUsers(db BrigadeStorage, params operations.GetUserParams, principal inte
 		apiUsers[i] = &models.User{
 			UserID:                  &id,
 			UserName:                &user.Name,
-			MonthlyQuotaRemainingGB: float32(user.Quota.LimitMonthlyRemaining),
+			MonthlyQuotaRemainingGB: float32(user.Quota.LimitMonthlyRemaining/1024/1024) / 1024,
 			LastVisitHour:           (*strfmt.DateTime)(&user.Quota.LastActivity),
 			PersonName:              user.Person.Name,
 			PersonDesc:              user.Person.Desc,

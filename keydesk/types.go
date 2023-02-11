@@ -48,7 +48,7 @@ type Brigade struct {
 	KeydeskIPv6          netip.Addr   `json:"keydesk_ipv6"`
 	IPv4CGNAT            netip.Prefix `json:"ipv4_cgnat"`
 	IPv6ULA              netip.Prefix `json:"ipv6_ula"`
-	Users                []User       `json:"users,omitempty"`
+	Users                []*User      `json:"users,omitempty"`
 }
 
 // UserConfig - new user structure.

@@ -3,7 +3,8 @@ package keydesk
 import (
 	"errors"
 	"fmt"
-	"sync"
+	"sort"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/kdlib"
@@ -11,7 +12,7 @@ import (
 )
 
 // MonthlyQuotaRemainingGB - .
-const MonthlyQuotaRemainingGB = 100
+const MonthlyQuotaRemainingGB = 100 * 1024 * 1204 * 1024
 
 var (
 	// ErrUserLimit - maximun user num exeeded.
@@ -20,21 +21,26 @@ var (
 	ErrUserCollision = errors.New("username exists")
 )
 
-type userStorage struct {
-	sync.Mutex
-	m  map[string]*User
-	nm map[string]struct{}
+// BrigadeStorage - brigade file storage.
+type BrigadeStorage struct {
+	BrigadeFilename string
+	StatsFilename   string
 }
 
-var storage = &userStorage{
-	m:  make(map[string]*User),
-	nm: make(map[string]struct{}),
-}
+func (db *BrigadeStorage) userPut(fullname string, person namesgenerator.Person, IsBrigadier bool, wgPub, wgRouterPSK, wgShufflerPSK []byte) (*UserConfig, error) {
+	var data *Brigade
 
-func (us *userStorage) put(fullname string, person namesgenerator.Person, IsBrigadier bool, wgPub, wgRouterPSK, wgShufflerPSK []byte) (*UserConfig, error) {
-	data := &Brigade{
-		Users: []User{},
-	} // !!!
+	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
+	if err != nil {
+		return nil, fmt.Errorf("open db: %w", err)
+	}
+
+	defer f.Close()
+
+	err = f.Decoder().Decode(data)
+	if err != nil {
+		return nil, fmt.Errorf("decode: %w", err)
+	}
 
 	userconf := &UserConfig{
 		EndpointWgPublic: data.WgPublicKey,
@@ -108,15 +114,91 @@ func (us *userStorage) put(fullname string, person namesgenerator.Person, IsBrig
 	userNum := blurIpv4Addr(userconf.IPv4, data.IPv4CGNAT.Bits(), extractUint32Salt(data.BrigadeID))
 	userconf.Name = fmt.Sprintf("%03d %s", userNum, fullname)
 
+	data.Users = append(data.Users, &User{
+		UserID:           userconf.ID,
+		Name:             userconf.Name,
+		CreatedAt:        time.Now(),
+		IsBrigadier:      IsBrigadier,
+		IPv4Addr:         userconf.IPv4,
+		IPv6Addr:         userconf.IPv6,
+		WgPublicKey:      wgPub,
+		WgPSKRouterEnc:   wgRouterPSK,
+		WgPSKShufflerEnc: wgShufflerPSK,
+		Person:           person,
+		Quota:            Quota{LimitMonthlyRemaining: MonthlyQuotaRemainingGB},
+	})
+
+	sort.Slice(data.Users, func(i, j int) bool {
+		return data.Users[i].IsBrigadier || data.Users[i].UserID.String() > data.Users[j].UserID.String()
+	})
+
+	f.Encoder().SetIndent(" ", " ")
+
+	err = f.Encoder().Encode(data)
+	if err != nil {
+		return nil, fmt.Errorf("encode: %w", err)
+	}
+
+	// !!! DO API CALL
+	// if we catch a slowdown problems we need organize queue
+
+	f.Commit()
+
 	return userconf, nil
 }
 
-func (us *userStorage) delete(id string, boss bool) error {
-	/// !!!
+func (db *BrigadeStorage) userRemove(id string, brigadier bool) error {
+	var data *Brigade
+
+	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
+	if err != nil {
+		return fmt.Errorf("open db: %w", err)
+	}
+
+	defer f.Close()
+
+	err = f.Decoder().Decode(data)
+	if err != nil {
+		return fmt.Errorf("decode: %w", err)
+	}
+
+	for i, u := range data.Users {
+		if u.UserID.String() == id && u.IsBrigadier == brigadier {
+			data.Users = append(data.Users, data.Users[i+1:]...)
+
+			break
+		}
+	}
+
+	f.Encoder().SetIndent(" ", " ")
+
+	err = f.Encoder().Encode(data)
+	if err != nil {
+		return fmt.Errorf("encode: %w", err)
+	}
+
+	// !!! DO API CALL
+	// if we catch a slowdown problems we need organize queue
+
+	f.Commit()
+
 	return nil
 }
 
-func (us *userStorage) list() ([]*User, error) {
-	// !!!
-	return []*User{}, nil
+func (db *BrigadeStorage) userList() ([]*User, error) {
+	var data *Brigade
+
+	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
+	if err != nil {
+		return nil, fmt.Errorf("open db: %w", err)
+	}
+
+	defer f.Close()
+
+	err = f.Decoder().Decode(data)
+	if err != nil {
+		return nil, fmt.Errorf("decode: %w", err)
+	}
+
+	return data.Users, nil
 }

@@ -27,7 +27,7 @@ import (
 const MaxUsers = 250
 
 // AddUser - create user.
-func AddUser(params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
+func AddUser(db BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
 	var (
 		user          *UserConfig
 		wgPriv, wgPSK []byte
@@ -39,7 +39,7 @@ func AddUser(params operations.PostUserParams, principal interface{}, routerPubl
 			return operations.NewPostUserDefault(500)
 		}
 
-		user, wgPriv, wgPSK, err = addUser(fullname, person, false, routerPublicKey, shufflerPublicKey)
+		user, wgPriv, wgPSK, err = addUser(db, fullname, person, false, routerPublicKey, shufflerPublicKey)
 		if err != nil {
 			if errors.Is(err, ErrUserCollision) {
 				continue
@@ -61,8 +61,8 @@ func AddUser(params operations.PostUserParams, principal interface{}, routerPubl
 }
 
 // AddBrigadier - create brigadier user.
-func AddBrigadier(fullname string, person namesgenerator.Person, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, error) {
-	userconf, wgPriv, wgPSK, err := addUser(fullname, person, true, routerPublicKey, shufflerPublicKey)
+func AddBrigadier(db BrigadeStorage, fullname string, person namesgenerator.Person, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, error) {
+	userconf, wgPriv, wgPSK, err := addUser(db, fullname, person, true, routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return "", "", fmt.Errorf("addUser: %w", err)
 	}
@@ -72,7 +72,7 @@ func AddBrigadier(fullname string, person namesgenerator.Person, routerPublicKey
 	return wgconf, kdlib.SanitizeFilename(userconf.Name), nil
 }
 
-func addUser(fullname string, person namesgenerator.Person, IsBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*UserConfig, []byte, []byte, error) {
+func addUser(db BrigadeStorage, fullname string, person namesgenerator.Person, IsBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*UserConfig, []byte, []byte, error) {
 	wgPub, wgPriv, wgPSK, wgRouterPSK, wgShufflerPSK, err := genwgKey(routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		fmt.Printf("wg gen: %s", err)
@@ -80,7 +80,7 @@ func addUser(fullname string, person namesgenerator.Person, IsBrigadier bool, ro
 		return nil, nil, nil, fmt.Errorf("wg gen: %w", err)
 	}
 
-	userconf, err := storage.put(fullname, person, IsBrigadier, wgPub, wgRouterPSK, wgShufflerPSK)
+	userconf, err := db.userPut(fullname, person, IsBrigadier, wgPub, wgRouterPSK, wgShufflerPSK)
 	if err != nil {
 		fmt.Printf("put: %s", err)
 
@@ -122,9 +122,9 @@ func constructContentDisposition(name, id string) string {
 	return fmt.Sprintf("attachment; filename=%s; filename*=%s", "wg-"+id+".conf", "utf-8''"+url.QueryEscape(filename))
 }
 
-// DelUserUserID - creaste user.
-func DelUserUserID(params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
-	err := storage.delete(params.UserID, false)
+// DelUserUserID - delete user by UserID.
+func DelUserUserID(db BrigadeStorage, params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
+	err := db.userRemove(params.UserID, false)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Delete user: %s :%s\n", params.UserID, err)
 
@@ -135,8 +135,8 @@ func DelUserUserID(params operations.DeleteUserUserIDParams, principal interface
 }
 
 // GetUsers - .
-func GetUsers(params operations.GetUserParams, principal interface{}) middleware.Responder {
-	storageUsers, err := storage.list()
+func GetUsers(db BrigadeStorage, params operations.GetUserParams, principal interface{}) middleware.Responder {
+	storageUsers, err := db.userList()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "List error: %s\n", err)
 

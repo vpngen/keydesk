@@ -20,8 +20,8 @@ type FileDb struct {
 	w    *lockedfile.File
 }
 
-// Close - rename tmp to main and close all files.
-func (f *FileDb) Close() error {
+// Commit - rename tmp to main and close all files.
+func (f *FileDb) Commit() error {
 	err := f.w.Sync()
 	if err != nil {
 		return fmt.Errorf("sync: %w", err)
@@ -32,6 +32,11 @@ func (f *FileDb) Close() error {
 		return fmt.Errorf("rename: %w", err)
 	}
 
+	return nil
+}
+
+// Close - rename tmp to main and close all files.
+func (f *FileDb) Close() error {
 	f.w.Close()
 	f.r.Close()
 

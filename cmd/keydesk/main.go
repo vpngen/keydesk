@@ -70,6 +70,7 @@ func main() {
 	}
 
 	db := &keydesk.BrigadeStorage{
+		BrigadeID:       BrigadeID,
 		BrigadeFilename: filepath.Join(dbDir, keydesk.BrigadeFilename),
 		StatsFilename:   filepath.Join(dbDir, keydesk.StatsFilename),
 	}

@@ -15,24 +15,6 @@ import (
 	"github.com/vpngen/vpngine/naclkey"
 )
 
-/*
-Database manipulations
-  * Create database schema
-  * !!Create schema role
-  * Create endpoint credentials
-Create brigadier
-  * Create brigadier record
-  * Create special brigadier wg-user, get brigadier IPv6 and wg.conf
-Create config
-  * Database role credentials
-  * Brigadier IPv6-address (p2p brigadier2keykdesk)
-
-This programm need environments:
-  * database name: content of /etc/keydesk/dbname
-  * router pub key: content of /etc/keydesk/router.pub
-  * shuffler pub key: content of /etc/keydesk/shuffler.pub
-*/
-
 // Allowed prefixes.
 const (
 	CGNATPrefix = "100.64.0.0/10"
@@ -194,6 +176,7 @@ func main() {
 	}
 
 	db := &keydesk.BrigadeStorage{
+		BrigadeID:       config.BrigadeID,
 		BrigadeFilename: filepath.Join(dbDir, keydesk.BrigadeFilename),
 		StatsFilename:   filepath.Join(dbDir, keydesk.StatsFilename),
 	}

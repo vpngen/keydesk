@@ -22,15 +22,22 @@ var (
 	ErrUserLimit = errors.New("num user limit exeeded")
 	// ErrUserCollision - user name collision.
 	ErrUserCollision = errors.New("username exists")
+	// ErrUnknownBrigade - brigade ID mismatch.
+	ErrUnknownBrigade = errors.New("unknown brigade")
 )
 
 // BrigadeStorage - brigade file storage.
 type BrigadeStorage struct {
+	BrigadeID       string
 	BrigadeFilename string
 	StatsFilename   string
 }
 
 func (db *BrigadeStorage) brigadePut(config *BrigadeConfig, wgPub, wgRouterPriv, wgShufflerPriv []byte) error {
+	if config.BrigadeID != db.BrigadeID {
+		return fmt.Errorf("check: %w", ErrUnknownBrigade)
+	}
+
 	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
@@ -78,6 +85,10 @@ func (db *BrigadeStorage) userPut(fullname string, person namesgenerator.Person,
 	err = f.Decoder().Decode(data)
 	if err != nil {
 		return nil, fmt.Errorf("decode: %w", err)
+	}
+
+	if data.BrigadeID != db.BrigadeID {
+		return nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
 	}
 
 	userconf := &UserConfig{
@@ -198,6 +209,10 @@ func (db *BrigadeStorage) userRemove(id string, brigadier bool) error {
 		return fmt.Errorf("decode: %w", err)
 	}
 
+	if data.BrigadeID != db.BrigadeID {
+		return fmt.Errorf("check: %w", ErrUnknownBrigade)
+	}
+
 	for i, u := range data.Users {
 		if u.UserID.String() == id && u.IsBrigadier == brigadier {
 			data.Users = append(data.Users[:i], data.Users[i+1:]...)
@@ -232,6 +247,10 @@ func (db *BrigadeStorage) userList() ([]*User, error) {
 	err = f.Decoder().Decode(data)
 	if err != nil {
 		return nil, fmt.Errorf("decode: %w", err)
+	}
+
+	if data.BrigadeID != db.BrigadeID {
+		return nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
 	}
 
 	return data.Users, nil

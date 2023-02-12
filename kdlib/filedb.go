@@ -49,8 +49,12 @@ func (f *FileDb) Decoder() *json.Decoder {
 }
 
 // Encoder - get json.Encoder (tmp file).
-func (f *FileDb) Encoder() *json.Encoder {
-	return json.NewEncoder(f.w)
+func (f *FileDb) Encoder(prefix, indent string) *json.Encoder {
+	enc := json.NewEncoder(f.w)
+
+	enc.SetIndent(prefix, indent)
+
+	return enc
 }
 
 // OpenFileDb - open file pair to edit.

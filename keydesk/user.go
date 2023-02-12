@@ -26,11 +26,11 @@ import (
 // MaxUsers - maximem limit.
 const MaxUsers = 250
 
-// MonthlyQuotaRemainingGB - .
-const MonthlyQuotaRemainingGB = 100 * 1024 * 1204 * 1024
+// MonthlyQuotaRemaining - .
+const MonthlyQuotaRemaining = 100 * 1024 * 1024 * 1024
 
 // AddUser - create user.
-func AddUser(db BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
+func AddUser(db *BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
 	var (
 		user          *UserConfig
 		wgPriv, wgPSK []byte
@@ -64,7 +64,7 @@ func AddUser(db BrigadeStorage, params operations.PostUserParams, principal inte
 }
 
 // AddBrigadier - create brigadier user.
-func AddBrigadier(db BrigadeStorage, fullname string, person namesgenerator.Person, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, error) {
+func AddBrigadier(db *BrigadeStorage, fullname string, person namesgenerator.Person, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, error) {
 	userconf, wgPriv, wgPSK, err := addUser(db, fullname, person, true, routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return "", "", fmt.Errorf("addUser: %w", err)
@@ -75,8 +75,8 @@ func AddBrigadier(db BrigadeStorage, fullname string, person namesgenerator.Pers
 	return wgconf, kdlib.SanitizeFilename(userconf.Name), nil
 }
 
-func addUser(db BrigadeStorage, fullname string, person namesgenerator.Person, IsBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*UserConfig, []byte, []byte, error) {
-	wgPub, wgPriv, wgPSK, wgRouterPSK, wgShufflerPSK, err := genwgKey(routerPublicKey, shufflerPublicKey)
+func addUser(db *BrigadeStorage, fullname string, person namesgenerator.Person, IsBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*UserConfig, []byte, []byte, error) {
+	wgPub, wgPriv, wgPSK, wgRouterPSK, wgShufflerPSK, err := genUserWGKeys(routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		fmt.Printf("wg gen: %s", err)
 
@@ -126,7 +126,7 @@ func constructContentDisposition(name, id string) string {
 }
 
 // DelUserUserID - delete user by UserID.
-func DelUserUserID(db BrigadeStorage, params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
+func DelUserUserID(db *BrigadeStorage, params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
 	err := db.userRemove(params.UserID, false)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Delete user: %s :%s\n", params.UserID, err)
@@ -138,7 +138,7 @@ func DelUserUserID(db BrigadeStorage, params operations.DeleteUserUserIDParams, 
 }
 
 // GetUsers - .
-func GetUsers(db BrigadeStorage, params operations.GetUserParams, principal interface{}) middleware.Responder {
+func GetUsers(db *BrigadeStorage, params operations.GetUserParams, principal interface{}) middleware.Responder {
 	storageUsers, err := db.userList()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "List error: %s\n", err)
@@ -150,10 +150,11 @@ func GetUsers(db BrigadeStorage, params operations.GetUserParams, principal inte
 	for i := range storageUsers {
 		user := storageUsers[i]
 		id := user.UserID.String()
+		x := float64(int((float64(user.Quota.LimitMonthlyRemaining/1024/1024)/1024)*100)) / 100
 		apiUsers[i] = &models.User{
 			UserID:                  &id,
 			UserName:                &user.Name,
-			MonthlyQuotaRemainingGB: float32(user.Quota.LimitMonthlyRemaining/1024/1024) / 1024,
+			MonthlyQuotaRemainingGB: float32(x),
 			LastVisitHour:           (*strfmt.DateTime)(&user.Quota.LastActivity),
 			PersonName:              user.Person.Name,
 			PersonDesc:              user.Person.Desc,
@@ -173,7 +174,7 @@ func GetUsers(db BrigadeStorage, params operations.GetUserParams, principal inte
 	return operations.NewGetUserOK().WithPayload(apiUsers)
 }
 
-func genwgKey(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) ([]byte, []byte, []byte, []byte, []byte, error) {
+func genUserWGKeys(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) ([]byte, []byte, []byte, []byte, []byte, error) {
 	wgPSK, err := wgtypes.GenerateKey()
 	if err != nil {
 		return nil, nil, nil, nil, nil, fmt.Errorf("psk: %w", err)

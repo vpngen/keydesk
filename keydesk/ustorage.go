@@ -30,15 +30,50 @@ type BrigadeStorage struct {
 	StatsFilename   string
 }
 
-func (db *BrigadeStorage) userPut(fullname string, person namesgenerator.Person, IsBrigadier bool, wgPub, wgRouterPSK, wgShufflerPSK []byte) (*UserConfig, error) {
-	var data *Brigade
+func (db *BrigadeStorage) brigadePut(config *BrigadeConfig, wgPub, wgRouterPriv, wgShufflerPriv []byte) error {
+	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
+	if err != nil {
+		return fmt.Errorf("open db: %w", err)
+	}
 
+	defer f.Close()
+
+	data := Brigade{
+		BrigadeID:            config.BrigadeID,
+		CreatedAt:            time.Now(),
+		WgPublicKey:          wgPub,
+		WgPrivateRouterEnc:   wgRouterPriv,
+		WgPrivateShufflerEnc: wgShufflerPriv,
+		IPv4CGNAT:            config.IPv4CGNAT,
+		IPv6ULA:              config.IPv6ULA,
+		DNSv4:                config.DNSIPv4,
+		DNSv6:                config.DNSIPv6,
+		EndpointIPv4:         config.EndpointIPv4,
+		KeydeskIPv6:          config.KeydeskIPv6,
+	}
+
+	err = f.Encoder(" ", " ").Encode(data)
+	if err != nil {
+		return fmt.Errorf("encode: %w", err)
+	}
+
+	// !!! DO API CALL
+	// if we catch a slowdown problems we need organize queue
+
+	f.Commit()
+
+	return nil
+}
+
+func (db *BrigadeStorage) userPut(fullname string, person namesgenerator.Person, IsBrigadier bool, wgPub, wgRouterPSK, wgShufflerPSK []byte) (*UserConfig, error) {
 	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
 
 	defer f.Close()
+
+	data := &Brigade{}
 
 	err = f.Decoder().Decode(data)
 	if err != nil {
@@ -128,16 +163,14 @@ func (db *BrigadeStorage) userPut(fullname string, person namesgenerator.Person,
 		WgPSKRouterEnc:   wgRouterPSK,
 		WgPSKShufflerEnc: wgShufflerPSK,
 		Person:           person,
-		Quota:            Quota{LimitMonthlyRemaining: MonthlyQuotaRemainingGB},
+		Quota:            Quota{LimitMonthlyRemaining: MonthlyQuotaRemaining},
 	})
 
 	sort.Slice(data.Users, func(i, j int) bool {
 		return data.Users[i].IsBrigadier || data.Users[i].UserID.String() > data.Users[j].UserID.String()
 	})
 
-	f.Encoder().SetIndent(" ", " ")
-
-	err = f.Encoder().Encode(data)
+	err = f.Encoder(" ", " ").Encode(data)
 	if err != nil {
 		return nil, fmt.Errorf("encode: %w", err)
 	}
@@ -151,14 +184,14 @@ func (db *BrigadeStorage) userPut(fullname string, person namesgenerator.Person,
 }
 
 func (db *BrigadeStorage) userRemove(id string, brigadier bool) error {
-	var data *Brigade
-
 	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}
 
 	defer f.Close()
+
+	data := &Brigade{}
 
 	err = f.Decoder().Decode(data)
 	if err != nil {
@@ -167,15 +200,13 @@ func (db *BrigadeStorage) userRemove(id string, brigadier bool) error {
 
 	for i, u := range data.Users {
 		if u.UserID.String() == id && u.IsBrigadier == brigadier {
-			data.Users = append(data.Users, data.Users[i+1:]...)
+			data.Users = append(data.Users[:i], data.Users[i+1:]...)
 
 			break
 		}
 	}
 
-	f.Encoder().SetIndent(" ", " ")
-
-	err = f.Encoder().Encode(data)
+	err = f.Encoder(" ", " ").Encode(data)
 	if err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
@@ -189,14 +220,14 @@ func (db *BrigadeStorage) userRemove(id string, brigadier bool) error {
 }
 
 func (db *BrigadeStorage) userList() ([]*User, error) {
-	var data *Brigade
-
 	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
 
 	defer f.Close()
+
+	data := &Brigade{}
 
 	err = f.Decoder().Decode(data)
 	if err != nil {

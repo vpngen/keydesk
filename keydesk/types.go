@@ -60,3 +60,14 @@ type UserConfig struct {
 	IPv4, IPv6       netip.Addr
 	EndpointIPv4     netip.Addr
 }
+
+// BrigadeConfig - new brigade structure.
+type BrigadeConfig struct {
+	BrigadeID    string
+	EndpointIPv4 netip.Addr
+	DNSIPv4      netip.Addr
+	DNSIPv6      netip.Addr
+	IPv4CGNAT    netip.Prefix
+	IPv6ULA      netip.Prefix
+	KeydeskIPv6  netip.Addr
+}

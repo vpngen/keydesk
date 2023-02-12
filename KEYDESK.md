@@ -4,8 +4,7 @@ It is a main brigadier dashboard
 
 ## Main functions
 
-* The brigadier user config creration utility
-* The brigadier user config recreation utility
+* The brigadier user config (re)creation utility
 * The brigadier web-dashboard service
 
 ## Details

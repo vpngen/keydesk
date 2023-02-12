@@ -69,7 +69,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	db := keydesk.BrigadeStorage{
+	db := &keydesk.BrigadeStorage{
 		BrigadeFilename: filepath.Join(dbDir, keydesk.BrigadeFilename),
 		StatsFilename:   filepath.Join(dbDir, keydesk.StatsFilename),
 	}

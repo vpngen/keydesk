@@ -16,7 +16,7 @@ func CreateBrigade(db *BrigadeStorage, config *BrigadeConfig, routerPubkey, shuf
 		return fmt.Errorf("wg keys: %w", err)
 	}
 
-	err = db.brigadePut(config, wgPub, wgRouterPriv, wgShufflerPriv)
+	err = db.BrigadePut(config, wgPub, wgRouterPriv, wgShufflerPriv)
 	if err != nil {
 		fmt.Printf("put: %s", err)
 

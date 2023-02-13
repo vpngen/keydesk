@@ -33,7 +33,8 @@ type BrigadeStorage struct {
 	StatsFilename   string
 }
 
-func (db *BrigadeStorage) brigadePut(config *BrigadeConfig, wgPub, wgRouterPriv, wgShufflerPriv []byte) error {
+// BrigadePut - create brigade config.
+func (db *BrigadeStorage) BrigadePut(config *BrigadeConfig, wgPub, wgRouterPriv, wgShufflerPriv []byte) error {
 	if config.BrigadeID != db.BrigadeID {
 		return fmt.Errorf("check: %w", ErrUnknownBrigade)
 	}
@@ -72,7 +73,8 @@ func (db *BrigadeStorage) brigadePut(config *BrigadeConfig, wgPub, wgRouterPriv,
 	return nil
 }
 
-func (db *BrigadeStorage) userPut(fullname string, person namesgenerator.Person, IsBrigadier bool, wgPub, wgRouterPSK, wgShufflerPSK []byte) (*UserConfig, error) {
+// UserPut - put user to the storage.
+func (db *BrigadeStorage) UserPut(fullname string, person namesgenerator.Person, IsBrigadier bool, wgPub, wgRouterPSK, wgShufflerPSK []byte) (*UserConfig, error) {
 	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
@@ -194,7 +196,8 @@ func (db *BrigadeStorage) userPut(fullname string, person namesgenerator.Person,
 	return userconf, nil
 }
 
-func (db *BrigadeStorage) userRemove(id string, brigadier bool) error {
+// UserRemove - remove user from the storage.
+func (db *BrigadeStorage) UserRemove(id string, brigadier bool) error {
 	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
@@ -234,7 +237,8 @@ func (db *BrigadeStorage) userRemove(id string, brigadier bool) error {
 	return nil
 }
 
-func (db *BrigadeStorage) userList() ([]*User, error) {
+// UserList - list users.
+func (db *BrigadeStorage) UserList() ([]*User, error) {
 	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)

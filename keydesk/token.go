@@ -7,6 +7,7 @@ import (
 
 	"github.com/vpngen/keydesk/gen/models"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
+	"github.com/vpngen/keydesk/keydesk/token"
 
 	"github.com/go-openapi/errors"
 
@@ -34,20 +35,20 @@ func ValidateBearer(BrigadierID string) func(string) (interface{}, error) {
 
 		claims := jwt.MapClaims{}
 
-		token, err := jwt.ParseWithClaims(bearerToken, claims, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("%w: %v", ErrTokenUnexpectedSigningMethod, token.Header["alg"])
+		jwtoken, err := jwt.ParseWithClaims(bearerToken, claims, func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("%w: %v", ErrTokenUnexpectedSigningMethod, t.Header["alg"])
 			}
 
 			jti, _ := claims["jti"].(string)
 
-			return fetchSecret(jti), nil
+			return token.FetchSecret(jti), nil
 		})
 		if err != nil {
 			return nil, ErrTokenInvalid
 		}
 
-		if !token.Valid {
+		if !jwtoken.Valid {
 			return nil, ErrTokenInvalid
 		}
 
@@ -68,21 +69,21 @@ func ValidateBearer(BrigadierID string) func(string) (interface{}, error) {
 // CreateToken - create JWT.
 func CreateToken(BrigadierID string, TokenLifeTime int64) func(operations.PostTokenParams) middleware.Responder {
 	return func(params operations.PostTokenParams) middleware.Responder {
-		_token, err := newToken(int(TokenLifeTime))
+		tc, err := token.New(int(TokenLifeTime))
 		if err != nil {
 			return operations.NewPostTokenDefault(500)
 		}
 
-		// Create a new token object, specifying signing method and the claims
+		// Create a new jwtoken object, specifying signing method and the claims
 		// you would like it to contain.
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		jwtoken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"user": BrigadierID,
-			"jti":  _token.jti,
-			"exp":  _token.exp.Unix(),
+			"jti":  tc.Jti(),
+			"exp":  tc.Exp().Unix(),
 		})
 
 		// Sign and get the complete encoded token as a string using the secret
-		tokenString, err := token.SignedString(_token.secret)
+		tokenString, err := jwtoken.SignedString(tc.Secret())
 		if err != nil {
 			return operations.NewPostTokenDefault(500)
 		}

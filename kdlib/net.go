@@ -9,6 +9,7 @@ import (
 // kmaskCorrection for avoid negative value.
 const maskCorrection = (^uint64(0)) >> 1
 
+// IsZeroEnding - is last part zeroes.
 func IsZeroEnding(ip netip.Addr) bool {
 	if ip.Is4() && ip.As4()[3] == 0 {
 		return true
@@ -22,6 +23,7 @@ func IsZeroEnding(ip netip.Addr) bool {
 	return false
 }
 
+// RandomAddrIPv4 - random ipv4 addr inside prefix.
 func RandomAddrIPv4(p netip.Prefix) netip.Addr {
 	var buf [4]byte
 
@@ -39,6 +41,7 @@ func RandomAddrIPv4(p netip.Prefix) netip.Addr {
 	return netip.AddrFrom4(buf)
 }
 
+// RandomAddrIPv6 - random ipv6 addr inside prefix.
 func RandomAddrIPv6(p netip.Prefix) netip.Addr {
 	var buf [16]byte
 
@@ -77,6 +80,7 @@ func randomFrom8(src, dst []byte, mask uint64) {
 	binary.BigEndian.PutUint64(dst[:8], (x&mask)|addr)
 }
 
+// LastPrefixIPv4 - last ip addr in the prefix.
 func LastPrefixIPv4(p netip.Prefix) netip.Addr {
 	var buf [4]byte
 
@@ -89,6 +93,7 @@ func LastPrefixIPv4(p netip.Prefix) netip.Addr {
 	return netip.AddrFrom4(buf)
 }
 
+// LastPrefixIPv6 - last ip addr in the prefix.
 func LastPrefixIPv6(p netip.Prefix) netip.Addr {
 	var buf [16]byte
 

@@ -83,7 +83,7 @@ func addUser(db *BrigadeStorage, fullname string, person namesgenerator.Person, 
 		return nil, nil, nil, fmt.Errorf("wg gen: %w", err)
 	}
 
-	userconf, err := db.userPut(fullname, person, IsBrigadier, wgPub, wgRouterPSK, wgShufflerPSK)
+	userconf, err := db.UserPut(fullname, person, IsBrigadier, wgPub, wgRouterPSK, wgShufflerPSK)
 	if err != nil {
 		fmt.Printf("put: %s", err)
 
@@ -127,7 +127,7 @@ func constructContentDisposition(name, id string) string {
 
 // DelUserUserID - delete user by UserID.
 func DelUserUserID(db *BrigadeStorage, params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
-	err := db.userRemove(params.UserID, false)
+	err := db.UserRemove(params.UserID, false)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Delete user: %s :%s\n", params.UserID, err)
 
@@ -139,7 +139,7 @@ func DelUserUserID(db *BrigadeStorage, params operations.DeleteUserUserIDParams,
 
 // GetUsers - .
 func GetUsers(db *BrigadeStorage, params operations.GetUserParams, principal interface{}) middleware.Responder {
-	storageUsers, err := db.userList()
+	storageUsers, err := db.UserList()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "List error: %s\n", err)
 
@@ -155,10 +155,10 @@ func GetUsers(db *BrigadeStorage, params operations.GetUserParams, principal int
 			UserID:                  &id,
 			UserName:                &user.Name,
 			MonthlyQuotaRemainingGB: float32(x),
-			LastVisitHour:           (*strfmt.DateTime)(&user.Quota.LastActivity),
-			PersonName:              user.Person.Name,
-			PersonDesc:              user.Person.Desc,
-			PersonDescLink:          user.Person.URL,
+			//LastVisitHour:           (*strfmt.DateTime)(&user.Quota.LastActivity),
+			PersonName:     user.Person.Name,
+			PersonDesc:     user.Person.Desc,
+			PersonDescLink: user.Person.URL,
 		}
 		//copy(apiUsers[i].Problems, user.Problems)
 

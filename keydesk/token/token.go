@@ -1,6 +1,7 @@
-package keydesk
+package token
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/base64"
 	"sync"
@@ -13,24 +14,40 @@ const tokenSecretLen = 16 // secret len.
 
 const tokenPurgePeriod = 300 * time.Second
 
-type tokenMeta struct {
+// TokenConfig - jwt token.
+type TokenConfig struct {
 	jti    string
 	exp    time.Time
 	secret []byte
 }
 
+// Jti - jti getter.
+func (tc *TokenConfig) Jti() string {
+	return tc.jti
+}
+
+// Exp - exp getter.
+func (tc *TokenConfig) Exp() time.Time {
+	return tc.exp
+}
+
+// Secret - secret getter.
+func (tc *TokenConfig) Secret() []byte {
+	return bytes.Clone(tc.secret)
+}
+
 type tokenStorage struct {
 	sync.Mutex
-	m    map[string]*tokenMeta
+	m    map[string]*TokenConfig
 	last time.Time // last purge
 }
 
 var tokens = &tokenStorage{
-	m:    make(map[string]*tokenMeta),
+	m:    make(map[string]*TokenConfig),
 	last: time.Now().Add(tokenPurgePeriod),
 }
 
-func (ts *tokenStorage) put(t *tokenMeta) {
+func (ts *tokenStorage) put(t *TokenConfig) {
 	ts.Lock()
 	defer ts.Unlock()
 
@@ -52,7 +69,7 @@ func (ts *tokenStorage) put(t *tokenMeta) {
 	}
 }
 
-func (ts *tokenStorage) get(jti string) *tokenMeta {
+func (ts *tokenStorage) get(jti string) *TokenConfig {
 	ts.Lock()
 	defer ts.Unlock()
 
@@ -84,7 +101,8 @@ func (ts *tokenStorage) _purge(now time.Time) {
 	ts.last = now.Add(tokenPurgePeriod)
 }
 
-func newToken(ttl int) (*tokenMeta, error) {
+// New - new jwt token
+func New(ttl int) (*TokenConfig, error) {
 	buf := make([]byte, tokenSecretLen)
 	if _, err := rand.Reader.Read(buf); err != nil {
 		return nil, err
@@ -93,7 +111,7 @@ func newToken(ttl int) (*tokenMeta, error) {
 	secret := make([]byte, base64.StdEncoding.EncodedLen(tokenSecretLen))
 	base64.StdEncoding.Encode(secret, buf)
 
-	token := &tokenMeta{
+	token := &TokenConfig{
 		exp:    time.Now().Add(time.Second * time.Duration(ttl)),
 		secret: secret,
 	}
@@ -103,7 +121,8 @@ func newToken(ttl int) (*tokenMeta, error) {
 	return token, nil
 }
 
-func fetchSecret(jti string) []byte {
+// FetchSecret - fetch token fron storage.
+func FetchSecret(jti string) []byte {
 	token := tokens.get(jti)
 	if token == nil {
 		return []byte{}

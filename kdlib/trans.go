@@ -35,6 +35,7 @@ var trans = transliterator.NewTransliterator(&langOverrites)
 
 var vocabulary = []byte("0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz")
 
+// SanitizeFilename - prepare filename to wg client.
 func SanitizeFilename(name string) string {
 	userNum, after, ok := strings.Cut(name, " ")
 	if ok {

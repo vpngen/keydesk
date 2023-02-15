@@ -18,8 +18,6 @@ func CreateBrigade(db *BrigadeStorage, config *BrigadeConfig, routerPubkey, shuf
 
 	err = db.BrigadePut(config, wgPub, wgRouterPriv, wgShufflerPriv)
 	if err != nil {
-		fmt.Printf("put: %s", err)
-
 		return fmt.Errorf("put: %w", err)
 	}
 
@@ -30,8 +28,6 @@ func CreateBrigade(db *BrigadeStorage, config *BrigadeConfig, routerPubkey, shuf
 func DestroyBrigade(db *BrigadeStorage) error {
 	err := db.BrigadeRemove()
 	if err != nil {
-		fmt.Printf("remove: %s", err)
-
 		return fmt.Errorf("remove: %w", err)
 	}
 

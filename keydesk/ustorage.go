@@ -3,6 +3,7 @@ package keydesk
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/netip"
 	"sort"
 	"time"
@@ -26,6 +27,8 @@ var (
 	ErrUserCollision = errors.New("username exists")
 	// ErrUnknownBrigade - brigade ID mismatch.
 	ErrUnknownBrigade = errors.New("unknown brigade")
+	// ErrBrigadeAlreadyExists - brigade file exists unexpectabily.
+	ErrBrigadeAlreadyExists = errors.New("already exists")
 )
 
 // BrigadeStorage - brigade file storage.
@@ -54,7 +57,19 @@ func (db *BrigadeStorage) BrigadePut(config *BrigadeConfig, wgPub, wgRouterPriv,
 
 	defer f.Close()
 
-	data := Brigade{
+	data := &Brigade{}
+
+	err = f.Decoder().Decode(data)
+	switch err {
+	case nil:
+		return fmt.Errorf("%w", ErrBrigadeAlreadyExists)
+	case io.EOF:
+		break
+	default:
+		return fmt.Errorf("decode: %w", err)
+	}
+
+	data = &Brigade{
 		BrigadeID:            config.BrigadeID,
 		CreatedAt:            time.Now(),
 		WgPublicKey:          wgPub,

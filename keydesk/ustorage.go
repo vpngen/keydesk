@@ -3,10 +3,12 @@ package keydesk
 import (
 	"errors"
 	"fmt"
+	"net/netip"
 	"sort"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/vpngen/keydesk/epapi"
 	"github.com/vpngen/keydesk/kdlib"
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
@@ -31,12 +33,18 @@ type BrigadeStorage struct {
 	BrigadeID       string
 	BrigadeFilename string
 	StatsFilename   string
+	APIAddrPort     netip.AddrPort
 }
 
 // BrigadePut - create brigade config.
 func (db *BrigadeStorage) BrigadePut(config *BrigadeConfig, wgPub, wgRouterPriv, wgShufflerPriv []byte) error {
 	if config.BrigadeID != db.BrigadeID {
 		return fmt.Errorf("check: %w", ErrUnknownBrigade)
+	}
+
+	addr := db.APIAddrPort
+	if addr.Addr().IsValid() && addr.Addr().IsUnspecified() {
+		addr = epapi.CalcAPIAddrPort(config.EndpointIPv4)
 	}
 
 	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
@@ -65,8 +73,11 @@ func (db *BrigadeStorage) BrigadePut(config *BrigadeConfig, wgPub, wgRouterPriv,
 		return fmt.Errorf("encode: %w", err)
 	}
 
-	// !!! DO API CALL
 	// if we catch a slowdown problems we need organize queue
+	err = epapi.WgAdd(addr, wgRouterPriv, config.EndpointIPv4, config.IPv4CGNAT, config.IPv6ULA)
+	if err != nil {
+		return fmt.Errorf("wg add: %w", err)
+	}
 
 	f.Commit()
 
@@ -91,6 +102,8 @@ func (db *BrigadeStorage) BrigadeRemove() error {
 
 	// !!! DO API CALL
 	// if we catch a slowdown problems we need organize queue
+
+	f.Commit()
 
 	return nil
 }

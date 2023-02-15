@@ -26,6 +26,18 @@ func CreateBrigade(db *BrigadeStorage, config *BrigadeConfig, routerPubkey, shuf
 	return nil
 }
 
+// DestroyBrigade - destroy brigadier user.
+func DestroyBrigade(db *BrigadeStorage) error {
+	err := db.BrigadeRemove()
+	if err != nil {
+		fmt.Printf("remove: %s", err)
+
+		return fmt.Errorf("remove: %w", err)
+	}
+
+	return nil
+}
+
 func genEndpointWGKeys(routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) ([]byte, []byte, []byte, error) {
 	key, err := wgtypes.GenerateKey()
 	if err != nil {

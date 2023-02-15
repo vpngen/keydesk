@@ -73,6 +73,28 @@ func (db *BrigadeStorage) BrigadePut(config *BrigadeConfig, wgPub, wgRouterPriv,
 	return nil
 }
 
+// BrigadeRemove - remove brigade.
+func (db *BrigadeStorage) BrigadeRemove() error {
+	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
+	if err != nil {
+		return fmt.Errorf("open db: %w", err)
+	}
+
+	defer f.Close()
+
+	data := &Brigade{}
+
+	err = f.Decoder().Decode(data)
+	if err != nil {
+		return fmt.Errorf("decode: %w", err)
+	}
+
+	// !!! DO API CALL
+	// if we catch a slowdown problems we need organize queue
+
+	return nil
+}
+
 // UserPut - put user to the storage.
 func (db *BrigadeStorage) UserPut(fullname string, person namesgenerator.Person, IsBrigadier bool, wgPub, wgRouterPSK, wgShufflerPSK []byte) (*UserConfig, error) {
 	f, err := kdlib.OpenFileDb(db.BrigadeFilename)

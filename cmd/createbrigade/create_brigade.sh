@@ -2,20 +2,30 @@
 
 ### Create brigades
 
+# * Check if brigade already exists
 # * Create system user
 # * Create homedir
 
 # * Create json datafile
 # * Create special brigadier wg-user
 
-# * Create systemD units
+# * Activate keydesk systemD units
+# * Activate stats systemD units
 
 # * Send brigadier config
 
 # creating brigade and brigadier app.
 
+BRIGADES_LIST_FILE="/etc/vgbrigades.lst"
 BASE_HOME_DIR="/home"
-BRIGADE_MAKER_APP_PATH="/opt/keydesk/create"
+BRIGADE_MAKER_APP_PATH="/opt/keydesk/createbrigade"
+
+spinlock="`[ ! -z \"${TMPDIR}\" ] && echo -n \"${TMPDIR}/\" || echo -n \"/tmp/\" ; echo \"vgbrigade.spinlock\"`"
+trap "rm -f \"${spinlock}\" 2>/dev/null" EXIT
+while [ -f "${spinlock}" ] ; do
+    sleep 0.1
+done
+touch "${spinlock}" 2>/dev/null
 
 set -e
 
@@ -47,22 +57,31 @@ else
         chunked="-ch"
 fi
 
+# * Check if brigade is exists
+
+if [ -f "${BRIGADES_LIST_FILE}" ]; then
+        test=$(grep "${brigade_id}" < "${BRIGADES_LIST_FILE}")
+        if [ "x${brigade_id}" -eq "x${test}" ]; then
+                echo "Brigade ${brigade_id} already exists"
+                exit 1
+        fi 
+fi
+
 # * Create system user
 
 useradd -p '*' -M -s /usr/sbin/nologin -d "${BASE_HOME_DIR}/${brigade_id}" "${brigade_id}"
+install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${BASE_HOME_DIR}/${brigade_id}"
 
-# Create brigadier record
-# Create special brigadier wg-user, get brigadier IPv6 and wg.conf
+# Create json datafile
 
-#? create brigade config
-#? create brigadier
+#sudo -i -u ${brigade_id} ${BRIGADE_MAKER_APP_PATH} ${chunked} -id "${brigade_id}" -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}" -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}"
+if ! sudo -i -u "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" ${chunked} -id "${brigade_id}" -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}"; then
+        exit 1
+fi
 
-wgconf=$(sudo -i -u ${brigade_id} ${BRIGADE_MAKER_APP_PATH} ${chunked} -id "${brigade_id}" -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}" -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}")
-
-# * Create systemD units
+# * Activate keydesk systemD units
 
 systemd_keydesk_instance="keydesk@${brigade_id}"
-systemd_stats_instance="stats@${brigade_id}"
 
 # create dir for custom config
 # https://www.freedesktop.org/software/systemd/man/systemd.unit.html
@@ -81,11 +100,24 @@ ListenStream = [${listen_ip6}]:80
 EOF
 
 systemctl -q enable "${systemd_keydesk_instance}.socket" "${systemd_keydesk_instance}.service"
-systemctl -q enable "${systemd_stats_instance}.service"
 
 # Start systemD services
 systemctl -q start "${systemd_keydesk_instance}.socket" "${systemd_keydesk_instance}.service"
+
+# * Activate stats systemD units
+
+systemd_stats_instance="stats@${brigade_id}"
+systemctl -q enable "${systemd_stats_instance}.service"
 systemctl -q start "${systemd_stats_instance}.service"
+
+tmplist="/tmp/"$(basename "${BRIGADES_LIST_FILE}")
+if [ -f "${BRIGADES_LIST_FILE}" ]; then 
+        cp -f "${BRIGADES_LIST_FILE}" "${tmplist}"
+fi
+
+echo "${brigade_id}" >> "${tmplist}"
+install -o root -g root -m 600 "${tmplist}" "${BRIGADES_LIST_FILE}"
+rm -f "${tmplist}"
 
 # Print brigadier config
 echo "${wgconf}"

@@ -45,7 +45,7 @@ var (
 func parseArgs() (*keydesk.BrigadeConfig, string, string, error) {
 	var config = &keydesk.BrigadeConfig{}
 
-	brigadeID := flag.String("id", "", "brigadier_id")
+	brigadeID := flag.String("id", "", "brigadier_id") // !!! is id only for debug?
 	endpointIPv4 := flag.String("ep4", "", "endpointIPv4")
 	dnsIPv4 := flag.String("dns4", "", "dnsIPv4")
 	dnsIPv6 := flag.String("dns6", "", "dnsIPv6")
@@ -178,7 +178,6 @@ func main() {
 	db := &keydesk.BrigadeStorage{
 		BrigadeID:       config.BrigadeID,
 		BrigadeFilename: filepath.Join(dbDir, keydesk.BrigadeFilename),
-		StatsFilename:   filepath.Join(dbDir, keydesk.StatsFilename),
 	}
 
 	// just do it.

@@ -2,18 +2,23 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	goerrors "errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/signal"
 	"os/user"
 	"path/filepath"
 	"syscall"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
@@ -24,6 +29,7 @@ import (
 	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/vpngine/naclkey"
+	"github.com/vpngen/wordsgens/namesgenerator"
 
 	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/rs/cors"
@@ -37,7 +43,7 @@ const TokenLifeTime = 3600
 // Default web config.
 const (
 	DefaultStaticDir = "/var/www"
-	DefaultHomeDir   = ""
+	DefaultFiledbDir = ""
 	DefaultEtcDir    = "/etc"
 	DefaultIndexFile = "index.html"
 )
@@ -50,18 +56,23 @@ const (
 // ErrStaticDirEmpty - no static dir name.
 var ErrStaticDirEmpty = goerrors.New("empty static dirname")
 
+// Args errors.
+var (
+	ErrInvalidBrigadierName = goerrors.New("invalid brigadier name")
+	ErrEmptyPersonName      = goerrors.New("empty person name")
+	ErrEmptyPersonDesc      = goerrors.New("empty person desc")
+	ErrEmptyPersonURL       = goerrors.New("empty person url")
+	ErrInvalidPersonName    = goerrors.New("invalid person name")
+	ErrInvalidPersonDesc    = goerrors.New("invalid person desc")
+	ErrInvalidPersonURL     = goerrors.New("invalid person url")
+)
+
 func main() {
 	var handler http.Handler
 
-	pcors, listen, BrigadeID, etcDir, webDir, dbDir, err := parseArgs()
+	chunked, pcors, listen, BrigadeID, etcDir, webDir, dbDir, name, person, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
-	}
-
-	// load embedded swagger file
-	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
-	if err != nil {
-		log.Fatalln(err)
 	}
 
 	routerPublicKey, shufflerPublicKey, err := readPubKeys(etcDir)
@@ -73,6 +84,42 @@ func main() {
 		BrigadeID:       BrigadeID,
 		BrigadeFilename: filepath.Join(dbDir, keydesk.BrigadeFilename),
 		StatsFilename:   filepath.Join(dbDir, keydesk.StatsFilename),
+	}
+
+	// Just create brigadier.
+	if name != "" {
+		var w io.WriteCloser
+
+		wgconf, filename, err := keydesk.AddBrigadier(db, name, person, &routerPublicKey, &shufflerPublicKey)
+		if err != nil {
+			log.Fatalf("Can't create brigadier: %s\n", err)
+		}
+
+		switch chunked {
+		case true:
+			w = httputil.NewChunkedWriter(os.Stdout)
+			defer w.Close()
+		default:
+			w = os.Stdout
+		}
+
+		_, err = fmt.Fprintln(w, filename)
+		if err != nil {
+			log.Fatalf("Can't print filename: %s\n", err)
+		}
+
+		_, err = fmt.Fprintln(w, wgconf)
+		if err != nil {
+			log.Fatalf("Can't print wgconf: %s\n", err)
+		}
+
+		return
+	}
+
+	// load embedded swagger file
+	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	// create new service API
@@ -171,90 +218,185 @@ func uiMiddleware(handler http.Handler, dir string) http.Handler {
 	})
 }
 
-func parseArgs() (bool, net.Listener, string, string, string, string, error) {
-	etcDir := flag.String("c", DefaultEtcDir, "Dir for config files (for test)")
-	homeDir := flag.String("d", DefaultHomeDir, "Dir for db files (for test)")
+func parseArgs() (bool, bool, net.Listener, string, string, string, string, string, namesgenerator.Person, error) {
+	var (
+		listen        net.Listener
+		id            string
+		etcdir, dbdir string
+		person        namesgenerator.Person
+	)
+
+	sysUser, err := user.Current()
+	if err != nil {
+		return false, false, nil, "", "", "", "", "", person, fmt.Errorf("cannot define user: %w", err)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return false, false, nil, "", "", "", "", "", person, fmt.Errorf("cur dir: %w", err)
+	}
+
+	cwd, err = filepath.Abs(cwd)
+	if err != nil {
+		return false, false, nil, "", "", "", "", "", person, fmt.Errorf("cur dir: %w", err)
+	}
+
+	staticDir := flag.String("w", DefaultStaticDir, "Dir for web files.")
+	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+DefaultEtcDir)
+	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+DefaultFiledbDir)
+	pcors := flag.Bool("cors", false, "Turn on permessive CORS (for test)")
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
 	listenAddr := flag.String("l", "", "Listen addr:port (for test)")
-	staticDir := flag.String("w", DefaultStaticDir, "Dir for web files (for test)")
-	pcors := flag.Bool("cors", false, "Turn on permessive CORS")
+
+	brigadierName := flag.String("name", "", "brigadierName :: base64")
+	personName := flag.String("person", "", "personName :: base64")
+	personDesc := flag.String("desc", "", "personDesc :: base64")
+	personURL := flag.String("url", "", "personURL :: base64")
+
+	chunked := flag.Bool("ch", false, "chunked output")
 
 	flag.Parse()
 
 	if *staticDir == "" {
-		return false, nil, "", "", "", "", ErrStaticDirEmpty
+		return false, false, nil, "", "", "", "", "", person, ErrStaticDirEmpty
 	}
 
 	webdir, err := filepath.Abs(*staticDir)
 	if err != nil {
-		return false, nil, "", "", "", "", fmt.Errorf("web dir: %w", err)
+		return false, false, nil, "", "", "", "", "", person, fmt.Errorf("web dir: %w", err)
 	}
 
-	if *listenAddr != "" && *brigadeID != "" {
-		if *homeDir == "" {
-			*homeDir, err = os.Getwd()
-			if err != nil {
-				return false, nil, "", "", "", "", fmt.Errorf("cur dir: %w", err)
-			}
-		}
-
-		dbdir, err := filepath.Abs(*homeDir)
+	if *filedbDir != "" {
+		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return false, nil, "", "", "", "", fmt.Errorf("dbdir dir: %w", err)
+			return false, false, nil, "", "", "", "", "", person, fmt.Errorf("dbdir dir: %w", err)
+		}
+	}
+
+	if *etcDir != "" {
+		etcdir, err = filepath.Abs(*etcDir)
+		if err != nil {
+			return false, false, nil, "", "", "", "", "", person, fmt.Errorf("etcdir dir: %w", err)
+		}
+	}
+
+	switch *brigadeID {
+	case "":
+		id = sysUser.Username
+
+		if *filedbDir == "" {
+			dbdir = filepath.Join("home", id)
 		}
 
 		if *etcDir == "" {
-			*etcDir, err = os.Getwd()
+			etcdir = DefaultEtcDir
+		}
+	default:
+		id = *brigadeID
+
+		if *filedbDir == "" {
+			dbdir = cwd
+		}
+
+		if *etcDir == "" {
+			etcdir = cwd
+		}
+	}
+
+	if *brigadierName == "" {
+		switch *listenAddr {
+		case "":
+			listeners, err := activation.Listeners()
 			if err != nil {
-				return false, nil, "", "", "", "", fmt.Errorf("cur dir: %w", err)
+				return false, false, nil, "", "", "", "", "", person, fmt.Errorf("cannot retrieve listeners: %w", err)
 			}
+
+			if len(listeners) != 1 {
+				return false, false, nil, "", "", "", "", "", person, fmt.Errorf("unexpected number of socket activation (%d != 1)",
+					len(listeners))
+			}
+
+			listen = listeners[0]
+		default:
+			l, err := net.Listen("tcp", *listenAddr)
+			if err != nil {
+				return false, false, nil, "", "", "", "", "", person, fmt.Errorf("cannot listen: %w", err)
+			}
+
+			listen = l
 		}
 
-		etcdir, err := filepath.Abs(*etcDir)
-		if err != nil {
-			return false, nil, "", "", "", "", fmt.Errorf("etcdir dir: %w", err)
-		}
-
-		listen, err := net.Listen("tcp", *listenAddr)
-		if err != nil {
-			return true, nil, "", "", "", "", fmt.Errorf("cannot listen: %w", err)
-		}
-
-		return true, listen, *brigadeID, etcdir, webdir, dbdir, nil
+		return *chunked, *pcors, listen, id, etcdir, webdir, dbdir, "", person, nil
 	}
 
-	usr, err := user.Current()
+	// brigadierName must be not empty and must be a valid UTF8 string
+	buf, err := base64.StdEncoding.DecodeString(*brigadierName)
 	if err != nil {
-		return false, nil, "", "", "", "", fmt.Errorf("cannot define user: %w", err)
+		return false, false, nil, "", "", "", "", "", person, fmt.Errorf("brigadier name: %w", err)
 	}
 
-	id := usr.Username
-
-	if *homeDir == "" {
-		*homeDir = filepath.Join("home", id)
+	if !utf8.Valid(buf) {
+		return false, false, nil, "", "", "", "", "", person, ErrInvalidBrigadierName
 	}
 
-	dbdir, err := filepath.Abs(*homeDir)
+	name := string(buf)
+
+	// personName must be not empty and must be a valid UTF8 string
+	if *personName == "" {
+		return false, false, nil, "", "", "", "", "", person, ErrEmptyPersonName
+	}
+
+	buf, err = base64.StdEncoding.DecodeString(*personName)
 	if err != nil {
-		return false, nil, "", "", "", "", fmt.Errorf("dbdir dir: %w", err)
+		return false, false, nil, "", "", "", "", "", person, fmt.Errorf("person name: %w", err)
 	}
 
-	etcdir, err := filepath.Abs(*etcDir)
+	if !utf8.Valid(buf) {
+		return false, false, nil, "", "", "", "", "", person, ErrInvalidPersonName
+	}
+
+	person.Name = string(buf)
+
+	// personDesc must be not empty and must be a valid UTF8 string
+	if *personDesc == "" {
+		return false, false, nil, "", "", "", "", "", person, ErrEmptyPersonDesc
+	}
+
+	buf, err = base64.StdEncoding.DecodeString(*personDesc)
 	if err != nil {
-		return false, nil, "", "", "", "", fmt.Errorf("etcdir dir: %w", err)
+		return false, false, nil, "", "", "", "", "", person, fmt.Errorf("person desc: %w", err)
 	}
 
-	listeners, err := activation.Listeners()
+	if !utf8.Valid(buf) {
+		return false, false, nil, "", "", "", "", "", person, ErrInvalidPersonDesc
+	}
+
+	person.Desc = string(buf)
+
+	// personURL must be not empty and must be a valid UTF8 string
+	if *personURL == "" {
+		return false, false, nil, "", "", "", "", "", person, ErrEmptyPersonURL
+	}
+
+	buf, err = base64.StdEncoding.DecodeString(*personURL)
 	if err != nil {
-		return false, nil, "", "", "", "", fmt.Errorf("cannot retrieve listeners: %w", err)
+		return false, false, nil, "", "", "", "", "", person, fmt.Errorf("person url: %w", err)
 	}
 
-	if len(listeners) != 1 {
-		return false, nil, "", "", "", "", fmt.Errorf("unexpected number of socket activation (%d != 1)",
-			len(listeners))
+	if !utf8.Valid(buf) {
+		return false, false, nil, "", "", "", "", "", person, ErrInvalidPersonURL
 	}
 
-	return *pcors, listeners[0], id, etcdir, webdir, dbdir, nil
+	u := string(buf)
+
+	_, err = url.Parse(u)
+	if err != nil {
+		return false, false, nil, "", "", "", "", "", person, fmt.Errorf("parse person url: %w", err)
+	}
+
+	person.URL = u
+
+	return *chunked, *pcors, listen, id, etcdir, webdir, dbdir, name, person, nil
 }
 
 func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxKeyLength]byte, error) {

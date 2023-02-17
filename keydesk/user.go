@@ -42,7 +42,7 @@ func AddUser(db *BrigadeStorage, params operations.PostUserParams, principal int
 			return operations.NewPostUserDefault(500)
 		}
 
-		user, wgPriv, wgPSK, err = addUser(db, fullname, person, false, routerPublicKey, shufflerPublicKey)
+		user, wgPriv, wgPSK, err = addUser(db, fullname, person, false, false, routerPublicKey, shufflerPublicKey)
 		if err != nil {
 			if errors.Is(err, ErrUserCollision) {
 				continue
@@ -64,8 +64,8 @@ func AddUser(db *BrigadeStorage, params operations.PostUserParams, principal int
 }
 
 // AddBrigadier - create brigadier user.
-func AddBrigadier(db *BrigadeStorage, fullname string, person namesgenerator.Person, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, error) {
-	userconf, wgPriv, wgPSK, err := addUser(db, fullname, person, true, routerPublicKey, shufflerPublicKey)
+func AddBrigadier(db *BrigadeStorage, fullname string, person namesgenerator.Person, rewriteBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, error) {
+	userconf, wgPriv, wgPSK, err := addUser(db, fullname, person, true, rewriteBrigadier, routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return "", "", fmt.Errorf("addUser: %w", err)
 	}
@@ -75,17 +75,17 @@ func AddBrigadier(db *BrigadeStorage, fullname string, person namesgenerator.Per
 	return wgconf, kdlib.SanitizeFilename(userconf.Name), nil
 }
 
-func addUser(db *BrigadeStorage, fullname string, person namesgenerator.Person, IsBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*UserConfig, []byte, []byte, error) {
+func addUser(db *BrigadeStorage, fullname string, person namesgenerator.Person, IsBrigadier, rewriteBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*UserConfig, []byte, []byte, error) {
 	wgPub, wgPriv, wgPSK, wgRouterPSK, wgShufflerPSK, err := genUserWGKeys(routerPublicKey, shufflerPublicKey)
 	if err != nil {
-		fmt.Printf("wg gen: %s", err)
+		fmt.Fprintf(os.Stderr, "wg gen: %s\n", err)
 
 		return nil, nil, nil, fmt.Errorf("wg gen: %w", err)
 	}
 
-	userconf, err := db.CreateUser(fullname, person, IsBrigadier, wgPub, wgRouterPSK, wgShufflerPSK)
+	userconf, err := db.CreateUser(fullname, person, IsBrigadier, rewriteBrigadier, wgPub, wgRouterPSK, wgShufflerPSK)
 	if err != nil {
-		fmt.Printf("put: %s", err)
+		fmt.Fprintf(os.Stderr, "put: %s\n", err)
 
 		return nil, nil, nil, fmt.Errorf("put: %w", err)
 	}

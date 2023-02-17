@@ -25,6 +25,8 @@ var (
 	ErrUserLimit = errors.New("num user limit exeeded")
 	// ErrUserCollision - user name collision.
 	ErrUserCollision = errors.New("username exists")
+	// ErrBrigadierCollision - try to add more than one.
+	ErrBrigadierCollision = errors.New("brigadier already exists")
 	// ErrUnknownBrigade - brigade ID mismatch.
 	ErrUnknownBrigade = errors.New("unknown brigade")
 	// ErrBrigadeAlreadyExists - brigade file exists unexpectabily.
@@ -157,7 +159,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 func (db *BrigadeStorage) DestroyBrigade() error {
 	f, data, addr, err := db.openWithReading()
 	if err != nil {
-		return fmt.Errorf("open db: %w", err)
+		return fmt.Errorf("db: %w", err)
 	}
 
 	defer f.Close()
@@ -179,15 +181,22 @@ func (db *BrigadeStorage) DestroyBrigade() error {
 }
 
 // CreateUser - put user to the storage.
-func (db *BrigadeStorage) CreateUser(fullname string, person namesgenerator.Person, IsBrigadier bool, wgPub, wgRouterPSK, wgShufflerPSK []byte) (*UserConfig, error) {
+func (db *BrigadeStorage) CreateUser(fullname string, person namesgenerator.Person, isBrigadier, rewriteBrigadier bool, wgPub, wgRouterPSK, wgShufflerPSK []byte) (*UserConfig, error) {
 	f, data, addr, err := db.openWithReading()
 	if err != nil {
-		return nil, fmt.Errorf("open db: %w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
 
 	defer f.Close()
 
-	id, ipv4, ipv6, name, err := assembleUser(data, fullname)
+	if isBrigadier && rewriteBrigadier {
+		err := db.removeBrigadier(data, addr)
+		if err != nil {
+			return nil, fmt.Errorf("replace: %w", err)
+		}
+	}
+
+	id, ipv4, ipv6, name, err := assembleUser(data, fullname, isBrigadier)
 	if err != nil {
 		return nil, fmt.Errorf("assemble: %w", err)
 	}
@@ -207,7 +216,7 @@ func (db *BrigadeStorage) CreateUser(fullname string, person namesgenerator.Pers
 		UserID:           userconf.ID,
 		Name:             userconf.Name,
 		CreatedAt:        time.Now(),
-		IsBrigadier:      IsBrigadier,
+		IsBrigadier:      isBrigadier,
 		IPv4Addr:         userconf.IPv4,
 		IPv6Addr:         userconf.IPv6,
 		WgPublicKey:      wgPub,
@@ -222,7 +231,7 @@ func (db *BrigadeStorage) CreateUser(fullname string, person namesgenerator.Pers
 	})
 
 	kd6 := netip.Addr{}
-	if IsBrigadier {
+	if isBrigadier {
 		kd6 = data.KeydeskIPv6
 	}
 
@@ -240,7 +249,7 @@ func (db *BrigadeStorage) CreateUser(fullname string, person namesgenerator.Pers
 	return userconf, nil
 }
 
-func assembleUser(data *Brigade, fullname string) (uuid.UUID, netip.Addr, netip.Addr, string, error) {
+func assembleUser(data *Brigade, fullname string, isBrigadier bool) (uuid.UUID, netip.Addr, netip.Addr, string, error) {
 	var (
 		ipv4, ipv6 netip.Addr
 		uid        uuid.UUID
@@ -262,6 +271,10 @@ func assembleUser(data *Brigade, fullname string) (uuid.UUID, netip.Addr, netip.
 	for _, user := range data.Users {
 		if user.Name == fullname {
 			return uid, ipv4, ipv6, "", ErrUserCollision
+		}
+
+		if isBrigadier && user.IsBrigadier {
+			return uid, ipv4, ipv6, "", ErrBrigadierCollision
 		}
 
 		idL[user.UserID.String()] = struct{}{}
@@ -319,7 +332,7 @@ func assembleUser(data *Brigade, fullname string) (uuid.UUID, netip.Addr, netip.
 func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 	f, data, addr, err := db.openWithReading()
 	if err != nil {
-		return fmt.Errorf("open db: %w", err)
+		return fmt.Errorf("db: %w", err)
 	}
 
 	defer f.Close()
@@ -337,7 +350,7 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 	// if we catch a slowdown problems we need organize queue
 	err = epapi.PeerDel(addr, wgPub, data.WgPublicKey)
 	if err != nil {
-		return fmt.Errorf("wg add: %w", err)
+		return fmt.Errorf("peer del: %w", err)
 	}
 
 	db.save(f, data)
@@ -348,11 +361,30 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 	return nil
 }
 
+func (db *BrigadeStorage) removeBrigadier(data *Brigade, addr netip.AddrPort) error {
+	for i, user := range data.Users {
+		if user.IsBrigadier {
+			wgPub := user.WgPublicKey
+			data.Users = append(data.Users[:i], data.Users[i+1:]...)
+
+			// if we catch a slowdown problems we need organize queue
+			err := epapi.PeerDel(addr, wgPub, data.WgPublicKey)
+			if err != nil {
+				return fmt.Errorf("peer del: %w", err)
+			}
+
+			break
+		}
+	}
+
+	return nil
+}
+
 // ListUsers - list users.
 func (db *BrigadeStorage) ListUsers() ([]*User, error) {
 	f, data, _, err := db.openWithReading()
 	if err != nil {
-		return nil, fmt.Errorf("open db: %w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
 
 	defer f.Close()

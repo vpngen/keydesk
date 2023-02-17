@@ -16,7 +16,7 @@ func CreateBrigade(db *BrigadeStorage, config *BrigadeConfig, routerPubkey, shuf
 		return fmt.Errorf("wg keys: %w", err)
 	}
 
-	err = db.BrigadePut(config, wgPub, wgRouterPriv, wgShufflerPriv)
+	err = db.CreateBrigade(config, wgPub, wgRouterPriv, wgShufflerPriv)
 	if err != nil {
 		return fmt.Errorf("put: %w", err)
 	}
@@ -26,7 +26,7 @@ func CreateBrigade(db *BrigadeStorage, config *BrigadeConfig, routerPubkey, shuf
 
 // DestroyBrigade - destroy brigadier user.
 func DestroyBrigade(db *BrigadeStorage) error {
-	err := db.BrigadeRemove()
+	err := db.DestroyBrigade()
 	if err != nil {
 		return fmt.Errorf("remove: %w", err)
 	}

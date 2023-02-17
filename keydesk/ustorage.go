@@ -39,34 +39,90 @@ type BrigadeStorage struct {
 	APIAddrPort     netip.AddrPort
 }
 
-// BrigadePut - create brigade config.
-func (db *BrigadeStorage) BrigadePut(config *BrigadeConfig, wgPub, wgRouterPriv, wgShufflerPriv []byte) error {
-	if config.BrigadeID != db.BrigadeID {
-		return fmt.Errorf("check: %w", ErrUnknownBrigade)
+func (db *BrigadeStorage) openWithReading() (*kdlib.FileDb, *Brigade, netip.AddrPort, error) {
+	addr := netip.AddrPort{}
+
+	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
+	if err != nil {
+		return nil, nil, addr, fmt.Errorf("open: %w", err)
 	}
 
-	addr := db.APIAddrPort
+	data := &Brigade{}
+
+	err = f.Decoder().Decode(data)
+	if err != nil {
+		f.Close()
+
+		return nil, nil, addr, fmt.Errorf("decode: %w", err)
+	}
+
+	if data.BrigadeID != db.BrigadeID {
+		return nil, nil, addr, fmt.Errorf("check: %w", ErrUnknownBrigade)
+	}
+
+	addr = db.APIAddrPort
 	if addr.Addr().IsValid() && addr.Addr().IsUnspecified() {
-		addr = epapi.CalcAPIAddrPort(config.EndpointIPv4)
+		addr = epapi.CalcAPIAddrPort(data.EndpointIPv4)
+	}
+
+	return f, data, addr, nil
+}
+
+func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*kdlib.FileDb, *Brigade, error) {
+	if brigadeID != db.BrigadeID {
+		return nil, nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
 	}
 
 	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
 	if err != nil {
-		return fmt.Errorf("open db: %w", err)
+		return nil, nil, fmt.Errorf("open: %w", err)
 	}
-
-	defer f.Close()
 
 	data := &Brigade{}
 
 	err = f.Decoder().Decode(data)
 	switch err {
 	case nil:
-		return fmt.Errorf("%w", ErrBrigadeAlreadyExists)
+		f.Close()
+
+		return nil, nil, fmt.Errorf("integrity: %w", ErrBrigadeAlreadyExists)
 	case io.EOF:
 		break
 	default:
-		return fmt.Errorf("decode: %w", err)
+		f.Close()
+
+		return nil, nil, fmt.Errorf("decode: %w", err)
+	}
+
+	return f, data, nil
+}
+
+func (db *BrigadeStorage) save(f *kdlib.FileDb, data *Brigade) error {
+	err := f.Encoder(" ", " ").Encode(data)
+	if err != nil {
+		return fmt.Errorf("encode: %w", err)
+	}
+
+	err = f.Commit()
+	if err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+
+	return nil
+}
+
+// CreateBrigade - create brigade config.
+func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPriv, wgShufflerPriv []byte) error {
+	f, data, err := db.openWithoutReading(config.BrigadeID)
+	if err != nil {
+		return fmt.Errorf("db: %w", err)
+	}
+
+	defer f.Close()
+
+	addr := db.APIAddrPort
+	if addr.Addr().IsValid() && addr.Addr().IsUnspecified() {
+		addr = epapi.CalcAPIAddrPort(config.EndpointIPv4)
 	}
 
 	data = &Brigade{
@@ -83,42 +139,28 @@ func (db *BrigadeStorage) BrigadePut(config *BrigadeConfig, wgPub, wgRouterPriv,
 		KeydeskIPv6:          config.KeydeskIPv6,
 	}
 
-	err = f.Encoder(" ", " ").Encode(data)
-	if err != nil {
-		return fmt.Errorf("encode: %w", err)
-	}
-
 	// if we catch a slowdown problems we need organize queue
 	err = epapi.WgAdd(addr, data.WgPrivateRouterEnc, config.EndpointIPv4, config.IPv4CGNAT, config.IPv6ULA)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)
 	}
 
-	f.Commit()
+	err = db.save(f, data)
+	if err != nil {
+		return fmt.Errorf("save: %w", err)
+	}
 
 	return nil
 }
 
-// BrigadeRemove - remove brigade.
-func (db *BrigadeStorage) BrigadeRemove() error {
-	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
+// DestroyBrigade - remove brigade.
+func (db *BrigadeStorage) DestroyBrigade() error {
+	f, data, addr, err := db.openWithReading()
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}
 
 	defer f.Close()
-
-	data := &Brigade{}
-
-	err = f.Decoder().Decode(data)
-	if err != nil {
-		return fmt.Errorf("decode: %w", err)
-	}
-
-	addr := db.APIAddrPort
-	if addr.Addr().IsValid() && addr.Addr().IsUnspecified() {
-		addr = epapi.CalcAPIAddrPort(data.EndpointIPv4)
-	}
 
 	// if we catch a slowdown problems we need organize queue
 	err = epapi.WgDel(addr, data.WgPrivateRouterEnc)
@@ -126,102 +168,40 @@ func (db *BrigadeStorage) BrigadeRemove() error {
 		return fmt.Errorf("wg add: %w", err)
 	}
 
-	f.Commit()
+	data = &Brigade{}
+
+	db.save(f, data)
+	if err != nil {
+		return fmt.Errorf("save: %w", err)
+	}
 
 	return nil
 }
 
-// UserPut - put user to the storage.
-func (db *BrigadeStorage) UserPut(fullname string, person namesgenerator.Person, IsBrigadier bool, wgPub, wgRouterPSK, wgShufflerPSK []byte) (*UserConfig, error) {
-	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
+// CreateUser - put user to the storage.
+func (db *BrigadeStorage) CreateUser(fullname string, person namesgenerator.Person, IsBrigadier bool, wgPub, wgRouterPSK, wgShufflerPSK []byte) (*UserConfig, error) {
+	f, data, addr, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
 
 	defer f.Close()
 
-	data := &Brigade{}
-
-	err = f.Decoder().Decode(data)
+	id, ipv4, ipv6, name, err := assembleUser(data, fullname)
 	if err != nil {
-		return nil, fmt.Errorf("decode: %w", err)
-	}
-
-	if data.BrigadeID != db.BrigadeID {
-		return nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
+		return nil, fmt.Errorf("assemble: %w", err)
 	}
 
 	userconf := &UserConfig{
+		ID:               id,
+		Name:             name,
+		IPv4:             ipv4,
+		IPv6:             ipv6,
 		EndpointWgPublic: data.WgPublicKey,
 		EndpointIPv4:     data.EndpointIPv4,
 		DNSv4:            data.DNSv4,
 		DNSv6:            data.DNSv6,
 	}
-
-	idL := make(map[string]struct{})
-	// put self and broadcast addresses.
-	ip4L := map[string]struct{}{
-		data.IPv4CGNAT.Addr().String():                {},
-		kdlib.LastPrefixIPv4(data.IPv4CGNAT).String(): {},
-	}
-	ip6L := map[string]struct{}{
-		data.IPv6ULA.Addr().String():                {},
-		kdlib.LastPrefixIPv6(data.IPv6ULA).String(): {},
-	}
-
-	for _, user := range data.Users {
-		if user.Name == fullname {
-			return nil, ErrUserCollision
-		}
-
-		idL[user.UserID.String()] = struct{}{}
-		ip4L[user.IPv4Addr.String()] = struct{}{}
-		ip6L[user.IPv6Addr.String()] = struct{}{}
-
-	}
-
-	if len(idL) >= MaxUsers {
-		return nil, ErrUserLimit
-	}
-
-	for {
-		id := uuid.New()
-
-		if _, ok := idL[id.String()]; !ok {
-			userconf.ID = id
-
-			break
-		}
-	}
-
-	for {
-		ip := kdlib.RandomAddrIPv4(data.IPv4CGNAT)
-		if kdlib.IsZeroEnding(ip) {
-			continue
-		}
-
-		if _, ok := ip4L[ip.String()]; !ok {
-			userconf.IPv4 = ip
-
-			break
-		}
-	}
-
-	for {
-		ip := kdlib.RandomAddrIPv6(data.IPv6ULA)
-		if kdlib.IsZeroEnding(ip) {
-			continue
-		}
-
-		if _, ok := ip6L[ip.String()]; !ok {
-			userconf.IPv6 = ip
-
-			break
-		}
-	}
-
-	userNum := blurIpv4Addr(userconf.IPv4, data.IPv4CGNAT.Bits(), extractUint32Salt(data.BrigadeID))
-	userconf.Name = fmt.Sprintf("%03d %s", userNum, fullname)
 
 	data.Users = append(data.Users, &User{
 		UserID:           userconf.ID,
@@ -241,16 +221,6 @@ func (db *BrigadeStorage) UserPut(fullname string, person namesgenerator.Person,
 		return data.Users[i].IsBrigadier || data.Users[i].UserID.String() > data.Users[j].UserID.String()
 	})
 
-	err = f.Encoder(" ", " ").Encode(data)
-	if err != nil {
-		return nil, fmt.Errorf("encode: %w", err)
-	}
-
-	addr := db.APIAddrPort
-	if addr.Addr().IsValid() && addr.Addr().IsUnspecified() {
-		addr = epapi.CalcAPIAddrPort(data.EndpointIPv4)
-	}
-
 	kd6 := netip.Addr{}
 	if IsBrigadier {
 		kd6 = data.KeydeskIPv6
@@ -262,30 +232,97 @@ func (db *BrigadeStorage) UserPut(fullname string, person namesgenerator.Person,
 		return nil, fmt.Errorf("wg add: %w", err)
 	}
 
-	f.Commit()
+	db.save(f, data)
+	if err != nil {
+		return nil, fmt.Errorf("save: %w", err)
+	}
 
 	return userconf, nil
 }
 
-// UserRemove - remove user from the storage.
-func (db *BrigadeStorage) UserRemove(id string, brigadier bool) error {
-	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
+func assembleUser(data *Brigade, fullname string) (uuid.UUID, netip.Addr, netip.Addr, string, error) {
+	var (
+		ipv4, ipv6 netip.Addr
+		uid        uuid.UUID
+	)
+
+	idL := make(map[string]struct{})
+
+	// put self and broadcast addresses.
+	ip4L := map[string]struct{}{
+		data.IPv4CGNAT.Addr().String():                {},
+		kdlib.LastPrefixIPv4(data.IPv4CGNAT).String(): {},
+	}
+
+	ip6L := map[string]struct{}{
+		data.IPv6ULA.Addr().String():                {},
+		kdlib.LastPrefixIPv6(data.IPv6ULA).String(): {},
+	}
+
+	for _, user := range data.Users {
+		if user.Name == fullname {
+			return uid, ipv4, ipv6, "", ErrUserCollision
+		}
+
+		idL[user.UserID.String()] = struct{}{}
+		ip4L[user.IPv4Addr.String()] = struct{}{}
+		ip6L[user.IPv6Addr.String()] = struct{}{}
+	}
+
+	if len(idL) >= MaxUsers {
+		return uid, ipv4, ipv6, "", ErrUserLimit
+	}
+
+	for {
+		id := uuid.New()
+		if _, ok := idL[id.String()]; !ok {
+			uid = id
+
+			break
+		}
+	}
+
+	for {
+		ip := kdlib.RandomAddrIPv4(data.IPv4CGNAT)
+		if kdlib.IsZeroEnding(ip) {
+			continue
+		}
+
+		if _, ok := ip4L[ip.String()]; !ok {
+			ipv4 = ip
+
+			break
+		}
+	}
+
+	for {
+		ip := kdlib.RandomAddrIPv6(data.IPv6ULA)
+		if kdlib.IsZeroEnding(ip) {
+			continue
+		}
+
+		if _, ok := ip6L[ip.String()]; !ok {
+			ipv6 = ip
+
+			break
+		}
+	}
+
+	name := fmt.Sprintf("%03d %s",
+		blurIpv4Addr(ipv4, data.IPv4CGNAT.Bits(), extractUint32Salt(data.BrigadeID)),
+		fullname)
+
+	return uid, ipv4, ipv6, name, nil
+}
+
+// DeleteUser - remove user from the storage.
+func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
+	f, data, addr, err := db.openWithReading()
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}
 
 	defer f.Close()
-
-	data := &Brigade{}
-
-	err = f.Decoder().Decode(data)
-	if err != nil {
-		return fmt.Errorf("decode: %w", err)
-	}
-
-	if data.BrigadeID != db.BrigadeID {
-		return fmt.Errorf("check: %w", ErrUnknownBrigade)
-	}
 
 	wgPub := []byte{}
 	for i, u := range data.Users {
@@ -297,46 +334,28 @@ func (db *BrigadeStorage) UserRemove(id string, brigadier bool) error {
 		}
 	}
 
-	err = f.Encoder(" ", " ").Encode(data)
-	if err != nil {
-		return fmt.Errorf("encode: %w", err)
-	}
-
-	addr := db.APIAddrPort
-	if addr.Addr().IsValid() && addr.Addr().IsUnspecified() {
-		addr = epapi.CalcAPIAddrPort(data.EndpointIPv4)
-	}
-
 	// if we catch a slowdown problems we need organize queue
 	err = epapi.PeerDel(addr, wgPub, data.WgPublicKey)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)
 	}
 
-	f.Commit()
+	db.save(f, data)
+	if err != nil {
+		return fmt.Errorf("save: %w", err)
+	}
 
 	return nil
 }
 
-// UserList - list users.
-func (db *BrigadeStorage) UserList() ([]*User, error) {
-	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
+// ListUsers - list users.
+func (db *BrigadeStorage) ListUsers() ([]*User, error) {
+	f, data, _, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
 
 	defer f.Close()
-
-	data := &Brigade{}
-
-	err = f.Decoder().Decode(data)
-	if err != nil {
-		return nil, fmt.Errorf("decode: %w", err)
-	}
-
-	if data.BrigadeID != db.BrigadeID {
-		return nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
-	}
 
 	return data.Users, nil
 }

@@ -83,7 +83,7 @@ func addUser(db *BrigadeStorage, fullname string, person namesgenerator.Person, 
 		return nil, nil, nil, fmt.Errorf("wg gen: %w", err)
 	}
 
-	userconf, err := db.UserPut(fullname, person, IsBrigadier, wgPub, wgRouterPSK, wgShufflerPSK)
+	userconf, err := db.CreateUser(fullname, person, IsBrigadier, wgPub, wgRouterPSK, wgShufflerPSK)
 	if err != nil {
 		fmt.Printf("put: %s", err)
 
@@ -127,7 +127,7 @@ func constructContentDisposition(name, id string) string {
 
 // DelUserUserID - delete user by UserID.
 func DelUserUserID(db *BrigadeStorage, params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
-	err := db.UserRemove(params.UserID, false)
+	err := db.DeleteUser(params.UserID, false)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Delete user: %s :%s\n", params.UserID, err)
 
@@ -139,7 +139,7 @@ func DelUserUserID(db *BrigadeStorage, params operations.DeleteUserUserIDParams,
 
 // GetUsers - .
 func GetUsers(db *BrigadeStorage, params operations.GetUserParams, principal interface{}) middleware.Responder {
-	storageUsers, err := db.UserList()
+	storageUsers, err := db.ListUsers()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "List error: %s\n", err)
 

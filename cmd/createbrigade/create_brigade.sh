@@ -19,6 +19,7 @@
 BRIGADES_LIST_FILE="/etc/vgbrigades.lst"
 BASE_HOME_DIR="/home"
 BRIGADE_MAKER_APP_PATH="/opt/keydesk/createbrigade"
+KEYDESK_APP_PATH="/opt/keydesk/keydesk"
 
 spinlock="`[ ! -z \"${TMPDIR}\" ] && echo -n \"${TMPDIR}/\" || echo -n \"/tmp/\" ; echo \"vgbrigade.spinlock\"`"
 trap "rm -f \"${spinlock}\" 2>/dev/null" EXIT
@@ -74,8 +75,11 @@ install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${BASE_HOME_DIR}/${bri
 
 # Create json datafile
 
-#sudo -i -u ${brigade_id} ${BRIGADE_MAKER_APP_PATH} ${chunked} -id "${brigade_id}" -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}" -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}"
-if ! sudo -i -u "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" ${chunked} -id "${brigade_id}" -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}"; then
+if ! sudo -i -u "${brigade_id}" -g "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" ${chunked} -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}"; then
+        exit 1
+fi
+
+if ! sudo -i -u ${brigade_id} -g  ${brigade_id} ${KEYDESK_APP_PATH} ${chunked} -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}"; then
         exit 1
 fi
 

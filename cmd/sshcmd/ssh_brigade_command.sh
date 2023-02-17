@@ -17,8 +17,8 @@ basedir=$(dirname $0)
 
 if [ "xspawn" = "x${cmd}" -o "xcreate" = "x${cmd}" ]; then
     ${basedir}/create_brigade.sh $@
-elif [ "xrecreate" = "x${cmd}" ]; then
-    ${basedir}/recreate_brigade.sh $@
+elif [ "xreplace" = "x${cmd}" ]; then
+    ${basedir}/replace_brigadier.sh $@
 elif [ "xdestroy" = "x${cmd}" ]; then
     ${basedir}/destroy_brigade.sh $@
 else

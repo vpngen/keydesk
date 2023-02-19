@@ -67,6 +67,8 @@ func (db *BrigadeStorage) openWithReading() (*kdlib.FileDb, *Brigade, netip.Addr
 		addr = epapi.CalcAPIAddrPort(data.EndpointIPv4)
 	}
 
+	data.KeydeskLastVisit = time.Now()
+
 	return f, data, addr, nil
 }
 
@@ -215,7 +217,7 @@ func (db *BrigadeStorage) CreateUser(fullname string, person namesgenerator.Pers
 	data.Users = append(data.Users, &User{
 		UserID:           userconf.ID,
 		Name:             userconf.Name,
-		CreatedAt:        time.Now(),
+		CreatedAt:        time.Now(), // creazy but can be data.KeydeskLastVisit
 		IsBrigadier:      isBrigadier,
 		IPv4Addr:         userconf.IPv4,
 		IPv6Addr:         userconf.IPv6,
@@ -388,6 +390,11 @@ func (db *BrigadeStorage) ListUsers() ([]*User, error) {
 	}
 
 	defer f.Close()
+
+	db.save(f, data)
+	if err != nil {
+		return nil, fmt.Errorf("save: %w", err)
+	}
 
 	return data.Users, nil
 }

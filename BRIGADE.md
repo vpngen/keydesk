@@ -32,6 +32,8 @@ The `authorized_keys` file configuration must force the ssh command:
 
 ## Recreate brigadier
 
+* Replace the target brigade brigadier user by execution keydesk binary with special flgas with the target brigade user permissions
+
 ## Replay configs
 
 It is an auxilary tool to restore working environment. It replays each command to restore VPN from brigades database.

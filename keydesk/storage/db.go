@@ -30,12 +30,20 @@ var (
 	ErrBrigadeAlreadyExists = errors.New("already exists")
 )
 
+// BrigadeStorageOpts - opts.
+type BrigadeStorageOpts struct {
+	MaxUsers              int
+	MonthlyQuotaRemaining int
+	ActivityPeriod        time.Duration
+}
+
 // BrigadeStorage - brigade file storage.
 type BrigadeStorage struct {
 	BrigadeID       string
 	BrigadeFilename string // i.e. /home/<BrigadeID>/brigade.json
 	StatFilename    string // i.e. /var/db/vgstat/<BrigadeID>-stat.json
 	APIAddrPort     netip.AddrPort
+	BrigadeStorageOpts
 }
 
 // pairFilesBrigadeStat - open and parsed data.
@@ -52,13 +60,11 @@ func (dt *pairFilesBrigadeStat) save(data *Brigade, stat *Stat) error {
 		return fmt.Errorf("commit: %w", err)
 	}
 
-	// !!! calcuate users
-
-	if err := dt.brigadeFile.Encoder(" ", " ").Encode(stat); err != nil {
+	if err := dt.statFile.Encoder(" ", " ").Encode(stat); err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
 
-	if err := dt.brigadeFile.Commit(); err != nil {
+	if err := dt.statFile.Commit(); err != nil {
 		return fmt.Errorf("commit: %w", err)
 	}
 
@@ -139,11 +145,6 @@ func (db *BrigadeStorage) openWithReading() (*pairFilesBrigadeStat, *Brigade, *S
 		addr = epapi.CalcAPIAddrPort(data.EndpointIPv4)
 	}
 
-	ts := time.Now()
-	data.KeydeskLastVisit = ts
-	stat.KeydeskLastVisit = ts
-	stat.Updated = ts
-
 	return &pairFilesBrigadeStat{
 		brigadeFile: fb,
 		statFile:    fs,
@@ -205,12 +206,12 @@ func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*pairFilesBrigad
 		return nil, nil, nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
 	}
 
-	fb, data, err := db.openBrigadeWithReading()
+	fb, data, err := db.openBrigadeWithoutReading()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("brigade: %w", err)
 	}
 
-	fs, stat, err := db.openStatWithReading()
+	fs, stat, err := db.openStatWithoutReading()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("stat: %w", err)
 	}
@@ -221,7 +222,6 @@ func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*pairFilesBrigad
 	ts := time.Now()
 	data.CreatedAt = ts
 	stat.BrigadeCreatedAt = ts
-	stat.Updated = ts
 
 	return &pairFilesBrigadeStat{
 		brigadeFile: fb,

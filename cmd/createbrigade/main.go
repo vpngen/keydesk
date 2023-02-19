@@ -41,9 +41,9 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 	keydeskIPv6 := flag.String("kd6", "", "keydeskIPv6")
 	// !!! is the flags below only for debug?
 	brigadeID := flag.String("id", "", "brigadier_id")
-	etcDir := flag.String("c", keydesk.DefaultEtcDir, "Dir for config files (for test)")
-	homeDir := flag.String("d", storage.DefaultFileDbDir, "Dir for db files (for test)")
-	statDir := flag.String("s", storage.DefaultStatDir, "Dir for stst files (for test)")
+	etcDir := flag.String("c", keydesk.DefaultEtcDir, "Dir for config files")
+	homeDir := flag.String("d", storage.DefaultFileDbDir, "Dir for db files")
+	statDir := flag.String("s", storage.DefaultStatDir, "Dir for stst files")
 	addr := flag.String("a", epapi.TemplatedAddrPort, "API endpoint address:port")
 
 	flag.Parse()
@@ -192,6 +192,11 @@ func main() {
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
 		StatFilename:    filepath.Join(statDir, fmt.Sprintf(storage.StatFilename, config.BrigadeID)),
 		APIAddrPort:     addr,
+		BrigadeStorageOpts: storage.BrigadeStorageOpts{
+			MaxUsers:              keydesk.MaxUsers,
+			MonthlyQuotaRemaining: keydesk.MonthlyQuotaRemaining,
+			ActivityPeriod:        keydesk.ActivityPeriod,
+		},
 	}
 
 	// just do it.

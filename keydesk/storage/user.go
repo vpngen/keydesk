@@ -21,8 +21,6 @@ func (db *BrigadeStorage) CreateUser(
 	wgPub,
 	wgRouterPSK,
 	wgShufflerPSK []byte,
-	maxUsers int,
-	monthlyQuotaRemaining uint64,
 ) (*UserConfig, error) {
 	dt, data, stat, addr, err := db.openWithReading()
 	if err != nil {
@@ -38,7 +36,7 @@ func (db *BrigadeStorage) CreateUser(
 		}
 	}
 
-	id, ipv4, ipv6, name, err := assembleUser(data, fullname, isBrigadier, maxUsers)
+	id, ipv4, ipv6, name, err := assembleUser(data, fullname, isBrigadier, db.MaxUsers)
 	if err != nil {
 		return nil, fmt.Errorf("assemble: %w", err)
 	}
@@ -65,7 +63,7 @@ func (db *BrigadeStorage) CreateUser(
 		WgPSKRouterEnc:   wgRouterPSK,
 		WgPSKShufflerEnc: wgShufflerPSK,
 		Person:           person,
-		Quota:            Quota{LimitMonthlyRemaining: monthlyQuotaRemaining},
+		Quota:            Quota{LimitMonthlyRemaining: uint64(db.MonthlyQuotaRemaining)},
 	})
 
 	sort.Slice(data.Users, func(i, j int) bool {
@@ -82,6 +80,8 @@ func (db *BrigadeStorage) CreateUser(
 	if err != nil {
 		return nil, fmt.Errorf("wg add: %w", err)
 	}
+
+	aggrStat(data, stat, db.ActivityPeriod)
 
 	dt.save(data, stat)
 	if err != nil {
@@ -195,6 +195,8 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 		return fmt.Errorf("peer del: %w", err)
 	}
 
+	aggrStat(data, stat, db.ActivityPeriod)
+
 	dt.save(data, stat)
 	if err != nil {
 		return fmt.Errorf("save: %w", err)
@@ -230,6 +232,10 @@ func (db *BrigadeStorage) ListUsers() ([]*User, error) {
 	}
 
 	defer dt.close()
+
+	ts := time.Now()
+	data.KeydeskLastVisit = ts
+	stat.KeydeskLastVisit = ts
 
 	dt.save(data, stat)
 	if err != nil {

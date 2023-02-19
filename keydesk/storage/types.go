@@ -50,6 +50,9 @@ type Brigade struct {
 	BrigadeID            string       `json:"brigade_id"`
 	CreatedAt            time.Time    `json:"created_at"`
 	KeydeskLastVisit     time.Time    `json:"keydesk_last_visit,omitempty"`
+	CounterRX            uint64       `json:"total_rx"`
+	CounterTX            uint64       `json:"total_tx"`
+	CounterMtime         time.Time    `json:"total_mtime"`
 	WgPublicKey          []byte       `json:"wg_public_key"`
 	WgPrivateRouterEnc   []byte       `json:"wg_private_router_enc"`
 	WgPrivateShufflerEnc []byte       `json:"wg_private_shuffler_enc"`

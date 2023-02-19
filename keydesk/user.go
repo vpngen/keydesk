@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/vpngen/keydesk/gen/models"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
@@ -30,11 +31,15 @@ const (
 	ULAPrefix   = "fd00::/8"
 )
 
-// MaxUsers - maximem limit.
-const MaxUsers = 250
-
-// MonthlyQuotaRemaining - .
-const MonthlyQuotaRemaining = 100 * 1024 * 1024 * 1024
+// Users defaults
+const (
+	// MaxUsers - maximem limit.
+	MaxUsers = 250
+	// MonthlyQuotaRemaining - .
+	MonthlyQuotaRemaining = 100 * 1024 * 1024 * 1024
+	// ActivityPeriod
+	ActivityPeriod = 24 * 30 * time.Hour // month?
+)
 
 // AddUser - create user.
 func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
@@ -90,7 +95,7 @@ func addUser(db *storage.BrigadeStorage, fullname string, person namesgenerator.
 		return nil, nil, nil, fmt.Errorf("wg gen: %w", err)
 	}
 
-	userconf, err := db.CreateUser(fullname, person, IsBrigadier, replaceBrigadier, wgPub, wgRouterPSK, wgShufflerPSK, MaxUsers, MonthlyQuotaRemaining)
+	userconf, err := db.CreateUser(fullname, person, IsBrigadier, replaceBrigadier, wgPub, wgRouterPSK, wgShufflerPSK)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "put: %s\n", err)
 

@@ -81,6 +81,11 @@ func main() {
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
 		StatFilename:    filepath.Join(statDir, fmt.Sprintf(storage.StatFilename, BrigadeID)),
 		APIAddrPort:     addr,
+		BrigadeStorageOpts: storage.BrigadeStorageOpts{
+			MaxUsers:              keydesk.MaxUsers,
+			MonthlyQuotaRemaining: keydesk.MonthlyQuotaRemaining,
+			ActivityPeriod:        keydesk.ActivityPeriod,
+		},
 	}
 
 	// Just create brigadier.
@@ -179,6 +184,7 @@ func main() {
 	fmt.Printf("Starting %s keydesk\n", BrigadeID)
 	fmt.Printf("Etc: %s\n", etcDir)
 	fmt.Printf("DBDir: %s\n", dbDir)
+	fmt.Printf("StatDir: %s\n", statDir)
 	fmt.Printf("Web files: %s\n", webDir)
 	fmt.Printf("Listen: %s\n", listen.Addr().String())
 	fmt.Printf("Permessive CORS: %t\n", pcors)
@@ -242,7 +248,7 @@ func parseArgs() (bool, bool, net.Listener, netip.AddrPort, string, string, stri
 	webDir := flag.String("w", DefaultWebDir, "Dir for web files.")
 	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultFileDbDir)
-	statDir := flag.String("s", storage.DefaultStatDir, "Dir for stst files (for test)")
+	statDir := flag.String("s", "", "Dir for stst files (for test). Default: "+storage.DefaultStatDir)
 	pcors := flag.Bool("cors", false, "Turn on permessive CORS (for test)")
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
 	listenAddr := flag.String("l", "", "Listen addr:port (for test)")

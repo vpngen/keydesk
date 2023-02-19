@@ -1,8 +1,5 @@
 keydesk
-router.pub
-router.priv
-shuffler.pub
-shuffler.priv
-brigade.json
-stats.json
+*.pub
+*.priv
+*.json
 *.tmp

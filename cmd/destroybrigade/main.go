@@ -20,8 +20,8 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 
 	// is id only for debug?
 	brigadeID := flag.String("id", "", "brigadier_id")
-	homeDir := flag.String("d", storage.DefaultFileDbDir, "Dir for db files (for test)")
-	statDir := flag.String("s", storage.DefaultStatDir, "Dir for stst files (for test)")
+	homeDir := flag.String("d", storage.DefaultFileDbDir, "Dir for db files")
+	statDir := flag.String("s", storage.DefaultStatDir, "Dir for stst files")
 
 	addr := flag.String("a", epapi.TemplatedAddrPort, "API endpoint address:port")
 
@@ -83,6 +83,11 @@ func main() {
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
 		StatFilename:    filepath.Join(statDir, fmt.Sprintf(storage.StatFilename, brigadeID)),
 		APIAddrPort:     addr,
+		BrigadeStorageOpts: storage.BrigadeStorageOpts{
+			MaxUsers:              keydesk.MaxUsers,
+			MonthlyQuotaRemaining: keydesk.MonthlyQuotaRemaining,
+			ActivityPeriod:        keydesk.ActivityPeriod,
+		},
 	}
 
 	// just do it.

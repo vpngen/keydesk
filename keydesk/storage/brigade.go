@@ -2,38 +2,33 @@ package storage
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/vpngen/keydesk/epapi"
 )
 
 // CreateBrigade - create brigade config.
 func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPriv, wgShufflerPriv []byte) error {
-	f, data, err := db.openWithoutReading(config.BrigadeID)
+	dt, data, stat, err := db.openWithoutReading(config.BrigadeID)
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
 
-	defer f.Close()
+	defer dt.close()
 
 	addr := db.APIAddrPort
 	if addr.Addr().IsValid() && addr.Addr().IsUnspecified() {
 		addr = epapi.CalcAPIAddrPort(config.EndpointIPv4)
 	}
 
-	data = &Brigade{
-		BrigadeID:            config.BrigadeID,
-		CreatedAt:            time.Now(),
-		WgPublicKey:          wgPub,
-		WgPrivateRouterEnc:   wgRouterPriv,
-		WgPrivateShufflerEnc: wgShufflerPriv,
-		IPv4CGNAT:            config.IPv4CGNAT,
-		IPv6ULA:              config.IPv6ULA,
-		DNSv4:                config.DNSIPv4,
-		DNSv6:                config.DNSIPv6,
-		EndpointIPv4:         config.EndpointIPv4,
-		KeydeskIPv6:          config.KeydeskIPv6,
-	}
+	data.WgPublicKey = wgPub
+	data.WgPrivateRouterEnc = wgRouterPriv
+	data.WgPrivateShufflerEnc = wgShufflerPriv
+	data.IPv4CGNAT = config.IPv4CGNAT
+	data.IPv6ULA = config.IPv6ULA
+	data.DNSv4 = config.DNSIPv4
+	data.DNSv6 = config.DNSIPv6
+	data.EndpointIPv4 = config.EndpointIPv4
+	data.KeydeskIPv6 = config.KeydeskIPv6
 
 	// if we catch a slowdown problems we need organize queue
 	err = epapi.WgAdd(addr, data.WgPrivateRouterEnc, config.EndpointIPv4, config.IPv4CGNAT, config.IPv6ULA)
@@ -41,7 +36,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 		return fmt.Errorf("wg add: %w", err)
 	}
 
-	err = db.save(f, data)
+	err = dt.save(data, stat)
 	if err != nil {
 		return fmt.Errorf("save: %w", err)
 	}
@@ -51,12 +46,12 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 
 // DestroyBrigade - remove brigade.
 func (db *BrigadeStorage) DestroyBrigade() error {
-	f, data, addr, err := db.openWithReading()
+	dt, data, stat, addr, err := db.openWithReading()
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
 
-	defer f.Close()
+	defer dt.close()
 
 	// if we catch a slowdown problems we need organize queue
 	err = epapi.WgDel(addr, data.WgPrivateRouterEnc)
@@ -66,7 +61,7 @@ func (db *BrigadeStorage) DestroyBrigade() error {
 
 	data = &Brigade{}
 
-	db.save(f, data)
+	dt.save(data, stat)
 	if err != nil {
 		return fmt.Errorf("save: %w", err)
 	}

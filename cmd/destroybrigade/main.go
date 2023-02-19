@@ -81,7 +81,7 @@ func main() {
 	db := &storage.BrigadeStorage{
 		BrigadeID:       brigadeID,
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
-		StatsFilename:   filepath.Join(statDir, fmt.Sprintf(storage.StatFilename, brigadeID)),
+		StatFilename:    filepath.Join(statDir, fmt.Sprintf(storage.StatFilename, brigadeID)),
 		APIAddrPort:     addr,
 	}
 

@@ -8,6 +8,9 @@ import (
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
 
+// QuotaVesrion - json version.
+const QuotaVesrion = 1
+
 // Quota - user quota.
 type Quota struct {
 	OSCounterMtime        time.Time `json:"os_counter_mtime"`
@@ -17,7 +20,11 @@ type Quota struct {
 	LimitMonthlyResetOn   time.Time `json:"limit_monthly_reset_on"`
 	LastActivity          time.Time `json:"last_activity"`
 	ThrottlingTill        time.Time `json:"throttling_till"`
+	Ver                   int       `json:"version"`
 }
+
+// UserVersion - json version.
+const UserVersion = 1
 
 // User - user structure.
 type User struct {
@@ -32,7 +39,11 @@ type User struct {
 	WgPSKShufflerEnc []byte                `json:"wg_psk_shuffler_enc"`
 	Person           namesgenerator.Person `json:"person"`
 	Quota            Quota                 `json:"quota"`
+	Ver              int                   `json:"version"`
 }
+
+// BrigadeVersion - json version.
+const BrigadeVersion = 1
 
 // Brigade - brigade.
 type Brigade struct {
@@ -49,6 +60,7 @@ type Brigade struct {
 	IPv4CGNAT            netip.Prefix `json:"ipv4_cgnat"`
 	IPv6ULA              netip.Prefix `json:"ipv6_ula"`
 	Users                []*User      `json:"users,omitempty"`
+	Ver                  int          `json:"version"`
 }
 
 // UserConfig - new user structure.
@@ -70,4 +82,21 @@ type BrigadeConfig struct {
 	IPv4CGNAT    netip.Prefix
 	IPv6ULA      netip.Prefix
 	KeydeskIPv6  netip.Addr
+}
+
+// StatVersion - json version.
+const StatVersion = 1
+
+// Stat - statistics.
+type Stat struct {
+	BrigadeID          string    `json:"brigade_id"`
+	Updated            time.Time `json:"updated"`
+	BrigadeCreatedAt   time.Time `json:"brigade_created_at"`
+	KeydeskLastVisit   time.Time `json:"keydesk_last_visit,omitempty"`
+	UsersCount         int       `json:"users_count"`
+	ActiveUsersCount   int       `json:"active_users_count"`
+	ThrottledUserCount int       `json:"throttled_users_count"`
+	TotalRx            uint64    `json:"total_rx"`
+	TotalTx            uint64    `json:"total_tx"`
+	Ver                int       `json:"version"`
 }

@@ -24,12 +24,12 @@ func (db *BrigadeStorage) CreateUser(
 	maxUsers int,
 	monthlyQuotaRemaining uint64,
 ) (*UserConfig, error) {
-	f, data, addr, err := db.openWithReading()
+	dt, data, stat, addr, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
 
-	defer f.Close()
+	defer dt.close()
 
 	if isBrigadier && replaceBrigadier {
 		err := db.removeBrigadier(data, addr)
@@ -83,7 +83,7 @@ func (db *BrigadeStorage) CreateUser(
 		return nil, fmt.Errorf("wg add: %w", err)
 	}
 
-	db.save(f, data)
+	dt.save(data, stat)
 	if err != nil {
 		return nil, fmt.Errorf("save: %w", err)
 	}
@@ -172,12 +172,12 @@ func assembleUser(data *Brigade, fullname string, isBrigadier bool, maxUsers int
 
 // DeleteUser - remove user from the storage.
 func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
-	f, data, addr, err := db.openWithReading()
+	dt, data, stat, addr, err := db.openWithReading()
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
 
-	defer f.Close()
+	defer dt.close()
 
 	wgPub := []byte{}
 	for i, u := range data.Users {
@@ -195,7 +195,7 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 		return fmt.Errorf("peer del: %w", err)
 	}
 
-	db.save(f, data)
+	dt.save(data, stat)
 	if err != nil {
 		return fmt.Errorf("save: %w", err)
 	}
@@ -224,14 +224,14 @@ func (db *BrigadeStorage) removeBrigadier(data *Brigade, addr netip.AddrPort) er
 
 // ListUsers - list users.
 func (db *BrigadeStorage) ListUsers() ([]*User, error) {
-	f, data, _, err := db.openWithReading()
+	dt, data, stat, _, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
 
-	defer f.Close()
+	defer dt.close()
 
-	db.save(f, data)
+	dt.save(data, stat)
 	if err != nil {
 		return nil, fmt.Errorf("save: %w", err)
 	}

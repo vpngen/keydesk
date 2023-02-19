@@ -34,16 +34,75 @@ var (
 type BrigadeStorage struct {
 	BrigadeID       string
 	BrigadeFilename string // i.e. /home/<BrigadeID>/brigade.json
-	StatsFilename   string // i.e. /var/db/vgstat/<BrigadeID>-stat.json
+	StatFilename    string // i.e. /var/db/vgstat/<BrigadeID>-stat.json
 	APIAddrPort     netip.AddrPort
 }
 
-func (db *BrigadeStorage) openWithReading() (*kdlib.FileDb, *Brigade, netip.AddrPort, error) {
-	addr := netip.AddrPort{}
+// pairFilesBrigadeStat - open and parsed data.
+type pairFilesBrigadeStat struct {
+	brigadeFile, statFile *kdlib.FileDb
+}
 
+func (dt *pairFilesBrigadeStat) save(data *Brigade, stat *Stat) error {
+	if err := dt.brigadeFile.Encoder(" ", " ").Encode(data); err != nil {
+		return fmt.Errorf("encode: %w", err)
+	}
+
+	if err := dt.brigadeFile.Commit(); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+
+	// !!! calcuate users
+
+	if err := dt.brigadeFile.Encoder(" ", " ").Encode(stat); err != nil {
+		return fmt.Errorf("encode: %w", err)
+	}
+
+	if err := dt.brigadeFile.Commit(); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+
+	return nil
+}
+
+func (dt *pairFilesBrigadeStat) close() error {
+	if err := dt.brigadeFile.Close(); err != nil {
+		return fmt.Errorf("brigade: %w", err)
+	}
+
+	if err := dt.statFile.Close(); err != nil {
+		return fmt.Errorf("brigade: %w", err)
+	}
+
+	return nil
+}
+
+func (db *BrigadeStorage) openStatWithReading() (*kdlib.FileDb, *Stat, error) {
+	f, err := kdlib.OpenFileDb(db.StatFilename)
+	if err != nil {
+		return nil, nil, fmt.Errorf("open: %w", err)
+	}
+
+	data := &Stat{}
+
+	err = f.Decoder().Decode(data)
+	if err != nil {
+		f.Close()
+
+		return nil, nil, fmt.Errorf("decode: %w", err)
+	}
+
+	if data.BrigadeID != db.BrigadeID {
+		return nil, nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
+	}
+
+	return f, data, nil
+}
+
+func (db *BrigadeStorage) openBrigadeWithReading() (*kdlib.FileDb, *Brigade, error) {
 	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
 	if err != nil {
-		return nil, nil, addr, fmt.Errorf("open: %w", err)
+		return nil, nil, fmt.Errorf("open: %w", err)
 	}
 
 	data := &Brigade{}
@@ -52,11 +111,27 @@ func (db *BrigadeStorage) openWithReading() (*kdlib.FileDb, *Brigade, netip.Addr
 	if err != nil {
 		f.Close()
 
-		return nil, nil, addr, fmt.Errorf("decode: %w", err)
+		return nil, nil, fmt.Errorf("decode: %w", err)
 	}
 
 	if data.BrigadeID != db.BrigadeID {
-		return nil, nil, addr, fmt.Errorf("check: %w", ErrUnknownBrigade)
+		return nil, nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
+	}
+
+	return f, data, nil
+}
+
+func (db *BrigadeStorage) openWithReading() (*pairFilesBrigadeStat, *Brigade, *Stat, netip.AddrPort, error) {
+	addr := netip.AddrPort{}
+
+	fb, data, err := db.openBrigadeWithReading()
+	if err != nil {
+		return nil, nil, nil, addr, fmt.Errorf("brigade: %w", err)
+	}
+
+	fs, stat, err := db.openStatWithReading()
+	if err != nil {
+		return nil, nil, nil, addr, fmt.Errorf("stat: %w", err)
 	}
 
 	addr = db.APIAddrPort
@@ -64,16 +139,18 @@ func (db *BrigadeStorage) openWithReading() (*kdlib.FileDb, *Brigade, netip.Addr
 		addr = epapi.CalcAPIAddrPort(data.EndpointIPv4)
 	}
 
-	data.KeydeskLastVisit = time.Now()
+	ts := time.Now()
+	data.KeydeskLastVisit = ts
+	stat.KeydeskLastVisit = ts
+	stat.Updated = ts
 
-	return f, data, addr, nil
+	return &pairFilesBrigadeStat{
+		brigadeFile: fb,
+		statFile:    fs,
+	}, data, stat, addr, nil
 }
 
-func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*kdlib.FileDb, *Brigade, error) {
-	if brigadeID != db.BrigadeID {
-		return nil, nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
-	}
-
+func (db *BrigadeStorage) openBrigadeWithoutReading() (*kdlib.FileDb, *Brigade, error) {
 	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
 	if err != nil {
 		return nil, nil, fmt.Errorf("open: %w", err)
@@ -98,16 +175,56 @@ func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*kdlib.FileDb, *
 	return f, data, nil
 }
 
-func (db *BrigadeStorage) save(f *kdlib.FileDb, data *Brigade) error {
-	err := f.Encoder(" ", " ").Encode(data)
+func (db *BrigadeStorage) openStatWithoutReading() (*kdlib.FileDb, *Stat, error) {
+	f, err := kdlib.OpenFileDb(db.StatFilename)
 	if err != nil {
-		return fmt.Errorf("encode: %w", err)
+		return nil, nil, fmt.Errorf("open: %w", err)
 	}
 
-	err = f.Commit()
-	if err != nil {
-		return fmt.Errorf("commit: %w", err)
+	stat := &Stat{}
+
+	err = f.Decoder().Decode(stat)
+	switch err {
+	case nil:
+		f.Close()
+
+		return nil, nil, fmt.Errorf("integrity: %w", ErrBrigadeAlreadyExists)
+	case io.EOF:
+		break
+	default:
+		f.Close()
+
+		return nil, nil, fmt.Errorf("decode: %w", err)
 	}
 
-	return nil
+	return f, stat, nil
+}
+
+func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*pairFilesBrigadeStat, *Brigade, *Stat, error) {
+	if brigadeID != db.BrigadeID {
+		return nil, nil, nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
+	}
+
+	fb, data, err := db.openBrigadeWithReading()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("brigade: %w", err)
+	}
+
+	fs, stat, err := db.openStatWithReading()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("stat: %w", err)
+	}
+
+	data.BrigadeID = brigadeID
+	stat.BrigadeID = brigadeID
+
+	ts := time.Now()
+	data.CreatedAt = ts
+	stat.BrigadeCreatedAt = ts
+	stat.Updated = ts
+
+	return &pairFilesBrigadeStat{
+		brigadeFile: fb,
+		statFile:    fs,
+	}, data, stat, nil
 }

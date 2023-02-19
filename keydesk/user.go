@@ -24,6 +24,12 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
+// Allowed prefixes.
+const (
+	CGNATPrefix = "100.64.0.0/10"
+	ULAPrefix   = "fd00::/8"
+)
+
 // MaxUsers - maximem limit.
 const MaxUsers = 250
 
@@ -65,8 +71,8 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 }
 
 // AddBrigadier - create brigadier user.
-func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgenerator.Person, rewriteBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, error) {
-	userconf, wgPriv, wgPSK, err := addUser(db, fullname, person, true, rewriteBrigadier, routerPublicKey, shufflerPublicKey)
+func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgenerator.Person, replaceBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, error) {
+	userconf, wgPriv, wgPSK, err := addUser(db, fullname, person, true, replaceBrigadier, routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return "", "", fmt.Errorf("addUser: %w", err)
 	}

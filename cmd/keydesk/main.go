@@ -26,6 +26,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 
+	"github.com/vpngen/keydesk/epapi"
 	"github.com/vpngen/keydesk/gen/restapi"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/keydesk"
@@ -44,15 +45,8 @@ const TokenLifeTime = 3600
 
 // Default web config.
 const (
-	DefaultStaticDir = "/var/www"
-	DefaultFiledbDir = ""
-	DefaultEtcDir    = "/etc"
+	DefaultWebDir    = "/var/www"
 	DefaultIndexFile = "index.html"
-)
-
-const (
-	routerPublicKeyFilename   = "router.pub"
-	shufflerPublicKeyFilename = "shuffler.pub"
 )
 
 // ErrStaticDirEmpty - no static dir name.
@@ -69,12 +63,10 @@ var (
 	ErrInvalidPersonURL     = goerrors.New("invalid person url")
 )
 
-const anyAddrport = "0.0.0.0:0"
-
 func main() {
 	var handler http.Handler
 
-	chunked, pcors, listen, addr, BrigadeID, etcDir, webDir, dbDir, name, person, rewrite, err := parseArgs()
+	chunked, pcors, listen, addr, BrigadeID, etcDir, webDir, dbDir, statDir, name, person, replace, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 	}
@@ -87,7 +79,7 @@ func main() {
 	db := &storage.BrigadeStorage{
 		BrigadeID:       BrigadeID,
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
-		StatsFilename:   filepath.Join("/var/db/vgstat", fmt.Sprintf(storage.StatFilename, BrigadeID)),
+		StatsFilename:   filepath.Join(statDir, fmt.Sprintf(storage.StatFilename, BrigadeID)),
 		APIAddrPort:     addr,
 	}
 
@@ -95,7 +87,7 @@ func main() {
 	if name != "" {
 		var w io.WriteCloser
 
-		wgconf, filename, err := keydesk.AddBrigadier(db, name, person, rewrite, &routerPublicKey, &shufflerPublicKey)
+		wgconf, filename, err := keydesk.AddBrigadier(db, name, person, replace, &routerPublicKey, &shufflerPublicKey)
 		if err != nil {
 			log.Fatalf("Can't create brigadier: %s\n", err)
 		}
@@ -223,33 +215,34 @@ func uiMiddleware(handler http.Handler, dir string) http.Handler {
 	})
 }
 
-func parseArgs() (bool, bool, net.Listener, netip.AddrPort, string, string, string, string, string, namesgenerator.Person, bool, error) {
+func parseArgs() (bool, bool, net.Listener, netip.AddrPort, string, string, string, string, string, string, namesgenerator.Person, bool, error) {
 	var (
-		listen        net.Listener
-		id            string
-		etcdir, dbdir string
-		person        namesgenerator.Person
-		addrPort      netip.AddrPort
+		listen                 net.Listener
+		id                     string
+		etcdir, dbdir, statdir string
+		person                 namesgenerator.Person
+		addrPort               netip.AddrPort
 	)
 
 	sysUser, err := user.Current()
 	if err != nil {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("cannot define user: %w", err)
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("cannot define user: %w", err)
 	}
 
 	cwd, err := os.Getwd()
 	if err != nil {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("cur dir: %w", err)
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("cur dir: %w", err)
 	}
 
 	cwd, err = filepath.Abs(cwd)
 	if err != nil {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("cur dir: %w", err)
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("cur dir: %w", err)
 	}
 
-	staticDir := flag.String("w", DefaultStaticDir, "Dir for web files.")
-	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+DefaultEtcDir)
-	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+DefaultFiledbDir)
+	webDir := flag.String("w", DefaultWebDir, "Dir for web files.")
+	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
+	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultFileDbDir)
+	statDir := flag.String("s", storage.DefaultStatDir, "Dir for stst files (for test)")
 	pcors := flag.Bool("cors", false, "Turn on permessive CORS (for test)")
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
 	listenAddr := flag.String("l", "", "Listen addr:port (for test)")
@@ -260,32 +253,39 @@ func parseArgs() (bool, bool, net.Listener, netip.AddrPort, string, string, stri
 	personURL := flag.String("url", "", "personURL :: base64")
 	replaceBrigadier := flag.Bool("r", false, "Replace brigadier config")
 
-	addr := flag.String("a", anyAddrport, "API endpoint address:port")
+	addr := flag.String("a", epapi.TemplatedAddrPort, "API endpoint address:port")
 
 	chunked := flag.Bool("ch", false, "chunked output")
 
 	flag.Parse()
 
-	if *staticDir == "" {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, ErrStaticDirEmpty
+	if *webDir == "" {
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, ErrStaticDirEmpty
 	}
 
-	webdir, err := filepath.Abs(*staticDir)
+	webdir, err := filepath.Abs(*webDir)
 	if err != nil {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("web dir: %w", err)
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("web dir: %w", err)
 	}
 
 	if *filedbDir != "" {
 		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("dbdir dir: %w", err)
+			return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("dbdir dir: %w", err)
 		}
 	}
 
 	if *etcDir != "" {
 		etcdir, err = filepath.Abs(*etcDir)
 		if err != nil {
-			return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("etcdir dir: %w", err)
+			return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("etcdir dir: %w", err)
+		}
+	}
+
+	if *statDir != "" {
+		statdir, err = filepath.Abs(*statDir)
+		if err != nil {
+			return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("statdir dir: %w", err)
 		}
 	}
 
@@ -298,7 +298,11 @@ func parseArgs() (bool, bool, net.Listener, netip.AddrPort, string, string, stri
 		}
 
 		if *etcDir == "" {
-			etcdir = DefaultEtcDir
+			etcdir = keydesk.DefaultEtcDir
+		}
+
+		if *statDir != "" {
+			statdir = storage.DefaultStatDir
 		}
 	default:
 		id = *brigadeID
@@ -310,12 +314,16 @@ func parseArgs() (bool, bool, net.Listener, netip.AddrPort, string, string, stri
 		if *etcDir == "" {
 			etcdir = cwd
 		}
+
+		if *statDir == "" {
+			statdir = cwd
+		}
 	}
 
 	if *addr != "-" {
 		addrPort, err = netip.ParseAddrPort(*addr)
 		if err != nil {
-			return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("api addr: %w", err)
+			return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("api addr: %w", err)
 		}
 	}
 
@@ -324,11 +332,11 @@ func parseArgs() (bool, bool, net.Listener, netip.AddrPort, string, string, stri
 		case "":
 			listeners, err := activation.Listeners()
 			if err != nil {
-				return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("cannot retrieve listeners: %w", err)
+				return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("cannot retrieve listeners: %w", err)
 			}
 
 			if len(listeners) != 1 {
-				return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("unexpected number of socket activation (%d != 1)",
+				return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("unexpected number of socket activation (%d != 1)",
 					len(listeners))
 			}
 
@@ -336,94 +344,94 @@ func parseArgs() (bool, bool, net.Listener, netip.AddrPort, string, string, stri
 		default:
 			l, err := net.Listen("tcp", *listenAddr)
 			if err != nil {
-				return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("cannot listen: %w", err)
+				return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("cannot listen: %w", err)
 			}
 
 			listen = l
 		}
 
-		return *chunked, *pcors, listen, addrPort, id, etcdir, webdir, dbdir, "", person, false, nil
+		return *chunked, *pcors, listen, addrPort, id, etcdir, webdir, dbdir, statdir, "", person, false, nil
 	}
 
 	// brigadierName must be not empty and must be a valid UTF8 string
 	buf, err := base64.StdEncoding.DecodeString(*brigadierName)
 	if err != nil {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("brigadier name: %w", err)
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("brigadier name: %w", err)
 	}
 
 	if !utf8.Valid(buf) {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, ErrInvalidBrigadierName
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, ErrInvalidBrigadierName
 	}
 
 	name := string(buf)
 
 	// personName must be not empty and must be a valid UTF8 string
 	if *personName == "" {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, ErrEmptyPersonName
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, ErrEmptyPersonName
 	}
 
 	buf, err = base64.StdEncoding.DecodeString(*personName)
 	if err != nil {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("person name: %w", err)
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("person name: %w", err)
 	}
 
 	if !utf8.Valid(buf) {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, ErrInvalidPersonName
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, ErrInvalidPersonName
 	}
 
 	person.Name = string(buf)
 
 	// personDesc must be not empty and must be a valid UTF8 string
 	if *personDesc == "" {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, ErrEmptyPersonDesc
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, ErrEmptyPersonDesc
 	}
 
 	buf, err = base64.StdEncoding.DecodeString(*personDesc)
 	if err != nil {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("person desc: %w", err)
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("person desc: %w", err)
 	}
 
 	if !utf8.Valid(buf) {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, ErrInvalidPersonDesc
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, ErrInvalidPersonDesc
 	}
 
 	person.Desc = string(buf)
 
 	// personURL must be not empty and must be a valid UTF8 string
 	if *personURL == "" {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, ErrEmptyPersonURL
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, ErrEmptyPersonURL
 	}
 
 	buf, err = base64.StdEncoding.DecodeString(*personURL)
 	if err != nil {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("person url: %w", err)
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("person url: %w", err)
 	}
 
 	if !utf8.Valid(buf) {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, ErrInvalidPersonURL
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, ErrInvalidPersonURL
 	}
 
 	u := string(buf)
 
 	_, err = url.Parse(u)
 	if err != nil {
-		return false, false, nil, addrPort, "", "", "", "", "", person, false, fmt.Errorf("parse person url: %w", err)
+		return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("parse person url: %w", err)
 	}
 
 	person.URL = u
 
-	return *chunked, *pcors, listen, addrPort, id, etcdir, webdir, dbdir, name, person, *replaceBrigadier, nil
+	return *chunked, *pcors, listen, addrPort, id, etcdir, webdir, dbdir, statdir, name, person, *replaceBrigadier, nil
 }
 
 func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxKeyLength]byte, error) {
 	empty := [naclkey.NaclBoxKeyLength]byte{}
 
-	routerPublicKey, err := naclkey.ReadPublicKeyFile(filepath.Join(path, routerPublicKeyFilename))
+	routerPublicKey, err := naclkey.ReadPublicKeyFile(filepath.Join(path, keydesk.RouterPublicKeyFilename))
 	if err != nil {
 		return empty, empty, fmt.Errorf("router key: %w", err)
 	}
 
-	shufflerPublicKey, err := naclkey.ReadPublicKeyFile(filepath.Join(path, shufflerPublicKeyFilename))
+	shufflerPublicKey, err := naclkey.ReadPublicKeyFile(filepath.Join(path, keydesk.ShufflerPublicKeyFilename))
 	if err != nil {
 		return empty, empty, fmt.Errorf("shuffler key: %w", err)
 	}

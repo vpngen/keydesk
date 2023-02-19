@@ -14,6 +14,9 @@ import (
 
 const endpointPort = 8080
 
+// TemplatedAddrPort - value indicates that it is a template.
+const TemplatedAddrPort = "0.0.0.0:0"
+
 // ResponsePayload - GW response type.
 type ResponsePayload struct {
 	Code  int    `json:"code"`

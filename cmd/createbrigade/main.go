@@ -198,11 +198,13 @@ func main() {
 			ActivityPeriod:        keydesk.ActivityPeriod,
 		},
 	}
+	if err := db.SelfCheck(); err != nil {
+		log.Fatalf("Storage initialization: %s", err)
+	}
 
 	// just do it.
-	err = keydesk.CreateBrigade(db, config, &routerPublicKey, &shufflerPublicKey)
-	if err != nil {
-		log.Fatalf("Can't create brigade: %s", err)
+	if err := keydesk.CreateBrigade(db, config, &routerPublicKey, &shufflerPublicKey); err != nil {
+		log.Fatalf("Can't create brigade: %s\n", err)
 	}
 }
 

@@ -89,11 +89,13 @@ func main() {
 			ActivityPeriod:        keydesk.ActivityPeriod,
 		},
 	}
+	if err := db.SelfCheck(); err != nil {
+		log.Fatalf("Storage initialization: %s\n", err)
+	}
 
 	// just do it.
-	err = keydesk.DestroyBrigade(db)
-	if err != nil {
-		log.Fatalf("Can't destroy brigade: %s", err)
+	if err := keydesk.DestroyBrigade(db); err != nil {
+		log.Fatalf("Can't destroy brigade: %s\n", err)
 	}
 
 }

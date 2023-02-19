@@ -87,6 +87,9 @@ func main() {
 			ActivityPeriod:        keydesk.ActivityPeriod,
 		},
 	}
+	if err := db.SelfCheck(); err != nil {
+		log.Fatalf("Storage initialization: %s\n", err)
+	}
 
 	// Just create brigadier.
 	if name != "" {
@@ -105,13 +108,11 @@ func main() {
 			w = os.Stdout
 		}
 
-		_, err = fmt.Fprintln(w, filename)
-		if err != nil {
+		if _, err := fmt.Fprintln(w, filename); err != nil {
 			log.Fatalf("Can't print filename: %s\n", err)
 		}
 
-		_, err = fmt.Fprintln(w, wgconf)
-		if err != nil {
+		if _, err := fmt.Fprintln(w, wgconf); err != nil {
 			log.Fatalf("Can't print wgconf: %s\n", err)
 		}
 

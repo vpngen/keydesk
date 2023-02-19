@@ -28,6 +28,8 @@ var (
 	ErrUnknownBrigade = errors.New("unknown brigade")
 	// ErrBrigadeAlreadyExists - brigade file exists unexpectabily.
 	ErrBrigadeAlreadyExists = errors.New("already exists")
+	// ErrWrongStorageConfiguration - somthing empty in db config.
+	ErrWrongStorageConfiguration = errors.New("wrong db config")
 )
 
 // BrigadeStorageOpts - opts.
@@ -78,6 +80,20 @@ func (dt *pairFilesBrigadeStat) close() error {
 
 	if err := dt.statFile.Close(); err != nil {
 		return fmt.Errorf("brigade: %w", err)
+	}
+
+	return nil
+}
+
+// SelfCheck - self check func.
+func (db *BrigadeStorage) SelfCheck() error {
+	if db.BrigadeFilename == "" ||
+		db.StatFilename == "" ||
+		db.BrigadeID == "" ||
+		db.MaxUsers == 0 ||
+		db.ActivityPeriod == 0 ||
+		db.MonthlyQuotaRemaining == 0 {
+		return ErrWrongStorageConfiguration
 	}
 
 	return nil

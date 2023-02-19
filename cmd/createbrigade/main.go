@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/vpngen/keydesk/keydesk"
+	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/vpngine/naclkey"
 )
 
@@ -45,8 +46,8 @@ var (
 	ErrInvalidKeydeskIPv6  = errors.New("invalid keydesk ip6 endpoint")
 )
 
-func parseArgs() (*keydesk.BrigadeConfig, netip.AddrPort, string, string, error) {
-	var config = &keydesk.BrigadeConfig{}
+func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, error) {
+	var config = &storage.BrigadeConfig{}
 
 	addrPort := netip.AddrPort{}
 
@@ -198,9 +199,10 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	db := &keydesk.BrigadeStorage{
+	db := &storage.BrigadeStorage{
 		BrigadeID:       config.BrigadeID,
-		BrigadeFilename: filepath.Join(dbDir, keydesk.BrigadeFilename),
+		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
+		StatsFilename:   filepath.Join("/var/db/vgstat", fmt.Sprintf(storage.StatFilename, config.BrigadeID)),
 		APIAddrPort:     addr,
 	}
 

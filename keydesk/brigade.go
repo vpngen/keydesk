@@ -4,13 +4,14 @@ import (
 	"crypto/rand"
 	"fmt"
 
+	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/vpngine/naclkey"
 	"golang.org/x/crypto/nacl/box"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 // CreateBrigade - create brigadier user.
-func CreateBrigade(db *BrigadeStorage, config *BrigadeConfig, routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) error {
+func CreateBrigade(db *storage.BrigadeStorage, config *storage.BrigadeConfig, routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) error {
 	wgPub, wgRouterPriv, wgShufflerPriv, err := genEndpointWGKeys(routerPubkey, shufflerPubkey)
 	if err != nil {
 		return fmt.Errorf("wg keys: %w", err)
@@ -25,7 +26,7 @@ func CreateBrigade(db *BrigadeStorage, config *BrigadeConfig, routerPubkey, shuf
 }
 
 // DestroyBrigade - destroy brigadier user.
-func DestroyBrigade(db *BrigadeStorage) error {
+func DestroyBrigade(db *storage.BrigadeStorage) error {
 	err := db.DestroyBrigade()
 	if err != nil {
 		return fmt.Errorf("remove: %w", err)

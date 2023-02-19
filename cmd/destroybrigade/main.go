@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/keydesk"
+	"github.com/vpngen/keydesk/keydesk/storage"
 )
 
 // Default web config.
@@ -81,9 +82,10 @@ func main() {
 		log.Fatalf("Can't parse args: %s", err)
 	}
 
-	db := &keydesk.BrigadeStorage{
+	db := &storage.BrigadeStorage{
 		BrigadeID:       brigadeID,
-		BrigadeFilename: filepath.Join(dbDir, keydesk.BrigadeFilename),
+		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
+		StatsFilename:   filepath.Join("/var/db/vgstat", fmt.Sprintf(storage.StatFilename, brigadeID)),
 		APIAddrPort:     addr,
 	}
 

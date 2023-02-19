@@ -14,6 +14,7 @@ import (
 	"github.com/vpngen/keydesk/gen/models"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/kdlib"
+	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/vpngine/naclkey"
 	"github.com/vpngen/wordsgens/namesgenerator"
 	"golang.org/x/crypto/nacl/box"
@@ -30,9 +31,9 @@ const MaxUsers = 250
 const MonthlyQuotaRemaining = 100 * 1024 * 1024 * 1024
 
 // AddUser - create user.
-func AddUser(db *BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
+func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
 	var (
-		user          *UserConfig
+		user          *storage.UserConfig
 		wgPriv, wgPSK []byte
 	)
 
@@ -44,7 +45,7 @@ func AddUser(db *BrigadeStorage, params operations.PostUserParams, principal int
 
 		user, wgPriv, wgPSK, err = addUser(db, fullname, person, false, false, routerPublicKey, shufflerPublicKey)
 		if err != nil {
-			if errors.Is(err, ErrUserCollision) {
+			if errors.Is(err, storage.ErrUserCollision) {
 				continue
 			}
 
@@ -64,7 +65,7 @@ func AddUser(db *BrigadeStorage, params operations.PostUserParams, principal int
 }
 
 // AddBrigadier - create brigadier user.
-func AddBrigadier(db *BrigadeStorage, fullname string, person namesgenerator.Person, rewriteBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, error) {
+func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgenerator.Person, rewriteBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, error) {
 	userconf, wgPriv, wgPSK, err := addUser(db, fullname, person, true, rewriteBrigadier, routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return "", "", fmt.Errorf("addUser: %w", err)
@@ -75,7 +76,7 @@ func AddBrigadier(db *BrigadeStorage, fullname string, person namesgenerator.Per
 	return wgconf, kdlib.SanitizeFilename(userconf.Name), nil
 }
 
-func addUser(db *BrigadeStorage, fullname string, person namesgenerator.Person, IsBrigadier, rewriteBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*UserConfig, []byte, []byte, error) {
+func addUser(db *storage.BrigadeStorage, fullname string, person namesgenerator.Person, IsBrigadier, replaceBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*storage.UserConfig, []byte, []byte, error) {
 	wgPub, wgPriv, wgPSK, wgRouterPSK, wgShufflerPSK, err := genUserWGKeys(routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "wg gen: %s\n", err)
@@ -83,7 +84,7 @@ func addUser(db *BrigadeStorage, fullname string, person namesgenerator.Person, 
 		return nil, nil, nil, fmt.Errorf("wg gen: %w", err)
 	}
 
-	userconf, err := db.CreateUser(fullname, person, IsBrigadier, rewriteBrigadier, wgPub, wgRouterPSK, wgShufflerPSK)
+	userconf, err := db.CreateUser(fullname, person, IsBrigadier, replaceBrigadier, wgPub, wgRouterPSK, wgShufflerPSK, MaxUsers, MonthlyQuotaRemaining)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "put: %s\n", err)
 
@@ -93,7 +94,7 @@ func addUser(db *BrigadeStorage, fullname string, person namesgenerator.Person, 
 	return userconf, wgPriv, wgPSK, nil
 }
 
-func genWgConf(u *UserConfig, wgPriv, wgPSK []byte) string {
+func genWgConf(u *storage.UserConfig, wgPriv, wgPSK []byte) string {
 
 	tmpl := `[Interface]
 Address = %s
@@ -126,7 +127,7 @@ func constructContentDisposition(name, id string) string {
 }
 
 // DelUserUserID - delete user by UserID.
-func DelUserUserID(db *BrigadeStorage, params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
+func DelUserUserID(db *storage.BrigadeStorage, params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
 	err := db.DeleteUser(params.UserID, false)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Delete user: %s :%s\n", params.UserID, err)
@@ -138,7 +139,7 @@ func DelUserUserID(db *BrigadeStorage, params operations.DeleteUserUserIDParams,
 }
 
 // GetUsers - .
-func GetUsers(db *BrigadeStorage, params operations.GetUserParams, principal interface{}) middleware.Responder {
+func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, principal interface{}) middleware.Responder {
 	storageUsers, err := db.ListUsers()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "List error: %s\n", err)

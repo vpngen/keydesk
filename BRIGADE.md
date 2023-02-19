@@ -15,6 +15,13 @@ The `authorized_keys` file configuration must force the ssh command:
 
 `command="sudo /opt/keydesk/ssh_brigade_command.sh ${SSH_ORIGINAL_COMMAND}",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ecdsa-sha2-nistp256 ....`
 
+### Users and Groups
+
+* `BrigadeID:BrigadeID` - brigade user and group *the user/group pair manages by brigade management process*
+* `vgkeydesk` - each brigade user is in this group (for writing statistics) *the group manages by this package*
+* `vgcert` - each brigade user is in this group (for reading TLS crt/key pair) *the group manages by the cert package*
+* `vgstat` - user for fetch statistics (for fetching statistics) *the user manages by this package*
+
 ## Create brigade
 
 * Create the target brigade system user

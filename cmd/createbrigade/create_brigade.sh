@@ -70,7 +70,7 @@ fi
 
 # * Create system user
 
-useradd -p '*' -M -s /usr/sbin/nologin -d "${BASE_HOME_DIR}/${brigade_id}" "${brigade_id}"
+useradd -p '*' -G vgkeydesk,vgcert -M -s /usr/sbin/nologin -d "${BASE_HOME_DIR}/${brigade_id}" "${brigade_id}"
 install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${BASE_HOME_DIR}/${brigade_id}"
 
 # Create json datafile

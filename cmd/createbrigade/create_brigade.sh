@@ -101,6 +101,7 @@ listen_ip6=$(echo ${endpoint_ip4} | sed 's/\./\n/g' | xargs printf 'fdcc:%02x%02
 cat << EOF > "${systemd_keydesk_conf_dir}/listen.conf"
 [Socket]
 ListenStream = [${listen_ip6}]:80
+ListenStream = [${listen_ip6}]:443
 EOF
 
 systemctl -q enable "${systemd_keydesk_instance}.socket" "${systemd_keydesk_instance}.service"

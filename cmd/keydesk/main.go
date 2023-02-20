@@ -17,6 +17,7 @@ import (
 	"os/signal"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 	"unicode/utf8"
@@ -187,11 +188,14 @@ func main() {
 	fmt.Printf("DBDir: %s\n", dbDir)
 	fmt.Printf("StatDir: %s\n", statDir)
 	fmt.Printf("Web files: %s\n", webDir)
-	fmt.Printf("Listen: %s\n", listen.Addr().String())
+	fmt.Printf("Listen HTTP: %s\n", listen[0].Addr().String())
+	if len(listen) == 2 {
+		fmt.Printf("Listen HTTPS: %s\n", listen[1].Addr().String())
+	}
 	fmt.Printf("Permessive CORS: %t\n", pcors)
 
 	// Start accepting connections.
-	if err := server.Serve(listen); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+	if err := server.Serve(listen[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("Can't serve: %s\n", err)
 	}
 
@@ -222,9 +226,8 @@ func uiMiddleware(handler http.Handler, dir string) http.Handler {
 	})
 }
 
-func parseArgs() (bool, bool, net.Listener, netip.AddrPort, string, string, string, string, string, string, namesgenerator.Person, bool, error) {
+func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, string, string, string, string, namesgenerator.Person, bool, error) {
 	var (
-		listen                 net.Listener
 		id                     string
 		etcdir, dbdir, statdir string
 		person                 namesgenerator.Person
@@ -252,7 +255,7 @@ func parseArgs() (bool, bool, net.Listener, netip.AddrPort, string, string, stri
 	statDir := flag.String("s", "", "Dir for stst files (for test). Default: "+storage.DefaultStatDir)
 	pcors := flag.Bool("cors", false, "Turn on permessive CORS (for test)")
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
-	listenAddr := flag.String("l", "", "Listen addr:port (for test)")
+	listenAddr := flag.String("l", "", "Listen addr:port (http and https separate with commas)")
 
 	brigadierName := flag.String("name", "", "brigadierName :: base64")
 	personName := flag.String("person", "", "personName :: base64")
@@ -335,29 +338,36 @@ func parseArgs() (bool, bool, net.Listener, netip.AddrPort, string, string, stri
 	}
 
 	if *brigadierName == "" {
+		var listeners []net.Listener
+
 		switch *listenAddr {
 		case "":
-			listeners, err := activation.Listeners()
+			listeners, err = activation.Listeners()
 			if err != nil {
 				return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("cannot retrieve listeners: %w", err)
 			}
 
-			if len(listeners) != 1 {
-				return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("unexpected number of socket activation (%d != 1)",
+			if len(listeners) != 1 && len(listeners) != 2 {
+				return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("unexpected number of socket activation (%d != 1|2)",
 					len(listeners))
 			}
-
-			listen = listeners[0]
 		default:
-			l, err := net.Listen("tcp", *listenAddr)
-			if err != nil {
-				return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("cannot listen: %w", err)
+			for _, laddr := range strings.Split(*listenAddr, ",") {
+				l, err := net.Listen("tcp", laddr)
+				if err != nil {
+					return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("cannot listen: %w", err)
+				}
+
+				listeners = append(listeners, l)
 			}
 
-			listen = l
+			if len(listeners) != 1 && len(listeners) != 2 {
+				return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("unexpected number of litening (%d != 1|2)",
+					len(listeners))
+			}
 		}
 
-		return *chunked, *pcors, listen, addrPort, id, etcdir, webdir, dbdir, statdir, "", person, false, nil
+		return *chunked, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, statdir, "", person, false, nil
 	}
 
 	// brigadierName must be not empty and must be a valid UTF8 string
@@ -427,7 +437,7 @@ func parseArgs() (bool, bool, net.Listener, netip.AddrPort, string, string, stri
 
 	person.URL = u
 
-	return *chunked, *pcors, listen, addrPort, id, etcdir, webdir, dbdir, statdir, name, person, *replaceBrigadier, nil
+	return *chunked, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, statdir, name, person, *replaceBrigadier, nil
 }
 
 func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxKeyLength]byte, error) {

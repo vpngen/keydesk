@@ -3,3 +3,4 @@ keydesk
 *.priv
 *.json
 *.tmp
+*.bak

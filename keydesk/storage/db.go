@@ -129,11 +129,15 @@ func (db *BrigadeStorage) openBrigadeWithReading() (*kdlib.FileDb, *Brigade, err
 
 	data := &Brigade{}
 
-	err = f.Decoder().Decode(data)
-	if err != nil {
+	if err := f.Decoder().Decode(data); err != nil {
 		f.Close()
 
 		return nil, nil, fmt.Errorf("decode: %w", err)
+	}
+
+	// backup is read was succesfull.
+	if err := f.Backup(); err != nil {
+		return nil, nil, fmt.Errorf("backup: %w", err)
 	}
 
 	if data.BrigadeID != db.BrigadeID {

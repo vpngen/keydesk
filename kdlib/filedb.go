@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	fileDbsuffix = ".tmp"
-	fileDbperm   = 0640
+	fileDbTempSuffix   = ".tmp"
+	fileDbBackupSuffix = ".bak"
+	fileDbperm         = 0640
 )
 
 // FileDb - file pair as Db.
@@ -22,14 +23,20 @@ type FileDb struct {
 
 // Commit - rename tmp to main and close all files.
 func (f *FileDb) Commit() error {
-	err := f.w.Sync()
-	if err != nil {
+	if err := f.w.Sync(); err != nil {
 		return fmt.Errorf("sync: %w", err)
 	}
 
-	err = os.Rename(f.name+fileDbsuffix, f.name)
-	if err != nil {
+	if err := os.Remove(f.name); err != nil {
+		return fmt.Errorf("remove old: %w", err)
+	}
+
+	if err := os.Link(f.name+fileDbTempSuffix, f.name); err != nil {
 		return fmt.Errorf("rename: %w", err)
+	}
+
+	if err := os.Remove(f.name + fileDbTempSuffix); err != nil {
+		return fmt.Errorf("remove temp: %w", err)
 	}
 
 	return nil
@@ -57,9 +64,24 @@ func (f *FileDb) Encoder(prefix, indent string) *json.Encoder {
 	return enc
 }
 
+// Backup - make a main file backup, probably after succesfull reading.
+func (f *FileDb) Backup() error {
+	if _, err := os.Stat(f.name + fileDbBackupSuffix); !os.IsNotExist(err) {
+		if err := os.Remove(f.name + fileDbBackupSuffix); err != nil {
+			return fmt.Errorf("remove: %w", err)
+		}
+	}
+
+	if err := os.Link(f.name, f.name+fileDbBackupSuffix); err != nil {
+		return fmt.Errorf("link: %w", err)
+	}
+
+	return nil
+}
+
 // OpenFileDb - open file pair to edit.
 func OpenFileDb(name string) (*FileDb, error) {
-	w, err := lockedfile.OpenFile(name+fileDbsuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, fileDbperm)
+	w, err := lockedfile.OpenFile(name+fileDbTempSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, fileDbperm)
 	if err != nil {
 		return nil, fmt.Errorf("create: %w", err)
 	}

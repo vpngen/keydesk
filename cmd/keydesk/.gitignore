@@ -4,3 +4,5 @@ keydesk
 *.json
 *.tmp
 *.bak
+*.key
+*.crt

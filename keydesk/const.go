@@ -5,6 +5,6 @@ const DefaultEtcDir = "/etc"
 
 // Default key names.
 const (
-	RouterPublicKeyFilename   = "router.pub"
-	ShufflerPublicKeyFilename = "shuffler.pub"
+	RouterPublicKeyFilename   = "vg-router.json"
+	ShufflerPublicKeyFilename = "vg-shuffler.json"
 )

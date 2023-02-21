@@ -169,16 +169,16 @@ func main() {
 		close(done)
 	}()
 
-	fmt.Printf("Starting %s keydesk\n", BrigadeID)
-	fmt.Printf("Etc: %s\n", etcDir)
-	fmt.Printf("DBDir: %s\n", dbDir)
-	fmt.Printf("StatDir: %s\n", statDir)
-	fmt.Printf("Web files: %s\n", webDir)
-	fmt.Printf("Listen HTTP: %s\n", listeners[0].Addr().String())
+	fmt.Fprintf(os.Stderr, "Starting %s keydesk\n", BrigadeID)
+	fmt.Fprintf(os.Stderr, "Etc: %s\n", etcDir)
+	fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
+	fmt.Fprintf(os.Stderr, "StatDir: %s\n", statDir)
+	fmt.Fprintf(os.Stderr, "Web files: %s\n", webDir)
+	fmt.Fprintf(os.Stderr, "Listen HTTP: %s\n", listeners[0].Addr().String())
 	if serverTLS != nil {
-		fmt.Printf("Listen HTTPS: %s\n", listeners[1].Addr().String())
+		fmt.Fprintf(os.Stderr, "Listen HTTPS: %s\n", listeners[1].Addr().String())
 	}
-	fmt.Printf("Permessive CORS: %t\n", pcors)
+	fmt.Fprintf(os.Stderr, "Permessive CORS: %t\n", pcors)
 
 	// Start accepting connections.
 	go func() {

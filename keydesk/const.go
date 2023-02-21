@@ -1,5 +1,7 @@
 package keydesk
 
+import "time"
+
 // DefaultEtcDir -  default config dir.
 const DefaultEtcDir = "/etc"
 
@@ -7,4 +9,5 @@ const DefaultEtcDir = "/etc"
 const (
 	RouterPublicKeyFilename   = "vg-router.json"
 	ShufflerPublicKeyFilename = "vg-shuffler.json"
+	MaxIdlePeriod             = 10 * time.Minute
 )

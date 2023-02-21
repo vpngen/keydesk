@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/alexsergivan/transliterator v1.0.0
-	github.com/coreos/go-systemd/v22 v22.5.0
+	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/go-openapi/errors v0.20.3
 	github.com/go-openapi/loads v0.21.2
 	github.com/go-openapi/runtime v0.25.0

@@ -24,12 +24,12 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/coreos/go-systemd/activation"
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/rs/cors"
-
 	"github.com/vpngen/keydesk/epapi"
 	"github.com/vpngen/keydesk/gen/restapi"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
@@ -37,8 +37,6 @@ import (
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/vpngine/naclkey"
 	"github.com/vpngen/wordsgens/namesgenerator"
-
-	"github.com/coreos/go-systemd/v22/activation"
 )
 
 //go:generate swagger generate server -t ../../gen -f ../../swagger/swagger.yml --exclude-main -A user
@@ -95,6 +93,10 @@ func main() {
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 
+	fmt.Fprintf(os.Stderr, "Etc: %s\n", etcDir)
+	fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
+	fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", statDir)
+
 	// Just create brigadier.
 	if name != "" {
 		if err := createBrigadier(db, chunked, name, person, replace, &routerPublicKey, &shufflerPublicKey); err != nil {
@@ -104,7 +106,13 @@ func main() {
 		return
 	}
 
-	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir)
+	fmt.Fprintf(os.Stderr, "Cert Dir: %s\n", certDir)
+	fmt.Fprintf(os.Stderr, "Web files: %s\n", webDir)
+	fmt.Fprintf(os.Stderr, "Permessive CORS: %t\n", pcors)
+	fmt.Fprintf(os.Stderr, "Starting %s keydesk\n", BrigadeID)
+
+	idleTimer := time.NewTimer(keydesk.MaxIdlePeriod)
+	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir, idleTimer)
 
 	// On signal, gracefully shut down the server and wait 5
 	// seconds for current connections to stop.
@@ -138,7 +146,12 @@ func main() {
 	}
 
 	go func() {
-		<-quit
+		select {
+		case <-quit:
+			fmt.Fprintln(os.Stderr, "Quit signal received...")
+		case t := <-idleTimer.C:
+			fmt.Fprintln(os.Stderr, "Idle timeout exeeded...", t)
+		}
 
 		wg := sync.WaitGroup{}
 
@@ -169,16 +182,10 @@ func main() {
 		close(done)
 	}()
 
-	fmt.Fprintf(os.Stderr, "Starting %s keydesk\n", BrigadeID)
-	fmt.Fprintf(os.Stderr, "Etc: %s\n", etcDir)
-	fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
-	fmt.Fprintf(os.Stderr, "StatDir: %s\n", statDir)
-	fmt.Fprintf(os.Stderr, "Web files: %s\n", webDir)
 	fmt.Fprintf(os.Stderr, "Listen HTTP: %s\n", listeners[0].Addr().String())
 	if serverTLS != nil {
 		fmt.Fprintf(os.Stderr, "Listen HTTPS: %s\n", listeners[1].Addr().String())
 	}
-	fmt.Fprintf(os.Stderr, "Permessive CORS: %t\n", pcors)
 
 	// Start accepting connections.
 	go func() {
@@ -486,6 +493,7 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	pcors bool,
 	webDir string,
+	idleTimer *time.Timer,
 ) http.Handler {
 	// load embedded swagger file
 	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
@@ -520,17 +528,29 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	switch pcors {
 	case true:
 		return cors.AllowAll().Handler(
-			uiMiddleware(api.Serve(nil), webDir),
+			uiMiddleware(api.Serve(nil), webDir, idleTimer),
 		)
 	default:
-		return uiMiddleware(api.Serve(nil), webDir)
+		return uiMiddleware(api.Serve(nil), webDir, idleTimer)
 	}
 }
 
-func uiMiddleware(handler http.Handler, dir string) http.Handler {
+func uiMiddleware(handler http.Handler, dir string, idleTimer *time.Timer) http.Handler {
 	staticFS := http.Dir(dir)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu := sync.Mutex{}
+
+		mu.Lock()
+
+		if !idleTimer.Stop() {
+			<-idleTimer.C
+		}
+
+		idleTimer.Reset(keydesk.MaxIdlePeriod)
+
+		mu.Unlock()
+
 		filename := filepath.Join(dir, r.URL.Path)
 		finfo, err := os.Stat(filename)
 

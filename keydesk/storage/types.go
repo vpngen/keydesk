@@ -8,19 +8,36 @@ import (
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
 
+// NetCountersVersion - json version.
+const NetCountersVersion = 1
+
+// NetCounters - traffic counters container.
+type NetCounters struct {
+	Update  time.Time `json:"update"`
+	Total   RxTx      `json:"total"`
+	Monthly RxTx      `json:"monthly"`
+	Weekly  RxTx      `json:"weekly"`
+	Daily   RxTx      `json:"daily"`
+	Ver     int       `json:"version"`
+}
+
+// RxTx - rx/tx counters.
+type RxTx struct {
+	Rx uint64 `json:"rx"`
+	Tx uint64 `json:"tx"`
+}
+
 // QuotaVesrion - json version.
 const QuotaVesrion = 1
 
 // Quota - user quota.
 type Quota struct {
-	OSCounterMtime        time.Time `json:"os_counter_mtime"`
-	OSCounterRX           uint64    `json:"os_counter_rx"`
-	OSCounterTX           uint64    `json:"os_counter_tx"`
-	LimitMonthlyRemaining uint64    `json:"limit_monthly_remaining"`
-	LimitMonthlyResetOn   time.Time `json:"limit_monthly_reset_on"`
-	LastActivity          time.Time `json:"last_activity"`
-	ThrottlingTill        time.Time `json:"throttling_till"`
-	Ver                   int       `json:"version"`
+	Counters              NetCounters `json:"counters"`
+	LimitMonthlyRemaining uint64      `json:"limit_monthly_remaining"`
+	LimitMonthlyResetOn   time.Time   `json:"limit_monthly_reset_on"`
+	LastActivity          time.Time   `json:"last_activity"`
+	ThrottlingTill        time.Time   `json:"throttling_till"`
+	Ver                   int         `json:"version"`
 }
 
 // UserVersion - json version.

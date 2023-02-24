@@ -31,7 +31,7 @@ touch "${spinlock}" 2>/dev/null
 set -e
 
 printdef () {
-        echo "Usage: $0 <brigabe_id_encoded> <endpoint IPv4> <CGNAT IPv4> <IPv6 ULA> <DNS IPv4> <DNS IPv6> <keydesk IPv6> <Brigadier Name :: base64> <Person Name :: base64> <Person Desc :: base64> <Person URL :: base64>"
+        echo "Usage: $0 <brigabe_id_encoded> <endpoint IPv4> <CGNAT IPv4> <IPv6 ULA> <DNS IPv4> <DNS IPv6> <keydesk IPv6> <B1rigadier Name :: base64> <Person Name :: base64> <Person Desc :: base64> <Person URL :: base64>" >&2
         exit 1
 }
 
@@ -63,7 +63,7 @@ fi
 if [ -f "${BRIGADES_LIST_FILE}" ]; then
         test=$(grep "${brigade_id}" < "${BRIGADES_LIST_FILE}")
         if [ "x${brigade_id}" -eq "x${test}" ]; then
-                echo "Brigade ${brigade_id} already exists"
+                echo "Brigade ${brigade_id} already exists" >&2
                 exit 1
         fi 
 fi

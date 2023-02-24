@@ -23,7 +23,7 @@ touch "${spinlock}" 2>/dev/null
 set -e
 
 printdef () {
-        echo "Usage: destroy <brigabe_id_encoded>"
+        echo "Usage: destroy <brigabe_id_encoded>" >&2
         exit 1
 }
 
@@ -62,6 +62,10 @@ systemctl -q -f disable "${systemd_stats_instance}.service"
 
 # Remove brigade
 sudo -i -u "${brigade_id}" "${BRIGADE_REMOVER_APP_PATH}" -id "${brigade_id}"
+
+if [ -f "${BASE_STATS_DIR}/${brigade_id}-stats.json" ]; then
+        sudo -i -u "${brigade_id}" rm -f "${BASE_STATS_DIR}/${brigade_id}-stats.json"
+fi
 
 # Remove from list
 tmplist="/tmp/"$(basename "${BRIGADES_LIST_FILE}")

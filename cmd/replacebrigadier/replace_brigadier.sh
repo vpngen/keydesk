@@ -13,7 +13,7 @@ touch "${spinlock}" 2>/dev/null
 set -e
 
 printdef () {
-        echo "Usage: $0 <brigabe_id_encoded> <Brigadier Name :: base64> <Person Name :: base64> <Person Desc :: base64> <Person URL :: base64>"
+        echo "Usage: $0 <brigabe_id_encoded> <Brigadier Name :: base64> <Person Name :: base64> <Person Desc :: base64> <Person URL :: base64>" >&2
         exit 1
 }
 
@@ -35,11 +35,12 @@ else
 fi
 
 # * Check if brigade does not exists
+# !!! lib???
 
 if [ -f "${BRIGADES_LIST_FILE}" ]; then
         test=$(grep "${brigade_id}" < "${BRIGADES_LIST_FILE}")
         if [ "x${brigade_id}" -ne "x${test}" ]; then
-                echo "Brigade ${brigade_id} does not exists"
+                echo "Brigade ${brigade_id} does not exists" >&2
                 exit 1
         fi 
 fi

@@ -13,7 +13,7 @@ The special entrypoint user is named `_serega_`. It has sudo permissions to exec
 
 The `authorized_keys` file configuration must force the ssh command:
 
-`command="sudo /opt/vgkeydesk/ssh_brigade_command.sh ${SSH_ORIGINAL_COMMAND}",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ecdsa-sha2-nistp256 ....`
+`command="/opt/vgkeydesk/ssh_brigade_command.sh ${SSH_ORIGINAL_COMMAND}",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ecdsa-sha2-nistp256 ....`
 
 ### Users and Groups
 
@@ -23,6 +23,8 @@ The `authorized_keys` file configuration must force the ssh command:
 * `vgstat` - user for fetch statistics (for fetching statistics) *the user manages by this package*
 
 ## Create brigade
+
+Executes with root permission by `sudo` command
 
 * Exclusive lock on `/tmp/vgbrigade.spinlock`
 * Check a special brigades list file `/var/lib/vgkeydesk/brigades.lst` (root:root 0600) if the brigade already exists (collision)
@@ -35,6 +37,8 @@ The `authorized_keys` file configuration must force the ssh command:
 
 ## Destroy brigade
 
+Executes with root permission by `sudo` command
+
 * Exclusive lock on `/tmp/vgbrigade.spinlock`
 * Do not check a special brigades list file `/var/lib/vgkeydesk/brigades.lst`! It does not matter.
 * Stop and disable the target keydesk systemd units (_vgkeydesk_ service with socket activation)
@@ -45,10 +49,14 @@ The `authorized_keys` file configuration must force the ssh command:
 
 ## Recreate brigadier
 
+Executes with root permission by `sudo` command
+
 * Exclusive lock on `/tmp/vgbrigade.spinlock`
 * Check a special brigades list file `/var/lib/vgkeydesk/brigades.lst` for brigade presents
 * Replace the target brigade brigadier user by execution keydesk binary with special flgas with the target brigade user permissions
 
 ## Replay configs
+
+Executes with root permission by `sudo` command
 
 It is an auxilary tool to restore working environment. It replays each command to restore VPN from brigades database.

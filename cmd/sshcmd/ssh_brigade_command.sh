@@ -16,11 +16,11 @@ cmd=${1}; shift
 basedir=$(dirname $0)
 
 if [ "xspawn" = "x${cmd}" -o "xcreate" = "x${cmd}" ]; then
-    ${basedir}/create_brigade.sh $@
+    sudo -u root -g root ${basedir}/create_brigade.sh $@
 elif [ "xreplace" = "x${cmd}" ]; then
-    ${basedir}/replace_brigadier.sh $@
+    sudo -u root -g root ${basedir}/replace_brigadier.sh $@
 elif [ "xdestroy" = "x${cmd}" ]; then
-    ${basedir}/destroy_brigade.sh $@
+    sudo -u root -g root ${basedir}/destroy_brigade.sh $@
 else
     echo "Unknown command: ${cmd}"
     printdef

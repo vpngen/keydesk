@@ -16,10 +16,10 @@
 
 # creating brigade and brigadier app.
 
-BRIGADES_LIST_FILE="/etc/vgbrigades.lst"
+BRIGADES_LIST_FILE="/var/lib/vgkeydesk/vgbrigades.lst"
 BASE_HOME_DIR="/home"
-BRIGADE_MAKER_APP_PATH="/opt/keydesk/createbrigade"
-KEYDESK_APP_PATH="/opt/keydesk/keydesk"
+BRIGADE_MAKER_APP_PATH="/opt/vgkeydesk/createbrigade"
+KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
 
 spinlock="`[ ! -z \"${TMPDIR}\" ] && echo -n \"${TMPDIR}/\" || echo -n \"/tmp/\" ; echo \"vgbrigade.spinlock\"`"
 trap "rm -f \"${spinlock}\" 2>/dev/null" EXIT
@@ -85,35 +85,35 @@ fi
 
 # * Activate keydesk systemD units
 
-systemd_keydesk_instance="keydesk@${brigade_id}"
+systemd_vgkeydesk_instance="vgkeydesk@${brigade_id}"
 
 # create dir for custom config
 # https://www.freedesktop.org/software/systemd/man/systemd.unit.html
-systemd_keydesk_conf_dir="/etc/systemd/system/${systemd_keydesk_instance}.socket.d"
+systemd_vgkeydesk_conf_dir="/etc/systemd/system/${systemd_vgkeydesk_instance}.socket.d"
 
-mkdir -p "${systemd_keydesk_conf_dir}" -m 0755
+mkdir -p "${systemd_vgkeydesk_conf_dir}" -m 0755
 
 # it;s necessary to listen certain IP
 
 # calculated listen IPv6 
 listen_ip6=$(echo ${endpoint_ip4} | sed 's/\./\n/g' | xargs printf 'fdcc:%02x%02x:%02x%02x::2' | sed 's/:0000/:/g' | sed 's/:00/:/g')
 
-cat << EOF > "${systemd_keydesk_conf_dir}/listen.conf"
+cat << EOF > "${systemd_vgkeydesk_conf_dir}/listen.conf"
 [Socket]
 ListenStream = [${listen_ip6}]:80
 ListenStream = [${listen_ip6}]:443
 EOF
 
-systemctl -q enable "${systemd_keydesk_instance}.socket" "${systemd_keydesk_instance}.service"
+systemctl -q enable "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service"
 
 # Start systemD services
-systemctl -q start "${systemd_keydesk_instance}.socket" "${systemd_keydesk_instance}.service"
+systemctl -q start "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service"
 
 # * Activate stats systemD units
 
-systemd_stats_instance="stats@${brigade_id}"
-systemctl -q enable "${systemd_stats_instance}.service"
-systemctl -q start "${systemd_stats_instance}.service"
+systemd_vgstats_instance="vgstats@${brigade_id}"
+systemctl -q enable "${systemd_vgstats_instance}.service"
+systemctl -q start "${systemd_vgstats_instance}.service"
 
 tmplist="/tmp/"$(basename "${BRIGADES_LIST_FILE}")
 if [ -f "${BRIGADES_LIST_FILE}" ]; then 

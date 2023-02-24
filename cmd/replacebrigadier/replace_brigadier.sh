@@ -1,7 +1,7 @@
 #!/bin/sh
 
-
-KEYDESK_APP_PATH="/opt/keydesk/keydesk"
+BRIGADES_LIST_FILE="/var/lib/vgkeydesk/vgbrigades.lst"
+KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
 
 spinlock="`[ ! -z \"${TMPDIR}\" ] && echo -n \"${TMPDIR}/\" || echo -n \"/tmp/\" ; echo \"vgbrigade.spinlock\"`"
 trap "rm -f \"${spinlock}\" 2>/dev/null" EXIT

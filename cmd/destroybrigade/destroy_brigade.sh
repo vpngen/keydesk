@@ -9,7 +9,7 @@
 # * Remove schema role
 # * Remove database schema
 
-BRIGADES_LIST_FILE="/var/lib/vgkeydesk/vgbrigades.lst"
+BRIGADES_LIST_FILE="/var/lib/vgkeydesk/brigades.lst"
 BASE_STATS_DIR="/var/db/vgstats"
 BRIGADE_REMOVER_APP_PATH="/opt/vgkeydesk/destroybrigade"
 

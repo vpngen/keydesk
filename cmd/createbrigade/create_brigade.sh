@@ -16,7 +16,7 @@
 
 # creating brigade and brigadier app.
 
-BRIGADES_LIST_FILE="/var/lib/vgkeydesk/vgbrigades.lst"
+BRIGADES_LIST_FILE="/var/lib/vgkeydesk/brigades.lst"
 BASE_HOME_DIR="/home"
 BRIGADE_MAKER_APP_PATH="/opt/vgkeydesk/createbrigade"
 KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"

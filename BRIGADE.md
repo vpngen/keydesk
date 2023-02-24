@@ -24,21 +24,29 @@ The `authorized_keys` file configuration must force the ssh command:
 
 ## Create brigade
 
+* Exclusive lock on `/tmp/vgbrigade.spinlock`
+* Check a special brigades list file `/var/lib/vgkeydesk/brigades.lst` (root:root 0600) if the brigade already exists (collision)
 * Create the target brigade system user
 * Create the target brigade file database and brigade config on the endpoint by execution special script with the target brigade user permissions
 * Create the target brigade brigadier user by execution keydesk binary with special flgas with the target brigade user permissions
-* Enable and start the target keydesk systemd units
-* Enable and start the target brigade stats systemd units
+* Enable and start the target keydesk systemd units (_vgkeydesk_ service with socket activation)
+* Enable and start the target brigade stats systemd unit (_vgstats_ service)
+* Add `BrigadeID` to the brigades list file `/var/lib/vgkeydesk/brigades.lst`
 
 ## Destroy brigade
 
-* Stop and disable the target keydesk systemd units
-* Stop and disable the target brigade stats systemd units
+* Exclusive lock on `/tmp/vgbrigade.spinlock`
+* Do not check a special brigades list file `/var/lib/vgkeydesk/brigades.lst`! It does not matter.
+* Stop and disable the target keydesk systemd units (_vgkeydesk_ service with socket activation)
+* Stop and disable the target brigade stats systemd unit (_vgstats_ service)
 * Remove target brigade config from endpoint by execution special script with the target brigade user permissions
 * Remove the target brigade system user
+* Remove `BrigadeID` from the brigades list file `/var/lib/vgkeydesk/brigades.lst`
 
 ## Recreate brigadier
 
+* Exclusive lock on `/tmp/vgbrigade.spinlock`
+* Check a special brigades list file `/var/lib/vgkeydesk/brigades.lst` for brigade presents
 * Replace the target brigade brigadier user by execution keydesk binary with special flgas with the target brigade user permissions
 
 ## Replay configs

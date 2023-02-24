@@ -1,6 +1,6 @@
 #!/bin/sh
 
-BRIGADES_LIST_FILE="/var/lib/vgkeydesk/vgbrigades.lst"
+BRIGADES_LIST_FILE="/var/lib/vgkeydesk/brigades.lst"
 KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
 
 spinlock="`[ ! -z \"${TMPDIR}\" ] && echo -n \"${TMPDIR}/\" || echo -n \"/tmp/\" ; echo \"vgbrigade.spinlock\"`"

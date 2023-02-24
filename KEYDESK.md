@@ -21,7 +21,7 @@ File `/var/lib/vgstat/<BrigadeID>-stats.json` (`/var/db/vgstat` vgstat:brigades 
 
 ## Service environment
 
-Each vgkeydesk service starts through systemd socket activation. The socket unit and relevant service unit are systemd templates. The system username of the corresponding brigade is a instant name (parameter). The systemd vgkeydesk service works with brigade system user permissions. There are two ListenStream directives in the socket unit: the first - for HTTP listening, the second - for HTTPS listening.
+Each keydesk service starts through systemd socket activation. The socket unit and relevant service unit are systemd templates with name _vgkeydesk_. The system username of the corresponding brigade is a instant name (parameter). The systemd keydesk service works with brigade system user permissions. There are two ListenStream directives in the socket unit: the first - for HTTP listening, the second - for HTTPS listening.
 
 ### Adrersses 
 

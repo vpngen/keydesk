@@ -3,7 +3,7 @@ package storage
 import (
 	"fmt"
 
-	"github.com/vpngen/keydesk/epapi"
+	"github.com/vpngen/keydesk/vapnapi"
 )
 
 // CreateBrigade - create brigade config.
@@ -17,7 +17,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 
 	addr := db.APIAddrPort
 	if addr.Addr().IsValid() && addr.Addr().IsUnspecified() {
-		addr = epapi.CalcAPIAddrPort(config.EndpointIPv4)
+		addr = vapnapi.CalcAPIAddrPort(config.EndpointIPv4)
 	}
 
 	data.WgPublicKey = wgPub
@@ -31,7 +31,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 	data.KeydeskIPv6 = config.KeydeskIPv6
 
 	// if we catch a slowdown problems we need organize queue
-	err = epapi.WgAdd(addr, data.WgPrivateRouterEnc, config.EndpointIPv4, config.IPv4CGNAT, config.IPv6ULA)
+	err = vapnapi.WgAdd(addr, data.WgPrivateRouterEnc, config.EndpointIPv4, config.IPv4CGNAT, config.IPv6ULA)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)
 	}
@@ -54,7 +54,7 @@ func (db *BrigadeStorage) DestroyBrigade() error {
 	defer dt.close()
 
 	// if we catch a slowdown problems we need organize queue
-	err = epapi.WgDel(addr, data.WgPrivateRouterEnc)
+	err = vapnapi.WgDel(addr, data.WgPrivateRouterEnc)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)
 	}

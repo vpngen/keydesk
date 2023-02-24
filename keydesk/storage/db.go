@@ -7,8 +7,8 @@ import (
 	"net/netip"
 	"time"
 
-	"github.com/vpngen/keydesk/epapi"
 	"github.com/vpngen/keydesk/kdlib"
+	"github.com/vpngen/keydesk/vapnapi"
 )
 
 // Filenames.
@@ -162,7 +162,7 @@ func (db *BrigadeStorage) openWithReading() (*pairFilesBrigadeStat, *Brigade, *S
 
 	addr = db.APIAddrPort
 	if addr.Addr().IsValid() && addr.Addr().IsUnspecified() {
-		addr = epapi.CalcAPIAddrPort(data.EndpointIPv4)
+		addr = vapnapi.CalcAPIAddrPort(data.EndpointIPv4)
 	}
 
 	return &pairFilesBrigadeStat{

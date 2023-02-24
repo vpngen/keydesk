@@ -30,11 +30,11 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/rs/cors"
-	"github.com/vpngen/keydesk/epapi"
 	"github.com/vpngen/keydesk/gen/restapi"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
+	"github.com/vpngen/keydesk/vapnapi"
 	"github.com/vpngen/vpngine/naclkey"
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
@@ -245,7 +245,7 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 	personURL := flag.String("url", "", "personURL :: base64")
 	replaceBrigadier := flag.Bool("r", false, "Replace brigadier config")
 
-	addr := flag.String("a", epapi.TemplatedAddrPort, "API endpoint address:port")
+	addr := flag.String("a", vapnapi.TemplatedAddrPort, "API endpoint address:port")
 
 	chunked := flag.Bool("ch", false, "chunked output")
 

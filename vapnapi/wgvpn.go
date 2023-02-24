@@ -1,0 +1,74 @@
+package vapnapi
+
+import (
+	"encoding/base64"
+	"fmt"
+	"net/netip"
+	"net/url"
+)
+
+// WgPeerAdd - peer_add endpoint-API call.
+func WgPeerAdd(addr netip.AddrPort, wgPub, wgIfacePub, wgPSK []byte, ipv4, ipv6, keydesk netip.Addr) error {
+	query := fmt.Sprintf("peer_adds=%s&wg-public-key=%s&wg-psk-key=%s&allowed-ips=%s",
+		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub)),
+		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgIfacePub)),
+		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPSK)),
+		url.QueryEscape(ipv4.String()+","+ipv6.String()),
+	)
+
+	if keydesk.IsValid() {
+		query += fmt.Sprintf("&control-host=%s", url.QueryEscape(keydesk.String()))
+	}
+
+	err := getAPIRequest(addr, query)
+	if err != nil {
+		return fmt.Errorf("api: %w", err)
+	}
+
+	return nil
+}
+
+// WgPeerDel - peer_del endpoint-API call.
+func WgPeerDel(addr netip.AddrPort, wgPub, wgIfacePub []byte) error {
+	query := fmt.Sprintf("peer_del=%s&wg-public-key=%s",
+		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub)),
+		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgIfacePub)),
+	)
+
+	err := getAPIRequest(addr, query)
+	if err != nil {
+		return fmt.Errorf("api: %w", err)
+	}
+
+	return nil
+}
+
+// WgAdd - wg_add endpoint-API call.
+func WgAdd(addr netip.AddrPort, wgPriv []byte, endpointIPv4 netip.Addr, IPv4CGNAT, IPv6ULA netip.Prefix) error {
+	query := fmt.Sprintf("wg_adds=%s&external-ip=%s&internal-nets=%s",
+		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPriv)),
+		url.QueryEscape(endpointIPv4.String()),
+		url.QueryEscape(IPv4CGNAT.String()+","+IPv6ULA.String()),
+	)
+
+	err := getAPIRequest(addr, query)
+	if err != nil {
+		return fmt.Errorf("api: %w", err)
+	}
+
+	return nil
+}
+
+// WgDel - wg_del endpoint API call.
+func WgDel(addr netip.AddrPort, wgPriv []byte) error {
+	query := fmt.Sprintf("wg_dels=%s",
+		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPriv)),
+	)
+
+	err := getAPIRequest(addr, query)
+	if err != nil {
+		return fmt.Errorf("api: %w", err)
+	}
+
+	return nil
+}

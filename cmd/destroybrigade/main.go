@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 
 	"github.com/google/uuid"
-	"github.com/vpngen/keydesk/epapi"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
+	"github.com/vpngen/keydesk/vapnapi"
 )
 
 func parseArgs() (netip.AddrPort, string, string, string, error) {
@@ -23,7 +23,7 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 	homeDir := flag.String("d", storage.DefaultFileDbDir, "Dir for db files")
 	statDir := flag.String("s", storage.DefaultStatDir, "Dir for stst files")
 
-	addr := flag.String("a", epapi.TemplatedAddrPort, "API endpoint address:port")
+	addr := flag.String("a", vapnapi.TemplatedAddrPort, "API endpoint address:port")
 
 	flag.Parse()
 

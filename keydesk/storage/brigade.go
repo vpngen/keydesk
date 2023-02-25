@@ -2,12 +2,16 @@ package storage
 
 import (
 	"fmt"
+	"net/netip"
+	"os"
 
 	"github.com/vpngen/keydesk/vapnapi"
 )
 
 // CreateBrigade - create brigade config.
 func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPriv, wgShufflerPriv []byte) error {
+	var addr netip.AddrPort
+
 	dt, data, stat, err := db.openWithoutReading(config.BrigadeID)
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
@@ -15,9 +19,17 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 
 	defer dt.close()
 
-	addr := db.APIAddrPort
-	if addr.Addr().IsValid() && addr.Addr().IsUnspecified() {
-		addr = vapnapi.CalcAPIAddrPort(config.EndpointIPv4)
+	calculatedAddrPort := vapnapi.CalcAPIAddrPort(config.EndpointIPv4)
+	fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", calculatedAddrPort)
+
+	switch {
+	case db.APIAddrPort.Addr().IsValid() && db.APIAddrPort.Addr().IsUnspecified():
+		addr = calculatedAddrPort
+	default:
+		addr = db.APIAddrPort
+		if addr.IsValid() {
+			fmt.Fprintf(os.Stderr, "API endpoint: %s\n", calculatedAddrPort)
+		}
 	}
 
 	data.WgPublicKey = wgPub

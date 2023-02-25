@@ -96,6 +96,7 @@ func main() {
 	fmt.Fprintf(os.Stderr, "Etc: %s\n", etcDir)
 	fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
 	fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", statDir)
+	fmt.Fprintf(os.Stderr, "Command address:port: %s\n", addr)
 
 	// Just create brigadier.
 	if name != "" {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/netip"
+	"os"
 	"time"
 
 	"github.com/vpngen/keydesk/kdlib"
@@ -160,9 +161,17 @@ func (db *BrigadeStorage) openWithReading() (*pairFilesBrigadeStat, *Brigade, *S
 		return nil, nil, nil, addr, fmt.Errorf("stat: %w", err)
 	}
 
-	addr = db.APIAddrPort
-	if addr.Addr().IsValid() && addr.Addr().IsUnspecified() {
-		addr = vapnapi.CalcAPIAddrPort(data.EndpointIPv4)
+	calculatedAddrPort := vapnapi.CalcAPIAddrPort(data.EndpointIPv4)
+	fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", calculatedAddrPort)
+
+	switch {
+	case db.APIAddrPort.Addr().IsValid() && db.APIAddrPort.Addr().IsUnspecified():
+		addr = calculatedAddrPort
+	default:
+		addr = db.APIAddrPort
+		if addr.IsValid() {
+			fmt.Fprintf(os.Stderr, "API endpoint: %s\n", calculatedAddrPort)
+		}
 	}
 
 	return &pairFilesBrigadeStat{

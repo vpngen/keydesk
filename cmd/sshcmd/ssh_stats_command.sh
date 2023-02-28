@@ -3,6 +3,9 @@
 # interpret first argument as command
 # pass rest args to scripts
 
+VGSTATS_USER="vgstats"
+VGSTATS_GROUP="vgstats"
+
 printdef() {
     echo "Usage: <command> <args...>"
     exit 1
@@ -16,7 +19,7 @@ cmd=${1}; shift
 basedir=$(dirname $0)
 
 if [ "xfetchstats" = "x${cmd}" ]; then
-    sudo -u vgstat -g vgstat ${basedir}/fetch_stats.sh $@
+    sudo -u "${VGSTATS_USER}" -g "${VGSTATS_GROUP}" ${basedir}/fetch_stats.sh $@
 else
     echo "Unknown command: ${cmd}"
     printdef

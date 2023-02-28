@@ -82,8 +82,8 @@ contents:
 - src: keydesk/cmd/fetchstats/fetch_stats.sh
   dst: /opt/vgkeydesk/fetch_stats.sh
   file_info:
-    mode: 0100
-    owner: vgstat
+    mode: 0001
+    owner: root
     group: root
 - src: keydesk/cmd/sshcmd/ssh_stats_command.sh
   dst: /opt/vgkeydesk/ssh_stats_command.sh

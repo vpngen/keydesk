@@ -1,7 +1,7 @@
 #!/bin/sh
 
 vgcert_group="vgcert"
-vgstat_user="vgstat"
+vgstats_user="vgstats"
 
 cleanInstall() {
 	printf "\033[32m Pre Install of an clean install\033[0m\n"
@@ -15,10 +15,10 @@ cleanInstall() {
 		groupadd "${vgcert_group}"
 	fi
 
-        if id "${vgstat_user}" >/dev/null 2>&1; then
-                echo 'user ${vgstat_user} already exists'
+        if id "${vgstats_user}" >/dev/null 2>&1; then
+                echo 'user ${vgstats_user} already exists'
         else
-                useradd -p "*" -M "${vgstat_user}" -s /usr/sbin/nologin -d /nonexistent
+                useradd -p "*" -M "${vgstats_user}" -s /usr/sbin/nologin -d /nonexistent
         fi
 
 }

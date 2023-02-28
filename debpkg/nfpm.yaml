@@ -1,0 +1,95 @@
+name: "vgkeydesk"
+arch: "amd64"
+platform: "linux"
+version: 0.1.1
+section: "default"
+priority: "extra"
+release: 1
+
+provides:
+- vgkeydesk
+depends:
+- vg-cert
+- vgkeydesk-web
+
+maintainer: "Ingmund Ollson <ingmund@proton.me>"
+description: VPNGen keydesk backend
+vendor: "VPNGen"
+homepage: "http://vpngen.org"
+license: "LGPL"
+
+contents:
+- dst: /opt/vgkeydesk
+  type: dir
+  file_info:
+    mode: 0111
+    owner: root
+    group: root
+- src: bin/keydesk
+  dst: /opt/vgkeydesk/keydesk
+  file_info:
+    mode: 0010
+    owner: root
+    group: vgkeydesk
+- src: bin/createbrigade
+  dst: /opt/vgkeydesk/createbrigade
+  file_info:
+    mode: 0010
+    owner: root
+    group: vgkeydesk
+- src: bin/destroybrigade
+  dst: /opt/vgkeydesk/destroybrigade
+  file_info:
+    mode: 0010
+    owner: root
+    group: vgkeydesk
+- src: keydesk/cmd/createbrigade/create_brigade.sh
+  dst: /opt/vgkeydesk/create_brigade.sh
+  file_info:
+    mode: 0100
+    owner: root
+    group: root
+- src: keydesk/cmd/destroybrigade/destroy_brigade.sh
+  dst: /opt/vgkeydesk/destroy_brigade.sh
+  file_info:
+    mode: 0100
+    owner: root
+    group: root
+- src: keydesk/cmd/replacebrigadier/replace_brigadier.sh
+  dst: /opt/vgkeydesk/replace_brigadier.sh
+  file_info:
+    mode: 0100
+    owner: root
+    group: root
+- src: keydesk/cmd/ssh_brigade_command.sh
+  dst: /opt/vgkeydesk/ssh_brigade_command.sh
+  file_info:
+    mode: 0001
+    owner: root
+    group: root
+- src: keydesk/cmd/fetchstats/fetch_stats.sh
+  dst: /opt/vgkeydesk/fetch_stats.sh
+  file_info:
+    mode: 0100
+    owner: vgstat
+    group: root
+- src: keydesk/cmd/ssh_stats_command.sh
+  dst: /opt/vgkeydesk/ssh_stats_command.sh
+  file_info:
+    mode: 0001
+    owner: root
+    group: root
+- src: keydesk/systemd/vgkeydesk@.service
+  dst: /etc/systemd/system/vgkeydesk@.service
+- src: keydesk/systemd/vgkeydesk@.socket
+  dst: /etc/systemd/system/vgkeydesk@.socket
+
+overrides:
+  deb:
+    scripts:
+      preinstall: /data/src/preinstall.sh
+      postinstall: /data/src/postinstall.sh
+      preremove: /data/src/preremove.sh
+      postremove: /data/src/postremove.sh
+deb:
+ compression: xz

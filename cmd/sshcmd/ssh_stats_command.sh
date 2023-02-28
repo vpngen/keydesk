@@ -16,7 +16,7 @@ cmd=${1}; shift
 basedir=$(dirname $0)
 
 if [ "xfetchstats" = "x${cmd}" ]; then
-    sudo -u vgstat -g vgstat ${basedir}/fetchstats.sh $@
+    sudo -u vgstat -g vgstat ${basedir}/fetch_stats.sh $@
 else
     echo "Unknown command: ${cmd}"
     printdef

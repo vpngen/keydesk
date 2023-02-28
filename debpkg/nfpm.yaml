@@ -61,7 +61,7 @@ contents:
     mode: 0100
     owner: root
     group: root
-- src: keydesk/cmd/ssh_brigade_command.sh
+- src: keydesk/cmd/sshcmd/ssh_brigade_command.sh
   dst: /opt/vgkeydesk/ssh_brigade_command.sh
   file_info:
     mode: 0001
@@ -73,7 +73,7 @@ contents:
     mode: 0100
     owner: vgstat
     group: root
-- src: keydesk/cmd/ssh_stats_command.sh
+- src: keydesk/cmd/sshcmd/ssh_stats_command.sh
   dst: /opt/vgkeydesk/ssh_stats_command.sh
   file_info:
     mode: 0001

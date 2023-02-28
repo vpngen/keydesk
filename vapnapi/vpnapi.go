@@ -16,9 +16,9 @@ const endpointPort = 8080
 // TemplatedAddrPort - value indicates that it is a template.
 const TemplatedAddrPort = "0.0.0.0:0"
 
-// ResponsePayload - GW response type.
-type ResponsePayload struct {
-	Code  int    `json:"code"`
+// ErrorResponse - GW response type.
+type ErrorResponse struct {
+	Code  string `json:"code"`
 	Error string `json:"error,omitempty"`
 }
 
@@ -35,7 +35,7 @@ func CalcAPIAddrPort(addr netip.Addr) netip.AddrPort {
 	return netip.AddrPortFrom(netip.AddrFrom16(buf), endpointPort)
 }
 
-func getAPIRequest(addr netip.AddrPort, query string) error {
+func getAPIRequest(addr netip.AddrPort, query string) ([]byte, error) {
 	if !addr.Addr().IsValid() {
 		fmt.Fprintf(os.Stderr, "Test Request: %s\n", &url.URL{
 			Scheme:   "http",
@@ -43,7 +43,7 @@ func getAPIRequest(addr netip.AddrPort, query string) error {
 			RawQuery: query,
 		})
 
-		return nil
+		return nil, nil
 	}
 
 	apiURL := &url.URL{
@@ -54,7 +54,7 @@ func getAPIRequest(addr netip.AddrPort, query string) error {
 
 	req, err := http.NewRequest(http.MethodGet, apiURL.String(), nil)
 	if err != nil {
-		return fmt.Errorf("new req: %w", err)
+		return nil, fmt.Errorf("new req: %w", err)
 	}
 
 	fmt.Fprintf(os.Stderr, "Request: %s\n", apiURL)
@@ -62,7 +62,7 @@ func getAPIRequest(addr netip.AddrPort, query string) error {
 	c := &http.Client{}
 	resp, err := c.Do(req)
 	if err != nil {
-		return fmt.Errorf("do req: %w", err)
+		return nil, fmt.Errorf("do req: %w", err)
 	}
 
 	defer resp.Body.Close()
@@ -71,19 +71,19 @@ func getAPIRequest(addr netip.AddrPort, query string) error {
 	fmt.Fprintf(os.Stderr, "Response: %s\n", body)
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("resp code: %w", err)
+		return nil, fmt.Errorf("resp code: %w", err)
 	}
 
-	pld := &ResponsePayload{}
+	data := &ErrorResponse{}
 
-	err = json.Unmarshal(body, pld)
+	err = json.Unmarshal(body, data)
 	if err != nil {
-		return fmt.Errorf("resp body: %w", err)
+		return nil, fmt.Errorf("resp body: %w", err)
 	}
 
-	if pld.Code != 0 {
-		return fmt.Errorf("%w: %d: %s", ErrInvalidRespCode, pld.Code, pld.Error)
+	if data.Code != "0" {
+		return nil, fmt.Errorf("%w: %s: %s", ErrInvalidRespCode, data.Code, data.Error)
 	}
 
-	return nil
+	return body, nil
 }

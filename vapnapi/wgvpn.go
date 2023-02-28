@@ -9,7 +9,7 @@ import (
 
 // WgPeerAdd - peer_add endpoint-API call.
 func WgPeerAdd(addr netip.AddrPort, wgPub, wgIfacePub, wgPSK []byte, ipv4, ipv6, keydesk netip.Addr) error {
-	query := fmt.Sprintf("peer_adds=%s&wg-public-key=%s&wg-psk-key=%s&allowed-ips=%s",
+	query := fmt.Sprintf("peer_add=%s&wg-public-key=%s&wg-psk-key=%s&allowed-ips=%s",
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub)),
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgIfacePub)),
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPSK)),
@@ -20,7 +20,7 @@ func WgPeerAdd(addr netip.AddrPort, wgPub, wgIfacePub, wgPSK []byte, ipv4, ipv6,
 		query += fmt.Sprintf("&control-host=%s", url.QueryEscape(keydesk.String()))
 	}
 
-	err := getAPIRequest(addr, query)
+	_, err := getAPIRequest(addr, query)
 	if err != nil {
 		return fmt.Errorf("api: %w", err)
 	}
@@ -35,7 +35,7 @@ func WgPeerDel(addr netip.AddrPort, wgPub, wgIfacePub []byte) error {
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgIfacePub)),
 	)
 
-	err := getAPIRequest(addr, query)
+	_, err := getAPIRequest(addr, query)
 	if err != nil {
 		return fmt.Errorf("api: %w", err)
 	}
@@ -45,13 +45,13 @@ func WgPeerDel(addr netip.AddrPort, wgPub, wgIfacePub []byte) error {
 
 // WgAdd - wg_add endpoint-API call.
 func WgAdd(addr netip.AddrPort, wgPriv []byte, endpointIPv4 netip.Addr, IPv4CGNAT, IPv6ULA netip.Prefix) error {
-	query := fmt.Sprintf("wg_adds=%s&external-ip=%s&internal-nets=%s",
+	query := fmt.Sprintf("wg_add=%s&external-ip=%s&internal-nets=%s",
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPriv)),
 		url.QueryEscape(endpointIPv4.String()),
 		url.QueryEscape(IPv4CGNAT.String()+","+IPv6ULA.String()),
 	)
 
-	err := getAPIRequest(addr, query)
+	_, err := getAPIRequest(addr, query)
 	if err != nil {
 		return fmt.Errorf("api: %w", err)
 	}
@@ -61,11 +61,11 @@ func WgAdd(addr netip.AddrPort, wgPriv []byte, endpointIPv4 netip.Addr, IPv4CGNA
 
 // WgDel - wg_del endpoint API call.
 func WgDel(addr netip.AddrPort, wgPriv []byte) error {
-	query := fmt.Sprintf("wg_dels=%s",
+	query := fmt.Sprintf("wg_del=%s",
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPriv)),
 	)
 
-	err := getAPIRequest(addr, query)
+	_, err := getAPIRequest(addr, query)
 	if err != nil {
 		return fmt.Errorf("api: %w", err)
 	}

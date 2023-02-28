@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/netip"
+	"os"
 	"os/user"
 	"path/filepath"
 
@@ -16,49 +17,83 @@ import (
 )
 
 func parseArgs() (netip.AddrPort, string, string, string, error) {
-	addrPort := netip.AddrPort{}
+	var (
+		addrPort       netip.AddrPort
+		dbdir, statdir string
+		id             string
+	)
+
+	sysUser, err := user.Current()
+	if err != nil {
+		return addrPort, "", "", "", fmt.Errorf("cannot define user: %w", err)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return addrPort, "", "", "", fmt.Errorf("cur dir: %w", err)
+	}
+
+	cwd, err = filepath.Abs(cwd)
+	if err != nil {
+		return addrPort, "", "", "", fmt.Errorf("cur dir: %w", err)
+	}
 
 	// is id only for debug?
 	brigadeID := flag.String("id", "", "brigadier_id")
-	homeDir := flag.String("d", storage.DefaultFileDbDir, "Dir for db files")
-	statDir := flag.String("s", storage.DefaultStatDir, "Dir for stst files")
+	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
+	statDir := flag.String("s", "", "Dir for statistic files (for test). Default: "+storage.DefaultStatDir+"/<BrigadeID>")
 
 	addr := flag.String("a", vapnapi.TemplatedAddrPort, "API endpoint address:port")
 
 	flag.Parse()
 
-	if *brigadeID == "" {
-		username, err := user.Current()
+	if *filedbDir != "" {
+		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return addrPort, "", "", "", fmt.Errorf("username: %w", err)
+			return addrPort, "", "", "", fmt.Errorf("dbdir dir: %w", err)
+		}
+	}
+
+	if *statDir != "" {
+		statdir, err = filepath.Abs(*statDir)
+		if err != nil {
+			return addrPort, "", "", "", fmt.Errorf("statdir dir: %w", err)
+		}
+	}
+
+	switch *brigadeID {
+	case "", sysUser.Username:
+		id = sysUser.Username
+
+		if *filedbDir == "" {
+			dbdir = filepath.Join(storage.DefaultHomeDir, id)
 		}
 
-		brigadeID = &username.Username
+		if *statDir != "" {
+			statdir = filepath.Join(storage.DefaultStatDir, id)
+		}
+
+	default:
+		id = *brigadeID
+
+		if *filedbDir == "" {
+			dbdir = cwd
+		}
+
+		if *statDir == "" {
+			statdir = cwd
+		}
 	}
 
 	// brigadeID must be base32 decodable.
-	id, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(*brigadeID)
+	binID, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(id)
 	if err != nil {
-		return addrPort, "", "", "", fmt.Errorf("id base32: %s: %w", *brigadeID, err)
+		return addrPort, "", "", "", fmt.Errorf("id base32: %s: %w", id, err)
 	}
 
-	_, err = uuid.FromBytes(id)
+	_, err = uuid.FromBytes(binID)
 	if err != nil {
-		return addrPort, "", "", "", fmt.Errorf("id uuid: %s: %w", *brigadeID, err)
-	}
-
-	if *homeDir == "" {
-		*homeDir = filepath.Join("home", *brigadeID)
-	}
-
-	dbdir, err := filepath.Abs(*homeDir)
-	if err != nil {
-		return addrPort, "", "", "", fmt.Errorf("dbdir dir: %w", err)
-	}
-
-	statdir, err := filepath.Abs(*statDir)
-	if err != nil {
-		return addrPort, "", "", "", fmt.Errorf("statdir dir: %w", err)
+		return addrPort, "", "", "", fmt.Errorf("id uuid: %s: %w", id, err)
 	}
 
 	if *addr != "-" {
@@ -68,7 +103,7 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 		}
 	}
 
-	return addrPort, *brigadeID, dbdir, statdir, nil
+	return addrPort, id, dbdir, statdir, nil
 }
 
 func main() {

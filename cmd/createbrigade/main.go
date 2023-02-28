@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/netip"
+	"os"
 	"os/user"
 	"path/filepath"
 
@@ -29,9 +30,27 @@ var (
 )
 
 func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string, error) {
-	var config = &storage.BrigadeConfig{}
+	var (
+		config                 = &storage.BrigadeConfig{}
+		dbdir, statdir, etcdir string
+		id                     string
+		addrPort               netip.AddrPort
+	)
 
-	addrPort := netip.AddrPort{}
+	sysUser, err := user.Current()
+	if err != nil {
+		return nil, addrPort, "", "", "", fmt.Errorf("cannot define user: %w", err)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, addrPort, "", "", "", fmt.Errorf("cur dir: %w", err)
+	}
+
+	cwd, err = filepath.Abs(cwd)
+	if err != nil {
+		return nil, addrPort, "", "", "", fmt.Errorf("cur dir: %w", err)
+	}
 
 	endpointIPv4 := flag.String("ep4", "", "endpointIPv4")
 	dnsIPv4 := flag.String("dns4", "", "dnsIPv4")
@@ -41,53 +60,78 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 	keydeskIPv6 := flag.String("kd6", "", "keydeskIPv6")
 	// !!! is the flags below only for debug?
 	brigadeID := flag.String("id", "", "brigadier_id")
-	etcDir := flag.String("c", keydesk.DefaultEtcDir, "Dir for config files")
-	homeDir := flag.String("d", storage.DefaultFileDbDir, "Dir for db files")
-	statDir := flag.String("s", storage.DefaultStatDir, "Dir for stst files")
+	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
+	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
+	statDir := flag.String("s", "", "Dir for statistic files (for test). Default: "+storage.DefaultStatDir+"/<BrigadeID>")
 	addr := flag.String("a", vapnapi.TemplatedAddrPort, "API endpoint address:port")
 
 	flag.Parse()
 
-	if *brigadeID == "" {
-		username, err := user.Current()
+	if *filedbDir != "" {
+		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return nil, addrPort, "", "", "", fmt.Errorf("username: %w", err)
+			return nil, addrPort, "", "", "", fmt.Errorf("dbdir dir: %w", err)
+		}
+	}
+
+	if *etcDir != "" {
+		etcdir, err = filepath.Abs(*etcDir)
+		if err != nil {
+			return nil, addrPort, "", "", "", fmt.Errorf("etcdir dir: %w", err)
+		}
+	}
+
+	if *statDir != "" {
+		statdir, err = filepath.Abs(*statDir)
+		if err != nil {
+			return nil, addrPort, "", "", "", fmt.Errorf("statdir dir: %w", err)
+		}
+	}
+
+	switch *brigadeID {
+	case "", sysUser.Username:
+		id = sysUser.Username
+
+		if *filedbDir == "" {
+			dbdir = filepath.Join(storage.DefaultHomeDir, id)
 		}
 
-		brigadeID = &username.Username
+		if *etcDir == "" {
+			etcdir = keydesk.DefaultEtcDir
+		}
+
+		if *statDir != "" {
+			statdir = filepath.Join(storage.DefaultStatDir, id)
+		}
+
+	default:
+		id = *brigadeID
+
+		if *filedbDir == "" {
+			dbdir = cwd
+		}
+
+		if *etcDir == "" {
+			etcdir = cwd
+		}
+
+		if *statDir == "" {
+			statdir = cwd
+		}
 	}
 
 	// brigadeID must be base32 decodable.
-	id, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(*brigadeID)
+	binID, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(id)
 	if err != nil {
-		return nil, addrPort, "", "", "", fmt.Errorf("id base32: %s: %w", *brigadeID, err)
+		return nil, addrPort, "", "", "", fmt.Errorf("id base32: %s: %w", id, err)
 	}
 
-	_, err = uuid.FromBytes(id)
+	_, err = uuid.FromBytes(binID)
 	if err != nil {
-		return nil, addrPort, "", "", "", fmt.Errorf("id uuid: %s: %w", *brigadeID, err)
+		return nil, addrPort, "", "", "", fmt.Errorf("id uuid: %s: %w", id, err)
 	}
 
-	config.BrigadeID = *brigadeID
-
-	if *homeDir == "" {
-		*homeDir = filepath.Join("home", config.BrigadeID)
-	}
-
-	dbdir, err := filepath.Abs(*homeDir)
-	if err != nil {
-		return nil, addrPort, "", "", "", fmt.Errorf("dbdir dir: %w", err)
-	}
-
-	etcdir, err := filepath.Abs(*etcDir)
-	if err != nil {
-		return nil, addrPort, "", "", "", fmt.Errorf("etcdir dir: %w", err)
-	}
-
-	statdir, err := filepath.Abs(*statDir)
-	if err != nil {
-		return nil, addrPort, "", "", "", fmt.Errorf("statdir dir: %w", err)
-	}
+	config.BrigadeID = id
 
 	// endpointIPv4 must be v4 and Global Unicast IP.
 	ip, err := netip.ParseAddr(*endpointIPv4)

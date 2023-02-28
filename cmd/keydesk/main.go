@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base32"
 	"encoding/base64"
 	goerrors "errors"
 	"flag"
@@ -29,6 +30,7 @@ import (
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/google/uuid"
 	"github.com/rs/cors"
 	"github.com/vpngen/keydesk/gen/restapi"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
@@ -233,8 +235,8 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 
 	webDir := flag.String("w", DefaultWebDir, "Dir for web files.")
 	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
-	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultFileDbDir)
-	statDir := flag.String("s", "", "Dir for statistic files (for test). Default: "+storage.DefaultStatDir)
+	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
+	statDir := flag.String("s", "", "Dir for statistic files (for test). Default: "+storage.DefaultStatDir+"/<BrigadeID>")
 	certDir := flag.String("e", "", "Dir for TLS certificate and key (for test). Default: "+DefaultCertDir)
 	pcors := flag.Bool("cors", false, "Turn on permessive CORS (for test)")
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
@@ -290,11 +292,11 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 	}
 
 	switch *brigadeID {
-	case "":
+	case "", sysUser.Username:
 		id = sysUser.Username
 
 		if *filedbDir == "" {
-			dbdir = filepath.Join("home", id)
+			dbdir = filepath.Join(storage.DefaultHomeDir, id)
 		}
 
 		if *etcDir == "" {
@@ -302,7 +304,7 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 		}
 
 		if *statDir != "" {
-			statdir = storage.DefaultStatDir
+			statdir = filepath.Join(storage.DefaultStatDir, id)
 		}
 
 		if *certDir != "" {
@@ -326,6 +328,17 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 		if *certDir == "" {
 			certdir = cwd
 		}
+	}
+
+	// brigadeID must be base32 decodable.
+	binID, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(id)
+	if err != nil {
+		return false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, fmt.Errorf("id base32: %s: %w", id, err)
+	}
+
+	_, err = uuid.FromBytes(binID)
+	if err != nil {
+		return false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, fmt.Errorf("id uuid: %s: %w", id, err)
 	}
 
 	if *addr != "-" {

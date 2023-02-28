@@ -31,7 +31,7 @@ contents:
     mode: 0700
     owner: root
     group: root
-- dst: /var/lib/vgstat
+- dst: /var/lib/vgstats
   type: dir
   file_info:
     mode: 0711

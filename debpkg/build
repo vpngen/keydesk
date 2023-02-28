@@ -1,7 +1,6 @@
 #!/bin/sh
 
 export SHARED_BASE="/data"
-GOLANG_VER="$(grep -e "^go\s" $(dirname $0)/../go.mod | awk '{print $2}')"
 
 if [ "x$1" = "xpkg" ]; then
         set -e
@@ -23,6 +22,7 @@ if [ "x$1" = "xpkg" ]; then
         exit 0
 fi
 
+GOLANG_VER="$(grep -e "^go\s" $(dirname $0)/../go.mod | awk '{print $2}')"
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 docker run --rm \

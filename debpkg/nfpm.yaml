@@ -25,24 +25,36 @@ contents:
     mode: 0111
     owner: root
     group: root
+- dst: /var/lib/vgkeydesk
+  type: dir
+  file_info:
+    mode: 0700
+    owner: root
+    group: root
+- dst: /var/lib/vgstat
+  type: dir
+  file_info:
+    mode: 0711
+    owner: root
+    group: root
 - src: bin/keydesk
   dst: /opt/vgkeydesk/keydesk
   file_info:
-    mode: 0010
+    mode: 0001
     owner: root
-    group: vgkeydesk
+    group: root
 - src: bin/createbrigade
   dst: /opt/vgkeydesk/createbrigade
   file_info:
-    mode: 0010
+    mode: 0001
     owner: root
-    group: vgkeydesk
+    group: root
 - src: bin/destroybrigade
   dst: /opt/vgkeydesk/destroybrigade
   file_info:
-    mode: 0010
+    mode: 0001
     owner: root
-    group: vgkeydesk
+    group: root
 - src: keydesk/cmd/createbrigade/create_brigade.sh
   dst: /opt/vgkeydesk/create_brigade.sh
   file_info:

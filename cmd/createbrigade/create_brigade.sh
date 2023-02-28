@@ -18,8 +18,12 @@
 
 BRIGADES_LIST_FILE="/var/lib/vgkeydesk/brigades.lst"
 BASE_HOME_DIR="/home"
+BASE_STATS_DIR="/var/db/vgstats"
 BRIGADE_MAKER_APP_PATH="/opt/vgkeydesk/createbrigade"
 KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
+
+VGCERT_GROUP="vgcert"
+VGSTAT_GROUP="vgstat"
 
 spinlock="`[ ! -z \"${TMPDIR}\" ] && echo -n \"${TMPDIR}/\" || echo -n \"/tmp/\" ; echo \"vgbrigade.spinlock\"`"
 trap "rm -f \"${spinlock}\" 2>/dev/null" EXIT
@@ -70,8 +74,9 @@ fi
 
 # * Create system user
 
-useradd -p '*' -G vgkeydesk,vgcert -M -s /usr/sbin/nologin -d "${BASE_HOME_DIR}/${brigade_id}" "${brigade_id}"
+useradd -p '*' -G "${VGCERT_CROUP}" -M -s /usr/sbin/nologin -d "${BASE_HOME_DIR}/${brigade_id}" "${brigade_id}"
 install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${BASE_HOME_DIR}/${brigade_id}"
+install -o "${brigade_id}" -g "${VGSTAT_GROUP}" -m 710 -d "${BASE_STATS_DIR}/${brigade_id}"
 
 # Create json datafile
 

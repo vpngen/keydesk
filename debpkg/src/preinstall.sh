@@ -1,8 +1,26 @@
 #!/bin/sh
 
+vgcert_group="vgcert"
+vgstat_user="vgstat"
+
 cleanInstall() {
 	printf "\033[32m Pre Install of an clean install\033[0m\n"
 	# Step 3 (clean install), enable the service in the proper way for this platform
+
+        set -e
+
+	if getent group "${vgcert_group}" >/dev/null 2>&1; then
+ 		echo "group ${vgcert_group} already exists"
+	else
+		groupadd "${vgcert_group}"
+	fi
+
+        if id "${vgstat_user}" >/dev/null 2>&1; then
+                echo 'user ${vgstat_user} already exists'
+        else
+                useradd -p "*" -M "${vgstat_user}" -s /usr/sbin/nologin -d /nonexistent
+        fi
+
 }
 
 upgrade() {

@@ -63,8 +63,12 @@ systemctl -q -f disable "${systemd_vgstats_instance}.service"
 # Remove brigade
 sudo -i -u "${brigade_id}" "${BRIGADE_REMOVER_APP_PATH}" -id "${brigade_id}"
 
-if [ -f "${BASE_STATS_DIR}/${brigade_id}-stats.json" ]; then
-        sudo -i -u "${brigade_id}" rm -f "${BASE_STATS_DIR}/${brigade_id}-stats.json"
+if [ -d "${BASE_STATS_DIR}/${brigade_id}" ]; then
+        if [ -f "${BASE_STATS_DIR}/${brigade_id}/stats.json" ]; then
+                sudo -i -u "${brigade_id}" rm -f "${BASE_STATS_DIR}/${brigade_id}/stats.json"
+        fi
+        
+        rmdir "${BASE_STATS_DIR}/${brigade_id}"
 fi
 
 # Remove from list

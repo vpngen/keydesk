@@ -1,7 +1,15 @@
 #!/bin/sh
 
+vgstat_user="vgstat"
+
 remove() {
         printf "\033[32m Post Remove of a normal remove\033[0m\n"
+
+        if getent group "${vgstat_group}" >/dev/null 2>&1; then
+                groupdel "${vgstat_group}"
+        else 
+                echo "group ${vgstat_group} does not exists"              
+        fi
 
         printf "\033[32m Reload the service unit from disk\033[0m\n"
         systemctl daemon-reload ||:

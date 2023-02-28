@@ -18,7 +18,6 @@ The `authorized_keys` file configuration must force the ssh command:
 ### Users and Groups
 
 * `BrigadeID:BrigadeID` - brigade user and group *the user/group pair manages by brigade management process*
-* `vgkeydesk` - each brigade user is in this group (for writing statistics) *the group manages by this package*
 * `vgcert` - each brigade user is in this group (for reading TLS crt/key pair) *the group manages by the cert package*
 * `vgstat` - user for fetch statistics (for fetching statistics) *the user manages by this package*
 

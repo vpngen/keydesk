@@ -62,7 +62,7 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 	brigadeID := flag.String("id", "", "brigadier_id")
 	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
-	statDir := flag.String("s", "", "Dir for statistic files (for test). Default: "+storage.DefaultStatDir+"/<BrigadeID>")
+	statsDir := flag.String("s", "", "Dir for statistic files (for test). Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
 	addr := flag.String("a", vapnapi.TemplatedAddrPort, "API endpoint address:port")
 
 	flag.Parse()
@@ -81,8 +81,8 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 		}
 	}
 
-	if *statDir != "" {
-		statdir, err = filepath.Abs(*statDir)
+	if *statsDir != "" {
+		statdir, err = filepath.Abs(*statsDir)
 		if err != nil {
 			return nil, addrPort, "", "", "", fmt.Errorf("statdir dir: %w", err)
 		}
@@ -100,8 +100,8 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 			etcdir = keydesk.DefaultEtcDir
 		}
 
-		if *statDir != "" {
-			statdir = filepath.Join(storage.DefaultStatDir, id)
+		if *statsDir != "" {
+			statdir = filepath.Join(storage.DefaultStatsDir, id)
 		}
 
 	default:
@@ -115,7 +115,7 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 			etcdir = cwd
 		}
 
-		if *statDir == "" {
+		if *statsDir == "" {
 			statdir = cwd
 		}
 	}
@@ -220,7 +220,7 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 }
 
 func main() {
-	config, addr, etcDir, dbDir, statDir, err := parseArgs()
+	config, addr, etcDir, dbDir, statsDir, err := parseArgs()
 	if err != nil {
 		flag.PrintDefaults()
 		log.Fatalf("Can't parse args: %s", err)
@@ -234,7 +234,7 @@ func main() {
 	db := &storage.BrigadeStorage{
 		BrigadeID:       config.BrigadeID,
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
-		StatFilename:    filepath.Join(statDir, storage.StatFilename),
+		StatsFilename:   filepath.Join(statsDir, storage.StatsFilename),
 		APIAddrPort:     addr,
 		BrigadeStorageOpts: storage.BrigadeStorageOpts{
 			MaxUsers:              keydesk.MaxUsers,

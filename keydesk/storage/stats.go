@@ -2,7 +2,7 @@ package storage
 
 import "time"
 
-func aggrStat(data *Brigade, stat *Stat, activityHours time.Duration) {
+func aggrStats(data *Brigade, stats *Stats, activityHours time.Duration) {
 	var (
 		active, throttled int
 	)
@@ -10,8 +10,8 @@ func aggrStat(data *Brigade, stat *Stat, activityHours time.Duration) {
 	ts := time.Now().UTC()
 	activityTime := ts.Add(-activityHours)
 
-	stat.Updated = ts
-	stat.UsersCount = len(data.Users)
+	stats.Updated = ts
+	stats.UsersCount = len(data.Users)
 
 	for _, user := range data.Users {
 		if user.Quota.LastActivity.After(activityTime) {
@@ -23,9 +23,9 @@ func aggrStat(data *Brigade, stat *Stat, activityHours time.Duration) {
 		}
 	}
 
-	stat.ActiveUsersCount = active
-	stat.ThrottledUserCount = throttled
+	stats.ActiveUsersCount = active
+	stats.ThrottledUserCount = throttled
 
-	stat.TotalRx = data.CounterRX
-	stat.TotalTx = data.CounterTX
+	stats.TotalRx = data.CounterRX
+	stats.TotalTx = data.CounterTX
 }

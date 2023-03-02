@@ -2,6 +2,6 @@ package storage
 
 // Default db config.
 const (
-	DefaultHomeDir = "/home"
-	DefaultStatDir = "/var/lib/vgstats"
+	DefaultHomeDir  = "/home"
+	DefaultStatsDir = "/var/lib/vgstats"
 )

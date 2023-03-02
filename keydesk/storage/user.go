@@ -22,7 +22,7 @@ func (db *BrigadeStorage) CreateUser(
 	wgRouterPSK,
 	wgShufflerPSK []byte,
 ) (*UserConfig, error) {
-	dt, data, stat, addr, err := db.openWithReading()
+	dt, data, stats, addr, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
@@ -88,9 +88,9 @@ func (db *BrigadeStorage) CreateUser(
 		return nil, fmt.Errorf("wg add: %w", err)
 	}
 
-	aggrStat(data, stat, db.ActivityPeriod)
+	aggrStats(data, stats, db.ActivityPeriod)
 
-	dt.save(data, stat)
+	dt.save(data, stats)
 	if err != nil {
 		return nil, fmt.Errorf("save: %w", err)
 	}
@@ -179,7 +179,7 @@ func assembleUser(data *Brigade, fullname string, isBrigadier bool, maxUsers int
 
 // DeleteUser - remove user from the storage.
 func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
-	dt, data, stat, addr, err := db.openWithReading()
+	dt, data, stats, addr, err := db.openWithReading()
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
@@ -202,9 +202,9 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 		return fmt.Errorf("peer del: %w", err)
 	}
 
-	aggrStat(data, stat, db.ActivityPeriod)
+	aggrStats(data, stats, db.ActivityPeriod)
 
-	dt.save(data, stat)
+	dt.save(data, stats)
 	if err != nil {
 		return fmt.Errorf("save: %w", err)
 	}
@@ -233,7 +233,7 @@ func (db *BrigadeStorage) removeBrigadier(data *Brigade, addr netip.AddrPort) er
 
 // ListUsers - list users.
 func (db *BrigadeStorage) ListUsers() ([]*User, error) {
-	dt, data, stat, _, err := db.openWithReading()
+	dt, data, stats, _, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
@@ -242,9 +242,9 @@ func (db *BrigadeStorage) ListUsers() ([]*User, error) {
 
 	ts := time.Now().UTC()
 	data.KeydeskLastVisit = ts
-	stat.KeydeskLastVisit = ts
+	stats.KeydeskLastVisit = ts
 
-	dt.save(data, stat)
+	dt.save(data, stats)
 	if err != nil {
 		return nil, fmt.Errorf("save: %w", err)
 	}

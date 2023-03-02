@@ -104,11 +104,11 @@ type BrigadeConfig struct {
 	KeydeskIPv6  netip.Addr
 }
 
-// StatVersion - json version.
-const StatVersion = 1
+// StatsVersion - json version.
+const StatsVersion = 1
 
-// Stat - statistics.
-type Stat struct {
+// Stats - statistics.
+type Stats struct {
 	BrigadeID          string    `json:"brigade_id"`
 	Updated            time.Time `json:"updated"`
 	BrigadeCreatedAt   time.Time `json:"brigade_created_at"`

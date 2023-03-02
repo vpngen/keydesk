@@ -70,7 +70,7 @@ var (
 )
 
 func main() {
-	chunked, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, statDir, certDir, name, person, replace, err := parseArgs()
+	chunked, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, statsDir, certDir, name, person, replace, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 	}
@@ -83,7 +83,7 @@ func main() {
 	db := &storage.BrigadeStorage{
 		BrigadeID:       BrigadeID,
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
-		StatFilename:    filepath.Join(statDir, storage.StatFilename),
+		StatsFilename:   filepath.Join(statsDir, storage.StatsFilename),
 		APIAddrPort:     addr,
 		BrigadeStorageOpts: storage.BrigadeStorageOpts{
 			MaxUsers:              keydesk.MaxUsers,
@@ -97,7 +97,7 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "Etc: %s\n", etcDir)
 	fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
-	fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", statDir)
+	fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", statsDir)
 	fmt.Fprintf(os.Stderr, "Command address:port: %s\n", addr)
 
 	// Just create brigadier.
@@ -236,7 +236,7 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 	webDir := flag.String("w", DefaultWebDir, "Dir for web files.")
 	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
-	statDir := flag.String("s", "", "Dir for statistic files (for test). Default: "+storage.DefaultStatDir+"/<BrigadeID>")
+	statsDir := flag.String("s", "", "Dir for statistic files (for test). Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
 	certDir := flag.String("e", "", "Dir for TLS certificate and key (for test). Default: "+DefaultCertDir)
 	pcors := flag.Bool("cors", false, "Turn on permessive CORS (for test)")
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
@@ -277,8 +277,8 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 		}
 	}
 
-	if *statDir != "" {
-		statdir, err = filepath.Abs(*statDir)
+	if *statsDir != "" {
+		statdir, err = filepath.Abs(*statsDir)
 		if err != nil {
 			return false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, fmt.Errorf("statdir dir: %w", err)
 		}
@@ -303,8 +303,8 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 			etcdir = keydesk.DefaultEtcDir
 		}
 
-		if *statDir != "" {
-			statdir = filepath.Join(storage.DefaultStatDir, id)
+		if *statsDir != "" {
+			statdir = filepath.Join(storage.DefaultStatsDir, id)
 		}
 
 		if *certDir != "" {
@@ -321,7 +321,7 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 			etcdir = cwd
 		}
 
-		if *statDir == "" {
+		if *statsDir == "" {
 			statdir = cwd
 		}
 

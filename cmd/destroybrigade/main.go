@@ -41,7 +41,7 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 	// is id only for debug?
 	brigadeID := flag.String("id", "", "brigadier_id")
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
-	statDir := flag.String("s", "", "Dir for statistic files (for test). Default: "+storage.DefaultStatDir+"/<BrigadeID>")
+	statsDir := flag.String("s", "", "Dir for statistic files (for test). Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
 
 	addr := flag.String("a", vapnapi.TemplatedAddrPort, "API endpoint address:port")
 
@@ -54,8 +54,8 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 		}
 	}
 
-	if *statDir != "" {
-		statdir, err = filepath.Abs(*statDir)
+	if *statsDir != "" {
+		statdir, err = filepath.Abs(*statsDir)
 		if err != nil {
 			return addrPort, "", "", "", fmt.Errorf("statdir dir: %w", err)
 		}
@@ -69,8 +69,8 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 			dbdir = filepath.Join(storage.DefaultHomeDir, id)
 		}
 
-		if *statDir != "" {
-			statdir = filepath.Join(storage.DefaultStatDir, id)
+		if *statsDir != "" {
+			statdir = filepath.Join(storage.DefaultStatsDir, id)
 		}
 
 	default:
@@ -80,7 +80,7 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 			dbdir = cwd
 		}
 
-		if *statDir == "" {
+		if *statsDir == "" {
 			statdir = cwd
 		}
 	}
@@ -107,7 +107,7 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 }
 
 func main() {
-	addr, brigadeID, dbDir, statDir, err := parseArgs()
+	addr, brigadeID, dbDir, statsDir, err := parseArgs()
 	if err != nil {
 		flag.PrintDefaults()
 		log.Fatalf("Can't parse args: %s", err)
@@ -116,7 +116,7 @@ func main() {
 	db := &storage.BrigadeStorage{
 		BrigadeID:       brigadeID,
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
-		StatFilename:    filepath.Join(statDir, storage.StatFilename),
+		StatsFilename:   filepath.Join(statsDir, storage.StatsFilename),
 		APIAddrPort:     addr,
 		BrigadeStorageOpts: storage.BrigadeStorageOpts{
 			MaxUsers:              keydesk.MaxUsers,

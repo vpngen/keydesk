@@ -63,7 +63,11 @@ func (db *BrigadeStorage) CreateUser(
 		WgPSKRouterEnc:   wgRouterPSK,
 		WgPSKShufflerEnc: wgShufflerPSK,
 		Person:           person,
-		Quota:            Quota{LimitMonthlyRemaining: uint64(db.MonthlyQuotaRemaining)},
+		Quota: Quota{
+			LimitMonthlyRemaining: uint64(db.MonthlyQuotaRemaining),
+			Ver:                   QuotaVesrion,
+		},
+		Ver: UserVersion,
 	})
 
 	sort.Slice(data.Users, func(i, j int) bool {

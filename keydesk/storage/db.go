@@ -245,6 +245,9 @@ func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*pairFilesBrigad
 		return nil, nil, nil, fmt.Errorf("stat: %w", err)
 	}
 
+	data.Ver = BrigadeVersion
+	stat.Ver = StatVersion
+
 	data.BrigadeID = brigadeID
 	stat.BrigadeID = brigadeID
 

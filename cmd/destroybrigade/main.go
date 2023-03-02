@@ -18,9 +18,9 @@ import (
 
 func parseArgs() (netip.AddrPort, string, string, string, error) {
 	var (
-		addrPort       netip.AddrPort
-		dbdir, statdir string
-		id             string
+		addrPort        netip.AddrPort
+		dbdir, statsdir string
+		id              string
 	)
 
 	sysUser, err := user.Current()
@@ -55,7 +55,7 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 	}
 
 	if *statsDir != "" {
-		statdir, err = filepath.Abs(*statsDir)
+		statsdir, err = filepath.Abs(*statsDir)
 		if err != nil {
 			return addrPort, "", "", "", fmt.Errorf("statdir dir: %w", err)
 		}
@@ -70,7 +70,7 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 		}
 
 		if *statsDir != "" {
-			statdir = filepath.Join(storage.DefaultStatsDir, id)
+			statsdir = filepath.Join(storage.DefaultStatsDir, id)
 		}
 
 	default:
@@ -81,7 +81,7 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 		}
 
 		if *statsDir == "" {
-			statdir = cwd
+			statsdir = cwd
 		}
 	}
 
@@ -103,7 +103,7 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 		}
 	}
 
-	return addrPort, id, dbdir, statdir, nil
+	return addrPort, id, dbdir, statsdir, nil
 }
 
 func main() {

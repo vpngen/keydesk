@@ -212,10 +212,10 @@ func main() {
 
 func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, string, string, string, string, string, namesgenerator.Person, bool, error) {
 	var (
-		id                              string
-		etcdir, dbdir, statdir, certdir string
-		person                          namesgenerator.Person
-		addrPort                        netip.AddrPort
+		id                               string
+		etcdir, dbdir, statsdir, certdir string
+		person                           namesgenerator.Person
+		addrPort                         netip.AddrPort
 	)
 
 	sysUser, err := user.Current()
@@ -278,7 +278,7 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 	}
 
 	if *statsDir != "" {
-		statdir, err = filepath.Abs(*statsDir)
+		statsdir, err = filepath.Abs(*statsDir)
 		if err != nil {
 			return false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, fmt.Errorf("statdir dir: %w", err)
 		}
@@ -304,7 +304,7 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 		}
 
 		if *statsDir != "" {
-			statdir = filepath.Join(storage.DefaultStatsDir, id)
+			statsdir = filepath.Join(storage.DefaultStatsDir, id)
 		}
 
 		if *certDir != "" {
@@ -322,7 +322,7 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 		}
 
 		if *statsDir == "" {
-			statdir = cwd
+			statsdir = cwd
 		}
 
 		if *certDir == "" {
@@ -378,7 +378,7 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 			}
 		}
 
-		return *chunked, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, statdir, certdir, "", person, false, nil
+		return *chunked, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, statsdir, certdir, "", person, false, nil
 	}
 
 	// brigadierName must be not empty and must be a valid UTF8 string
@@ -448,7 +448,7 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 
 	person.URL = u
 
-	return *chunked, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, statdir, certdir, name, person, *replaceBrigadier, nil
+	return *chunked, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, statsdir, certdir, name, person, *replaceBrigadier, nil
 }
 
 func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxKeyLength]byte, error) {

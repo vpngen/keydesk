@@ -31,10 +31,10 @@ var (
 
 func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string, error) {
 	var (
-		config                 = &storage.BrigadeConfig{}
-		dbdir, statdir, etcdir string
-		id                     string
-		addrPort               netip.AddrPort
+		config                  = &storage.BrigadeConfig{}
+		dbdir, statsdir, etcdir string
+		id                      string
+		addrPort                netip.AddrPort
 	)
 
 	sysUser, err := user.Current()
@@ -82,7 +82,7 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 	}
 
 	if *statsDir != "" {
-		statdir, err = filepath.Abs(*statsDir)
+		statsdir, err = filepath.Abs(*statsDir)
 		if err != nil {
 			return nil, addrPort, "", "", "", fmt.Errorf("statdir dir: %w", err)
 		}
@@ -101,7 +101,7 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 		}
 
 		if *statsDir != "" {
-			statdir = filepath.Join(storage.DefaultStatsDir, id)
+			statsdir = filepath.Join(storage.DefaultStatsDir, id)
 		}
 
 	default:
@@ -116,7 +116,7 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 		}
 
 		if *statsDir == "" {
-			statdir = cwd
+			statsdir = cwd
 		}
 	}
 
@@ -216,7 +216,7 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 		}
 	}
 
-	return config, addrPort, etcdir, dbdir, statdir, nil
+	return config, addrPort, etcdir, dbdir, statsdir, nil
 }
 
 func main() {

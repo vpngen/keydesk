@@ -67,7 +67,7 @@ func (db *BrigadeStorage) CreateUser(
 	})
 
 	sort.Slice(data.Users, func(i, j int) bool {
-		return data.Users[i].IsBrigadier || data.Users[i].UserID.String() > data.Users[j].UserID.String()
+		return data.Users[i].IsBrigadier || !data.Users[j].IsBrigadier && (data.Users[i].UserID.String() > data.Users[j].UserID.String())
 	})
 
 	kd6 := netip.Addr{}

@@ -15,7 +15,7 @@ import (
 // Filenames.
 const (
 	BrigadeFilename = "brigade.json"
-	StatFilename    = "%s-stat.json"
+	StatFilename    = "stats.json"
 )
 
 var (

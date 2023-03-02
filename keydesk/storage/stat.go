@@ -7,7 +7,7 @@ func aggrStat(data *Brigade, stat *Stat, activityHours time.Duration) {
 		active, throttled int
 	)
 
-	ts := time.Now()
+	ts := time.Now().UTC()
 	activityTime := ts.Add(-activityHours)
 
 	stat.Updated = ts

@@ -251,7 +251,7 @@ func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*pairFilesBrigad
 	data.BrigadeID = brigadeID
 	stat.BrigadeID = brigadeID
 
-	ts := time.Now()
+	ts := time.Now().UTC()
 	data.CreatedAt = ts
 	stat.BrigadeCreatedAt = ts
 

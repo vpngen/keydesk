@@ -55,7 +55,7 @@ func (db *BrigadeStorage) CreateUser(
 	data.Users = append(data.Users, &User{
 		UserID:           userconf.ID,
 		Name:             userconf.Name,
-		CreatedAt:        time.Now(), // creazy but can be data.KeydeskLastVisit
+		CreatedAt:        time.Now().UTC(), // creazy but can be data.KeydeskLastVisit
 		IsBrigadier:      isBrigadier,
 		IPv4Addr:         userconf.IPv4,
 		IPv6Addr:         userconf.IPv6,
@@ -240,7 +240,7 @@ func (db *BrigadeStorage) ListUsers() ([]*User, error) {
 
 	defer dt.close()
 
-	ts := time.Now()
+	ts := time.Now().UTC()
 	data.KeydeskLastVisit = ts
 	stat.KeydeskLastVisit = ts
 

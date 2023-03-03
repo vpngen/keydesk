@@ -293,11 +293,11 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 			etcdir = keydesk.DefaultEtcDir
 		}
 
-		if *statsDir != "" {
+		if *statsDir == "" {
 			statsdir = filepath.Join(storage.DefaultStatsDir, id)
 		}
 
-		if *certDir != "" {
+		if *certDir == "" {
 			certdir = DefaultCertDir
 		}
 	default:

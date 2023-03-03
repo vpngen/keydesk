@@ -10,7 +10,7 @@
 # * Remove database schema
 
 BRIGADES_LIST_FILE="/var/lib/vgkeydesk/brigades.lst"
-BASE_STATS_DIR="/var/db/vgstats"
+BASE_STATS_DIR="/var/lib/vgstats"
 BRIGADE_REMOVER_APP_PATH="/opt/vgkeydesk/destroybrigade"
 
 VGLIST_GROUP="vglist"

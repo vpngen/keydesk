@@ -1,6 +1,6 @@
 #!/bin/sh
 
-BASE_STATS_DIR="/var/db/vgstats"
+BASE_STATS_DIR="/var/lib/vgstats"
 
 set -e
 

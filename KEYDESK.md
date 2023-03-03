@@ -13,7 +13,7 @@ Each brigade has its unique UUID. base32 encoding (without padding) of the UUID 
 
 A brigade user database is a json-encoded file in the HOME directory: `/home/<BrigadeID>/brigade.json`. Any proccess which wants to read the database must asquire READ-LOCK on the database file. Any process which wants to edit the database must asquire EXCLUSIVE-LOCK on the file named sush as the database file with suffix `.tmp` and truncate this temporary file or create this file and asquire EXCLUSIVE-LOCK on it. Then the process must asquire EXCLUSIVE-LOCK on the database file itself. All changes makes in the temporary file. At the end temporary file syncs, renames in the database file, temporary file closes its lock releases. Then old database file closes and lock releases (file disappears as a result).
 
-File `/var/lib/vgstats/<BrigadeID>/stats.json` (`/var/db/vgstat/<BrigadeID>` <BrigadeID>:vgstat 0710) сontains statistics for external usage. The statistic file provides by special brigade related statistic service and consumed by the realm.
+File `/var/lib/vgstats/<BrigadeID>/stats.json` (`/var/lib/vgstat/<BrigadeID>` <BrigadeID>:vgstat 0710) сontains statistics for external usage. The statistic file provides by special brigade related statistic service and consumed by the realm.
 
 ### Consequence
 

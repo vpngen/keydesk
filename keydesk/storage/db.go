@@ -44,7 +44,7 @@ type BrigadeStorageOpts struct {
 type BrigadeStorage struct {
 	BrigadeID       string
 	BrigadeFilename string // i.e. /home/<BrigadeID>/brigade.json
-	StatsFilename   string // i.e. /var/db/vgstats/<BrigadeID>/stat.json
+	StatsFilename   string // i.e. /var/lib/vgstats/<BrigadeID>/stat.json
 	APIAddrPort     netip.AddrPort
 	BrigadeStorageOpts
 }
@@ -242,7 +242,7 @@ func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*pairFilesBrigad
 
 	fs, stats, err := db.openStatsWithoutReading()
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("stat: %w", err)
+		return nil, nil, nil, fmt.Errorf("stats: %w", err)
 	}
 
 	data.Ver = BrigadeVersion

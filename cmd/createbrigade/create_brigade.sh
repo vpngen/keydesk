@@ -18,7 +18,7 @@
 
 BRIGADES_LIST_FILE="/var/lib/vgkeydesk/brigades.lst"
 BASE_HOME_DIR="/home"
-BASE_STATS_DIR="/var/db/vgstats"
+BASE_STATS_DIR="/var/lib/vgstats"
 BRIGADE_MAKER_APP_PATH="/opt/vgkeydesk/createbrigade"
 KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
 

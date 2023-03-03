@@ -59,7 +59,7 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 			dbdir = filepath.Join(storage.DefaultHomeDir, id)
 		}
 
-		if *statsDir != "" {
+		if *statsDir == "" {
 			statsdir = filepath.Join(storage.DefaultStatsDir, id)
 		}
 

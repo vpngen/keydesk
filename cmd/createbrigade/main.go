@@ -91,7 +91,7 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 			etcdir = keydesk.DefaultEtcDir
 		}
 
-		if *statsDir != "" {
+		if *statsDir == "" {
 			statsdir = filepath.Join(storage.DefaultStatsDir, id)
 		}
 

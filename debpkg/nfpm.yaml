@@ -9,7 +9,7 @@ release: 1
 provides:
 - vgkeydesk
 depends:
-- vg-cert 
+- cert-vpn-works
 - vgkeydesk-web
 
 maintainer: "Ingmund Ollson <ingmund@proton.me>"

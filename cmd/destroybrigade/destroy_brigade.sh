@@ -63,7 +63,7 @@ systemctl -q -f stop "${systemd_vgstats_instance}.service"
 systemctl -q -f disable "${systemd_vgstats_instance}.service"
 
 # Remove brigade
-sudo -i -u "${brigade_id}" "${BRIGADE_REMOVER_APP_PATH}" -id "${brigade_id}"
+sudo -u "${brigade_id}" "${BRIGADE_REMOVER_APP_PATH}" -id "${brigade_id}"
 
 if [ -d "${BASE_STATS_DIR}/${brigade_id}" ]; then
         if [ -f "${BASE_STATS_DIR}/${brigade_id}/stats.json" ]; then

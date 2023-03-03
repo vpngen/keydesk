@@ -45,7 +45,7 @@ if [ -f "${BRIGADES_LIST_FILE}" ]; then
         fi 
 fi
 
-if ! sudo -i -u ${brigade_id} -g  ${brigade_id} ${KEYDESK_APP_PATH} -r ${chunked} -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}"; then
+if ! sudo -u ${brigade_id} -g  ${brigade_id} ${KEYDESK_APP_PATH} -r ${chunked} -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}"; then
         exit 1
 fi
 

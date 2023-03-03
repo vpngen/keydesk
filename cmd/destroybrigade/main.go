@@ -28,16 +28,6 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 		return addrPort, "", "", "", fmt.Errorf("cannot define user: %w", err)
 	}
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		return addrPort, "", "", "", fmt.Errorf("cur dir: %w", err)
-	}
-
-	cwd, err = filepath.Abs(cwd)
-	if err != nil {
-		return addrPort, "", "", "", fmt.Errorf("cur dir: %w", err)
-	}
-
 	// is id only for debug?
 	brigadeID := flag.String("id", "", "brigadier_id")
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
@@ -75,6 +65,11 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 
 	default:
 		id = *brigadeID
+
+		cwd, err := os.Getwd()
+		if err == nil {
+			cwd, _ = filepath.Abs(cwd)
+		}
 
 		if *filedbDir == "" {
 			dbdir = cwd

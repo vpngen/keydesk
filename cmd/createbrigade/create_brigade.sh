@@ -81,12 +81,17 @@ install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 710 -d "${BASE_STATS_DIR}/${
 
 # Create json datafile
 
-wg_public_key=$(sudo -i -u "${brigade_id}" -g "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" ${chunked} -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}")
+wg_public_key=$(sudo -u "${brigade_id}" -g "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" ${chunked} -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}")
 if [ "$?" -ne 0 ]; then
         exit 1
 fi
 
-wgconf=$(sudo -i -u ${brigade_id} -g  ${brigade_id} ${KEYDESK_APP_PATH} ${chunked} -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}")
+if [ "${#wg_public_key}" -ne 44 -o "${wg_public_key: -1}" != "=" -o "${wg_public_key: -2:-1}" == "=" ]; then
+        echo "Invalid wg pubkey: ${wg_public_key}" >&2
+        exit 1
+fi
+
+wgconf=$(sudo -u ${brigade_id} -g  ${brigade_id} ${KEYDESK_APP_PATH} ${chunked} -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}")
 if [ "$?" -ne 0 ]; then
         exit 1
 fi

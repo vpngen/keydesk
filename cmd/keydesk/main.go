@@ -223,16 +223,6 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 		return false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, fmt.Errorf("cannot define user: %w", err)
 	}
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		return false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, fmt.Errorf("cur dir: %w", err)
-	}
-
-	cwd, err = filepath.Abs(cwd)
-	if err != nil {
-		return false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, fmt.Errorf("cur dir: %w", err)
-	}
-
 	webDir := flag.String("w", DefaultWebDir, "Dir for web files.")
 	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
@@ -312,6 +302,11 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 		}
 	default:
 		id = *brigadeID
+
+		cwd, err := os.Getwd()
+		if err == nil {
+			cwd, _ = filepath.Abs(cwd)
+		}
 
 		if *filedbDir == "" {
 			dbdir = cwd

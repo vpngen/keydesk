@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base32"
+	"encoding/base64"
 	"errors"
 	"flag"
 	"fmt"
@@ -40,16 +41,6 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 	sysUser, err := user.Current()
 	if err != nil {
 		return nil, addrPort, "", "", "", fmt.Errorf("cannot define user: %w", err)
-	}
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, addrPort, "", "", "", fmt.Errorf("cur dir: %w", err)
-	}
-
-	cwd, err = filepath.Abs(cwd)
-	if err != nil {
-		return nil, addrPort, "", "", "", fmt.Errorf("cur dir: %w", err)
 	}
 
 	endpointIPv4 := flag.String("ep4", "", "endpointIPv4")
@@ -106,6 +97,11 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, string
 
 	default:
 		id = *brigadeID
+
+		cwd, err := os.Getwd()
+		if err == nil {
+			cwd, _ = filepath.Abs(cwd)
+		}
 
 		if *filedbDir == "" {
 			dbdir = cwd
@@ -247,9 +243,12 @@ func main() {
 	}
 
 	// just do it.
-	if err := keydesk.CreateBrigade(db, config, &routerPublicKey, &shufflerPublicKey); err != nil {
+	wgPub, err := keydesk.CreateBrigade(db, config, &routerPublicKey, &shufflerPublicKey)
+	if err != nil {
 		log.Fatalf("Can't create brigade: %s\n", err)
 	}
+
+	fmt.Println(base64.StdEncoding.WithPadding(base32.StdPadding).EncodeToString(wgPub))
 }
 
 func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxKeyLength]byte, error) {

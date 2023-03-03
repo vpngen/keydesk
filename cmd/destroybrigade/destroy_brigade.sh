@@ -13,6 +13,8 @@ BRIGADES_LIST_FILE="/var/lib/vgkeydesk/brigades.lst"
 BASE_STATS_DIR="/var/db/vgstats"
 BRIGADE_REMOVER_APP_PATH="/opt/vgkeydesk/destroybrigade"
 
+VGLIST_GROUP="vglist"
+
 spinlock="`[ ! -z \"${TMPDIR}\" ] && echo -n \"${TMPDIR}/\" || echo -n \"/tmp/\" ; echo \"vgbrigade.spinlock\"`"
 trap "rm -f \"${spinlock}\" 2>/dev/null" EXIT
 while [ -f "${spinlock}" ] ; do
@@ -67,20 +69,19 @@ if [ -d "${BASE_STATS_DIR}/${brigade_id}" ]; then
         if [ -f "${BASE_STATS_DIR}/${brigade_id}/stats.json" ]; then
                 sudo -i -u "${brigade_id}" rm -f "${BASE_STATS_DIR}/${brigade_id}/stats.json"
         fi
-        
+
         rmdir "${BASE_STATS_DIR}/${brigade_id}"
 fi
 
 # Remove from list
 tmplist="/tmp/"$(basename "${BRIGADES_LIST_FILE}")
 if [ -f "${BRIGADES_LIST_FILE}" ]; then 
-        for name in cat "${BRIGADES_LIST_FILE}"; do
-                if [ "x${name}" -ne "x${brigade_id}" ]; then 
-                        echo "${name}" >> "${tmplist}"
-                fi 
-        done
-        install -o root -g root -m 600 "${tmplist}" "${BRIGADES_LIST_FILE}"
-        rm -f "${tmplist}"
+        if sed "/^${brigade_id};/d" > "${tmplist}"; then 
+                install -o root -g ${VGLIST_GROUP} -m 640 "${tmplist}" "${BRIGADES_LIST_FILE}"
+                rm -f "${tmplist}"
+        else
+                exit 1 
+        fi
 fi
 
 # Remove system user

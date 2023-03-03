@@ -3,8 +3,7 @@
 # interpret first argument as command
 # pass rest args to scripts
 
-VGSTATS_USER="vgstats"
-VGSTATS_GROUP="vgstats"
+# This USER must be in the vgstats group
 
 printdef() {
     echo "Usage: <command> <args...>"
@@ -19,7 +18,7 @@ cmd=${1}; shift
 basedir=$(dirname $0)
 
 if [ "xfetchstats" = "x${cmd}" ]; then
-    sudo -u "${VGSTATS_USER}" -g "${VGSTATS_GROUP}" ${basedir}/fetch_stats.sh $@
+        ${basedir}/fetch_stats.sh $@
 else
     echo "Unknown command: ${cmd}"
     printdef

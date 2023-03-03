@@ -1,7 +1,7 @@
 name: "vgkeydesk"
 arch: "amd64"
 platform: "linux"
-version: 0.1.1
+version: 1.0.1
 section: "default"
 priority: "extra"
 release: 1
@@ -9,7 +9,7 @@ release: 1
 provides:
 - vgkeydesk
 depends:
-- vg-cert
+- vg-cert 
 - vgkeydesk-web
 
 maintainer: "Ingmund Ollson <ingmund@proton.me>"
@@ -28,9 +28,9 @@ contents:
 - dst: /var/lib/vgkeydesk
   type: dir
   file_info:
-    mode: 0700
+    mode: 0710
     owner: root
-    group: root
+    group: vglist
 - dst: /var/lib/vgstats
   type: dir
   file_info:

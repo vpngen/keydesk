@@ -24,6 +24,7 @@ KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
 
 VGCERT_GROUP="vgcert"
 VGSTATS_GROUP="vgstats"
+VGLIST_GROUP="vglist"
 
 spinlock="`[ ! -z \"${TMPDIR}\" ] && echo -n \"${TMPDIR}/\" || echo -n \"/tmp/\" ; echo \"vgbrigade.spinlock\"`"
 trap "rm -f \"${spinlock}\" 2>/dev/null" EXIT
@@ -65,7 +66,7 @@ fi
 # * Check if brigade is exists
 
 if [ -f "${BRIGADES_LIST_FILE}" ]; then
-        test=$(grep "${brigade_id}" < "${BRIGADES_LIST_FILE}")
+        test=$(grep -o "^${brigade_id};" < "${BRIGADES_LIST_FILE}" | tr -d ";")
         if [ "x${brigade_id}" -eq "x${test}" ]; then
                 echo "Brigade ${brigade_id} already exists" >&2
                 exit 1
@@ -80,11 +81,13 @@ install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 710 -d "${BASE_STATS_DIR}/${
 
 # Create json datafile
 
-if ! sudo -i -u "${brigade_id}" -g "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" ${chunked} -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}"; then
+wg_public_key=$(sudo -i -u "${brigade_id}" -g "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" ${chunked} -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}")
+if [ "$?" -ne 0 ]; then
         exit 1
 fi
 
-if ! sudo -i -u ${brigade_id} -g  ${brigade_id} ${KEYDESK_APP_PATH} ${chunked} -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}"; then
+wgconf=$(sudo -i -u ${brigade_id} -g  ${brigade_id} ${KEYDESK_APP_PATH} ${chunked} -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}")
+if [ "$?" -ne 0 ]; then
         exit 1
 fi
 
@@ -125,8 +128,8 @@ if [ -f "${BRIGADES_LIST_FILE}" ]; then
         cp -f "${BRIGADES_LIST_FILE}" "${tmplist}"
 fi
 
-echo "${brigade_id}" >> "${tmplist}"
-install -o root -g root -m 600 "${tmplist}" "${BRIGADES_LIST_FILE}"
+echo "${brigade_id};${endpoint_ipv4};${wg_public_key}" >> "${tmplist}"
+install -o root -g ${VGLIST_GROUP} -m 640 "${tmplist}" "${BRIGADES_LIST_FILE}"
 rm -f "${tmplist}"
 
 # Print brigadier config

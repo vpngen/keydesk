@@ -38,7 +38,7 @@ fi
 # !!! lib???
 
 if [ -f "${BRIGADES_LIST_FILE}" ]; then
-        test=$(grep "${brigade_id}" < "${BRIGADES_LIST_FILE}")
+        test=$(grep -o "${brigade_id};" < "${BRIGADES_LIST_FILE}" | tr -d ";")
         if [ "x${brigade_id}" -ne "x${test}" ]; then
                 echo "Brigade ${brigade_id} does not exists" >&2
                 exit 1

@@ -86,7 +86,7 @@ if [ "$?" -ne 0 ]; then
         exit 1
 fi
 
-if [ "${#wg_public_key}" -ne 44 -o "${wg_public_key: -1}" != "=" -o "${wg_public_key: -2:-1}" == "=" ]; then
+if [ "${#wg_public_key}" -ne 44 ]; then
         echo "Invalid wg pubkey: ${wg_public_key}" >&2
         exit 1
 fi

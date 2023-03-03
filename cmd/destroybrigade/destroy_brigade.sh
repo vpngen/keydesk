@@ -67,7 +67,7 @@ sudo -u "${brigade_id}" "${BRIGADE_REMOVER_APP_PATH}" -id "${brigade_id}"
 
 if [ -d "${BASE_STATS_DIR}/${brigade_id}" ]; then
         if [ -f "${BASE_STATS_DIR}/${brigade_id}/stats.json" ]; then
-                sudo -i -u "${brigade_id}" rm -f "${BASE_STATS_DIR}/${brigade_id}/stats.json"
+                sudo -u "${brigade_id}" rm -f "${BASE_STATS_DIR}/${brigade_id}/stats.json"
         fi
 
         rmdir "${BASE_STATS_DIR}/${brigade_id}"

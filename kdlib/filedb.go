@@ -3,6 +3,7 @@ package kdlib
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 
 	"github.com/vpngen/keydesk/kdlib/lockedfile"
@@ -11,7 +12,6 @@ import (
 const (
 	fileDbTempSuffix   = ".tmp"
 	fileDbBackupSuffix = ".bak"
-	fileDbperm         = 0640
 )
 
 // FileDb - file pair as Db.
@@ -80,13 +80,13 @@ func (f *FileDb) Backup() error {
 }
 
 // OpenFileDb - open file pair to edit.
-func OpenFileDb(name string) (*FileDb, error) {
-	w, err := lockedfile.OpenFile(name+fileDbTempSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, fileDbperm)
+func OpenFileDb(name string, perm fs.FileMode) (*FileDb, error) {
+	w, err := lockedfile.OpenFile(name+fileDbTempSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, perm)
 	if err != nil {
 		return nil, fmt.Errorf("create: %w", err)
 	}
 
-	r, err := lockedfile.OpenFile(name, os.O_RDWR|os.O_CREATE, fileDbperm)
+	r, err := lockedfile.OpenFile(name, os.O_RDWR|os.O_CREATE, perm)
 	if err != nil {
 		return nil, fmt.Errorf("edit: %w", err)
 	}

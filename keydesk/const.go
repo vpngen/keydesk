@@ -11,3 +11,9 @@ const (
 	ShufflerPublicKeyFilename = "vg-shuffler.json"
 	MaxIdlePeriod             = 10 * time.Minute
 )
+
+// Brigades consts.
+const (
+	DefaultBrigadesListFile = "brigades.lst"
+	DefaultBrigadesListDir  = "/var/lib/vgkeydesk"
+)

@@ -16,6 +16,7 @@ import (
 const (
 	BrigadeFilename = "brigade.json"
 	StatsFilename   = "stats.json"
+	FileDbMode      = 0644
 )
 
 var (
@@ -101,7 +102,7 @@ func (db *BrigadeStorage) SelfCheck() error {
 }
 
 func (db *BrigadeStorage) openStatsWithReading() (*kdlib.FileDb, *Stats, error) {
-	f, err := kdlib.OpenFileDb(db.StatsFilename)
+	f, err := kdlib.OpenFileDb(db.StatsFilename, FileDbMode)
 	if err != nil {
 		return nil, nil, fmt.Errorf("open: %w", err)
 	}
@@ -123,7 +124,7 @@ func (db *BrigadeStorage) openStatsWithReading() (*kdlib.FileDb, *Stats, error) 
 }
 
 func (db *BrigadeStorage) openBrigadeWithReading() (*kdlib.FileDb, *Brigade, error) {
-	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
+	f, err := kdlib.OpenFileDb(db.BrigadeFilename, FileDbMode)
 	if err != nil {
 		return nil, nil, fmt.Errorf("open: %w", err)
 	}
@@ -181,7 +182,7 @@ func (db *BrigadeStorage) openWithReading() (*pairFilesBrigadeStats, *Brigade, *
 }
 
 func (db *BrigadeStorage) openBrigadeWithoutReading() (*kdlib.FileDb, *Brigade, error) {
-	f, err := kdlib.OpenFileDb(db.BrigadeFilename)
+	f, err := kdlib.OpenFileDb(db.BrigadeFilename, FileDbMode)
 	if err != nil {
 		return nil, nil, fmt.Errorf("open: %w", err)
 	}
@@ -206,7 +207,7 @@ func (db *BrigadeStorage) openBrigadeWithoutReading() (*kdlib.FileDb, *Brigade, 
 }
 
 func (db *BrigadeStorage) openStatsWithoutReading() (*kdlib.FileDb, *Stats, error) {
-	f, err := kdlib.OpenFileDb(db.StatsFilename)
+	f, err := kdlib.OpenFileDb(db.StatsFilename, FileDbMode)
 	if err != nil {
 		return nil, nil, fmt.Errorf("open: %w", err)
 	}

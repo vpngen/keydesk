@@ -153,6 +153,10 @@ func (db *BrigadeStorage) readQuotas() (*UsersQuotas, error) {
 
 	err = json.NewDecoder(f).Decode(quotas)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+
 		return nil, fmt.Errorf("decode: %w", err)
 	}
 

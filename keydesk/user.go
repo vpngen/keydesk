@@ -22,6 +22,7 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
 )
 
 // Allowed prefixes.
@@ -150,7 +151,7 @@ func DelUserUserID(db *storage.BrigadeStorage, params operations.DeleteUserUserI
 
 // GetUsers - .
 func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, principal interface{}) middleware.Responder {
-	storageUsers, err := db.ListUsers()
+	storageUsers, quotas, err := db.ListUsers()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "List error: %s\n", err)
 
@@ -161,25 +162,29 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 	for i := range storageUsers {
 		user := storageUsers[i]
 		id := user.UserID.String()
-		//x := float64(int((float64(user.Quota.LimitMonthlyRemaining/1024/1024)/1024)*100)) / 100
 		apiUsers[i] = &models.User{
-			UserID:   &id,
-			UserName: &user.Name,
-			//MonthlyQuotaRemainingGB: float32(x),
-			//LastVisitHour:           (*strfmt.DateTime)(&user.Quota.LastActivity),
+			UserID:         &id,
+			UserName:       &user.Name,
 			PersonName:     user.Person.Name,
 			PersonDesc:     user.Person.Desc,
 			PersonDescLink: user.Person.URL,
 		}
-		//copy(apiUsers[i].Problems, user.Problems)
 
-		/*if !user.Quota.ThrottlingTill.IsZero() {
-			apiUsers[i].ThrottlingTill = (*strfmt.DateTime)(&user.Quota.ThrottlingTill)
+		if quotas != nil {
+			if quota, ok := quotas.Users[id]; ok {
+				if !quota.ThrottlingTill.IsZero() {
+					apiUsers[i].ThrottlingTill = (*strfmt.DateTime)(&quota.ThrottlingTill)
+				}
+
+				if !quota.LastActivity.IsZero() {
+					apiUsers[i].LastVisitHour = (*strfmt.DateTime)(&quota.LastActivity)
+				}
+
+				x := float64(int((float64(quota.LimitMonthlyRemaining/1024/1024)/1024)*100)) / 100
+				apiUsers[i].MonthlyQuotaRemainingGB = float32(x)
+				apiUsers[i].LastVisitHour = (*strfmt.DateTime)(&quota.LastActivity)
+			}
 		}
-
-		if !user.Quota.LastActivity.IsZero() {
-			apiUsers[i].LastVisitHour = (*strfmt.DateTime)(&user.Quota.LastActivity)
-		}*/
 	}
 
 	return operations.NewGetUserOK().WithPayload(apiUsers)

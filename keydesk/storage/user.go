@@ -228,10 +228,10 @@ func (db *BrigadeStorage) removeBrigadier(data *Brigade, addr netip.AddrPort) er
 }
 
 // ListUsers - list users.
-func (db *BrigadeStorage) ListUsers() ([]*User, error) {
-	dt, data, counters, _, _, err := db.openWithReading()
+func (db *BrigadeStorage) ListUsers() ([]*User, *UsersQuotas, error) {
+	dt, data, counters, quotas, _, err := db.openWithReading()
 	if err != nil {
-		return nil, fmt.Errorf("db: %w", err)
+		return nil, nil, fmt.Errorf("db: %w", err)
 	}
 
 	defer dt.close()
@@ -241,8 +241,8 @@ func (db *BrigadeStorage) ListUsers() ([]*User, error) {
 
 	dt.SaveCounters(counters)
 	if err != nil {
-		return nil, fmt.Errorf("save: %w", err)
+		return nil, nil, fmt.Errorf("save: %w", err)
 	}
 
-	return data.Users, nil
+	return data.Users, quotas, nil
 }

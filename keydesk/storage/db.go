@@ -18,7 +18,7 @@ import (
 const (
 	BrigadeFilename         = "brigade.json"
 	StatsFilename           = "stats.json"
-	KeydeskCountersFilename = "counter.json"
+	KeydeskCountersFilename = "counters.json"
 	QuotasFilename          = "quotas.json"
 	FileDbMode              = 0644
 )

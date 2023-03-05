@@ -70,7 +70,7 @@ var (
 )
 
 func main() {
-	chunked, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, statsDir, certDir, name, person, replace, err := parseArgs()
+	chunked, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, quotassDir, certDir, name, person, replace, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 	}
@@ -81,10 +81,11 @@ func main() {
 	}
 
 	db := &storage.BrigadeStorage{
-		BrigadeID:       BrigadeID,
-		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
-		StatsFilename:   filepath.Join(statsDir, storage.StatsFilename),
-		APIAddrPort:     addr,
+		BrigadeID:        BrigadeID,
+		BrigadeFilename:  filepath.Join(dbDir, storage.BrigadeFilename),
+		CountersFilename: filepath.Join(dbDir, storage.KeydeskCountersFilename),
+		QuotasFilename:   filepath.Join(quotassDir, storage.StatsFilename),
+		APIAddrPort:      addr,
 		BrigadeStorageOpts: storage.BrigadeStorageOpts{
 			MaxUsers:              keydesk.MaxUsers,
 			MonthlyQuotaRemaining: keydesk.MonthlyQuotaRemaining,
@@ -97,7 +98,7 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "Etc: %s\n", etcDir)
 	fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
-	fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", statsDir)
+	fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", quotassDir)
 	fmt.Fprintf(os.Stderr, "Command address:port: %s\n", addr)
 
 	// Just create brigadier.
@@ -212,10 +213,10 @@ func main() {
 
 func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, string, string, string, string, string, namesgenerator.Person, bool, error) {
 	var (
-		id                               string
-		etcdir, dbdir, statsdir, certdir string
-		person                           namesgenerator.Person
-		addrPort                         netip.AddrPort
+		id                                string
+		etcdir, dbdir, quotasdir, certdir string
+		person                            namesgenerator.Person
+		addrPort                          netip.AddrPort
 	)
 
 	sysUser, err := user.Current()
@@ -226,7 +227,7 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 	webDir := flag.String("w", DefaultWebDir, "Dir for web files.")
 	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
-	statsDir := flag.String("s", "", "Dir for statistic files (for test). Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
+	quotasDir := flag.String("q", "", "Dir for quotas files (for test). Default: "+storage.DefaultQuotasDir+"/<BrigadeID>")
 	certDir := flag.String("e", "", "Dir for TLS certificate and key (for test). Default: "+DefaultCertDir)
 	pcors := flag.Bool("cors", false, "Turn on permessive CORS (for test)")
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
@@ -267,8 +268,8 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 		}
 	}
 
-	if *statsDir != "" {
-		statsdir, err = filepath.Abs(*statsDir)
+	if *quotasDir != "" {
+		quotasdir, err = filepath.Abs(*quotasDir)
 		if err != nil {
 			return false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, fmt.Errorf("statdir dir: %w", err)
 		}
@@ -293,8 +294,8 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 			etcdir = keydesk.DefaultEtcDir
 		}
 
-		if *statsDir == "" {
-			statsdir = filepath.Join(storage.DefaultStatsDir, id)
+		if *quotasDir == "" {
+			quotasdir = filepath.Join(storage.DefaultStatsDir, id)
 		}
 
 		if *certDir == "" {
@@ -316,8 +317,8 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 			etcdir = cwd
 		}
 
-		if *statsDir == "" {
-			statsdir = cwd
+		if *quotasDir == "" {
+			quotasdir = cwd
 		}
 
 		if *certDir == "" {
@@ -373,7 +374,7 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 			}
 		}
 
-		return *chunked, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, statsdir, certdir, "", person, false, nil
+		return *chunked, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, quotasdir, certdir, "", person, false, nil
 	}
 
 	// brigadierName must be not empty and must be a valid UTF8 string
@@ -443,7 +444,7 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 
 	person.URL = u
 
-	return *chunked, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, statsdir, certdir, name, person, *replaceBrigadier, nil
+	return *chunked, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, quotasdir, certdir, name, person, *replaceBrigadier, nil
 }
 
 func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxKeyLength]byte, error) {

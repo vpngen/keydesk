@@ -22,7 +22,6 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/go-openapi/strfmt"
 )
 
 // Allowed prefixes.
@@ -162,11 +161,11 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 	for i := range storageUsers {
 		user := storageUsers[i]
 		id := user.UserID.String()
-		x := float64(int((float64(user.Quota.LimitMonthlyRemaining/1024/1024)/1024)*100)) / 100
+		//x := float64(int((float64(user.Quota.LimitMonthlyRemaining/1024/1024)/1024)*100)) / 100
 		apiUsers[i] = &models.User{
-			UserID:                  &id,
-			UserName:                &user.Name,
-			MonthlyQuotaRemainingGB: float32(x),
+			UserID:   &id,
+			UserName: &user.Name,
+			//MonthlyQuotaRemainingGB: float32(x),
 			//LastVisitHour:           (*strfmt.DateTime)(&user.Quota.LastActivity),
 			PersonName:     user.Person.Name,
 			PersonDesc:     user.Person.Desc,
@@ -174,13 +173,13 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 		}
 		//copy(apiUsers[i].Problems, user.Problems)
 
-		if !user.Quota.ThrottlingTill.IsZero() {
+		/*if !user.Quota.ThrottlingTill.IsZero() {
 			apiUsers[i].ThrottlingTill = (*strfmt.DateTime)(&user.Quota.ThrottlingTill)
 		}
 
 		if !user.Quota.LastActivity.IsZero() {
 			apiUsers[i].LastVisitHour = (*strfmt.DateTime)(&user.Quota.LastActivity)
-		}
+		}*/
 	}
 
 	return operations.NewGetUserOK().WithPayload(apiUsers)

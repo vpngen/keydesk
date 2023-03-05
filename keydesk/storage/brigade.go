@@ -12,7 +12,7 @@ import (
 func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPriv, wgShufflerPriv []byte) error {
 	var addr netip.AddrPort
 
-	dt, data, stats, err := db.openWithoutReading(config.BrigadeID)
+	dt, data, counters, err := db.openWithoutReading(config.BrigadeID)
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
@@ -48,7 +48,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 		return fmt.Errorf("wg add: %w", err)
 	}
 
-	err = dt.save(data, stats)
+	err = dt.Save(data, counters)
 	if err != nil {
 		return fmt.Errorf("save: %w", err)
 	}
@@ -58,7 +58,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 
 // DestroyBrigade - remove brigade.
 func (db *BrigadeStorage) DestroyBrigade() error {
-	dt, data, stats, addr, err := db.openWithReading()
+	dt, data, _, _, addr, err := db.openWithReading()
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
@@ -69,13 +69,6 @@ func (db *BrigadeStorage) DestroyBrigade() error {
 	err = vapnapi.WgDel(addr, data.WgPrivateRouterEnc)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)
-	}
-
-	data = &Brigade{}
-
-	dt.save(data, stats)
-	if err != nil {
-		return fmt.Errorf("save: %w", err)
 	}
 
 	return nil

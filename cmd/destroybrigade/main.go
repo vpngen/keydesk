@@ -111,7 +111,7 @@ func main() {
 	db := &storage.BrigadeStorage{
 		BrigadeID:       brigadeID,
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
-		StatsFilename:   filepath.Join(statsDir, storage.StatsFilename),
+		QuotasFilename:  filepath.Join(statsDir, storage.StatsFilename),
 		APIAddrPort:     addr,
 		BrigadeStorageOpts: storage.BrigadeStorageOpts{
 			MaxUsers:              keydesk.MaxUsers,

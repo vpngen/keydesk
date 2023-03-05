@@ -32,12 +32,21 @@ const QuotaVesrion = 1
 
 // Quota - user quota.
 type Quota struct {
+	UserID                uuid.UUID   `json:"user_id"`
 	Counters              NetCounters `json:"counters"`
 	LimitMonthlyRemaining uint64      `json:"limit_monthly_remaining"`
 	LimitMonthlyResetOn   time.Time   `json:"limit_monthly_reset_on"`
 	LastActivity          time.Time   `json:"last_activity"`
 	ThrottlingTill        time.Time   `json:"throttling_till"`
 	Ver                   int         `json:"version"`
+}
+
+// UsersQuotas - list users quotas.
+type UsersQuotas struct {
+	BrigadeID string           `json:"brigade_id"`
+	Total     NetCounters      `json:"total"`
+	Users     map[string]Quota `json:"users,omitempty"`
+	Ver       int              `json:"version"`
 }
 
 // UserVersion - json version.
@@ -55,8 +64,17 @@ type User struct {
 	WgPSKRouterEnc   []byte                `json:"wg_psk_router_enc"`
 	WgPSKShufflerEnc []byte                `json:"wg_psk_shuffler_enc"`
 	Person           namesgenerator.Person `json:"person"`
-	Quota            Quota                 `json:"quota"`
 	Ver              int                   `json:"version"`
+}
+
+// KeydeskCountersVersion - json version.
+const KeydeskCountersVersion = 1
+
+// KeydeskCounters - counters.
+type KeydeskCounters struct {
+	BrigadeID        string    `json:"brigade_id"`
+	KeydeskLastVisit time.Time `json:"keydesk_last_visit,omitempty"`
+	Ver              int       `json:"version"`
 }
 
 // BrigadeVersion - json version.
@@ -66,10 +84,6 @@ const BrigadeVersion = 1
 type Brigade struct {
 	BrigadeID            string       `json:"brigade_id"`
 	CreatedAt            time.Time    `json:"created_at"`
-	KeydeskLastVisit     time.Time    `json:"keydesk_last_visit,omitempty"`
-	CounterRX            uint64       `json:"total_rx"`
-	CounterTX            uint64       `json:"total_tx"`
-	CounterMtime         time.Time    `json:"total_mtime"`
 	WgPublicKey          []byte       `json:"wg_public_key"`
 	WgPrivateRouterEnc   []byte       `json:"wg_private_router_enc"`
 	WgPrivateShufflerEnc []byte       `json:"wg_private_shuffler_enc"`

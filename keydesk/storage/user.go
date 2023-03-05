@@ -22,7 +22,7 @@ func (db *BrigadeStorage) CreateUser(
 	wgRouterPSK,
 	wgShufflerPSK []byte,
 ) (*UserConfig, error) {
-	dt, data, stats, addr, err := db.openWithReading()
+	dt, data, counters, _, addr, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
@@ -63,13 +63,13 @@ func (db *BrigadeStorage) CreateUser(
 		WgPSKRouterEnc:   wgRouterPSK,
 		WgPSKShufflerEnc: wgShufflerPSK,
 		Person:           person,
-		Quota: Quota{
-			Counters: NetCounters{
-				Ver: NetCountersVersion,
-			},
-			LimitMonthlyRemaining: uint64(db.MonthlyQuotaRemaining),
-			Ver:                   QuotaVesrion,
-		},
+		/*		Quota: Quota{
+				Counters: NetCounters{
+					Ver: NetCountersVersion,
+				},
+				LimitMonthlyRemaining: uint64(db.MonthlyQuotaRemaining),
+				Ver:                   QuotaVesrion,
+			},*/
 		Ver: UserVersion,
 	})
 
@@ -88,9 +88,7 @@ func (db *BrigadeStorage) CreateUser(
 		return nil, fmt.Errorf("wg add: %w", err)
 	}
 
-	aggrStats(data, stats, db.ActivityPeriod)
-
-	dt.save(data, stats)
+	dt.Save(data, counters)
 	if err != nil {
 		return nil, fmt.Errorf("save: %w", err)
 	}
@@ -179,7 +177,7 @@ func assembleUser(data *Brigade, fullname string, isBrigadier bool, maxUsers int
 
 // DeleteUser - remove user from the storage.
 func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
-	dt, data, stats, addr, err := db.openWithReading()
+	dt, data, counters, _, addr, err := db.openWithReading()
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
@@ -202,9 +200,7 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 		return fmt.Errorf("peer del: %w", err)
 	}
 
-	aggrStats(data, stats, db.ActivityPeriod)
-
-	dt.save(data, stats)
+	dt.Save(data, counters)
 	if err != nil {
 		return fmt.Errorf("save: %w", err)
 	}
@@ -233,7 +229,7 @@ func (db *BrigadeStorage) removeBrigadier(data *Brigade, addr netip.AddrPort) er
 
 // ListUsers - list users.
 func (db *BrigadeStorage) ListUsers() ([]*User, error) {
-	dt, data, stats, _, err := db.openWithReading()
+	dt, data, counters, _, _, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
@@ -241,10 +237,9 @@ func (db *BrigadeStorage) ListUsers() ([]*User, error) {
 	defer dt.close()
 
 	ts := time.Now().UTC()
-	data.KeydeskLastVisit = ts
-	stats.KeydeskLastVisit = ts
+	counters.KeydeskLastVisit = ts
 
-	dt.save(data, stats)
+	dt.SaveCounters(counters)
 	if err != nil {
 		return nil, fmt.Errorf("save: %w", err)
 	}

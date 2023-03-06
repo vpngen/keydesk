@@ -12,12 +12,12 @@ import (
 func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPriv, wgShufflerPriv []byte) error {
 	var addr netip.AddrPort
 
-	dt, data, counters, err := db.openWithoutReading(config.BrigadeID)
+	f, data, err := db.openWithoutReading(config.BrigadeID)
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
 
-	defer dt.close()
+	defer f.Close()
 
 	calculatedAddrPort := vapnapi.CalcAPIAddrPort(config.EndpointIPv4)
 	fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", calculatedAddrPort)
@@ -48,9 +48,9 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 		return fmt.Errorf("wg add: %w", err)
 	}
 
-	err = dt.Save(data, counters)
+	err = CommitBrigade(f, data)
 	if err != nil {
-		return fmt.Errorf("save: %w", err)
+		return fmt.Errorf("commit: %w", err)
 	}
 
 	return nil
@@ -58,12 +58,12 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 
 // DestroyBrigade - remove brigade.
 func (db *BrigadeStorage) DestroyBrigade() error {
-	dt, data, _, _, addr, err := db.openWithReading()
+	f, data, addr, err := db.openWithReading()
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
 
-	defer dt.close()
+	defer f.Close()
 
 	// if we catch a slowdown problems we need organize queue
 	err = vapnapi.WgDel(addr, data.WgPrivateRouterEnc)

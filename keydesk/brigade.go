@@ -11,18 +11,18 @@ import (
 )
 
 // CreateBrigade - create brigadier user.
-func CreateBrigade(db *storage.BrigadeStorage, config *storage.BrigadeConfig, routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) ([]byte, error) {
+func CreateBrigade(db *storage.BrigadeStorage, config *storage.BrigadeConfig, routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) error {
 	wgPub, wgRouterPriv, wgShufflerPriv, err := genEndpointWGKeys(routerPubkey, shufflerPubkey)
 	if err != nil {
-		return nil, fmt.Errorf("wg keys: %w", err)
+		return fmt.Errorf("wg keys: %w", err)
 	}
 
 	err = db.CreateBrigade(config, wgPub, wgRouterPriv, wgShufflerPriv)
 	if err != nil {
-		return nil, fmt.Errorf("put: %w", err)
+		return fmt.Errorf("put: %w", err)
 	}
 
-	return wgPub, nil
+	return nil
 }
 
 // DestroyBrigade - destroy brigadier user.

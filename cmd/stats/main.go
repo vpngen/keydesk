@@ -1,41 +1,35 @@
 package main
 
 import (
+	"encoding/base32"
 	"flag"
 	"fmt"
 	"log"
+	"net/netip"
 	"os"
 	"os/signal"
+	"os/user"
 	"path/filepath"
 	"syscall"
 
-	"github.com/vpngen/keydesk/keydesk"
+	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/keydesk/storage"
+	"github.com/vpngen/keydesk/vapnapi"
 )
 
 func main() {
-	// debug, workDir, dbDir, quotasDir, listDir, err
-	debug, onedir, fakeaddr, workDir, dbBaseDir, quotasBaseDir, statsDir, listFile, err := parseArgs()
+	//  dbDir, statsDir, err
+	addr, brigadeID, dbDir, statsDir, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "DB Base Dir: %s\n", dbBaseDir)
-	fmt.Fprintf(os.Stderr, "Quotas Base Dir: %s\n", quotasBaseDir)
-	fmt.Fprintf(os.Stderr, "Brigades list file: %s\n", listFile)
-	if debug {
-		fmt.Fprintln(os.Stderr, "DEBUG mode")
-
-		if onedir {
-			fmt.Fprintln(os.Stderr, "ONE DIR mode")
-		}
-
-		if fakeaddr {
-			fmt.Fprintln(os.Stderr, "Fake API calls mode")
-		}
+	fmt.Fprintf(os.Stderr, "Brigade: %s\n", brigadeID)
+	fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
+	fmt.Fprintf(os.Stderr, "Statistics dir: %s\n", statsDir)
+	if !addr.IsValid() {
+		fmt.Fprintln(os.Stderr, "Fake API calls mode")
 	}
-
-	poller := NewJobList(debug, onedir, fakeaddr, workDir, dbBaseDir, quotasBaseDir, statsDir, listFile)
 
 	// On signal, gracefully shut down the server and wait 5
 	// seconds for current connections to stop.
@@ -55,113 +49,90 @@ func main() {
 
 	fmt.Fprintln(os.Stderr, "Starting...")
 
-	go poller.Refresh(kill, done)
+	go CollectingData(kill, done, addr, brigadeID, dbDir, statsDir)
 
 	<-done
 }
 
-func parseArgs() (bool, bool, bool, string, string, string, string, string, error) {
+func parseArgs() (netip.AddrPort, string, string, string, error) {
 	var (
-		workdir, hbasedir, qbasedir, statsdir, listfile string
-		err                                             error
+		id              string
+		dbdir, statsdir string
+		addrPort        netip.AddrPort
 	)
 
-	homeBaseDir := flag.String("b", "", "Dir base for dirs with brigade database. Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
-	quotasBaseDir := flag.String("q", "", "Dir base for dirs with quotas and traffic statistics. Default: "+storage.DefaultQuotasDir+"/<BrigadeID>")
-	statsDir := flag.String("s", "", "Dir with brigades statistics. Default: "+storage.DefaultStatsDir)
-	workDir := flag.String("w", "", "Dir with working files. Default: "+DefultWorkingDir)
-	listFile := flag.String("l", "", "Brigades list file. Default: "+filepath.Join(keydesk.DefaultBrigadesListDir, keydesk.DefaultBrigadesListFile))
-	oneDir := flag.Bool("o", false, "Don't create separate subdirs for brigades (only with -d)")
-	debug := flag.Bool("d", false, "Debug")
-	fakeAddr := flag.Bool("a", false, "Fake API calls (only with -d)")
+	sysUser, err := user.Current()
+	if err != nil {
+		return addrPort, "", "", "", fmt.Errorf("cannot define user: %w", err)
+	}
+
+	brigadeID := flag.String("id", "", "BrigadeID (for test)")
+	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
+	statsDir := flag.String("s", "", "Dir with brigades statistics. Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
+	addr := flag.String("a", vapnapi.TemplatedAddrPort, "API endpoint address:port")
 
 	flag.Parse()
 
-	if *workDir != "" {
-		qbasedir, err = filepath.Abs(*workDir)
+	if *filedbDir != "" {
+		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return false, false, false, "", "", "", "", "", fmt.Errorf("work dir: %w", err)
-		}
-	}
-
-	if *homeBaseDir != "" {
-		hbasedir, err = filepath.Abs(*homeBaseDir)
-		if err != nil {
-			return false, false, false, "", "", "", "", "", fmt.Errorf("home base dir: %w", err)
-		}
-	}
-
-	if *quotasBaseDir != "" {
-		qbasedir, err = filepath.Abs(*quotasBaseDir)
-		if err != nil {
-			return false, false, false, "", "", "", "", "", fmt.Errorf("quota base dir: %w", err)
+			return addrPort, "", "", "", fmt.Errorf("home base dir: %w", err)
 		}
 	}
 
 	if *statsDir != "" {
-		qbasedir, err = filepath.Abs(*statsDir)
+		statsdir, err = filepath.Abs(*statsDir)
 		if err != nil {
-			return false, false, false, "", "", "", "", "", fmt.Errorf("stats dir: %w", err)
+			return addrPort, "", "", "", fmt.Errorf("stats dir: %w", err)
 		}
 	}
 
-	if *listFile != "" {
-		listfile, err = filepath.Abs(*listFile)
-		if err != nil {
-			return false, false, false, "", "", "", "", "", fmt.Errorf("brigades list: %w", err)
-		}
-	}
+	switch *brigadeID {
+	case "", sysUser.Username:
+		id = sysUser.Username
 
-	switch *debug {
-	case true:
+		if *filedbDir == "" {
+			dbdir = filepath.Join(storage.DefaultHomeDir, id)
+		}
+
+		if *statsDir == "" {
+			dbdir = filepath.Join(storage.DefaultStatsDir, id)
+		}
+
+	default:
+		id = *brigadeID
+
 		cwd, err := os.Getwd()
 		if err == nil {
 			cwd, _ = filepath.Abs(cwd)
 		}
 
-		if *workDir == "" {
-			workdir = cwd
-		}
-
-		if *homeBaseDir == "" {
-			hbasedir = cwd
-		}
-
-		if *quotasBaseDir == "" {
-			qbasedir = cwd
+		if *filedbDir == "" {
+			dbdir = cwd
 		}
 
 		if *statsDir == "" {
 			statsdir = cwd
 		}
+	}
 
-		if *listFile == "" {
-			listfile = filepath.Join(cwd, keydesk.DefaultBrigadesListFile)
-		}
-	default:
-		*oneDir = false
-		*fakeAddr = false
+	// brigadeID must be base32 decodable.
+	binID, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(id)
+	if err != nil {
+		return addrPort, "", "", "", fmt.Errorf("id base32: %s: %w", id, err)
+	}
 
-		if *workDir == "" {
-			workdir = DefultWorkingDir
-		}
+	_, err = uuid.FromBytes(binID)
+	if err != nil {
+		return addrPort, "", "", "", fmt.Errorf("id uuid: %s: %w", id, err)
+	}
 
-		if *homeBaseDir == "" {
-			qbasedir = storage.DefaultHomeDir
-		}
-
-		if *quotasBaseDir == "" {
-			qbasedir = storage.DefaultQuotasDir
-		}
-
-		if *statsDir == "" {
-			qbasedir = storage.DefaultStatsDir
-		}
-
-		if *listFile == "" {
-			listfile = filepath.Join(keydesk.DefaultBrigadesListDir, keydesk.DefaultBrigadesListFile)
+	if *addr != "-" {
+		addrPort, err = netip.ParseAddrPort(*addr)
+		if err != nil {
+			return addrPort, "", "", "", fmt.Errorf("api addr: %w", err)
 		}
 	}
 
-	return *debug, *oneDir, *fakeAddr, workdir, hbasedir, qbasedir, statsdir, listfile, nil
+	return addrPort, id, dbdir, statsdir, nil
 }

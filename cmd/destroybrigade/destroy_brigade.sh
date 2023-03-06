@@ -9,11 +9,8 @@
 # * Remove schema role
 # * Remove database schema
 
-BRIGADES_LIST_FILE="/var/lib/vgkeydesk/brigades.lst"
 BASE_STATS_DIR="/var/lib/vgstats"
 BRIGADE_REMOVER_APP_PATH="/opt/vgkeydesk/destroybrigade"
-
-VGLIST_GROUP="vglist"
 
 spinlock="`[ ! -z \"${TMPDIR}\" ] && echo -n \"${TMPDIR}/\" || echo -n \"/tmp/\" ; echo \"vgbrigade.spinlock\"`"
 trap "rm -f \"${spinlock}\" 2>/dev/null" EXIT
@@ -71,17 +68,6 @@ if [ -d "${BASE_STATS_DIR}/${brigade_id}" ]; then
         fi
 
         rmdir "${BASE_STATS_DIR}/${brigade_id}"
-fi
-
-# Remove from list
-tmplist="/tmp/"$(basename "${BRIGADES_LIST_FILE}")
-if [ -f "${BRIGADES_LIST_FILE}" ]; then 
-        if sed "/^${brigade_id};/d" > "${tmplist}"; then 
-                install -o root -g ${VGLIST_GROUP} -m 640 "${tmplist}" "${BRIGADES_LIST_FILE}"
-                rm -f "${tmplist}"
-        else
-                exit 1 
-        fi
 fi
 
 # Remove system user

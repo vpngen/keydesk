@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -10,17 +9,14 @@ import (
 	"time"
 
 	"github.com/vpngen/keydesk/kdlib"
-	"github.com/vpngen/keydesk/kdlib/lockedfile"
 	"github.com/vpngen/keydesk/vapnapi"
 )
 
 // Filenames.
 const (
-	BrigadeFilename         = "brigade.json"
-	StatsFilename           = "stats.json"
-	KeydeskCountersFilename = "counters.json"
-	QuotasFilename          = "quotas.json"
-	FileDbMode              = 0644
+	BrigadeFilename = "brigade.json"
+	StatsFilename   = "stats.json"
+	FileDbMode      = 0644
 )
 
 var (
@@ -47,58 +43,19 @@ type BrigadeStorageOpts struct {
 
 // BrigadeStorage - brigade file storage.
 type BrigadeStorage struct {
-	BrigadeID        string
-	BrigadeFilename  string // i.e. /home/<BrigadeID>/brigade.json
-	CountersFilename string // i.e. /home/<BrigadeID>/counter.json
-	QuotasFilename   string // i.e. /var/lib/vgquotas/<BrigadeID>/quota.json
-	APIAddrPort      netip.AddrPort
+	BrigadeID       string
+	BrigadeFilename string // i.e. /home/<BrigadeID>/brigade.json
+	APIAddrPort     netip.AddrPort
 	BrigadeStorageOpts
 }
 
-// pairFilesBrigadeStats - open and parsed data.
-type pairFilesBrigadeStats struct {
-	brigadeFile, keydeskCountersFile *kdlib.FileDb
-}
-
-func (dt *pairFilesBrigadeStats) Save(data *Brigade, counters *KeydeskCounters) error {
-	if err := dt.brigadeFile.Encoder(" ", " ").Encode(data); err != nil {
+func CommitBrigade(f *kdlib.FileDb, data *Brigade) error {
+	if err := f.Encoder(" ", " ").Encode(data); err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
 
-	if err := dt.brigadeFile.Commit(); err != nil {
+	if err := f.Commit(); err != nil {
 		return fmt.Errorf("commit: %w", err)
-	}
-
-	if err := dt.keydeskCountersFile.Encoder(" ", " ").Encode(counters); err != nil {
-		return fmt.Errorf("encode: %w", err)
-	}
-
-	if err := dt.keydeskCountersFile.Commit(); err != nil {
-		return fmt.Errorf("commit: %w", err)
-	}
-
-	return nil
-}
-
-func (dt *pairFilesBrigadeStats) SaveCounters(counters *KeydeskCounters) error {
-	if err := dt.keydeskCountersFile.Encoder(" ", " ").Encode(counters); err != nil {
-		return fmt.Errorf("encode: %w", err)
-	}
-
-	if err := dt.keydeskCountersFile.Commit(); err != nil {
-		return fmt.Errorf("commit: %w", err)
-	}
-
-	return nil
-}
-
-func (dt *pairFilesBrigadeStats) close() error {
-	if err := dt.brigadeFile.Close(); err != nil {
-		return fmt.Errorf("brigade: %w", err)
-	}
-
-	if err := dt.keydeskCountersFile.Close(); err != nil {
-		return fmt.Errorf("counters: %w", err)
 	}
 
 	return nil
@@ -107,8 +64,6 @@ func (dt *pairFilesBrigadeStats) close() error {
 // SelfCheck - self check func.
 func (db *BrigadeStorage) SelfCheck() error {
 	if db.BrigadeFilename == "" ||
-		db.CountersFilename == "" ||
-		db.QuotasFilename == "" ||
 		db.BrigadeID == "" ||
 		db.MaxUsers == 0 ||
 		db.ActivityPeriod == 0 ||
@@ -117,54 +72,6 @@ func (db *BrigadeStorage) SelfCheck() error {
 	}
 
 	return nil
-}
-
-func (db *BrigadeStorage) openCountersWithReading() (*kdlib.FileDb, *KeydeskCounters, error) {
-	f, err := kdlib.OpenFileDb(db.QuotasFilename, FileDbMode)
-	if err != nil {
-		return nil, nil, fmt.Errorf("open: %w", err)
-	}
-
-	counters := &KeydeskCounters{}
-
-	err = f.Decoder().Decode(counters)
-	if err != nil {
-		f.Close()
-
-		return nil, nil, fmt.Errorf("decode: %w", err)
-	}
-
-	if counters.BrigadeID != db.BrigadeID {
-		return nil, nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
-	}
-
-	return f, counters, nil
-}
-
-func (db *BrigadeStorage) readQuotas() (*UsersQuotas, error) {
-	f, err := lockedfile.OpenFile(db.QuotasFilename, os.O_RDONLY, 0)
-	if err != nil {
-		return nil, fmt.Errorf("open: %w", err)
-	}
-
-	defer f.Close()
-
-	quotas := &UsersQuotas{}
-
-	err = json.NewDecoder(f).Decode(quotas)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-
-		return nil, fmt.Errorf("decode: %w", err)
-	}
-
-	if quotas.BrigadeID != db.BrigadeID {
-		return nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
-	}
-
-	return quotas, nil
 }
 
 func (db *BrigadeStorage) openBrigadeWithReading() (*kdlib.FileDb, *Brigade, error) {
@@ -193,22 +100,12 @@ func (db *BrigadeStorage) openBrigadeWithReading() (*kdlib.FileDb, *Brigade, err
 	return f, data, nil
 }
 
-func (db *BrigadeStorage) openWithReading() (*pairFilesBrigadeStats, *Brigade, *KeydeskCounters, *UsersQuotas, netip.AddrPort, error) {
+func (db *BrigadeStorage) openWithReading() (*kdlib.FileDb, *Brigade, netip.AddrPort, error) {
 	addr := netip.AddrPort{}
 
-	fb, data, err := db.openBrigadeWithReading()
+	f, data, err := db.openBrigadeWithReading()
 	if err != nil {
-		return nil, nil, nil, nil, addr, fmt.Errorf("brigade: %w", err)
-	}
-
-	fc, counters, err := db.openCountersWithReading()
-	if err != nil {
-		return nil, nil, nil, nil, addr, fmt.Errorf("stats: %w", err)
-	}
-
-	quotas, err := db.readQuotas()
-	if err != nil {
-		return nil, nil, nil, nil, addr, fmt.Errorf("quotas: %w", err)
+		return nil, nil, addr, fmt.Errorf("brigade: %w", err)
 	}
 
 	calculatedAddrPort := vapnapi.CalcAPIAddrPort(data.EndpointIPv4)
@@ -224,10 +121,7 @@ func (db *BrigadeStorage) openWithReading() (*pairFilesBrigadeStats, *Brigade, *
 		}
 	}
 
-	return &pairFilesBrigadeStats{
-		brigadeFile:         fb,
-		keydeskCountersFile: fc,
-	}, data, counters, quotas, addr, nil
+	return f, data, addr, nil
 }
 
 func (db *BrigadeStorage) openBrigadeWithoutReading() (*kdlib.FileDb, *Brigade, error) {
@@ -255,57 +149,20 @@ func (db *BrigadeStorage) openBrigadeWithoutReading() (*kdlib.FileDb, *Brigade, 
 	return f, data, nil
 }
 
-func (db *BrigadeStorage) openCounterWithoutReading() (*kdlib.FileDb, *KeydeskCounters, error) {
-	f, err := kdlib.OpenFileDb(db.QuotasFilename, FileDbMode)
-	if err != nil {
-		return nil, nil, fmt.Errorf("open: %w", err)
-	}
-
-	counters := &KeydeskCounters{}
-
-	err = f.Decoder().Decode(counters)
-	switch err {
-	case nil:
-		f.Close()
-
-		return nil, nil, fmt.Errorf("integrity: %w", ErrBrigadeAlreadyExists)
-	case io.EOF:
-		break
-	default:
-		f.Close()
-
-		return nil, nil, fmt.Errorf("decode: %w", err)
-	}
-
-	return f, counters, nil
-}
-
-func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*pairFilesBrigadeStats, *Brigade, *KeydeskCounters, error) {
+func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*kdlib.FileDb, *Brigade, error) {
 	if brigadeID != db.BrigadeID {
-		return nil, nil, nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
+		return nil, nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
 	}
 
-	fb, data, err := db.openBrigadeWithoutReading()
+	f, data, err := db.openBrigadeWithoutReading()
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("brigade: %w", err)
+		return nil, nil, fmt.Errorf("brigade: %w", err)
 	}
-
-	fs, counters, err := db.openCounterWithoutReading()
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("stats: %w", err)
-	}
-
-	data.Ver = BrigadeVersion
-	counters.Ver = KeydeskCountersVersion
-
-	data.BrigadeID = brigadeID
-	counters.BrigadeID = brigadeID
 
 	ts := time.Now().UTC()
+	data.Ver = BrigadeVersion
+	data.BrigadeID = brigadeID
 	data.CreatedAt = ts
 
-	return &pairFilesBrigadeStats{
-		brigadeFile:         fb,
-		keydeskCountersFile: fs,
-	}, data, counters, nil
+	return f, data, nil
 }

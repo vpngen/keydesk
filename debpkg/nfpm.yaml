@@ -25,12 +25,6 @@ contents:
     mode: 0111
     owner: root
     group: root
-- dst: /var/lib/vgkeydesk
-  type: dir
-  file_info:
-    mode: 0710
-    owner: root
-    group: vglist
 - dst: /var/lib/vgstats
   type: dir
   file_info:

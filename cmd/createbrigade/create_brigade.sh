@@ -16,7 +16,6 @@
 
 # creating brigade and brigadier app.
 
-BRIGADES_LIST_FILE="/var/lib/vgkeydesk/brigades.lst"
 BASE_HOME_DIR="/home"
 BASE_STATS_DIR="/var/lib/vgstats"
 BRIGADE_MAKER_APP_PATH="/opt/vgkeydesk/createbrigade"
@@ -24,7 +23,6 @@ KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
 
 VGCERT_GROUP="vgcert"
 VGSTATS_GROUP="vgstats"
-VGLIST_GROUP="vglist"
 
 spinlock="`[ ! -z \"${TMPDIR}\" ] && echo -n \"${TMPDIR}/\" || echo -n \"/tmp/\" ; echo \"vgbrigade.spinlock\"`"
 trap "rm -f \"${spinlock}\" 2>/dev/null" EXIT
@@ -65,12 +63,9 @@ fi
 
 # * Check if brigade is exists
 
-if [ -f "${BRIGADES_LIST_FILE}" ]; then
-        test=$(grep -o "^${brigade_id};" < "${BRIGADES_LIST_FILE}" | tr -d ";")
-        if [ "x${brigade_id}" -eq "x${test}" ]; then
-                echo "Brigade ${brigade_id} already exists" >&2
-                exit 1
-        fi 
+if [ -s "${BASE_HOME_DIR}/${brigade_id}/created" ]; then
+        echo "Brigade ${brigade_id} already exists" >&2
+        exit 1
 fi
 
 # * Create system user
@@ -81,13 +76,8 @@ install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 710 -d "${BASE_STATS_DIR}/${
 
 # Create json datafile
 
-wg_public_key=$(sudo -u "${brigade_id}" -g "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" ${chunked} -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}")
+$(sudo -u "${brigade_id}" -g "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" ${chunked} -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}")
 if [ "$?" -ne 0 ]; then
-        exit 1
-fi
-
-if [ "${#wg_public_key}" -ne 44 ]; then
-        echo "Invalid wg pubkey: ${wg_public_key}" >&2
         exit 1
 fi
 
@@ -128,14 +118,7 @@ systemd_vgstats_instance="vgstats@${brigade_id}"
 systemctl -q enable "${systemd_vgstats_instance}.service"
 systemctl -q start "${systemd_vgstats_instance}.service"
 
-tmplist="/tmp/"$(basename "${BRIGADES_LIST_FILE}")
-if [ -f "${BRIGADES_LIST_FILE}" ]; then 
-        cp -f "${BRIGADES_LIST_FILE}" "${tmplist}"
-fi
-
-echo "${brigade_id};${endpoint_ipv4};${wg_public_key}" >> "${tmplist}"
-install -o root -g ${VGLIST_GROUP} -m 640 "${tmplist}" "${BRIGADES_LIST_FILE}"
-rm -f "${tmplist}"
-
 # Print brigadier config
 echo "${wgconf}"
+
+echo  $(date -u +"%Y-%m-%dT%H:%M:%S") > "${BASE_HOME_DIR}/${brigade_id}/created"

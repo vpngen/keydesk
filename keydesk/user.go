@@ -151,7 +151,7 @@ func DelUserUserID(db *storage.BrigadeStorage, params operations.DeleteUserUserI
 
 // GetUsers - .
 func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, principal interface{}) middleware.Responder {
-	storageUsers, quotas, err := db.ListUsers()
+	storageUsers, err := db.ListUsers()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "List error: %s\n", err)
 
@@ -170,21 +170,17 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 			PersonDescLink: user.Person.URL,
 		}
 
-		if quotas != nil {
-			if quota, ok := quotas.Users[id]; ok {
-				if !quota.ThrottlingTill.IsZero() {
-					apiUsers[i].ThrottlingTill = (*strfmt.DateTime)(&quota.ThrottlingTill)
-				}
-
-				if !quota.LastActivity.IsZero() {
-					apiUsers[i].LastVisitHour = (*strfmt.DateTime)(&quota.LastActivity)
-				}
-
-				x := float64(int((float64(quota.LimitMonthlyRemaining/1024/1024)/1024)*100)) / 100
-				apiUsers[i].MonthlyQuotaRemainingGB = float32(x)
-				apiUsers[i].LastVisitHour = (*strfmt.DateTime)(&quota.LastActivity)
-			}
+		if !user.Quotas.ThrottlingTill.IsZero() {
+			apiUsers[i].ThrottlingTill = (*strfmt.DateTime)(&user.Quotas.ThrottlingTill)
 		}
+
+		if !user.Quotas.LastActivity.IsZero() {
+			apiUsers[i].LastVisitHour = (*strfmt.DateTime)(&user.Quotas.LastActivity)
+		}
+
+		x := float64(int((float64(user.Quotas.LimitMonthlyRemaining/1024/1024)/1024)*100)) / 100
+		apiUsers[i].MonthlyQuotaRemainingGB = float32(x)
+		apiUsers[i].LastVisitHour = (*strfmt.DateTime)(&user.Quotas.LastActivity)
 	}
 
 	return operations.NewGetUserOK().WithPayload(apiUsers)

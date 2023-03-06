@@ -1,6 +1,5 @@
 #!/bin/sh
 
-BRIGADES_LIST_FILE="/var/lib/vgkeydesk/brigades.lst"
 KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
 
 spinlock="`[ ! -z \"${TMPDIR}\" ] && echo -n \"${TMPDIR}/\" || echo -n \"/tmp/\" ; echo \"vgbrigade.spinlock\"`"
@@ -36,13 +35,9 @@ fi
 
 # * Check if brigade does not exists
 # !!! lib???
-
-if [ -f "${BRIGADES_LIST_FILE}" ]; then
-        test=$(grep -o "${brigade_id};" < "${BRIGADES_LIST_FILE}" | tr -d ";")
-        if [ "x${brigade_id}" -ne "x${test}" ]; then
-                echo "Brigade ${brigade_id} does not exists" >&2
-                exit 1
-        fi 
+if [ !-s "${BASE_HOME_DIR}/${brigade_id}/created" ]; then
+        echo "Brigade ${brigade_id} does not exists" >&2
+        exit 1
 fi
 
 if ! sudo -u ${brigade_id} -g  ${brigade_id} ${KEYDESK_APP_PATH} -r ${chunked} -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}"; then

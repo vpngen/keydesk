@@ -16,22 +16,21 @@ import (
 	"github.com/vpngen/keydesk/vapnapi"
 )
 
-func parseArgs() (netip.AddrPort, string, string, string, error) {
+func parseArgs() (netip.AddrPort, string, string, error) {
 	var (
-		addrPort        netip.AddrPort
-		dbdir, statsdir string
-		id              string
+		addrPort netip.AddrPort
+		dbdir    string
+		id       string
 	)
 
 	sysUser, err := user.Current()
 	if err != nil {
-		return addrPort, "", "", "", fmt.Errorf("cannot define user: %w", err)
+		return addrPort, "", "", fmt.Errorf("cannot define user: %w", err)
 	}
 
 	// is id only for debug?
 	brigadeID := flag.String("id", "", "brigadier_id")
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
-	statsDir := flag.String("s", "", "Dir for statistic files (for test). Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
 
 	addr := flag.String("a", vapnapi.TemplatedAddrPort, "API endpoint address:port")
 
@@ -40,14 +39,7 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 	if *filedbDir != "" {
 		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return addrPort, "", "", "", fmt.Errorf("dbdir dir: %w", err)
-		}
-	}
-
-	if *statsDir != "" {
-		statsdir, err = filepath.Abs(*statsDir)
-		if err != nil {
-			return addrPort, "", "", "", fmt.Errorf("statdir dir: %w", err)
+			return addrPort, "", "", fmt.Errorf("dbdir dir: %w", err)
 		}
 	}
 
@@ -57,10 +49,6 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 
 		if *filedbDir == "" {
 			dbdir = filepath.Join(storage.DefaultHomeDir, id)
-		}
-
-		if *statsDir == "" {
-			statsdir = filepath.Join(storage.DefaultStatsDir, id)
 		}
 
 	default:
@@ -74,35 +62,31 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 		if *filedbDir == "" {
 			dbdir = cwd
 		}
-
-		if *statsDir == "" {
-			statsdir = cwd
-		}
 	}
 
 	// brigadeID must be base32 decodable.
 	binID, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(id)
 	if err != nil {
-		return addrPort, "", "", "", fmt.Errorf("id base32: %s: %w", id, err)
+		return addrPort, "", "", fmt.Errorf("id base32: %s: %w", id, err)
 	}
 
 	_, err = uuid.FromBytes(binID)
 	if err != nil {
-		return addrPort, "", "", "", fmt.Errorf("id uuid: %s: %w", id, err)
+		return addrPort, "", "", fmt.Errorf("id uuid: %s: %w", id, err)
 	}
 
 	if *addr != "-" {
 		addrPort, err = netip.ParseAddrPort(*addr)
 		if err != nil {
-			return addrPort, "", "", "", fmt.Errorf("api addr: %w", err)
+			return addrPort, "", "", fmt.Errorf("api addr: %w", err)
 		}
 	}
 
-	return addrPort, id, dbdir, statsdir, nil
+	return addrPort, id, dbdir, nil
 }
 
 func main() {
-	addr, brigadeID, dbDir, statsDir, err := parseArgs()
+	addr, brigadeID, dbDir, err := parseArgs()
 	if err != nil {
 		flag.PrintDefaults()
 		log.Fatalf("Can't parse args: %s", err)
@@ -111,7 +95,6 @@ func main() {
 	db := &storage.BrigadeStorage{
 		BrigadeID:       brigadeID,
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
-		QuotasFilename:  filepath.Join(statsDir, storage.StatsFilename),
 		APIAddrPort:     addr,
 		BrigadeStorageOpts: storage.BrigadeStorageOpts{
 			MaxUsers:              keydesk.MaxUsers,

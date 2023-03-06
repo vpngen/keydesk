@@ -32,21 +32,13 @@ const QuotaVesrion = 1
 
 // Quota - user quota.
 type Quota struct {
-	UserID                uuid.UUID   `json:"user_id"`
+	OSCounters            RxTx        `json:"os_counters"`
 	Counters              NetCounters `json:"counters"`
 	LimitMonthlyRemaining uint64      `json:"limit_monthly_remaining"`
 	LimitMonthlyResetOn   time.Time   `json:"limit_monthly_reset_on"`
 	LastActivity          time.Time   `json:"last_activity"`
 	ThrottlingTill        time.Time   `json:"throttling_till"`
 	Ver                   int         `json:"version"`
-}
-
-// UsersQuotas - list users quotas.
-type UsersQuotas struct {
-	BrigadeID string           `json:"brigade_id"`
-	Total     NetCounters      `json:"total"`
-	Users     map[string]Quota `json:"users,omitempty"`
-	Ver       int              `json:"version"`
 }
 
 // UserVersion - json version.
@@ -64,17 +56,8 @@ type User struct {
 	WgPSKRouterEnc   []byte                `json:"wg_psk_router_enc"`
 	WgPSKShufflerEnc []byte                `json:"wg_psk_shuffler_enc"`
 	Person           namesgenerator.Person `json:"person"`
+	Quotas           Quota                 `json:"quotas"`
 	Ver              int                   `json:"version"`
-}
-
-// KeydeskCountersVersion - json version.
-const KeydeskCountersVersion = 1
-
-// KeydeskCounters - counters.
-type KeydeskCounters struct {
-	BrigadeID        string    `json:"brigade_id"`
-	KeydeskLastVisit time.Time `json:"keydesk_last_visit,omitempty"`
-	Ver              int       `json:"version"`
 }
 
 // BrigadeVersion - json version.
@@ -94,6 +77,9 @@ type Brigade struct {
 	IPv4CGNAT            netip.Prefix `json:"ipv4_cgnat"`
 	IPv6ULA              netip.Prefix `json:"ipv6_ula"`
 	Users                []*User      `json:"users,omitempty"`
+	KeydeskLastVisit     time.Time    `json:"keydesk_last_visit,omitempty"`
+	TotalTraffic         NetCounters  `json:"total"`
+	OSCountersUpdated    int64        `json:"os_counters_updated"`
 	Ver                  int          `json:"version"`
 }
 
@@ -123,14 +109,13 @@ const StatsVersion = 1
 
 // Stats - statistics.
 type Stats struct {
-	BrigadeID          string    `json:"brigade_id"`
-	Updated            time.Time `json:"updated"`
-	BrigadeCreatedAt   time.Time `json:"brigade_created_at"`
-	KeydeskLastVisit   time.Time `json:"keydesk_last_visit,omitempty"`
-	UsersCount         int       `json:"users_count"`
-	ActiveUsersCount   int       `json:"active_users_count"`
-	ThrottledUserCount int       `json:"throttled_users_count"`
-	TotalRx            uint64    `json:"total_rx"`
-	TotalTx            uint64    `json:"total_tx"`
-	Ver                int       `json:"version"`
+	BrigadeID          string      `json:"brigade_id"`
+	Updated            time.Time   `json:"updated"`
+	BrigadeCreatedAt   time.Time   `json:"brigade_created_at"`
+	KeydeskLastVisit   time.Time   `json:"keydesk_last_visit,omitempty"`
+	UsersCount         int         `json:"users_count"`
+	ActiveUsersCount   int         `json:"active_users_count"`
+	ThrottledUserCount int         `json:"throttled_users_count"`
+	TotalTraffic       NetCounters `json:"total"`
+	Ver                int         `json:"version"`
 }

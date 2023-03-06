@@ -27,8 +27,13 @@ func main() {
 	fmt.Fprintf(os.Stderr, "Brigade: %s\n", brigadeID)
 	fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
 	fmt.Fprintf(os.Stderr, "Statistics dir: %s\n", statsDir)
-	if !addr.IsValid() {
-		fmt.Fprintln(os.Stderr, "Fake API calls mode")
+	switch {
+	case addr.IsValid() && !addr.Addr().IsUnspecified():
+		fmt.Fprintf(os.Stderr, "Command address:port: %s\n", addr)
+	case addr.IsValid():
+		fmt.Fprintln(os.Stderr, "Command address:port is COMMON")
+	default:
+		fmt.Fprintln(os.Stderr, "Command address:port is for DEBUG")
 	}
 
 	// On signal, gracefully shut down the server and wait 5

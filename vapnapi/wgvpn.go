@@ -72,3 +72,17 @@ func WgDel(addr netip.AddrPort, wgPriv []byte) error {
 
 	return nil
 }
+
+// WgStat - stat endpoint API call.
+func WgStat(addr netip.AddrPort, wgPub []byte) ([]byte, error) {
+	query := fmt.Sprintf("stat=%s",
+		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub)),
+	)
+
+	body, err := getAPIRequest(addr, query)
+	if err != nil {
+		return nil, fmt.Errorf("api: %w", err)
+	}
+
+	return body, nil
+}

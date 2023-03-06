@@ -30,20 +30,24 @@ func CollectingData(kill <-chan struct{}, done chan<- struct{}, addr netip.AddrP
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 
+	statsFilename := filepath.Join(statsDir, storage.StatsFilename)
+
 	jit := rand.Int63n(DefaultJitterValue) + 1
 	timer := time.NewTimer(time.Duration(jit) * time.Second)
+
+	defer timer.Stop()
 
 	for {
 		select {
 		case ts := <-timer.C:
-			fmt.Fprintf(os.Stderr, "%s: Collecting data: %s: %s\n", ts.UTC().Format(time.RFC3339), brigadeID, addr)
+			fmt.Fprintf(os.Stderr, "%s: Collecting data: %s: %s\n", ts.UTC().Format(time.RFC3339), brigadeID, statsFilename)
+
+			if err := db.GetStats(statsFilename); err != nil {
+				fmt.Fprintf(os.Stderr, "Error collecting stats: %s\n", err)
+			}
 
 			timer.Reset(DefaultStatisticsFetchingDuration)
 		case <-kill:
-			if !timer.Stop() {
-				<-timer.C
-			}
-
 			return
 		}
 	}

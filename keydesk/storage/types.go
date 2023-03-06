@@ -13,12 +13,12 @@ const NetCountersVersion = 1
 
 // NetCounters - traffic counters container.
 type NetCounters struct {
+	Ver     int       `json:"version"`
 	Update  time.Time `json:"update,omitempty"`
 	Total   RxTx      `json:"total"`
 	Monthly RxTx      `json:"monthly"`
 	Weekly  RxTx      `json:"weekly"`
 	Daily   RxTx      `json:"daily"`
-	Ver     int       `json:"version"`
 }
 
 // RxTx - rx/tx counters.
@@ -32,13 +32,13 @@ const QuotaVesrion = 1
 
 // Quota - user quota.
 type Quota struct {
+	Ver                   int         `json:"version"`
 	OSCounters            RxTx        `json:"os_counters"`
 	Counters              NetCounters `json:"counters"`
 	LimitMonthlyRemaining uint64      `json:"limit_monthly_remaining"`
 	LimitMonthlyResetOn   time.Time   `json:"limit_monthly_reset_on,omitempty"`
 	LastActivity          time.Time   `json:"last_activity,omitempty"`
 	ThrottlingTill        time.Time   `json:"throttling_till,omitempty"`
-	Ver                   int         `json:"version"`
 }
 
 // UserVersion - json version.
@@ -46,6 +46,7 @@ const UserVersion = 1
 
 // User - user structure.
 type User struct {
+	Ver              int                   `json:"version"`
 	UserID           uuid.UUID             `json:"user_id"`
 	Name             string                `json:"name"`
 	CreatedAt        time.Time             `json:"created_at"`
@@ -57,7 +58,6 @@ type User struct {
 	WgPSKShufflerEnc []byte                `json:"wg_psk_shuffler_enc"`
 	Person           namesgenerator.Person `json:"person"`
 	Quotas           Quota                 `json:"quotas"`
-	Ver              int                   `json:"version"`
 }
 
 // BrigadeVersion - json version.
@@ -65,6 +65,7 @@ const BrigadeVersion = 1
 
 // Brigade - brigade.
 type Brigade struct {
+	Ver                  int          `json:"version"`
 	BrigadeID            string       `json:"brigade_id"`
 	CreatedAt            time.Time    `json:"created_at"`
 	WgPublicKey          []byte       `json:"wg_public_key"`
@@ -76,11 +77,10 @@ type Brigade struct {
 	KeydeskIPv6          netip.Addr   `json:"keydesk_ipv6"`
 	IPv4CGNAT            netip.Prefix `json:"ipv4_cgnat"`
 	IPv6ULA              netip.Prefix `json:"ipv6_ula"`
-	Users                []*User      `json:"users,omitempty"`
 	KeydeskLastVisit     time.Time    `json:"keydesk_last_visit,omitempty"`
 	TotalTraffic         NetCounters  `json:"total"`
 	OSCountersUpdated    int64        `json:"os_counters_updated"`
-	Ver                  int          `json:"version"`
+	Users                []*User      `json:"users,omitempty"`
 }
 
 // UserConfig - new user structure.
@@ -109,6 +109,7 @@ const StatsVersion = 1
 
 // Stats - statistics.
 type Stats struct {
+	Ver                int         `json:"version"`
 	BrigadeID          string      `json:"brigade_id"`
 	Updated            time.Time   `json:"updated"`
 	BrigadeCreatedAt   time.Time   `json:"brigade_created_at"`
@@ -117,5 +118,4 @@ type Stats struct {
 	ActiveUsersCount   int         `json:"active_users_count"`
 	ThrottledUserCount int         `json:"throttled_users_count"`
 	TotalTraffic       NetCounters `json:"total"`
-	Ver                int         `json:"version"`
 }

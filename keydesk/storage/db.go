@@ -61,6 +61,18 @@ func CommitBrigade(f *kdlib.FileDb, data *Brigade) error {
 	return nil
 }
 
+func CommitStats(f *kdlib.FileDb, stats *Stats) error {
+	if err := f.Encoder(" ", " ").Encode(stats); err != nil {
+		return fmt.Errorf("encode: %w", err)
+	}
+
+	if err := f.Commit(); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+
+	return nil
+}
+
 // SelfCheck - self check func.
 func (db *BrigadeStorage) SelfCheck() error {
 	if db.BrigadeFilename == "" ||
@@ -88,13 +100,17 @@ func (db *BrigadeStorage) openBrigadeWithReading() (*kdlib.FileDb, *Brigade, err
 		return nil, nil, fmt.Errorf("decode: %w", err)
 	}
 
-	// backup is read was succesfull.
-	if err := f.Backup(); err != nil {
-		return nil, nil, fmt.Errorf("backup: %w", err)
+	if data.BrigadeID != db.BrigadeID {
+		f.Close()
+
+		return nil, nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
 	}
 
-	if data.BrigadeID != db.BrigadeID {
-		return nil, nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
+	// backup is read was succesfull.
+	if err := f.Backup(); err != nil {
+		f.Close()
+
+		return nil, nil, fmt.Errorf("backup: %w", err)
 	}
 
 	return f, data, nil
@@ -102,7 +118,6 @@ func (db *BrigadeStorage) openBrigadeWithReading() (*kdlib.FileDb, *Brigade, err
 
 func (db *BrigadeStorage) openWithReading() (*kdlib.FileDb, *Brigade, netip.AddrPort, error) {
 	addr := netip.AddrPort{}
-
 	f, data, err := db.openBrigadeWithReading()
 	if err != nil {
 		return nil, nil, addr, fmt.Errorf("brigade: %w", err)
@@ -165,4 +180,13 @@ func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*kdlib.FileDb, *
 	data.CreatedAt = ts
 
 	return f, data, nil
+}
+
+func openStats(statsFilename string) (*kdlib.FileDb, error) {
+	f, err := kdlib.OpenFileDb(statsFilename, FileDbMode)
+	if err != nil {
+		return nil, fmt.Errorf("open: %w", err)
+	}
+
+	return f, nil
 }

@@ -22,6 +22,50 @@ func (db *BrigadeStorage) GetStats(statsFilename string, endpointsTTL time.Durat
 	return nil
 }
 
+func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
+	defer func() {
+		points.Update = now
+	}()
+
+	points.Total = lastActivity
+
+	year, month, day := now.Date()
+	lsYear, lsMonth, lsDay := lastActivity.Date()
+
+	if lsYear == year && lsMonth == month && lsDay == day {
+		points.Daily = lastActivity
+
+		return
+	}
+
+	points.Daily = time.Time{}
+
+	if lsYear != year {
+		points.Weekly = time.Time{}
+		points.Monthly = time.Time{}
+		points.Yearly = time.Time{}
+
+		return
+	}
+
+	points.Yearly = lastActivity
+
+	switch {
+	case lastActivity.Before(now.Add(-time.Hour * 24 * 7)):
+		points.Weekly = time.Time{}
+	case now.Weekday() < lastActivity.Weekday():
+		points.Weekly = time.Time{}
+	}
+
+	if lsMonth != month {
+		points.Monthly = time.Time{}
+
+		return
+	}
+
+	points.Monthly = lastActivity
+}
+
 func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *NetCounters) {
 	defer func() {
 		counters.Update = now
@@ -56,11 +100,10 @@ func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *NetCounters) {
 
 	counters.Yearly.Inc(rx, tx)
 
-	if counters.Update.Before(now.Add(-time.Hour * 24 * 7)) {
+	switch {
+	case counters.Update.Before(now.Add(-time.Hour * 24 * 7)):
 		counters.Weekly.Reset(0, 0)
-	}
-
-	if now.Weekday() < counters.Update.Weekday() {
+	case now.Weekday() < counters.Update.Weekday():
 		counters.Weekly.Reset(0, 0)
 	}
 
@@ -136,8 +179,8 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 			}
 		}
 
-		if lastSeen, ok := lastSeenMap[id]; ok {
-			user.Quotas.LastActivity = lastSeen.Time
+		if lastActivity, ok := lastSeenMap[id]; ok {
+			lastActivityMark(now, lastActivity.Time, &user.Quotas.LastActivity)
 		}
 
 		if !user.Quotas.ThrottlingTill.IsZero() && user.Quotas.ThrottlingTill.After(now) {

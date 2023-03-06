@@ -22,12 +22,12 @@ type WgStatTraffic struct {
 
 type WgStatTrafficMap map[string]*WgStatTraffic
 
-type WgStatLastSeen struct {
+type WgStatLastActivity struct {
 	WgPub string
 	Time  time.Time
 }
 
-type WgStatLastSeenMap map[string]*WgStatLastSeen
+type WgStatLastActivityMap map[string]*WgStatLastActivity
 
 type WgStatEndpoint struct {
 	WgPub  string
@@ -85,8 +85,8 @@ func WgStatParseTraffic(traffic string) (WgStatTrafficMap, error) {
 	return m, nil
 }
 
-func WgStatParseLastSeen(lastSeen string) (WgStatLastSeenMap, error) {
-	var m = WgStatLastSeenMap{}
+func WgStatParseLastActivity(lastSeen string) (WgStatLastActivityMap, error) {
+	var m = WgStatLastActivityMap{}
 
 	for _, line := range strings.Split(lastSeen, "\n") {
 		if line == "" {
@@ -107,7 +107,7 @@ func WgStatParseLastSeen(lastSeen string) (WgStatLastSeenMap, error) {
 			continue
 		}
 
-		m[clmns[0]] = &WgStatLastSeen{
+		m[clmns[0]] = &WgStatLastActivity{
 			WgPub: clmns[0],
 			Time:  time.Unix(ts, 0).UTC(),
 		}
@@ -143,7 +143,7 @@ func WgStatParseEndpoints(lastSeen string) (WgStatEndpointMap, error) {
 	return m, nil
 }
 
-func WgStatParse(resp *WGStats) (*WgStatTimestamp, WgStatTrafficMap, WgStatLastSeenMap, WgStatEndpointMap, error) {
+func WgStatParse(resp *WGStats) (*WgStatTimestamp, WgStatTrafficMap, WgStatLastActivityMap, WgStatEndpointMap, error) {
 	ts, err := WgStatParseTimestamp(resp.Timestamp)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
@@ -154,7 +154,7 @@ func WgStatParse(resp *WGStats) (*WgStatTimestamp, WgStatTrafficMap, WgStatLastS
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}
 
-	lastSeenMap, err := WgStatParseLastSeen(resp.LastSeen)
+	lastActivityMap, err := WgStatParseLastActivity(resp.LastActivity)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}
@@ -164,5 +164,5 @@ func WgStatParse(resp *WGStats) (*WgStatTimestamp, WgStatTrafficMap, WgStatLastS
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}
 
-	return ts, trafficMap, lastSeenMap, endpointsMap, nil
+	return ts, trafficMap, lastActivityMap, endpointsMap, nil
 }

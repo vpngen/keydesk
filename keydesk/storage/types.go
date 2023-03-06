@@ -46,13 +46,13 @@ const QuotaVesrion = 1
 
 // Quota - user quota.
 type Quota struct {
-	Ver                   int         `json:"version"`
-	OSCounters            RxTx        `json:"os_counters"`
-	Counters              NetCounters `json:"counters"`
-	LimitMonthlyRemaining uint64      `json:"limit_monthly_remaining"`
-	LimitMonthlyResetOn   time.Time   `json:"limit_monthly_reset_on,omitempty"`
-	LastActivity          time.Time   `json:"last_activity,omitempty"`
-	ThrottlingTill        time.Time   `json:"throttling_till,omitempty"`
+	Ver                   int                `json:"version"`
+	OSCounters            RxTx               `json:"os_counters"`
+	Counters              NetCounters        `json:"counters"`
+	LimitMonthlyRemaining uint64             `json:"limit_monthly_remaining"`
+	LimitMonthlyResetOn   time.Time          `json:"limit_monthly_reset_on,omitempty"`
+	LastActivity          LastActivityPoints `json:"last_activity,omitempty"`
+	ThrottlingTill        time.Time          `json:"throttling_till,omitempty"`
 }
 
 // UserVersion - json version.
@@ -136,4 +136,14 @@ type Stats struct {
 	ThrottledUserCount int           `json:"throttled_users_count"`
 	TotalTraffic       NetCounters   `json:"total"`
 	Endpoints          UsersNetworks `json:"endpoints,omitempty"`
+}
+
+// LastActivityPoints - traffic counters container.
+type LastActivityPoints struct {
+	Update  time.Time `json:"update,omitempty"`
+	Total   time.Time `json:"total"`
+	Yearly  time.Time `json:"yearly"`
+	Monthly time.Time `json:"monthly"`
+	Weekly  time.Time `json:"weekly"`
+	Daily   time.Time `json:"daily"`
 }

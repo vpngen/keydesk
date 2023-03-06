@@ -9,11 +9,11 @@ import (
 )
 
 type WGStats struct {
-	Code      string `json:"code"`
-	Traffic   string `json:"traffic"`
-	LastSeen  string `json:"last-seen"`
-	Endpoints string `json:"endpoints"`
-	Timestamp string `json:"timestamp"`
+	Code         string `json:"code"`
+	Traffic      string `json:"traffic"`
+	LastActivity string `json:"last-seen"`
+	Endpoints    string `json:"endpoints"`
+	Timestamp    string `json:"timestamp"`
 }
 
 // WgPeerAdd - peer_add endpoint-API call.

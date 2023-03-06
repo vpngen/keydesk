@@ -8,9 +8,22 @@ import (
 
 // GetStats - create brigade config.
 func (db *BrigadeStorage) GetStats(statsFilename string) error {
+	data, err := db.getStatsQuota()
+	if err != nil {
+		return fmt.Errorf("quota: %w", err)
+	}
+
+	if err := db.putStatsStats(data, statsFilename); err != nil {
+		return fmt.Errorf("stats: %w", err)
+	}
+
+	return nil
+}
+
+func (db *BrigadeStorage) getStatsQuota() (*Brigade, error) {
 	f, data, addr, err := db.openWithReading()
 	if err != nil {
-		return fmt.Errorf("db: %w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
 
 	defer f.Close()
@@ -18,14 +31,18 @@ func (db *BrigadeStorage) GetStats(statsFilename string) error {
 	// if we catch a slowdown problems we need organize queue
 	_, err = vapnapi.WgStat(addr, data.WgPublicKey)
 	if err != nil {
-		return fmt.Errorf("wg stat: %w", err)
+		return nil, fmt.Errorf("wg stat: %w", err)
 	}
 
 	err = CommitBrigade(f, data)
 	if err != nil {
-		return fmt.Errorf("commit: %w", err)
+		return nil, fmt.Errorf("commit: %w", err)
 	}
 
+	return data, nil
+}
+
+func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename string) error {
 	stats := &Stats{
 		BrigadeID:        data.BrigadeID,
 		BrigadeCreatedAt: data.CreatedAt,

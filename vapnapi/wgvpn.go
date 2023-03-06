@@ -2,10 +2,19 @@ package vapnapi
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/netip"
 	"net/url"
 )
+
+type WGStats struct {
+	Code      string `json:"code"`
+	Traffic   string `json:"traffic"`
+	LastSeen  string `json:"last-seen"`
+	Endpoints string `json:"endpoints"`
+	Timestamp string `json:"timestamp"`
+}
 
 // WgPeerAdd - peer_add endpoint-API call.
 func WgPeerAdd(addr netip.AddrPort, wgPub, wgIfacePub, wgPSK []byte, ipv4, ipv6, keydesk netip.Addr) error {
@@ -74,7 +83,7 @@ func WgDel(addr netip.AddrPort, wgPriv []byte) error {
 }
 
 // WgStat - stat endpoint API call.
-func WgStat(addr netip.AddrPort, wgPub []byte) ([]byte, error) {
+func WgStat(addr netip.AddrPort, wgPub []byte) (*WGStats, error) {
 	query := fmt.Sprintf("stat=%s",
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub)),
 	)
@@ -84,5 +93,10 @@ func WgStat(addr netip.AddrPort, wgPub []byte) ([]byte, error) {
 		return nil, fmt.Errorf("api: %w", err)
 	}
 
-	return body, nil
+	data := &WGStats{}
+	if err := json.Unmarshal(body, data); err != nil {
+		return nil, fmt.Errorf("api payload: %w", err)
+	}
+
+	return data, nil
 }

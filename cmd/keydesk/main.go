@@ -96,7 +96,14 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "Etc: %s\n", etcDir)
 	fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
-	fmt.Fprintf(os.Stderr, "Command address:port: %s\n", addr)
+	switch {
+	case addr.IsValid() && !addr.Addr().IsUnspecified():
+		fmt.Fprintf(os.Stderr, "Command address:port: %s\n", addr)
+	case addr.IsValid():
+		fmt.Fprintln(os.Stderr, "Command address:port is COMMON")
+	default:
+		fmt.Fprintln(os.Stderr, "Command address:port is for DEBUG")
+	}
 
 	// Just create brigadier.
 	if name != "" {

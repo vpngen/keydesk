@@ -13,7 +13,7 @@ const NetCountersVersion = 1
 
 // NetCounters - traffic counters container.
 type NetCounters struct {
-	Update  time.Time `json:"update"`
+	Update  time.Time `json:"update,omitempty"`
 	Total   RxTx      `json:"total"`
 	Monthly RxTx      `json:"monthly"`
 	Weekly  RxTx      `json:"weekly"`
@@ -35,9 +35,9 @@ type Quota struct {
 	OSCounters            RxTx        `json:"os_counters"`
 	Counters              NetCounters `json:"counters"`
 	LimitMonthlyRemaining uint64      `json:"limit_monthly_remaining"`
-	LimitMonthlyResetOn   time.Time   `json:"limit_monthly_reset_on"`
-	LastActivity          time.Time   `json:"last_activity"`
-	ThrottlingTill        time.Time   `json:"throttling_till"`
+	LimitMonthlyResetOn   time.Time   `json:"limit_monthly_reset_on,omitempty"`
+	LastActivity          time.Time   `json:"last_activity,omitempty"`
+	ThrottlingTill        time.Time   `json:"throttling_till,omitempty"`
 	Ver                   int         `json:"version"`
 }
 

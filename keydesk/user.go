@@ -180,7 +180,6 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 
 		x := float64(int((float64(user.Quotas.LimitMonthlyRemaining/1024/1024)/1024)*100)) / 100
 		apiUsers[i].MonthlyQuotaRemainingGB = float32(x)
-		apiUsers[i].LastVisitHour = (*strfmt.DateTime)(&user.Quotas.LastActivity)
 	}
 
 	return operations.NewGetUserOK().WithPayload(apiUsers)

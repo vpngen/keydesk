@@ -4,7 +4,7 @@ platform: "linux"
 version: 1.0.1
 section: "default"
 priority: "extra"
-release: 1
+release: 2
 
 provides:
 - vgkeydesk
@@ -109,6 +109,7 @@ deb:
   compression: xz
   breaks:
   - vgkeydesk (<< 1.0.0)
+  - vgkeydesk-all (<< 1.0.0)
   - vgkeydesk-conf
   - vgkeydes-db
   - vgkeydesk-queue

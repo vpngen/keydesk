@@ -41,6 +41,8 @@ func (db *BrigadeStorage) CreateUser(
 		return nil, fmt.Errorf("assemble: %w", err)
 	}
 
+	ts := time.Now().UTC()
+
 	userconf := &UserConfig{
 		ID:               id,
 		Name:             name,
@@ -55,7 +57,7 @@ func (db *BrigadeStorage) CreateUser(
 	data.Users = append(data.Users, &User{
 		UserID:           userconf.ID,
 		Name:             userconf.Name,
-		CreatedAt:        time.Now().UTC(), // creazy but can be data.KeydeskLastVisit
+		CreatedAt:        ts, // creazy but can be data.KeydeskLastVisit
 		IsBrigadier:      isBrigadier,
 		IPv4Addr:         userconf.IPv4,
 		IPv6Addr:         userconf.IPv6,
@@ -68,6 +70,7 @@ func (db *BrigadeStorage) CreateUser(
 				Ver: NetCountersVersion,
 			},
 			LimitMonthlyRemaining: uint64(db.MonthlyQuotaRemaining),
+			LimitMonthlyResetOn:   kdlib.NextMonth(ts),
 			Ver:                   QuotaVesrion,
 		},
 		Ver: UserVersion,

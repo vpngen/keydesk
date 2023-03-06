@@ -100,12 +100,20 @@ contents:
 
 overrides:
   deb:
-    conflicts:
-    - vgkeydesk (< 1.0.0)
     scripts:
       preinstall: /data/src/preinstall.sh
       postinstall: /data/src/postinstall.sh
       preremove: /data/src/preremove.sh
       postremove: /data/src/postremove.sh
 deb:
- compression: xz
+  compression: xz
+  breaks:
+  - vgkeydesk (<< 1.0.0)
+  - vgkeydesk-conf
+  - vgkeydes-db
+  - vgkeydesk-queue
+  - vgkeydesk-spawner
+  - vgkeydesk-spawner-access
+  - vgkeydesk-stats
+  - vgkeydesk-stats-access
+

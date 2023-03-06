@@ -93,7 +93,8 @@ func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *NetCounters) {
 
 func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Duration, monthlyQuotaRemaining int) error {
 	var (
-		total RxTx
+		total     RxTx
+		throttled int
 	)
 
 	statsTimestamp, trafficMap, lastSeenMap, endpointMap, err := vapnapi.WgStatParse(wgStats)
@@ -138,7 +139,13 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 		if lastSeen, ok := lastSeenMap[id]; ok {
 			user.Quotas.LastActivity = lastSeen.Time
 		}
+
+		if !user.Quotas.ThrottlingTill.IsZero() && user.Quotas.ThrottlingTill.After(now) {
+			throttled++
+		}
 	}
+
+	data.ThrottledUserCount = throttled
 
 	if inc {
 		incDateSwitchRelated(now, total.Rx, total.Tx, &data.TotalTraffic)
@@ -192,13 +199,15 @@ func (db *BrigadeStorage) getStatsQuota(endpointsTTL time.Duration) (*Brigade, e
 
 func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename string) error {
 	stats := &Stats{
-		BrigadeID:        data.BrigadeID,
-		BrigadeCreatedAt: data.CreatedAt,
-		KeydeskLastVisit: data.KeydeskLastVisit,
-		UsersCount:       len(data.Users),
-		TotalTraffic:     data.TotalTraffic,
-		Endpoints:        data.Endpoints,
-		Ver:              StatsVersion,
+		BrigadeID:          data.BrigadeID,
+		BrigadeCreatedAt:   data.CreatedAt,
+		KeydeskLastVisit:   data.KeydeskLastVisit,
+		UsersCount:         len(data.Users),
+		ActiveUsersCount:   data.ActiveUsersCount,
+		ThrottledUserCount: data.ThrottledUserCount,
+		TotalTraffic:       data.TotalTraffic,
+		Endpoints:          data.Endpoints,
+		Ver:                StatsVersion,
 	}
 
 	fs, err := openStats(statsFilename)

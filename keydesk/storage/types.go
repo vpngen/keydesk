@@ -92,8 +92,10 @@ type Brigade struct {
 	IPv4CGNAT            netip.Prefix  `json:"ipv4_cgnat"`
 	IPv6ULA              netip.Prefix  `json:"ipv6_ula"`
 	KeydeskLastVisit     time.Time     `json:"keydesk_last_visit,omitempty"`
-	TotalTraffic         NetCounters   `json:"total"`
+	ActiveUsersCount     int           `json:"active_users_count"`
+	ThrottledUserCount   int           `json:"throttled_users_count"`
 	OSCountersUpdated    int64         `json:"os_counters_updated"`
+	TotalTraffic         NetCounters   `json:"total"`
 	Users                []*User       `json:"users,omitempty"`
 	Endpoints            UsersNetworks `json:"endpoints,omitempty"`
 }

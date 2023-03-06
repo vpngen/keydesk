@@ -26,35 +26,38 @@ The `authorized_keys` file configuration must force the ssh command:
 Executes with root permission by `sudo` command
 
 * Exclusive lock on `/tmp/vgbrigade.spinlock`
-* Check a special brigades list file `/var/lib/vgkeydesk/brigades.lst` (root:root 0600) if the brigade already exists (collision)
-* Create the target brigade system user
-* Create the target brigade file database and brigade config on the endpoint by execution special script with the target brigade user permissions
-* Create the target brigade brigadier user by execution keydesk binary with special flgas with the target brigade user permissions
-* Enable and start the target keydesk systemd units (_vgkeydesk_ service with socket activation)
-* Enable and start the target brigade stats systemd unit (_vgstats_ service)
-* Add `BrigadeID` to the brigades list file `/var/lib/vgkeydesk/brigades.lst`
+* Check file `/home/<BrigadeID>/created` to check that BRIGATE does not exists
+* Create the target brigade (later BRIGADE) system user (later USER) with <BrigadeID> username
+* Create `/home/<BrigadeID>` home directory (<BrigadeID>:<BrigadeID> 0700)
+* Create `/var/lib/vgstats/<BrigadeID>` directory (<BrigadeID>:vgstat 0710)
+* Create the BRIGADE `brigade.json` file and VPN instance by execution creation script with the USER permissions
+* Create the BRIGADE brigadier VPN-user by execution keydesk binary with the USER permissions and using special flgas 
+* Enable and start the BRIGADE keydesk systemd units (_vgkeydesk_ service with socket activation)
+* Enable and start the BRIGADE stats systemd unit (_vgstats_ service)
+* Create file `/home/<BrigadeID>/created`
 
 ## Destroy brigade
 
 Executes with root permission by `sudo` command
 
 * Exclusive lock on `/tmp/vgbrigade.spinlock`
-* Do not check a special brigades list file `/var/lib/vgkeydesk/brigades.lst`! It does not matter.
-* Stop and disable the target keydesk systemd units (_vgkeydesk_ service with socket activation)
-* Stop and disable the target brigade stats systemd unit (_vgstats_ service)
-* Remove target brigade config from endpoint by execution special script with the target brigade user permissions
-* Remove the target brigade system user
-* Remove `BrigadeID` from the brigades list file `/var/lib/vgkeydesk/brigades.lst`
+* Stop and disable the BRIGADE keydesk systemd units (_vgkeydesk_ service with socket activation)
+* Stop and disable the BRIGADE stats systemd unit (_vgstats_ service)
+* Remove the BRIGADE VPN instance by execution special script with the USER permissions
+* Remove `/var/lib/vgstats/<BrigadeID>` directory
+* Remove the USER system user
 
 ## Recreate brigadier
 
 Executes with root permission by `sudo` command
 
 * Exclusive lock on `/tmp/vgbrigade.spinlock`
-* Check a special brigades list file `/var/lib/vgkeydesk/brigades.lst` for brigade presents
-* Replace the target brigade brigadier user by execution keydesk binary with special flgas with the target brigade user permissions
+* Check file `/home/<BrigadeID>/created` to check that BRIGATE exists
+* Replace the BRIGADE brigadier VPN-user by execution keydesk binary with the USER permissions and using special flgas
 
 ## Replay configs
+
+!!! TODO
 
 Executes with root permission by `sudo` command
 

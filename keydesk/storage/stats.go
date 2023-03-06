@@ -1,14 +1,16 @@
 package storage
 
 import (
+	"encoding/base64"
 	"fmt"
+	"time"
 
 	"github.com/vpngen/keydesk/vapnapi"
 )
 
 // GetStats - create brigade config.
-func (db *BrigadeStorage) GetStats(statsFilename string) error {
-	data, err := db.getStatsQuota()
+func (db *BrigadeStorage) GetStats(statsFilename string, endpointsTTL time.Duration) error {
+	data, err := db.getStatsQuota(endpointsTTL)
 	if err != nil {
 		return fmt.Errorf("quota: %w", err)
 	}
@@ -20,7 +22,143 @@ func (db *BrigadeStorage) GetStats(statsFilename string) error {
 	return nil
 }
 
-func (db *BrigadeStorage) getStatsQuota() (*Brigade, error) {
+func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *NetCounters) {
+	counters.Total.Inc(rx, tx)
+
+	prevYear, prevMonth, prevDay := counters.Update.Date()
+	year, month, day := now.Date()
+
+	if prevYear == year && prevMonth == month && prevDay == day {
+		counters.Daily.Inc(rx, tx)
+		counters.Weekly.Inc(rx, tx)
+		counters.Monthly.Inc(rx, tx)
+		counters.Yearly.Inc(rx, tx)
+
+		return
+	}
+
+	if prevYear != year {
+		counters.Yearly.Reset(0, 0)
+
+		testYear, _, _ := counters.Update.AddDate(1, 0, 0).Date()
+		if testYear != year {
+			counters.Daily.Reset(0, 0)
+			counters.Weekly.Reset(0, 0)
+			counters.Monthly.Reset(0, 0)
+
+			return
+		}
+	}
+
+	counters.Yearly.Inc(rx, tx)
+
+	if counters.Update.Before(now.Add(-time.Hour * 24 * 7)) {
+		counters.Weekly.Reset(0, 0)
+	}
+
+	if now.Weekday() < counters.Update.Weekday() {
+		counters.Weekly.Reset(0, 0)
+	}
+
+	counters.Weekly.Reset(rx, tx)
+
+	if prevMonth != month {
+		counters.Monthly.Reset(0, 0)
+
+		testYear, testMonth, _ := counters.Update.AddDate(0, 1, 0).Date()
+		if testYear != year || testMonth != month {
+			counters.Daily.Reset(0, 0)
+
+			return
+		}
+	}
+
+	counters.Monthly.Inc(rx, tx)
+
+	if prevDay != day {
+		counters.Daily.Reset(0, 0)
+
+		_, _, testDay := counters.Update.AddDate(0, 0, 1).Date()
+		if testDay != day {
+			return
+		}
+	}
+
+	counters.Daily.Reset(rx, tx)
+}
+
+func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Duration, monthlyQuotaRemaining int) error {
+	var (
+		Total RxTx
+	)
+
+	statsTimestamp, trafficMap, lastSeenMap, endpointMap, err := vapnapi.WgStatParse(wgStats)
+	if err != nil {
+		return fmt.Errorf("parse: %w", err)
+	}
+
+	now := time.Now().UTC()
+	inc := data.OSCountersUpdated != 0
+
+	for _, user := range data.Users {
+		id := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(user.WgPublicKey)
+
+		if traffic, ok := trafficMap[id]; ok {
+			rx := traffic.Rx
+			tx := traffic.Tx
+
+			if user.Quotas.OSCounters.Rx <= traffic.Rx {
+				rx = traffic.Rx - user.Quotas.OSCounters.Rx
+			}
+
+			if user.Quotas.OSCounters.Tx <= traffic.Tx {
+				tx = traffic.Tx - user.Quotas.OSCounters.Tx
+			}
+
+			user.Quotas.OSCounters.Rx = traffic.Rx
+			user.Quotas.OSCounters.Tx = traffic.Tx
+
+			if inc {
+				Total.Inc(rx, tx)
+
+				incDateSwitchRelated(now, rx, tx, &user.Quotas.Counters)
+				if user.Quotas.LimitMonthlyResetOn.Before(now) {
+					user.Quotas.LimitMonthlyRemaining = uint64(monthlyQuotaRemaining)
+					user.Quotas.LimitMonthlyResetOn = now.AddDate(0, 1, 0)
+				}
+
+				user.Quotas.LimitMonthlyRemaining -= (rx + tx)
+
+				user.Quotas.Counters.Update = now
+			}
+		}
+
+		if lastSeen, ok := lastSeenMap[id]; ok {
+			user.Quotas.LastActivity = lastSeen.Time
+		}
+	}
+
+	if inc {
+		data.TotalTraffic.Total.Inc(Total.Rx, Total.Tx)
+	}
+
+	for _, prefix := range endpointMap {
+		data.Endpoints[prefix.Prefix.String()] = now
+	}
+
+	lowLimit := now.Add(-endpointsTTL)
+	for prefix, updated := range data.Endpoints {
+		if updated.Before(lowLimit) {
+			delete(data.Endpoints, prefix)
+		}
+	}
+
+	data.OSCountersUpdated = statsTimestamp.Timestamp
+
+	return nil
+}
+
+func (db *BrigadeStorage) getStatsQuota(endpointsTTL time.Duration) (*Brigade, error) {
 	f, data, addr, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
@@ -29,9 +167,13 @@ func (db *BrigadeStorage) getStatsQuota() (*Brigade, error) {
 	defer f.Close()
 
 	// if we catch a slowdown problems we need organize queue
-	_, err = vapnapi.WgStat(addr, data.WgPublicKey)
+	wgStats, err := vapnapi.WgStat(addr, data.WgPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("wg stat: %w", err)
+	}
+
+	if err := mergeStats(data, wgStats, endpointsTTL, db.MonthlyQuotaRemaining); err != nil {
+		return nil, fmt.Errorf("merge stats: %w", err)
 	}
 
 	err = CommitBrigade(f, data)

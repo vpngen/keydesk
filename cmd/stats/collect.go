@@ -42,7 +42,7 @@ func CollectingData(kill <-chan struct{}, done chan<- struct{}, addr netip.AddrP
 		case ts := <-timer.C:
 			fmt.Fprintf(os.Stderr, "%s: Collecting data: %s: %s\n", ts.UTC().Format(time.RFC3339), brigadeID, statsFilename)
 
-			if err := db.GetStats(statsFilename); err != nil {
+			if err := db.GetStats(statsFilename, keydesk.DefaultEndpointsTTL); err != nil {
 				fmt.Fprintf(os.Stderr, "Error collecting stats: %s\n", err)
 			}
 

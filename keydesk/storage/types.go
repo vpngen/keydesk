@@ -8,6 +8,9 @@ import (
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
 
+// UsersNetworks - nets from stats.
+type UsersNetworks map[string]time.Time
+
 // NetCountersVersion - json version.
 const NetCountersVersion = 1
 
@@ -16,6 +19,7 @@ type NetCounters struct {
 	Ver     int       `json:"version"`
 	Update  time.Time `json:"update,omitempty"`
 	Total   RxTx      `json:"total"`
+	Yearly  RxTx      `json:"yearly"`
 	Monthly RxTx      `json:"monthly"`
 	Weekly  RxTx      `json:"weekly"`
 	Daily   RxTx      `json:"daily"`
@@ -25,6 +29,16 @@ type NetCounters struct {
 type RxTx struct {
 	Rx uint64 `json:"rx"`
 	Tx uint64 `json:"tx"`
+}
+
+func (x *RxTx) Inc(rx, tx uint64) {
+	x.Rx += rx
+	x.Tx += tx
+}
+
+func (x *RxTx) Reset(rx, tx uint64) {
+	x.Rx = rx
+	x.Tx = tx
 }
 
 // QuotaVesrion - json version.
@@ -65,22 +79,23 @@ const BrigadeVersion = 1
 
 // Brigade - brigade.
 type Brigade struct {
-	Ver                  int          `json:"version"`
-	BrigadeID            string       `json:"brigade_id"`
-	CreatedAt            time.Time    `json:"created_at"`
-	WgPublicKey          []byte       `json:"wg_public_key"`
-	WgPrivateRouterEnc   []byte       `json:"wg_private_router_enc"`
-	WgPrivateShufflerEnc []byte       `json:"wg_private_shuffler_enc"`
-	EndpointIPv4         netip.Addr   `json:"endpoint_ipv4"`
-	DNSv4                netip.Addr   `json:"dns4"`
-	DNSv6                netip.Addr   `json:"dns6"`
-	KeydeskIPv6          netip.Addr   `json:"keydesk_ipv6"`
-	IPv4CGNAT            netip.Prefix `json:"ipv4_cgnat"`
-	IPv6ULA              netip.Prefix `json:"ipv6_ula"`
-	KeydeskLastVisit     time.Time    `json:"keydesk_last_visit,omitempty"`
-	TotalTraffic         NetCounters  `json:"total"`
-	OSCountersUpdated    int64        `json:"os_counters_updated"`
-	Users                []*User      `json:"users,omitempty"`
+	Ver                  int           `json:"version"`
+	BrigadeID            string        `json:"brigade_id"`
+	CreatedAt            time.Time     `json:"created_at"`
+	WgPublicKey          []byte        `json:"wg_public_key"`
+	WgPrivateRouterEnc   []byte        `json:"wg_private_router_enc"`
+	WgPrivateShufflerEnc []byte        `json:"wg_private_shuffler_enc"`
+	EndpointIPv4         netip.Addr    `json:"endpoint_ipv4"`
+	DNSv4                netip.Addr    `json:"dns4"`
+	DNSv6                netip.Addr    `json:"dns6"`
+	KeydeskIPv6          netip.Addr    `json:"keydesk_ipv6"`
+	IPv4CGNAT            netip.Prefix  `json:"ipv4_cgnat"`
+	IPv6ULA              netip.Prefix  `json:"ipv6_ula"`
+	KeydeskLastVisit     time.Time     `json:"keydesk_last_visit,omitempty"`
+	TotalTraffic         NetCounters   `json:"total"`
+	OSCountersUpdated    int64         `json:"os_counters_updated"`
+	Users                []*User       `json:"users,omitempty"`
+	Endpoints            UsersNetworks `json:"endpoints,omitempty"`
 }
 
 // UserConfig - new user structure.
@@ -109,13 +124,14 @@ const StatsVersion = 1
 
 // Stats - statistics.
 type Stats struct {
-	Ver                int         `json:"version"`
-	BrigadeID          string      `json:"brigade_id"`
-	Updated            time.Time   `json:"updated"`
-	BrigadeCreatedAt   time.Time   `json:"brigade_created_at"`
-	KeydeskLastVisit   time.Time   `json:"keydesk_last_visit,omitempty"`
-	UsersCount         int         `json:"users_count"`
-	ActiveUsersCount   int         `json:"active_users_count"`
-	ThrottledUserCount int         `json:"throttled_users_count"`
-	TotalTraffic       NetCounters `json:"total"`
+	Ver                int           `json:"version"`
+	BrigadeID          string        `json:"brigade_id"`
+	Updated            time.Time     `json:"updated"`
+	BrigadeCreatedAt   time.Time     `json:"brigade_created_at"`
+	KeydeskLastVisit   time.Time     `json:"keydesk_last_visit,omitempty"`
+	UsersCount         int           `json:"users_count"`
+	ActiveUsersCount   int           `json:"active_users_count"`
+	ThrottledUserCount int           `json:"throttled_users_count"`
+	TotalTraffic       NetCounters   `json:"total"`
+	Endpoints          UsersNetworks `json:"endpoints,omitempty"`
 }

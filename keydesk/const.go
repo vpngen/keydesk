@@ -17,3 +17,7 @@ const (
 	DefaultBrigadesListFile = "brigades.lst"
 	DefaultBrigadesListDir  = "/var/lib/vgkeydesk"
 )
+
+const (
+	DefaultEndpointsTTL = 24 * 30 * 2 * time.Hour
+)

@@ -7,9 +7,6 @@ export CGO_ENABLED=0
 RELEASE=${BRANCH:-"latest"}
 
 go install github.com/vpngen/keydesk/cmd/keydesk@${RELEASE}
-go install github.com/vpngen/keydesk/cmd/stats@${RELEASE}
-go install github.com/vpngen/keydesk/cmd/createbrigade@${RELEASE}
-go install github.com/vpngen/keydesk/cmd/destroybrigade@${RELEASE}
 
 go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
 

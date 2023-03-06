@@ -1,10 +1,14 @@
 #!/bin/sh
 
 remove() {
-        printf "\033[32m Pre Remove of a normal remove\033[0m\n"
+        printf "\033[32m Post Remove of a normal remove\033[0m\n"
 
-        printf "\033[32m Stop the service unit\033[0m\n"
-        systemctl stop --force 'vgkeydesk@*.socket' 'vgkeydesk@*.service' ||:
+        printf "\033[32m Reload the service unit from disk\033[0m\n"
+        systemctl daemon-reload ||:
+}
+
+purge() {
+    printf "\033[32m Pre Remove purge, deb only\033[0m\n"
 }
 
 upgrade() {
@@ -22,8 +26,8 @@ case "$action" in
   "1" | "upgrade")
     upgrade
     ;;
-  "failed-upgrade")
-    upgrade
+  "purge")
+    purge
     ;;
   *)
     printf "\033[32m Alpine\033[0m"

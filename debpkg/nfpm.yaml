@@ -1,16 +1,15 @@
 name: "vgkeydesk"
 arch: "amd64"
 platform: "linux"
-version: 0.0.3
+version: 1.0.1
 section: "default"
 priority: "extra"
-release: 6
+release: 2
 
 provides:
 - vgkeydesk
 depends:
-- vgkeydesk-conf
-- vgkeydesk-queue
+- cert-vpn-works
 - vgkeydesk-web
 
 maintainer: "Ingmund Ollson <ingmund@proton.me>"
@@ -20,22 +19,84 @@ homepage: "http://vpngen.org"
 license: "LGPL"
 
 contents:
-- dst: /opt/keydesk
+- dst: /opt/vgkeydesk
   type: dir
   file_info:
-    mode: 0555
+    mode: 0111
+    owner: root
+    group: root
+- dst: /var/lib/vgstats
+  type: dir
+  file_info:
+    mode: 0711
     owner: root
     group: root
 - src: bin/keydesk
-  dst: /opt/keydesk/keydesk
+  dst: /opt/vgkeydesk/keydesk
   file_info:
-    mode: 0005
+    mode: 0001
     owner: root
     group: root
-- src: keydesk/systemd/keydesk@.service
-  dst: /etc/systemd/system/keydesk@.service
-- src: keydesk/systemd/keydesk@.socket
-  dst: /etc/systemd/system/keydesk@.socket
+- src: bin/stats
+  dst: /opt/vgkeydesk/stats
+  file_info:
+    mode: 0001
+    owner: root
+    group: root
+- src: bin/createbrigade
+  dst: /opt/vgkeydesk/createbrigade
+  file_info:
+    mode: 0001
+    owner: root
+    group: root
+- src: bin/destroybrigade
+  dst: /opt/vgkeydesk/destroybrigade
+  file_info:
+    mode: 0001
+    owner: root
+    group: root
+- src: keydesk/cmd/createbrigade/create_brigade.sh
+  dst: /opt/vgkeydesk/create_brigade.sh
+  file_info:
+    mode: 0100
+    owner: root
+    group: root
+- src: keydesk/cmd/destroybrigade/destroy_brigade.sh
+  dst: /opt/vgkeydesk/destroy_brigade.sh
+  file_info:
+    mode: 0100
+    owner: root
+    group: root
+- src: keydesk/cmd/replacebrigadier/replace_brigadier.sh
+  dst: /opt/vgkeydesk/replace_brigadier.sh
+  file_info:
+    mode: 0100
+    owner: root
+    group: root
+- src: keydesk/cmd/sshcmd/ssh_brigade_command.sh
+  dst: /opt/vgkeydesk/ssh_brigade_command.sh
+  file_info:
+    mode: 0001
+    owner: root
+    group: root
+- src: keydesk/cmd/fetchstats/fetch_stats.sh
+  dst: /opt/vgkeydesk/fetch_stats.sh
+  file_info:
+    mode: 0001
+    owner: root
+    group: root
+- src: keydesk/cmd/sshcmd/ssh_stats_command.sh
+  dst: /opt/vgkeydesk/ssh_stats_command.sh
+  file_info:
+    mode: 0001
+    owner: root
+    group: root
+- src: keydesk/systemd/vgkeydesk@.service
+  dst: /etc/systemd/system/vgkeydesk@.service
+- src: keydesk/systemd/vgkeydesk@.socket
+  dst: /etc/systemd/system/vgkeydesk@.socket
+- src: keydesk/systemd/vgstats@.service
+  dst: /etc/systemd/system/vgstats@.service
 
 overrides:
   deb:
@@ -47,7 +108,15 @@ overrides:
       preremove: /data/src/preremove.sh
       postremove: /data/src/postremove.sh
 deb:
- compression: xz
- fields:
-   Pre-Depends: vgkeydesk-db
+  compression: xz
+  breaks:
+  - vgkeydesk (<< 1.0.0)
+  - vgkeydesk-all (<< 1.0.0)
+  - vgkeydesk-conf
+  - vgkeydes-db
+  - vgkeydesk-queue
+  - vgkeydesk-spawner
+  - vgkeydesk-spawner-access
+  - vgkeydesk-stats
+  - vgkeydesk-stats-access
 

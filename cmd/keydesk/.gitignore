@@ -1,5 +1,8 @@
 keydesk
-dbname
-router.pub
-shuffler.pub
-
+*.pub
+*.priv
+*.json
+*.tmp
+*.bak
+*.key
+*.crt

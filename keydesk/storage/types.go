@@ -140,10 +140,11 @@ type Stats struct {
 
 // LastActivityPoints - traffic counters container.
 type LastActivityPoints struct {
-	Update  time.Time `json:"update,omitempty"`
-	Total   time.Time `json:"total"`
-	Yearly  time.Time `json:"yearly"`
-	Monthly time.Time `json:"monthly"`
-	Weekly  time.Time `json:"weekly"`
-	Daily   time.Time `json:"daily"`
+	Update      time.Time `json:"update,omitempty"`
+	Total       time.Time `json:"total"`
+	Yearly      time.Time `json:"yearly"`
+	Monthly     time.Time `json:"monthly"`
+	PrevMonthly time.Time `json:"prev_monthly"`
+	Weekly      time.Time `json:"weekly"`
+	Daily       time.Time `json:"daily"`
 }

@@ -27,7 +27,16 @@ func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
 		points.Update = now
 	}()
 
-	points.Total = lastActivity
+	switch {
+	case lastActivity.IsZero():
+		if points.Total.IsZero() {
+			return
+		}
+
+		lastActivity = points.Total
+	default:
+		points.Total = lastActivity
+	}
 
 	year, month, day := now.Date()
 	lsYear, lsMonth, lsDay := lastActivity.Date()
@@ -43,6 +52,7 @@ func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
 	if lsYear != year {
 		points.Weekly = time.Time{}
 		points.Monthly = time.Time{}
+		points.PrevMonthly = time.Time{}
 		points.Yearly = time.Time{}
 
 		return
@@ -59,6 +69,13 @@ func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
 
 	if lsMonth != month {
 		points.Monthly = time.Time{}
+
+		_, prevMonth, _ := now.AddDate(0, -1, 0).Date()
+		if lsMonth != prevMonth {
+			points.PrevMonthly = time.Time{}
+		}
+
+		points.PrevMonthly = lastActivity
 
 		return
 	}
@@ -136,8 +153,8 @@ func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *NetCounters) {
 
 func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Duration, monthlyQuotaRemaining int) error {
 	var (
-		total     RxTx
-		throttled int
+		total             RxTx
+		throttled, active int
 	)
 
 	statsTimestamp, trafficMap, lastSeenMap, endpointMap, err := vapnapi.WgStatParse(wgStats)
@@ -175,7 +192,12 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 					user.Quotas.LimitMonthlyResetOn = now.AddDate(0, 1, 0)
 				}
 
-				user.Quotas.LimitMonthlyRemaining -= (rx + tx)
+				switch {
+				case user.Quotas.LimitMonthlyRemaining >= (rx + tx):
+					user.Quotas.LimitMonthlyRemaining -= (rx + tx)
+				default:
+					user.Quotas.LimitMonthlyRemaining = 0
+				}
 			}
 		}
 
@@ -186,9 +208,14 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 		if !user.Quotas.ThrottlingTill.IsZero() && user.Quotas.ThrottlingTill.After(now) {
 			throttled++
 		}
+
+		if !user.Quotas.LastActivity.Monthly.IsZero() {
+			active++
+		}
 	}
 
 	data.ThrottledUserCount = throttled
+	data.ActiveUsersCount = active
 
 	if inc {
 		incDateSwitchRelated(now, total.Rx, total.Tx, &data.TotalTraffic)

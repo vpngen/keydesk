@@ -23,6 +23,10 @@ func (db *BrigadeStorage) GetStats(statsFilename string, endpointsTTL time.Durat
 }
 
 func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *NetCounters) {
+	defer func() {
+		counters.Update = now
+	}()
+
 	counters.Total.Inc(rx, tx)
 
 	prevYear, prevMonth, prevDay := counters.Update.Date()
@@ -89,7 +93,7 @@ func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *NetCounters) {
 
 func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Duration, monthlyQuotaRemaining int) error {
 	var (
-		Total RxTx
+		total RxTx
 	)
 
 	statsTimestamp, trafficMap, lastSeenMap, endpointMap, err := vapnapi.WgStatParse(wgStats)
@@ -119,7 +123,7 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 			user.Quotas.OSCounters.Tx = traffic.Tx
 
 			if inc {
-				Total.Inc(rx, tx)
+				total.Inc(rx, tx)
 
 				incDateSwitchRelated(now, rx, tx, &user.Quotas.Counters)
 				if user.Quotas.LimitMonthlyResetOn.Before(now) {
@@ -128,8 +132,6 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 				}
 
 				user.Quotas.LimitMonthlyRemaining -= (rx + tx)
-
-				user.Quotas.Counters.Update = now
 			}
 		}
 
@@ -139,7 +141,11 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 	}
 
 	if inc {
-		data.TotalTraffic.Total.Inc(Total.Rx, Total.Tx)
+		incDateSwitchRelated(now, total.Rx, total.Tx, &data.TotalTraffic)
+	}
+
+	if data.Endpoints == nil {
+		data.Endpoints = UsersNetworks{}
 	}
 
 	for _, prefix := range endpointMap {
@@ -190,6 +196,8 @@ func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename string) err
 		BrigadeCreatedAt: data.CreatedAt,
 		KeydeskLastVisit: data.KeydeskLastVisit,
 		UsersCount:       len(data.Users),
+		TotalTraffic:     data.TotalTraffic,
+		Endpoints:        data.Endpoints,
 		Ver:              StatsVersion,
 	}
 

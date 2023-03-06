@@ -103,6 +103,10 @@ func WgStatParseLastSeen(lastSeen string) (WgStatLastSeenMap, error) {
 			return nil, fmt.Errorf("last seen: %w", err)
 		}
 
+		if ts == 0 {
+			continue
+		}
+
 		m[clmns[0]] = &WgStatLastSeen{
 			WgPub: clmns[0],
 			Time:  time.Unix(ts, 0).UTC(),
@@ -127,7 +131,7 @@ func WgStatParseEndpoints(lastSeen string) (WgStatEndpointMap, error) {
 
 		prefix, err := netip.ParsePrefix(clmns[1])
 		if err != nil {
-			return nil, fmt.Errorf("endpoints: %w", err)
+			continue
 		}
 
 		m[clmns[0]] = &WgStatEndpoint{

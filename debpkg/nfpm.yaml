@@ -37,6 +37,12 @@ contents:
     mode: 0001
     owner: root
     group: root
+- src: bin/stats
+  dst: /opt/vgkeydesk/stats
+  file_info:
+    mode: 0001
+    owner: root
+    group: root
 - src: bin/createbrigade
   dst: /opt/vgkeydesk/createbrigade
   file_info:
@@ -92,6 +98,8 @@ contents:
 
 overrides:
   deb:
+    conflicts:
+    - vgkeydesk (< 1.0.0)
     scripts:
       preinstall: /data/src/preinstall.sh
       postinstall: /data/src/postinstall.sh

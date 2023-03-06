@@ -1,0 +1,11 @@
+[Unit]
+Description = VPNGen Stats Service
+
+[Service]
+User=%i
+Group=%i
+WorkingDirectory=/home/%i
+ExecStart = /opt/vgkeydesk/stats
+
+[Install]
+WantedBy=multi-user.target

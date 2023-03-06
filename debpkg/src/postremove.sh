@@ -1,7 +1,15 @@
 #!/bin/sh
 
+vgstats_user="vgstats"
+
 remove() {
         printf "\033[32m Post Remove of a normal remove\033[0m\n"
+
+        if id "${vgstats_user}" >/dev/null 2>&1; then
+                userdel -r "${vgstats_user}"
+        else 
+                echo "user ${vgstats_user} does not exists"              
+        fi
 
         printf "\033[32m Reload the service unit from disk\033[0m\n"
         systemctl daemon-reload ||:

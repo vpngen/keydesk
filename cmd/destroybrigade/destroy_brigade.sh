@@ -39,7 +39,7 @@ else
         chunked="-ch"
 fi
 
-systemd_vgkeydesk_instance="keydesk@${brigade_id}"
+systemd_vgkeydesk_instance="vgkeydesk@${brigade_id}"
 # Stop keydesk systemD services.
 systemctl -q -f stop "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service"
 # Disable keydesk systemD srvices.

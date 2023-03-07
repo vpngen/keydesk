@@ -277,6 +277,7 @@ func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename string) err
 		ThrottledUserCount: data.ThrottledUserCount,
 		TotalTraffic:       data.TotalTraffic,
 		Endpoints:          data.Endpoints,
+		Updated:            time.Now().UTC(),
 		Ver:                StatsVersion,
 	}
 

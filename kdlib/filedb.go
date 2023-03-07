@@ -44,8 +44,8 @@ func (f *FileDb) Commit() error {
 
 // Close - rename tmp to main and close all files.
 func (f *FileDb) Close() error {
-	f.w.Close()
 	f.r.Close()
+	f.w.Close()
 
 	return nil
 }

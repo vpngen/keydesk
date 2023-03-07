@@ -18,7 +18,7 @@ cmd=${1}; shift
 basedir=$(dirname $0)
 
 if [ "xfetchstats" = "x${cmd}" ]; then
-        ${basedir}/fetch_stats.sh $@
+        ${basedir}/fetchstats $@
 else
     echo "Unknown command: ${cmd}"
     printdef

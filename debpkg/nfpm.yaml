@@ -79,8 +79,8 @@ contents:
     mode: 0100
     owner: root
     group: root
-- src: keydesk/cmd/sshcmd/ssh_brigade_command.sh
-  dst: /opt/vgkeydesk/ssh_brigade_command.sh
+- src: keydesk/cmd/sshcmd/ssh_spawner_command.sh
+  dst: /opt/vgkeydesk/ssh_spawner_command.sh
   file_info:
     mode: 0001
     owner: root
@@ -122,7 +122,7 @@ deb:
   - vgkeydes-db
   - vgkeydesk-queue
   - vgkeydesk-spawner
-  - vgkeydesk-spawner-access
+  - vgkeydesk-spawner-access (<< 1.0.0)
   - vgkeydesk-stats
-  - vgkeydesk-stats-access
+  - vgkeydesk-stats-access (<< 1.0.0)
 

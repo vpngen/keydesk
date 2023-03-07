@@ -9,11 +9,11 @@ There is a SSH-based API to manage brigades. The reason is a simple SSH-credenti
 
 The special entrypoint user is named `_serega_`. It has sudo permissions to exec entrypoint as a roor system user. 
 
-`_serega_          ALL=(ALL) NOPASSWD: /opt/vgkeydesk/ssh_brigade_command.sh` 
+`_serega_          ALL=(ALL) NOPASSWD: /opt/vgkeydesk/create_brigade.sh,/opt/vgkeydesk/destroy_brigade.sh,/opt/vgkeydesk/replace_brigadier.sh` 
 
 The `authorized_keys` file configuration must force the ssh command:
 
-`command="/opt/vgkeydesk/ssh_brigade_command.sh ${SSH_ORIGINAL_COMMAND}",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ecdsa-sha2-nistp256 ....`
+`command="/opt/vgkeydesk/ssh_spawner_command.sh ${SSH_ORIGINAL_COMMAND}",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ecdsa-sha2-nistp256 ....`
 
 ### Users and Groups
 

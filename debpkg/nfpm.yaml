@@ -1,7 +1,7 @@
 name: "vgkeydesk"
 arch: "amd64"
 platform: "linux"
-version: 1.0.1
+version: 1.0.2
 section: "default"
 priority: "extra"
 release: 2
@@ -51,6 +51,12 @@ contents:
     group: root
 - src: bin/destroybrigade
   dst: /opt/vgkeydesk/destroybrigade
+  file_info:
+    mode: 0001
+    owner: root
+    group: root
+- src: bin/fetchstats
+  dst: /opt/vgkeydesk/fetchstats
   file_info:
     mode: 0001
     owner: root

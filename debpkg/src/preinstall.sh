@@ -18,7 +18,11 @@ cleanInstall() {
         if id "${vgstats_user}" >/dev/null 2>&1; then
                 echo 'user ${vgstats_user} already exists'
         else
-                useradd -p "*" -M "${vgstats_user}" -s /usr/sbin/nologin -d /nonexistent
+                if getent group "${vgstats_user}" >/dev/null 2>&1; then
+                        useradd -p "*" -g "${vgstats_user}" -M "${vgstats_user}" -s /usr/sbin/nologin -d /nonexistent
+                else
+                        useradd -p "*" -M "${vgstats_user}" -s /usr/sbin/nologin -d /nonexistent
+                fi
         fi
 
 }
@@ -26,7 +30,7 @@ cleanInstall() {
 upgrade() {
     	printf "\033[32m Pre Install of an upgrade\033[0m\n"
     	# Step 3(upgrade), do what you need
-        systemctl stop --force 'vgkeydesk@*.socket' 'vgkeydesk@*.service' ||:
+        systemctl stop --all 'vgkeydesk@*.socket' 'vgkeydesk@*.service' ||:
 }
 
 # Step 2, check if this is a clean install or an upgrade

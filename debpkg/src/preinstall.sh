@@ -1,14 +1,36 @@
 #!/bin/sh
 
+vgcert_group="vgcert"
+vgstats_user="vgstats"
+
 cleanInstall() {
 	printf "\033[32m Pre Install of an clean install\033[0m\n"
 	# Step 3 (clean install), enable the service in the proper way for this platform
+
+        set -e
+
+	if getent group "${vgcert_group}" >/dev/null 2>&1; then
+ 		echo "group ${vgcert_group} already exists"
+	else
+		groupadd "${vgcert_group}"
+	fi
+
+        if id "${vgstats_user}" >/dev/null 2>&1; then
+                echo 'user ${vgstats_user} already exists'
+        else
+                if getent group "${vgstats_user}" >/dev/null 2>&1; then
+                        useradd -p "*" -g "${vgstats_user}" -M "${vgstats_user}" -s /usr/sbin/nologin -d /nonexistent
+                else
+                        useradd -p "*" -M "${vgstats_user}" -s /usr/sbin/nologin -d /nonexistent
+                fi
+        fi
+
 }
 
 upgrade() {
     	printf "\033[32m Pre Install of an upgrade\033[0m\n"
     	# Step 3(upgrade), do what you need
-        systemctl stop --force 'keydesk@*.socket' 'keydesk@*.service' ||:
+        systemctl stop --all 'vgkeydesk@*.socket' 'vgkeydesk@*.service' ||:
 }
 
 # Step 2, check if this is a clean install or an upgrade
@@ -23,15 +45,16 @@ fi
 
 case "$action" in
   "1" | "install")
+    printf "\033[31m install... \033[0m\n"
     cleanInstall
     ;;
   "2" | "upgrade")
-    printf "\033[32m Post Install of an upgrade\033[0m\n"
+    printf "\033[31m upgrade... \033[0m\n"
     upgrade
     ;;
   *)
     # $1 == version being installed
-    printf "\033[32m Alpine\033[0m"
+    printf "\033[31m default... \033[0m\n"
     cleanInstall
     ;;
 esac

@@ -15,7 +15,7 @@ upgrade() {
     	# Step 3(upgrade), do what you need
     	printf "\033[32m Reload the service unit from disk\033[0m\n"
     	systemctl daemon-reload ||:
-	systemctl restart --all 'vgkeydesk@*.socket' ||:
+	systemctl restart --all 'keydesk@*.socket' ||:
 }
 
 # Step 2, check if this is a clean install or an upgrade

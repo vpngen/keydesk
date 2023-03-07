@@ -18,7 +18,7 @@ cleanInstall() {
         if id "${vgstats_user}" >/dev/null 2>&1; then
                 echo 'user ${vgstats_user} already exists'
         else
-                useradd -p "*" -G "${vglist_group}" -M "${vgstats_user}" -s /usr/sbin/nologin -d /nonexistent
+                useradd -p "*" -M "${vgstats_user}" -s /usr/sbin/nologin -d /nonexistent
         fi
 
 }

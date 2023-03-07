@@ -34,67 +34,67 @@ contents:
 - src: bin/keydesk
   dst: /opt/vgkeydesk/keydesk
   file_info:
-    mode: 0001
+    mode: 0005
     owner: root
     group: root
 - src: bin/stats
   dst: /opt/vgkeydesk/stats
   file_info:
-    mode: 0001
+    mode: 0005
     owner: root
     group: root
 - src: bin/createbrigade
   dst: /opt/vgkeydesk/createbrigade
   file_info:
-    mode: 0001
+    mode: 0005
     owner: root
     group: root
 - src: bin/destroybrigade
   dst: /opt/vgkeydesk/destroybrigade
   file_info:
-    mode: 0001
+    mode: 0005
     owner: root
     group: root
 - src: bin/fetchstats
   dst: /opt/vgkeydesk/fetchstats
   file_info:
-    mode: 0001
+    mode: 0005
     owner: root
     group: root
 - src: keydesk/cmd/createbrigade/create_brigade.sh
   dst: /opt/vgkeydesk/create_brigade.sh
   file_info:
-    mode: 0100
+    mode: 0500
     owner: root
     group: root
 - src: keydesk/cmd/destroybrigade/destroy_brigade.sh
   dst: /opt/vgkeydesk/destroy_brigade.sh
   file_info:
-    mode: 0100
+    mode: 0500
     owner: root
     group: root
 - src: keydesk/cmd/replacebrigadier/replace_brigadier.sh
   dst: /opt/vgkeydesk/replace_brigadier.sh
   file_info:
-    mode: 0100
+    mode: 0500
     owner: root
     group: root
 - src: keydesk/cmd/sshcmd/ssh_spawner_command.sh
   dst: /opt/vgkeydesk/ssh_spawner_command.sh
   file_info:
-    mode: 0001
+    mode: 0005
     owner: root
     group: root
 - src: keydesk/cmd/fetchstats/fetch_stats.sh
   dst: /opt/vgkeydesk/fetch_stats.sh
   file_info:
-    mode: 0001
+    mode: 0005
     owner: root
     group: root
 - src: keydesk/cmd/sshcmd/ssh_stats_command.sh
   dst: /opt/vgkeydesk/ssh_stats_command.sh
   file_info:
-    mode: 0001
+    mode: 0005
     owner: root
     group: root
 - src: keydesk/systemd/vgkeydesk@.service

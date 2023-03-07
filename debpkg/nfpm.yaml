@@ -106,6 +106,8 @@ contents:
 
 overrides:
   deb:
+    conflicts:
+    - vgkeydesk (>= 1.0.0)
     scripts:
       preinstall: /data/src/preinstall.sh
       postinstall: /data/src/postinstall.sh

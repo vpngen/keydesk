@@ -4,7 +4,7 @@ platform: "linux"
 version: 1.0.2
 section: "default"
 priority: "extra"
-release: 2
+release: 3
 
 provides:
 - vgkeydesk

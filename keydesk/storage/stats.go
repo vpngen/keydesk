@@ -255,8 +255,10 @@ func (db *BrigadeStorage) getStatsQuota(endpointsTTL time.Duration) (*Brigade, e
 		return nil, fmt.Errorf("wg stat: %w", err)
 	}
 
-	if err := mergeStats(data, wgStats, endpointsTTL, db.MonthlyQuotaRemaining); err != nil {
-		return nil, fmt.Errorf("merge stats: %w", err)
+	if wgStats != nil {
+		if err := mergeStats(data, wgStats, endpointsTTL, db.MonthlyQuotaRemaining); err != nil {
+			return nil, fmt.Errorf("merge stats: %w", err)
+		}
 	}
 
 	err = commitBrigade(f, data)

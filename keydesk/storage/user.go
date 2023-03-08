@@ -91,7 +91,7 @@ func (db *BrigadeStorage) CreateUser(
 		return nil, fmt.Errorf("wg add: %w", err)
 	}
 
-	if err := CommitBrigade(f, data); err != nil {
+	if err := commitBrigade(f, data); err != nil {
 		return nil, fmt.Errorf("save: %w", err)
 	}
 
@@ -202,7 +202,7 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 		return fmt.Errorf("peer del: %w", err)
 	}
 
-	if err := CommitBrigade(f, data); err != nil {
+	if err := commitBrigade(f, data); err != nil {
 		return fmt.Errorf("save: %w", err)
 	}
 
@@ -239,7 +239,7 @@ func (db *BrigadeStorage) ListUsers() ([]*User, error) {
 
 	data.KeydeskLastVisit = time.Now().UTC()
 
-	if err := CommitBrigade(f, data); err != nil {
+	if err := commitBrigade(f, data); err != nil {
 		return nil, fmt.Errorf("save: %w", err)
 	}
 

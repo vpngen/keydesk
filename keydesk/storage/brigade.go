@@ -48,7 +48,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 		return fmt.Errorf("wg add: %w", err)
 	}
 
-	err = CommitBrigade(f, data)
+	err = commitBrigade(f, data)
 	if err != nil {
 		return fmt.Errorf("commit: %w", err)
 	}

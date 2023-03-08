@@ -19,6 +19,7 @@ func CollectingData(kill <-chan struct{}, done chan<- struct{}, addr netip.AddrP
 	db := &storage.BrigadeStorage{
 		BrigadeID:       brigadeID,
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
+		BrigadeSpinlock: filepath.Join(dbDir, storage.BrigadeSpinlockFilename),
 		APIAddrPort:     addr,
 		BrigadeStorageOpts: storage.BrigadeStorageOpts{
 			MaxUsers:              keydesk.MaxUsers,
@@ -31,6 +32,7 @@ func CollectingData(kill <-chan struct{}, done chan<- struct{}, addr netip.AddrP
 	}
 
 	statsFilename := filepath.Join(statsDir, storage.StatsFilename)
+	statsSpinlock := filepath.Join(statsDir, storage.StatsSpinlockFilename)
 
 	jit := rand.Int63n(DefaultJitterValue) + 1
 	timer := time.NewTimer(time.Duration(jit) * time.Second)
@@ -42,7 +44,7 @@ func CollectingData(kill <-chan struct{}, done chan<- struct{}, addr netip.AddrP
 		case ts := <-timer.C:
 			fmt.Fprintf(os.Stderr, "%s: Collecting data: %s: %s\n", ts.UTC().Format(time.RFC3339), brigadeID, statsFilename)
 
-			if err := db.GetStats(statsFilename, keydesk.DefaultEndpointsTTL); err != nil {
+			if err := db.GetStats(statsFilename, statsSpinlock, keydesk.DefaultEndpointsTTL); err != nil {
 				fmt.Fprintf(os.Stderr, "Error collecting stats: %s\n", err)
 			}
 

@@ -93,6 +93,10 @@ func WgStat(addr netip.AddrPort, wgPub []byte) (*WGStats, error) {
 		return nil, fmt.Errorf("api: %w", err)
 	}
 
+	if body == nil {
+		return nil, nil
+	}
+
 	data := &WGStats{}
 	if err := json.Unmarshal(body, data); err != nil {
 		return nil, fmt.Errorf("api payload: %w", err)

@@ -6,3 +6,4 @@ keydesk
 *.bak
 *.key
 *.crt
+*.lock

@@ -16,23 +16,24 @@ const (
 
 // FileDb - file pair as Db.
 type FileDb struct {
-	name string
-	r    *lockedfile.File
-	w    *lockedfile.File
+	name   string
+	r      *lockedfile.File
+	w      *lockedfile.File
+	unlock func()
 }
 
 // Commit - rename tmp to main and close all files.
 func (f *FileDb) Commit() error {
 	if err := f.w.Sync(); err != nil {
-		return fmt.Errorf("sync: %w", err)
+		return fmt.Errorf("sync temp: %w", err)
 	}
 
 	if err := os.Remove(f.name); err != nil {
-		return fmt.Errorf("remove old: %w", err)
+		return fmt.Errorf("remove main: %w", err)
 	}
 
 	if err := os.Link(f.name+fileDbTempSuffix, f.name); err != nil {
-		return fmt.Errorf("rename: %w", err)
+		return fmt.Errorf("rename temp to name: %w", err)
 	}
 
 	if err := os.Remove(f.name + fileDbTempSuffix); err != nil {
@@ -46,6 +47,7 @@ func (f *FileDb) Commit() error {
 func (f *FileDb) Close() error {
 	f.r.Close()
 	f.w.Close()
+	f.unlock()
 
 	return nil
 }
@@ -68,32 +70,39 @@ func (f *FileDb) Encoder(prefix, indent string) *json.Encoder {
 func (f *FileDb) Backup() error {
 	if _, err := os.Stat(f.name + fileDbBackupSuffix); !os.IsNotExist(err) {
 		if err := os.Remove(f.name + fileDbBackupSuffix); err != nil {
-			return fmt.Errorf("remove: %w", err)
+			return fmt.Errorf("remove backup: %w", err)
 		}
 	}
 
 	if err := os.Link(f.name, f.name+fileDbBackupSuffix); err != nil {
-		return fmt.Errorf("link: %w", err)
+		return fmt.Errorf("link main to backup: %w", err)
 	}
 
 	return nil
 }
 
-// OpenFileDb - open file pair to edit.
-func OpenFileDb(name string, perm fs.FileMode) (*FileDb, error) {
-	w, err := lockedfile.OpenFile(name+fileDbTempSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, perm)
+// OpenFileDb - create file pair to edit.
+func OpenFileDb(name, spinlock string, perm fs.FileMode) (*FileDb, error) {
+	mu := lockedfile.MutexAt(spinlock)
+	unlock, err := mu.Lock()
 	if err != nil {
-		return nil, fmt.Errorf("create: %w", err)
+		return nil, fmt.Errorf("spinlock: %w", err)
 	}
 
-	r, err := lockedfile.OpenFile(name, os.O_RDWR|os.O_CREATE, perm)
+	w, err := lockedfile.OpenFile(name+fileDbTempSuffix, os.O_APPEND|os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
 	if err != nil {
-		return nil, fmt.Errorf("edit: %w", err)
+		return nil, fmt.Errorf("create temp: %w", err)
+	}
+
+	r, err := lockedfile.OpenFile(name, os.O_RDONLY|os.O_CREATE, perm)
+	if err != nil {
+		return nil, fmt.Errorf("read main: %w", err)
 	}
 
 	return &FileDb{
-		name: name,
-		r:    r,
-		w:    w,
+		name:   name,
+		r:      r,
+		w:      w,
+		unlock: unlock,
 	}, nil
 }

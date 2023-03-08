@@ -214,6 +214,7 @@ func main() {
 	db := &storage.BrigadeStorage{
 		BrigadeID:       config.BrigadeID,
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
+		BrigadeSpinlock: filepath.Join(dbDir, storage.BrigadeSpinlockFilename),
 		APIAddrPort:     addr,
 		BrigadeStorageOpts: storage.BrigadeStorageOpts{
 			MaxUsers:              keydesk.MaxUsers,

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
-	"os"
 	"sync"
 	"time"
 
@@ -404,8 +403,6 @@ func (us *userStorage) list() ([]*User, error) {
 		//u.LastVisitASName = last_asn
 
 		users = append(users, u)
-
-		fmt.Fprintf(os.Stderr, "lastvisit: %v\n", last_activity)
 
 		return nil
 	})

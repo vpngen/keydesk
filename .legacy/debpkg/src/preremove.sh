@@ -4,7 +4,7 @@ remove() {
         printf "\033[32m Pre Remove of a normal remove\033[0m\n"
 
         printf "\033[32m Stop the service unit\033[0m\n"
-        systemctl stop --force 'vgkeydesk@*.socket' 'vgkeydesk@*.service' ||:
+        systemctl stop 'keydesk@*.socket' 'keydesk@*.service' --all ||:
 }
 
 upgrade() {

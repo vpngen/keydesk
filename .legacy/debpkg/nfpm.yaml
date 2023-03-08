@@ -1,0 +1,51 @@
+name: "vgkeydesk"
+arch: "amd64"
+platform: "linux"
+version: 0.0.3
+section: "default"
+priority: "extra"
+release: 4
+
+provides:
+- vgkeydesk
+depends:
+- vgkeydesk-conf
+- vgkeydesk-queue
+- vgkeydesk-web
+
+maintainer: "Ingmund Ollson <ingmund@proton.me>"
+description: VPNGen keydesk backend
+vendor: "VPNGen"
+homepage: "http://vpngen.org"
+license: "LGPL"
+
+contents:
+- dst: /opt/keydesk
+  type: dir
+  file_info:
+    mode: 0555
+    owner: root
+    group: root
+- src: bin/keydesk
+  dst: /opt/keydesk/keydesk
+  file_info:
+    mode: 0005
+    owner: root
+    group: root
+- src: keydesk/systemd/keydesk@.service
+  dst: /etc/systemd/system/keydesk@.service
+- src: keydesk/systemd/keydesk@.socket
+  dst: /etc/systemd/system/keydesk@.socket
+
+overrides:
+  deb:
+    scripts:
+      preinstall: /data/src/preinstall.sh
+      postinstall: /data/src/postinstall.sh
+      preremove: /data/src/preremove.sh
+      postremove: /data/src/postremove.sh
+deb:
+ compression: xz
+ fields:
+   Pre-Depends: vgkeydesk-db
+

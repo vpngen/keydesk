@@ -22,7 +22,6 @@ if [ "x$1" = "xpkg" ]; then
         exit 0
 fi
 
-GOLANG_VER="$(grep -e "^go\s" $(dirname $0)/../go.mod | awk '{print $2}')"
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 docker run --rm \
@@ -31,5 +30,5 @@ docker run --rm \
         -e USER_UID=$(id -u) \
         -e BRANCH=${BRANCH} \
         -v ${PWD}:"${SHARED_BASE}" \
-        golang:"${GOLANG_VER}" "${SHARED_BASE}/build" pkg
+        golang:1.19 "${SHARED_BASE}/build" pkg
 

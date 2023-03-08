@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/vpngen/keydesk/kdlib/lockedfile"
 	"github.com/vpngen/keydesk/keydesk/storage"
 )
 
@@ -62,7 +63,7 @@ func getStats(statsBaseDir string, brigades []string) ([]byte, error) {
 	}
 
 	for _, id := range brigades {
-		buf, err := os.ReadFile(filepath.Join(statsBaseDir, id, storage.StatsFilename))
+		buf, err := readStatsFile(filepath.Join(statsBaseDir, id, storage.StatsFilename))
 		if err != nil {
 			continue
 		}
@@ -78,6 +79,22 @@ func getStats(statsBaseDir string, brigades []string) ([]byte, error) {
 	buf, err := json.MarshalIndent(astats, " ", " ")
 	if err != nil {
 		return nil, fmt.Errorf("encode: %w", err)
+	}
+
+	return buf, nil
+}
+
+func readStatsFile(filename string) ([]byte, error) {
+	f, err := lockedfile.OpenFile(filename, os.O_RDONLY, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("open: %w", err)
+	}
+
+	defer f.Close()
+
+	buf, err := io.ReadAll(f)
+	if err != nil {
+		return nil, fmt.Errorf("read: %w", err)
 	}
 
 	return buf, nil

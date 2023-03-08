@@ -14,9 +14,11 @@ import (
 
 // Filenames.
 const (
-	BrigadeFilename = "brigade.json"
-	StatsFilename   = "stats.json"
-	FileDbMode      = 0644
+	BrigadeFilename         = "brigade.json"
+	BrigadeSpinlockFilename = "brigade.lock"
+	StatsFilename           = "stats.json"
+	StatsSpinlockFilename   = "stats.lock"
+	FileDbMode              = 0644
 )
 
 var (
@@ -45,11 +47,12 @@ type BrigadeStorageOpts struct {
 type BrigadeStorage struct {
 	BrigadeID       string
 	BrigadeFilename string // i.e. /home/<BrigadeID>/brigade.json
+	BrigadeSpinlock string // i.e. /home/<BrigadeID>/brigade.lock
 	APIAddrPort     netip.AddrPort
 	BrigadeStorageOpts
 }
 
-func CommitBrigade(f *kdlib.FileDb, data *Brigade) error {
+func commitBrigade(f *kdlib.FileDb, data *Brigade) error {
 	if err := f.Encoder(" ", " ").Encode(data); err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
@@ -61,7 +64,7 @@ func CommitBrigade(f *kdlib.FileDb, data *Brigade) error {
 	return nil
 }
 
-func CommitStats(f *kdlib.FileDb, stats *Stats) error {
+func commitStats(f *kdlib.FileDb, stats *Stats) error {
 	if err := f.Encoder(" ", " ").Encode(stats); err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
@@ -76,6 +79,7 @@ func CommitStats(f *kdlib.FileDb, stats *Stats) error {
 // SelfCheck - self check func.
 func (db *BrigadeStorage) SelfCheck() error {
 	if db.BrigadeFilename == "" ||
+		db.BrigadeSpinlock == "" ||
 		db.BrigadeID == "" ||
 		db.MaxUsers == 0 ||
 		db.ActivityPeriod == 0 ||
@@ -87,7 +91,7 @@ func (db *BrigadeStorage) SelfCheck() error {
 }
 
 func (db *BrigadeStorage) openBrigadeWithReading() (*kdlib.FileDb, *Brigade, error) {
-	f, err := kdlib.OpenFileDb(db.BrigadeFilename, FileDbMode)
+	f, err := kdlib.OpenFileDb(db.BrigadeFilename, db.BrigadeSpinlock, FileDbMode)
 	if err != nil {
 		return nil, nil, fmt.Errorf("open: %w", err)
 	}
@@ -140,7 +144,7 @@ func (db *BrigadeStorage) openWithReading() (*kdlib.FileDb, *Brigade, netip.Addr
 }
 
 func (db *BrigadeStorage) openBrigadeWithoutReading() (*kdlib.FileDb, *Brigade, error) {
-	f, err := kdlib.OpenFileDb(db.BrigadeFilename, FileDbMode)
+	f, err := kdlib.OpenFileDb(db.BrigadeFilename, db.BrigadeSpinlock, FileDbMode)
 	if err != nil {
 		return nil, nil, fmt.Errorf("open: %w", err)
 	}
@@ -182,8 +186,8 @@ func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*kdlib.FileDb, *
 	return f, data, nil
 }
 
-func openStats(statsFilename string) (*kdlib.FileDb, error) {
-	f, err := kdlib.OpenFileDb(statsFilename, FileDbMode)
+func openStats(statsFilename, statsSpinlock string) (*kdlib.FileDb, error) {
+	f, err := kdlib.OpenFileDb(statsFilename, statsSpinlock, FileDbMode)
 	if err != nil {
 		return nil, fmt.Errorf("open: %w", err)
 	}

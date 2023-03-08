@@ -9,13 +9,13 @@ import (
 )
 
 // GetStats - create brigade config.
-func (db *BrigadeStorage) GetStats(statsFilename string, endpointsTTL time.Duration) error {
+func (db *BrigadeStorage) GetStats(statsFilename, statsSpinlock string, endpointsTTL time.Duration) error {
 	data, err := db.getStatsQuota(endpointsTTL)
 	if err != nil {
 		return fmt.Errorf("quota: %w", err)
 	}
 
-	if err := db.putStatsStats(data, statsFilename); err != nil {
+	if err := db.putStatsStats(data, statsFilename, statsSpinlock); err != nil {
 		return fmt.Errorf("stats: %w", err)
 	}
 
@@ -255,11 +255,13 @@ func (db *BrigadeStorage) getStatsQuota(endpointsTTL time.Duration) (*Brigade, e
 		return nil, fmt.Errorf("wg stat: %w", err)
 	}
 
-	if err := mergeStats(data, wgStats, endpointsTTL, db.MonthlyQuotaRemaining); err != nil {
-		return nil, fmt.Errorf("merge stats: %w", err)
+	if wgStats != nil {
+		if err := mergeStats(data, wgStats, endpointsTTL, db.MonthlyQuotaRemaining); err != nil {
+			return nil, fmt.Errorf("merge stats: %w", err)
+		}
 	}
 
-	err = CommitBrigade(f, data)
+	err = commitBrigade(f, data)
 	if err != nil {
 		return nil, fmt.Errorf("commit: %w", err)
 	}
@@ -267,7 +269,7 @@ func (db *BrigadeStorage) getStatsQuota(endpointsTTL time.Duration) (*Brigade, e
 	return data, nil
 }
 
-func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename string) error {
+func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename, statsSpinlock string) error {
 	stats := &Stats{
 		BrigadeID:          data.BrigadeID,
 		BrigadeCreatedAt:   data.CreatedAt,
@@ -277,17 +279,18 @@ func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename string) err
 		ThrottledUserCount: data.ThrottledUserCount,
 		TotalTraffic:       data.TotalTraffic,
 		Endpoints:          data.Endpoints,
+		Updated:            time.Now().UTC(),
 		Ver:                StatsVersion,
 	}
 
-	fs, err := openStats(statsFilename)
+	fs, err := openStats(statsFilename, statsSpinlock)
 	if err != nil {
 		return fmt.Errorf("open stats: %w", err)
 	}
 
 	defer fs.Close()
 
-	if err = CommitStats(fs, stats); err != nil {
+	if err = commitStats(fs, stats); err != nil {
 		return fmt.Errorf("commit stats: %w", err)
 	}
 

@@ -31,6 +31,7 @@ upgrade() {
     	printf "\033[32m Pre Install of an upgrade\033[0m\n"
     	# Step 3(upgrade), do what you need
         systemctl stop --all 'vgkeydesk@*.socket' 'vgkeydesk@*.service' ||:
+        systemctl stop --all 'vgstats@*.service' ||:
 }
 
 # Step 2, check if this is a clean install or an upgrade

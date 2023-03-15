@@ -4,13 +4,14 @@ platform: "linux"
 version: 1.0.6
 section: "default"
 priority: "extra"
-release: 1
+release: 2
 
 provides:
 - vgkeydesk
 depends:
 - cert-vpn-works
 - vgkeydesk-web
+- vgkeydesk-shuffler-key
 
 maintainer: "Ingmund Ollson <ingmund@proton.me>"
 description: VPNGen keydesk backend

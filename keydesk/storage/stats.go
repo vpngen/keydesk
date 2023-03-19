@@ -43,6 +43,9 @@ func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
 
 	if lsYear == year && lsMonth == month && lsDay == day {
 		points.Daily = lastActivity
+		points.Weekly = lastActivity
+		points.Monthly = lastActivity
+		points.Yearly = lastActivity
 
 		return
 	}
@@ -89,6 +92,15 @@ func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *NetCounters) {
 	}()
 
 	counters.Total.Inc(rx, tx)
+
+	if counters.Update.IsZero() {
+		counters.Daily.Reset(rx, tx)
+		counters.Weekly.Reset(rx, tx)
+		counters.Monthly.Reset(rx, tx)
+		counters.Yearly.Reset(rx, tx)
+
+		return
+	}
 
 	prevYear, prevMonth, prevDay := counters.Update.Date()
 	year, month, day := now.Date()

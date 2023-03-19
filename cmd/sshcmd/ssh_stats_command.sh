@@ -6,7 +6,7 @@
 # This USER must be in the vgstats group
 
 printdef() {
-    echo "Usage: <command> <args...>"
+    echo "Usage: <command> <args...>" >&2
     exit 1
 }
 
@@ -17,8 +17,10 @@ fi
 cmd=${1}; shift
 basedir=$(dirname $0)
 
+set -e
+
 if [ "xfetchstats" = "x${cmd}" ]; then
-        ${basedir}/fetchstats $@
+        ${basedir}/fetchstats "$@"
 else
     echo "Unknown command: ${cmd}"
     printdef

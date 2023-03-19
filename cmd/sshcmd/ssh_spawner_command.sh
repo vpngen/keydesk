@@ -4,7 +4,7 @@
 # pass rest args to scripts
 
 printdef() {
-    echo "Usage: <command> <args...>"
+    echo "Usage: <command> <args...>" >&2
     exit 1
 }
 
@@ -15,12 +15,14 @@ fi
 cmd=${1}; shift
 basedir=$(dirname $0)
 
+set -e
+
 if [ "xspawn" = "x${cmd}" -o "xcreate" = "x${cmd}" ]; then
-    sudo -u root -g root ${basedir}/create_brigade.sh $@
+    sudo -u root -g root ${basedir}/create_brigade.sh "$@"
 elif [ "xreplace" = "x${cmd}" ]; then
-    sudo -u root -g root ${basedir}/replace_brigadier.sh $@
+    sudo -u root -g root ${basedir}/replace_brigadier.sh "$@"
 elif [ "xdestroy" = "x${cmd}" ]; then
-    sudo -u root -g root ${basedir}/destroy_brigade.sh $@
+    sudo -u root -g root ${basedir}/destroy_brigade.sh "$@"
 else
     echo "Unknown command: ${cmd}"
     printdef

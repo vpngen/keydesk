@@ -42,21 +42,28 @@ func (x *RxTx) Reset(rx, tx uint64) {
 }
 
 // QuotaVesrion - json version.
-const QuotaVesrion = 1
+const QuotaVesrion = 2
 
 // Quota - user quota.
 type Quota struct {
 	Ver                   int                `json:"version"`
-	OSCounters            RxTx               `json:"os_counters"`
-	Counters              NetCounters        `json:"counters"`
+	OSCounters            RxTx               `json:"os_counters,omitempty"` //deprecated
+	OSCountersWg          RxTx               `json:"os_wg_counters"`
+	OSCountersIPSec       RxTx               `json:"os_ipsec_counters"`
+	Counters              NetCounters        `json:"counters,omitempty"` //deprecated
+	CountersTotal         NetCounters        `json:"counters_total"`
+	CountersWg            NetCounters        `json:"counters_wg"`
+	CountersIPSec         NetCounters        `json:"counters_ipsec"`
 	LimitMonthlyRemaining uint64             `json:"limit_monthly_remaining"`
 	LimitMonthlyResetOn   time.Time          `json:"limit_monthly_reset_on,omitempty"`
 	LastActivity          LastActivityPoints `json:"last_activity,omitempty"`
+	LastActivityWg        LastActivityPoints `json:"last_activity_wg,omitempty"`
+	LastActivityIPSec     LastActivityPoints `json:"last_activity_ipsec,omitempty"`
 	ThrottlingTill        time.Time          `json:"throttling_till,omitempty"`
 }
 
 // UserVersion - json version.
-const UserVersion = 1
+const UserVersion = 2
 
 // User - user structure.
 type User struct {
@@ -75,29 +82,33 @@ type User struct {
 }
 
 // BrigadeVersion - json version.
-const BrigadeVersion = 1
+const BrigadeVersion = 2
 
 // Brigade - brigade.
 type Brigade struct {
-	Ver                  int           `json:"version"`
-	BrigadeID            string        `json:"brigade_id"`
-	CreatedAt            time.Time     `json:"created_at"`
-	WgPublicKey          []byte        `json:"wg_public_key"`
-	WgPrivateRouterEnc   []byte        `json:"wg_private_router_enc"`
-	WgPrivateShufflerEnc []byte        `json:"wg_private_shuffler_enc"`
-	EndpointIPv4         netip.Addr    `json:"endpoint_ipv4"`
-	DNSv4                netip.Addr    `json:"dns4"`
-	DNSv6                netip.Addr    `json:"dns6"`
-	KeydeskIPv6          netip.Addr    `json:"keydesk_ipv6"`
-	IPv4CGNAT            netip.Prefix  `json:"ipv4_cgnat"`
-	IPv6ULA              netip.Prefix  `json:"ipv6_ula"`
-	KeydeskLastVisit     time.Time     `json:"keydesk_last_visit,omitempty"`
-	ActiveUsersCount     int           `json:"active_users_count"`
-	ThrottledUserCount   int           `json:"throttled_users_count"`
-	OSCountersUpdated    int64         `json:"os_counters_updated"`
-	TotalTraffic         NetCounters   `json:"total"`
-	Users                []*User       `json:"users,omitempty"`
-	Endpoints            UsersNetworks `json:"endpoints,omitempty"`
+	Ver                   int           `json:"version"`
+	BrigadeID             string        `json:"brigade_id"`
+	CreatedAt             time.Time     `json:"created_at"`
+	WgPublicKey           []byte        `json:"wg_public_key"`
+	WgPrivateRouterEnc    []byte        `json:"wg_private_router_enc"`
+	WgPrivateShufflerEnc  []byte        `json:"wg_private_shuffler_enc"`
+	EndpointIPv4          netip.Addr    `json:"endpoint_ipv4"`
+	DNSv4                 netip.Addr    `json:"dns4"`
+	DNSv6                 netip.Addr    `json:"dns6"`
+	KeydeskIPv6           netip.Addr    `json:"keydesk_ipv6"`
+	IPv4CGNAT             netip.Prefix  `json:"ipv4_cgnat"`
+	IPv6ULA               netip.Prefix  `json:"ipv6_ula"`
+	KeydeskLastVisit      time.Time     `json:"keydesk_last_visit,omitempty"`
+	ActiveUsersCount      int           `json:"active_users_count"`
+	ActiveUsersCountWg    int           `json:"active_wg_users_count"`
+	ActiveUsersCountIPSec int           `json:"active_ipsec_users_count"`
+	ThrottledUserCount    int           `json:"throttled_users_count"`
+	OSCountersUpdated     int64         `json:"os_counters_updated"`
+	TotalTraffic          NetCounters   `json:"total"`
+	TotalTrafficWg        NetCounters   `json:"total_wg"`
+	TotalTrafficIPSec     NetCounters   `json:"total_ipsec"`
+	Users                 []*User       `json:"users,omitempty"`
+	Endpoints             UsersNetworks `json:"endpoints,omitempty"`
 }
 
 // UserConfig - new user structure.
@@ -122,20 +133,24 @@ type BrigadeConfig struct {
 }
 
 // StatsVersion - json version.
-const StatsVersion = 1
+const StatsVersion = 2
 
 // Stats - statistics.
 type Stats struct {
-	Ver                int           `json:"version"`
-	BrigadeID          string        `json:"brigade_id"`
-	Updated            time.Time     `json:"updated"`
-	BrigadeCreatedAt   time.Time     `json:"brigade_created_at"`
-	KeydeskLastVisit   time.Time     `json:"keydesk_last_visit,omitempty"`
-	UsersCount         int           `json:"users_count"`
-	ActiveUsersCount   int           `json:"active_users_count"`
-	ThrottledUserCount int           `json:"throttled_users_count"`
-	TotalTraffic       NetCounters   `json:"total"`
-	Endpoints          UsersNetworks `json:"endpoints,omitempty"`
+	Ver                   int           `json:"version"`
+	BrigadeID             string        `json:"brigade_id"`
+	Updated               time.Time     `json:"updated"`
+	BrigadeCreatedAt      time.Time     `json:"brigade_created_at"`
+	KeydeskLastVisit      time.Time     `json:"keydesk_last_visit,omitempty"`
+	UsersCount            int           `json:"users_count"`
+	ActiveUsersCount      int           `json:"active_users_count"`
+	ActiveUsersCountWg    int           `json:"active_wg_users_count"`
+	ActiveUsersCountIPSec int           `json:"active_ipsec_users_count"`
+	ThrottledUserCount    int           `json:"throttled_users_count"`
+	TotalTraffic          NetCounters   `json:"total"`
+	TotalTrafficWg        NetCounters   `json:"total_wg"`
+	TotalTrafficIPSec     NetCounters   `json:"total_ipsec"`
+	Endpoints             UsersNetworks `json:"endpoints,omitempty"`
 }
 
 // LastActivityPoints - traffic counters container.

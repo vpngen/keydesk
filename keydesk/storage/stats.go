@@ -153,8 +153,8 @@ func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *NetCounters) {
 
 func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Duration, monthlyQuotaRemaining int) error {
 	var (
-		total             RxTx
-		throttled, active int
+		total, totalWg, totalIPSec               RxTx
+		throttled, active, activeWg, activeIPSec int
 	)
 
 	statsTimestamp, trafficMap, lastSeenMap, endpointMap, err := vapnapi.WgStatParse(wgStats)
@@ -169,32 +169,53 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 		id := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(user.WgPublicKey)
 
 		if traffic, ok := trafficMap[id]; ok {
-			rx := traffic.Rx
-			tx := traffic.Tx
+			rxWg := traffic.WgRx
+			txWg := traffic.WgTx
+			rxIPSec := traffic.IPSecRx
+			txIPSec := traffic.IPSecTx
 
-			if user.Quotas.OSCounters.Rx <= traffic.Rx {
-				rx = traffic.Rx - user.Quotas.OSCounters.Rx
+			if user.Quotas.OSCountersWg.Rx <= traffic.WgRx {
+				rxWg = traffic.WgRx - user.Quotas.OSCountersWg.Rx
 			}
 
-			if user.Quotas.OSCounters.Tx <= traffic.Tx {
-				tx = traffic.Tx - user.Quotas.OSCounters.Tx
+			if user.Quotas.OSCountersWg.Tx <= traffic.WgTx {
+				txWg = traffic.WgTx - user.Quotas.OSCountersWg.Tx
 			}
 
-			user.Quotas.OSCounters.Rx = traffic.Rx
-			user.Quotas.OSCounters.Tx = traffic.Tx
+			if user.Quotas.OSCountersIPSec.Rx <= traffic.IPSecRx {
+				rxIPSec = traffic.IPSecRx - user.Quotas.OSCountersIPSec.Rx
+			}
+
+			if user.Quotas.OSCountersIPSec.Tx <= traffic.IPSecTx {
+				txIPSec = traffic.IPSecTx - user.Quotas.OSCountersIPSec.Tx
+			}
+
+			user.Quotas.OSCountersWg.Rx = traffic.WgRx
+			user.Quotas.OSCountersWg.Tx = traffic.WgTx
+			user.Quotas.OSCountersIPSec.Rx = traffic.IPSecRx
+			user.Quotas.OSCountersIPSec.Tx = traffic.IPSecTx
 
 			if inc {
-				total.Inc(rx, tx)
+				totalWg.Inc(rxWg, txWg)
+				totalIPSec.Inc(rxIPSec, txIPSec)
+				total.Inc(rxWg+rxIPSec, txWg+txIPSec)
 
-				incDateSwitchRelated(now, rx, tx, &user.Quotas.Counters)
+				incDateSwitchRelated(now, rxWg, txWg, &user.Quotas.CountersWg)
+				incDateSwitchRelated(now, rxIPSec, txIPSec, &user.Quotas.CountersIPSec)
+				incDateSwitchRelated(now, rxWg+rxIPSec, txWg+txIPSec, &user.Quotas.CountersTotal)
+
+				nextMonth := now.AddDate(0, 1, 0)
 				if user.Quotas.LimitMonthlyResetOn.Before(now) {
 					user.Quotas.LimitMonthlyRemaining = uint64(monthlyQuotaRemaining)
-					user.Quotas.LimitMonthlyResetOn = now.AddDate(0, 1, 0)
+					// nextMonth := now.AddDate(0, 1, 0)
+					// user.Quotas.LimitMonthlyResetOn = time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
 				}
+				// !!! force reset on next month.
+				user.Quotas.LimitMonthlyResetOn = time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
 
 				switch {
-				case user.Quotas.LimitMonthlyRemaining >= (rx + tx):
-					user.Quotas.LimitMonthlyRemaining -= (rx + tx)
+				case user.Quotas.LimitMonthlyRemaining >= (rxWg + txWg + rxIPSec + txIPSec):
+					user.Quotas.LimitMonthlyRemaining -= (rxWg + txWg + rxIPSec + txIPSec)
 				default:
 					user.Quotas.LimitMonthlyRemaining = 0
 				}
@@ -202,7 +223,20 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 		}
 
 		if lastActivity, ok := lastSeenMap[id]; ok {
-			lastActivityMark(now, lastActivity.Time, &user.Quotas.LastActivity)
+			if !lastActivity.WgTime.IsZero() {
+				lastActivityMark(now, lastActivity.WgTime, &user.Quotas.LastActivityWg)
+			}
+
+			if !lastActivity.IPSecTime.IsZero() {
+				lastActivityMark(now, lastActivity.IPSecTime, &user.Quotas.LastActivityIPSec)
+			}
+
+			lastActivityTotal := lastActivity.WgTime
+			if lastActivity.IPSecTime.After(lastActivityTotal) {
+				lastActivityTotal = lastActivity.IPSecTime
+			}
+
+			lastActivityMark(now, lastActivityTotal, &user.Quotas.LastActivity)
 		}
 
 		if !user.Quotas.ThrottlingTill.IsZero() && user.Quotas.ThrottlingTill.After(now) {
@@ -212,13 +246,25 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 		if !user.Quotas.LastActivity.Monthly.IsZero() {
 			active++
 		}
+
+		if !user.Quotas.LastActivityWg.Monthly.IsZero() {
+			activeWg++
+		}
+
+		if !user.Quotas.LastActivityIPSec.Monthly.IsZero() {
+			activeIPSec++
+		}
 	}
 
 	data.ThrottledUserCount = throttled
 	data.ActiveUsersCount = active
+	data.ActiveUsersCountWg = activeWg
+	data.ActiveUsersCountIPSec = activeIPSec
 
 	if inc {
 		incDateSwitchRelated(now, total.Rx, total.Tx, &data.TotalTraffic)
+		incDateSwitchRelated(now, totalWg.Rx, totalWg.Tx, &data.TotalTrafficWg)
+		incDateSwitchRelated(now, totalIPSec.Rx, totalIPSec.Tx, &data.TotalTrafficIPSec)
 	}
 
 	if data.Endpoints == nil {
@@ -226,7 +272,13 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 	}
 
 	for _, prefix := range endpointMap {
-		data.Endpoints[prefix.Prefix.String()] = now
+		if prefix.WgPrefix.IsValid() {
+			data.Endpoints[prefix.WgPrefix.String()] = now
+		}
+
+		if prefix.IPSecPrefix.IsValid() {
+			data.Endpoints[prefix.IPSecPrefix.String()] = now
+		}
 	}
 
 	lowLimit := now.Add(-endpointsTTL)
@@ -278,6 +330,8 @@ func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename, statsSpinl
 		ActiveUsersCount:   data.ActiveUsersCount,
 		ThrottledUserCount: data.ThrottledUserCount,
 		TotalTraffic:       data.TotalTraffic,
+		TotalTrafficWg:     data.TotalTrafficWg,
+		TotalTrafficIPSec:  data.TotalTrafficIPSec,
 		Endpoints:          data.Endpoints,
 		Updated:            time.Now().UTC(),
 		Ver:                StatsVersion,

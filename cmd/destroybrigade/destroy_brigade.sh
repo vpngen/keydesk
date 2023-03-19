@@ -19,8 +19,6 @@ while [ -f "${spinlock}" ] ; do
 done
 touch "${spinlock}" 2>/dev/null
 
-set -e
-
 printdef () {
         echo "Usage: destroy <brigabe_id_encoded>" >&2
         exit 1

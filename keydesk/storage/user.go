@@ -66,7 +66,13 @@ func (db *BrigadeStorage) CreateUser(
 		WgPSKShufflerEnc: wgShufflerPSK,
 		Person:           person,
 		Quotas: Quota{
-			Counters: NetCounters{
+			CountersTotal: NetCounters{
+				Ver: NetCountersVersion,
+			},
+			CountersWg: NetCounters{
+				Ver: NetCountersVersion,
+			},
+			CountersIPSec: NetCounters{
 				Ver: NetCountersVersion,
 			},
 			LimitMonthlyRemaining: uint64(db.MonthlyQuotaRemaining),

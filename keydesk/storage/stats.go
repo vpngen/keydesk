@@ -175,81 +175,102 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 	}
 
 	now := time.Now().UTC()
-	inc := data.OSCountersUpdated != 0
 
 	for _, user := range data.Users {
 		id := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(user.WgPublicKey)
+		sum := RxTx{}
 
-		if traffic, ok := trafficMap[id]; ok {
-			rxWg := traffic.WgRx
-			txWg := traffic.WgTx
-			rxIPSec := traffic.IPSecRx
-			txIPSec := traffic.IPSecTx
+		if traffic, ok := trafficMap.Wg[id]; ok {
+			rx := traffic.Rx
+			tx := traffic.Tx
 
-			if user.Quotas.OSCountersWg.Rx <= traffic.WgRx {
-				rxWg = traffic.WgRx - user.Quotas.OSCountersWg.Rx
+			if user.Quotas.OSCountersWg.Rx <= traffic.Rx {
+				rx = traffic.Rx - user.Quotas.OSCountersWg.Rx
 			}
 
-			if user.Quotas.OSCountersWg.Tx <= traffic.WgTx {
-				txWg = traffic.WgTx - user.Quotas.OSCountersWg.Tx
+			if user.Quotas.OSCountersWg.Tx <= traffic.Tx {
+				tx = traffic.Tx - user.Quotas.OSCountersWg.Tx
 			}
 
-			if user.Quotas.OSCountersIPSec.Rx <= traffic.IPSecRx {
-				rxIPSec = traffic.IPSecRx - user.Quotas.OSCountersIPSec.Rx
+			user.Quotas.OSCountersWg.Rx = traffic.Rx
+			user.Quotas.OSCountersWg.Tx = traffic.Tx
+
+			sum.Inc(rx, tx)
+			totalWg.Inc(rx, tx)
+			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersWg)
+		}
+
+		if traffic, ok := trafficMap.IPSec[id]; ok {
+			rx := traffic.Rx
+			tx := traffic.Tx
+
+			if user.Quotas.OSCounters.Rx <= traffic.Rx {
+				rx = traffic.Rx - user.Quotas.OSCountersIPSec.Rx
 			}
 
-			if user.Quotas.OSCountersIPSec.Tx <= traffic.IPSecTx {
-				txIPSec = traffic.IPSecTx - user.Quotas.OSCountersIPSec.Tx
+			if user.Quotas.OSCounters.Tx <= traffic.Tx {
+				tx = traffic.Tx - user.Quotas.OSCountersIPSec.Tx
 			}
 
-			user.Quotas.OSCountersWg.Rx = traffic.WgRx
-			user.Quotas.OSCountersWg.Tx = traffic.WgTx
-			user.Quotas.OSCountersIPSec.Rx = traffic.IPSecRx
-			user.Quotas.OSCountersIPSec.Tx = traffic.IPSecTx
+			user.Quotas.OSCountersIPSec.Rx = traffic.Rx
+			user.Quotas.OSCountersIPSec.Tx = traffic.Tx
 
-			if inc {
-				totalWg.Inc(rxWg, txWg)
-				totalIPSec.Inc(rxIPSec, txIPSec)
-				total.Inc(rxWg+rxIPSec, txWg+txIPSec)
+			sum.Inc(rx, tx)
+			totalIPSec.Inc(rx, tx)
+			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersIPSec)
+		}
 
-				incDateSwitchRelated(now, rxWg, txWg, &user.Quotas.CountersWg)
-				incDateSwitchRelated(now, rxIPSec, txIPSec, &user.Quotas.CountersIPSec)
-				incDateSwitchRelated(now, rxWg+rxIPSec, txWg+txIPSec, &user.Quotas.CountersTotal)
+		total.Inc(sum.Rx, sum.Tx)
+		incDateSwitchRelated(now, sum.Rx, sum.Tx, &user.Quotas.CountersTotal)
 
-				nextMonth := now.AddDate(0, 1, 0)
-				if user.Quotas.LimitMonthlyResetOn.Before(now) {
-					user.Quotas.LimitMonthlyRemaining = uint64(monthlyQuotaRemaining)
-					// nextMonth := now.AddDate(0, 1, 0)
-					// user.Quotas.LimitMonthlyResetOn = time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
-				}
-				// !!! force reset on next month.
-				user.Quotas.LimitMonthlyResetOn = time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
+		nextMonth := now.AddDate(0, 1, 0)
+		if user.Quotas.LimitMonthlyResetOn.Before(now) {
+			user.Quotas.LimitMonthlyRemaining = uint64(monthlyQuotaRemaining)
+			// nextMonth := now.AddDate(0, 1, 0)
+			// user.Quotas.LimitMonthlyResetOn = time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
+		}
+		// !!! force reset on next month.
+		user.Quotas.LimitMonthlyResetOn = time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
 
-				switch {
-				case user.Quotas.LimitMonthlyRemaining >= (rxWg + txWg + rxIPSec + txIPSec):
-					user.Quotas.LimitMonthlyRemaining -= (rxWg + txWg + rxIPSec + txIPSec)
-				default:
-					user.Quotas.LimitMonthlyRemaining = 0
-				}
+		switch {
+		case user.Quotas.LimitMonthlyRemaining >= (sum.Rx + sum.Tx):
+			user.Quotas.LimitMonthlyRemaining -= (sum.Rx + sum.Tx)
+		default:
+			user.Quotas.LimitMonthlyRemaining = 0
+		}
+
+		// fix
+		ts0 := time.Unix(0, 0)
+		if user.Quotas.LastActivity.Total == ts0 {
+			user.Quotas.LastActivity.Total = time.Time{}
+		}
+		if user.Quotas.LastActivityWg.Total == ts0 {
+			user.Quotas.LastActivity.Total = time.Time{}
+		}
+		if user.Quotas.LastActivityIPSec.Total == ts0 {
+			user.Quotas.LastActivity.Total = time.Time{}
+		}
+
+		lastActivityWg, ok := lastSeenMap.Wg[id]
+		if ok {
+			if !lastActivityWg.IsZero() {
+				lastActivityMark(now, lastActivityWg, &user.Quotas.LastActivityWg)
 			}
 		}
 
-		if lastActivity, ok := lastSeenMap[id]; ok {
-			if !lastActivity.WgTime.IsZero() {
-				lastActivityMark(now, lastActivity.WgTime, &user.Quotas.LastActivityWg)
+		lastActivityIPSec, ok := lastSeenMap.IPSec[id]
+		if ok {
+			if !lastActivityIPSec.IsZero() {
+				lastActivityMark(now, lastActivityIPSec, &user.Quotas.LastActivityIPSec)
 			}
-
-			if !lastActivity.IPSecTime.IsZero() {
-				lastActivityMark(now, lastActivity.IPSecTime, &user.Quotas.LastActivityIPSec)
-			}
-
-			lastActivityTotal := lastActivity.WgTime
-			if lastActivity.IPSecTime.After(lastActivityTotal) {
-				lastActivityTotal = lastActivity.IPSecTime
-			}
-
-			lastActivityMark(now, lastActivityTotal, &user.Quotas.LastActivity)
 		}
+
+		lastActivityTotal := lastActivityWg
+		if lastActivityIPSec.After(lastActivityTotal) {
+			lastActivityTotal = lastActivityIPSec
+		}
+
+		lastActivityMark(now, lastActivityTotal, &user.Quotas.LastActivity)
 
 		if !user.Quotas.ThrottlingTill.IsZero() && user.Quotas.ThrottlingTill.After(now) {
 			throttled++
@@ -273,23 +294,23 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 	data.ActiveUsersCountWg = activeWg
 	data.ActiveUsersCountIPSec = activeIPSec
 
-	if inc {
-		incDateSwitchRelated(now, total.Rx, total.Tx, &data.TotalTraffic)
-		incDateSwitchRelated(now, totalWg.Rx, totalWg.Tx, &data.TotalTrafficWg)
-		incDateSwitchRelated(now, totalIPSec.Rx, totalIPSec.Tx, &data.TotalTrafficIPSec)
-	}
+	incDateSwitchRelated(now, total.Rx, total.Tx, &data.TotalTraffic)
+	incDateSwitchRelated(now, totalWg.Rx, totalWg.Tx, &data.TotalTrafficWg)
+	incDateSwitchRelated(now, totalIPSec.Rx, totalIPSec.Tx, &data.TotalTrafficIPSec)
 
 	if data.Endpoints == nil {
 		data.Endpoints = UsersNetworks{}
 	}
 
-	for _, prefix := range endpointMap {
-		if prefix.WgPrefix.IsValid() {
-			data.Endpoints[prefix.WgPrefix.String()] = now
+	for _, prefix := range endpointMap.Wg {
+		if prefix.IsValid() {
+			data.Endpoints[prefix.String()] = now
 		}
+	}
 
-		if prefix.IPSecPrefix.IsValid() {
-			data.Endpoints[prefix.IPSecPrefix.String()] = now
+	for _, prefix := range endpointMap.IPSec {
+		if prefix.IsValid() {
+			data.Endpoints[prefix.String()] = now
 		}
 	}
 

@@ -175,7 +175,8 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 		}
 
 		if !user.Quotas.LastActivity.Total.IsZero() {
-			apiUsers[i].LastVisitHour = (*strfmt.DateTime)(&user.Quotas.LastActivity.Total)
+			lastActivity := user.Quotas.LastActivity.Total.UTC().Truncate(time.Hour)
+			apiUsers[i].LastVisitHour = (*strfmt.DateTime)(&lastActivity)
 		}
 
 		x := float64(int((float64(user.Quotas.LimitMonthlyRemaining/1024/1024)/1024)*100)) / 100

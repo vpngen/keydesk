@@ -1,4 +1,4 @@
-package vapnapi
+package vpnapi
 
 import (
 	"errors"

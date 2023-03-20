@@ -3,8 +3,11 @@ package storage
 import (
 	"encoding/base64"
 	"fmt"
+	"math/rand"
+	"net/netip"
 	"time"
 
+	"github.com/vpngen/keydesk/kdlib"
 	"github.com/vpngen/keydesk/vpnapi"
 )
 
@@ -169,21 +172,56 @@ func randomData(data *Brigade, now time.Time) (*vpnapi.WgStatTimestamp, *vpnapi.
 		Timestamp: now.Unix(),
 	}
 
-	return ts, nil, nil, nil
+	trafficMap := vpnapi.NewWgStatTrafficMap()
+	lastSeenMap := vpnapi.NewWgStatLastActivityMap()
+	endpointMap := vpnapi.NewWgStatEndpointMap()
+
+	for _, user := range data.Users {
+		id := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(user.WgPublicKey)
+
+		switch rand.Int31n(20) {
+		case 1:
+			trafficMap.Wg[id] = &vpnapi.WgStatTraffic{
+				Rx: uint64(rand.Int63n(1e4)),
+				Tx: uint64(rand.Int63n(1e4)),
+			}
+			lastSeenMap.Wg[id] = now
+			endpointMap.Wg[id] = netip.PrefixFrom(kdlib.RandomAddrIPv4(netip.PrefixFrom(netip.AddrFrom4([4]byte{0, 0, 0, 0}), 0)), 24)
+		case 2:
+			trafficMap.IPSec[id] = &vpnapi.WgStatTraffic{
+				Rx: uint64(rand.Int63n(1e4)),
+				Tx: uint64(rand.Int63n(1e4)),
+			}
+			lastSeenMap.IPSec[id] = now
+			endpointMap.IPSec[id] = netip.PrefixFrom(kdlib.RandomAddrIPv4(netip.PrefixFrom(netip.AddrFrom4([4]byte{0, 0, 0, 0}), 0)), 24)
+		}
+	}
+
+	return ts, trafficMap, lastSeenMap, endpointMap
 }
 
 func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL time.Duration, monthlyQuotaRemaining int) error {
 	var (
 		total, totalWg, totalIPSec               RxTx
 		throttled, active, activeWg, activeIPSec int
+		trafficMap                               *vpnapi.WgStatTrafficMap
+		lastSeenMap                              *vpnapi.WgStatLastActivityMap
+		endpointMap                              *vpnapi.WgStatEndpointMap
+		statsTimestamp                           *vpnapi.WgStatTimestamp
+		err                                      error
 	)
 
-	statsTimestamp, trafficMap, lastSeenMap, endpointMap, err := vpnapi.WgStatParse(wgStats)
-	if err != nil {
-		return fmt.Errorf("parse: %w", err)
-	}
-
 	now := time.Now().UTC()
+
+	switch rdata {
+	case true:
+		statsTimestamp, trafficMap, lastSeenMap, endpointMap = randomData(data, now)
+	default:
+		statsTimestamp, trafficMap, lastSeenMap, endpointMap, err = vpnapi.WgStatParse(wgStats)
+		if err != nil {
+			return fmt.Errorf("parse: %w", err)
+		}
+	}
 
 	for _, user := range data.Users {
 		id := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(user.WgPublicKey)
@@ -341,7 +379,7 @@ func (db *BrigadeStorage) getStatsQuota(rdata bool, endpointsTTL time.Duration) 
 		return nil, fmt.Errorf("wg stat: %w", err)
 	}
 
-	if wgStats != nil {
+	if wgStats != nil || rdata {
 		if err := mergeStats(data, wgStats, rdata, endpointsTTL, db.MonthlyQuotaRemaining); err != nil {
 			return nil, fmt.Errorf("merge stats: %w", err)
 		}

@@ -31,6 +31,7 @@ func main() {
 	fmt.Fprintf(os.Stderr, "Brigade: %s\n", brigadeID)
 	fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
 	fmt.Fprintf(os.Stderr, "Statistics dir: %s\n", statsDir)
+
 	switch {
 	case addr.IsValid() && !addr.Addr().IsUnspecified():
 		fmt.Fprintf(os.Stderr, "Command address:port: %s\n", addr)

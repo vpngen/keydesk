@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vpngen/keydesk/vapnapi"
+	"github.com/vpngen/keydesk/vpnapi"
 )
 
 // GetStats - create brigade config.
-func (db *BrigadeStorage) GetStats(statsFilename, statsSpinlock string, endpointsTTL time.Duration) error {
-	data, err := db.getStatsQuota(endpointsTTL)
+func (db *BrigadeStorage) GetStats(rdata bool, statsFilename, statsSpinlock string, endpointsTTL time.Duration) error {
+	data, err := db.getStatsQuota(rdata, endpointsTTL)
 	if err != nil {
 		return fmt.Errorf("quota: %w", err)
 	}
@@ -163,13 +163,22 @@ func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *NetCounters) {
 	counters.Daily.Reset(rx, tx)
 }
 
-func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Duration, monthlyQuotaRemaining int) error {
+func randomData(data *Brigade, now time.Time) (*vpnapi.WgStatTimestamp, *vpnapi.WgStatTrafficMap, *vpnapi.WgStatLastActivityMap, *vpnapi.WgStatEndpointMap) {
+	ts := &vpnapi.WgStatTimestamp{
+		Time:      now,
+		Timestamp: now.Unix(),
+	}
+
+	return ts, nil, nil, nil
+}
+
+func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL time.Duration, monthlyQuotaRemaining int) error {
 	var (
 		total, totalWg, totalIPSec               RxTx
 		throttled, active, activeWg, activeIPSec int
 	)
 
-	statsTimestamp, trafficMap, lastSeenMap, endpointMap, err := vapnapi.WgStatParse(wgStats)
+	statsTimestamp, trafficMap, lastSeenMap, endpointMap, err := vpnapi.WgStatParse(wgStats)
 	if err != nil {
 		return fmt.Errorf("parse: %w", err)
 	}
@@ -318,7 +327,7 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 	return nil
 }
 
-func (db *BrigadeStorage) getStatsQuota(endpointsTTL time.Duration) (*Brigade, error) {
+func (db *BrigadeStorage) getStatsQuota(rdata bool, endpointsTTL time.Duration) (*Brigade, error) {
 	f, data, addr, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
@@ -327,13 +336,13 @@ func (db *BrigadeStorage) getStatsQuota(endpointsTTL time.Duration) (*Brigade, e
 	defer f.Close()
 
 	// if we catch a slowdown problems we need organize queue
-	wgStats, err := vapnapi.WgStat(addr, data.WgPublicKey)
+	wgStats, err := vpnapi.WgStat(addr, data.WgPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("wg stat: %w", err)
 	}
 
 	if wgStats != nil {
-		if err := mergeStats(data, wgStats, endpointsTTL, db.MonthlyQuotaRemaining); err != nil {
+		if err := mergeStats(data, wgStats, rdata, endpointsTTL, db.MonthlyQuotaRemaining); err != nil {
 			return nil, fmt.Errorf("merge stats: %w", err)
 		}
 	}

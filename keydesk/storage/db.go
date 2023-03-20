@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/vpngen/keydesk/kdlib"
-	"github.com/vpngen/keydesk/vapnapi"
+	"github.com/vpngen/keydesk/vpnapi"
 )
 
 // Filenames.
@@ -127,7 +127,7 @@ func (db *BrigadeStorage) openWithReading() (*kdlib.FileDb, *Brigade, netip.Addr
 		return nil, nil, addr, fmt.Errorf("brigade: %w", err)
 	}
 
-	calculatedAddrPort := vapnapi.CalcAPIAddrPort(data.EndpointIPv4)
+	calculatedAddrPort := vpnapi.CalcAPIAddrPort(data.EndpointIPv4)
 	fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", calculatedAddrPort)
 
 	switch {

@@ -38,6 +38,27 @@ var (
 	ErrInvalidStatFormat = errors.New("invalid stat")
 )
 
+func NewWgStatTrafficMap() *WgStatTrafficMap {
+	return &WgStatTrafficMap{
+		Wg:    make(map[string]*WgStatTraffic),
+		IPSec: make(map[string]*WgStatTraffic),
+	}
+}
+
+func NewWgStatLastActivityMap() *WgStatLastActivityMap {
+	return &WgStatLastActivityMap{
+		Wg:    make(map[string]time.Time),
+		IPSec: make(map[string]time.Time),
+	}
+}
+
+func NewWgStatEndpointMap() *WgStatEndpointMap {
+	return &WgStatEndpointMap{
+		Wg:    make(map[string]netip.Prefix),
+		IPSec: make(map[string]netip.Prefix),
+	}
+}
+
 func WgStatParseTimestamp(timestamp string) (*WgStatTimestamp, error) {
 	ts, err := strconv.ParseInt(timestamp, 10, 64)
 	if err != nil {
@@ -51,7 +72,7 @@ func WgStatParseTimestamp(timestamp string) (*WgStatTimestamp, error) {
 }
 
 func WgStatParseTraffic(traffic string) (*WgStatTrafficMap, error) {
-	var m = &WgStatTrafficMap{}
+	var m = NewWgStatTrafficMap()
 
 	for _, line := range strings.Split(traffic, "\n") {
 		if line == "" {
@@ -100,7 +121,7 @@ func WgStatParseTraffic(traffic string) (*WgStatTrafficMap, error) {
 }
 
 func WgStatParseLastActivity(lastSeen string) (*WgStatLastActivityMap, error) {
-	var m = &WgStatLastActivityMap{}
+	var m = NewWgStatLastActivityMap()
 
 	for _, line := range strings.Split(lastSeen, "\n") {
 		if line == "" {
@@ -137,7 +158,7 @@ func WgStatParseLastActivity(lastSeen string) (*WgStatLastActivityMap, error) {
 }
 
 func WgStatParseEndpoints(lastSeen string) (*WgStatEndpointMap, error) {
-	var m = &WgStatEndpointMap{}
+	var m = NewWgStatEndpointMap()
 
 	for _, line := range strings.Split(lastSeen, "\n") {
 		if line == "" {

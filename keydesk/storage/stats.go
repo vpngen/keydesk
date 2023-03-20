@@ -251,19 +251,11 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 			user.Quotas.LastActivity.Total = time.Time{}
 		}
 
-		lastActivityWg, ok := lastSeenMap.Wg[id]
-		if ok {
-			if !lastActivityWg.IsZero() {
-				lastActivityMark(now, lastActivityWg, &user.Quotas.LastActivityWg)
-			}
-		}
+		lastActivityWg := lastSeenMap.Wg[id]
+		lastActivityMark(now, lastActivityWg, &user.Quotas.LastActivityWg)
 
-		lastActivityIPSec, ok := lastSeenMap.IPSec[id]
-		if ok {
-			if !lastActivityIPSec.IsZero() {
-				lastActivityMark(now, lastActivityIPSec, &user.Quotas.LastActivityIPSec)
-			}
-		}
+		lastActivityIPSec := lastSeenMap.IPSec[id]
+		lastActivityMark(now, lastActivityIPSec, &user.Quotas.LastActivityIPSec)
 
 		lastActivityTotal := lastActivityWg
 		if lastActivityIPSec.After(lastActivityTotal) {

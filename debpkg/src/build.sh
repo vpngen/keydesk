@@ -9,6 +9,7 @@ RELEASE=${BRANCH:-"latest"}
 go install github.com/vpngen/keydesk/cmd/keydesk@${RELEASE}
 go install github.com/vpngen/keydesk/cmd/stats@${RELEASE}
 go install github.com/vpngen/keydesk/cmd/createbrigade@${RELEASE}
+go install github.com/vpngen/keydesk/cmd/replay@${RELEASE}
 go install github.com/vpngen/keydesk/cmd/destroybrigade@${RELEASE}
 go install github.com/vpngen/keydesk/cmd/fetchstats@${RELEASE}
 

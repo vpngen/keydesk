@@ -70,7 +70,7 @@ fi
 
 # * Create system user
 
-useradd -p '*' -G "${VGCERT_CROUP}" -M -s /usr/sbin/nologin -d "${BASE_HOME_DIR}/${brigade_id}" "${brigade_id}"
+useradd -p '*' -G "${VGCERT_GROUP}" -M -s /usr/sbin/nologin -d "${BASE_HOME_DIR}/${brigade_id}" "${brigade_id}"
 install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${BASE_HOME_DIR}/${brigade_id}"
 install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 710 -d "${BASE_STATS_DIR}/${brigade_id}"
 

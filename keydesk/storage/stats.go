@@ -288,13 +288,13 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 
 		// fix
 		ts0 := time.Unix(0, 0)
-		if user.Quotas.LastActivity.Total == ts0 {
+		if user.Quotas.LastActivity.Total.Equal(ts0) {
 			user.Quotas.LastActivity.Total = time.Time{}
 		}
-		if user.Quotas.LastActivityWg.Total == ts0 {
+		if user.Quotas.LastActivityWg.Total.Equal(ts0) {
 			user.Quotas.LastActivity.Total = time.Time{}
 		}
-		if user.Quotas.LastActivityIPSec.Total == ts0 {
+		if user.Quotas.LastActivityIPSec.Total.Equal(ts0) {
 			user.Quotas.LastActivity.Total = time.Time{}
 		}
 

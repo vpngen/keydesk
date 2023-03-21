@@ -1,10 +1,10 @@
 name: "vgkeydesk"
 arch: "amd64"
 platform: "linux"
-version: 1.0.6
+version: 1.0.14
 section: "default"
 priority: "extra"
-release: 2
+release: 1
 
 provides:
 - vgkeydesk
@@ -52,6 +52,12 @@ contents:
     group: root
 - src: bin/destroybrigade
   dst: /opt/vgkeydesk/destroybrigade
+  file_info:
+    mode: 0005
+    owner: root
+    group: root
+- src: bin/replay
+  dst: /opt/vgkeydesk/replay
   file_info:
     mode: 0005
     owner: root

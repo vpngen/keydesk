@@ -3,14 +3,17 @@ package storage
 import (
 	"encoding/base64"
 	"fmt"
+	"math/rand"
+	"net/netip"
 	"time"
 
-	"github.com/vpngen/keydesk/vapnapi"
+	"github.com/vpngen/keydesk/kdlib"
+	"github.com/vpngen/keydesk/vpnapi"
 )
 
 // GetStats - create brigade config.
-func (db *BrigadeStorage) GetStats(statsFilename, statsSpinlock string, endpointsTTL time.Duration) error {
-	data, err := db.getStatsQuota(endpointsTTL)
+func (db *BrigadeStorage) GetStats(rdata bool, statsFilename, statsSpinlock string, endpointsTTL time.Duration) error {
+	data, err := db.getStatsQuota(rdata, endpointsTTL)
 	if err != nil {
 		return fmt.Errorf("quota: %w", err)
 	}
@@ -43,6 +46,9 @@ func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
 
 	if lsYear == year && lsMonth == month && lsDay == day {
 		points.Daily = lastActivity
+		points.Weekly = lastActivity
+		points.Monthly = lastActivity
+		points.Yearly = lastActivity
 
 		return
 	}
@@ -89,6 +95,15 @@ func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *NetCounters) {
 	}()
 
 	counters.Total.Inc(rx, tx)
+
+	if counters.Update.IsZero() {
+		counters.Daily.Reset(rx, tx)
+		counters.Weekly.Reset(rx, tx)
+		counters.Monthly.Reset(rx, tx)
+		counters.Yearly.Reset(rx, tx)
+
+		return
+	}
 
 	prevYear, prevMonth, prevDay := counters.Update.Date()
 	year, month, day := now.Date()
@@ -151,59 +166,150 @@ func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *NetCounters) {
 	counters.Daily.Reset(rx, tx)
 }
 
-func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Duration, monthlyQuotaRemaining int) error {
-	var (
-		total             RxTx
-		throttled, active int
-	)
-
-	statsTimestamp, trafficMap, lastSeenMap, endpointMap, err := vapnapi.WgStatParse(wgStats)
-	if err != nil {
-		return fmt.Errorf("parse: %w", err)
+func randomData(data *Brigade, now time.Time) (*vpnapi.WgStatTimestamp, *vpnapi.WgStatTrafficMap, *vpnapi.WgStatLastActivityMap, *vpnapi.WgStatEndpointMap) {
+	ts := &vpnapi.WgStatTimestamp{
+		Time:      now,
+		Timestamp: now.Unix(),
 	}
 
-	now := time.Now().UTC()
-	inc := data.OSCountersUpdated != 0
+	trafficMap := vpnapi.NewWgStatTrafficMap()
+	lastSeenMap := vpnapi.NewWgStatLastActivityMap()
+	endpointMap := vpnapi.NewWgStatEndpointMap()
 
 	for _, user := range data.Users {
 		id := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(user.WgPublicKey)
 
-		if traffic, ok := trafficMap[id]; ok {
+		switch rand.Int31n(20) {
+		case 1:
+			trafficMap.Wg[id] = &vpnapi.WgStatTraffic{
+				Rx: uint64(rand.Int63n(1e4)),
+				Tx: uint64(rand.Int63n(1e4)),
+			}
+			lastSeenMap.Wg[id] = now
+			endpointMap.Wg[id] = netip.PrefixFrom(kdlib.RandomAddrIPv4(netip.PrefixFrom(netip.AddrFrom4([4]byte{0, 0, 0, 0}), 0)), 24)
+		case 2:
+			trafficMap.IPSec[id] = &vpnapi.WgStatTraffic{
+				Rx: uint64(rand.Int63n(1e4)),
+				Tx: uint64(rand.Int63n(1e4)),
+			}
+			lastSeenMap.IPSec[id] = now
+			endpointMap.IPSec[id] = netip.PrefixFrom(kdlib.RandomAddrIPv4(netip.PrefixFrom(netip.AddrFrom4([4]byte{0, 0, 0, 0}), 0)), 24)
+		}
+	}
+
+	return ts, trafficMap, lastSeenMap, endpointMap
+}
+
+func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL time.Duration, monthlyQuotaRemaining int) error {
+	var (
+		total, totalWg, totalIPSec               RxTx
+		throttled, active, activeWg, activeIPSec int
+		trafficMap                               *vpnapi.WgStatTrafficMap
+		lastSeenMap                              *vpnapi.WgStatLastActivityMap
+		endpointMap                              *vpnapi.WgStatEndpointMap
+		statsTimestamp                           *vpnapi.WgStatTimestamp
+		err                                      error
+	)
+
+	now := time.Now().UTC()
+
+	switch rdata {
+	case true:
+		statsTimestamp, trafficMap, lastSeenMap, endpointMap = randomData(data, now)
+	default:
+		statsTimestamp, trafficMap, lastSeenMap, endpointMap, err = vpnapi.WgStatParse(wgStats)
+		if err != nil {
+			return fmt.Errorf("parse: %w", err)
+		}
+	}
+
+	for _, user := range data.Users {
+		id := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(user.WgPublicKey)
+		sum := RxTx{}
+
+		if traffic, ok := trafficMap.Wg[id]; ok {
+			rx := traffic.Rx
+			tx := traffic.Tx
+
+			if user.Quotas.OSCountersWg.Rx <= traffic.Rx {
+				rx = traffic.Rx - user.Quotas.OSCountersWg.Rx
+			}
+
+			if user.Quotas.OSCountersWg.Tx <= traffic.Tx {
+				tx = traffic.Tx - user.Quotas.OSCountersWg.Tx
+			}
+
+			user.Quotas.OSCountersWg.Rx = traffic.Rx
+			user.Quotas.OSCountersWg.Tx = traffic.Tx
+
+			sum.Inc(rx, tx)
+			totalWg.Inc(rx, tx)
+			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersWg)
+		}
+
+		if traffic, ok := trafficMap.IPSec[id]; ok {
 			rx := traffic.Rx
 			tx := traffic.Tx
 
 			if user.Quotas.OSCounters.Rx <= traffic.Rx {
-				rx = traffic.Rx - user.Quotas.OSCounters.Rx
+				rx = traffic.Rx - user.Quotas.OSCountersIPSec.Rx
 			}
 
 			if user.Quotas.OSCounters.Tx <= traffic.Tx {
-				tx = traffic.Tx - user.Quotas.OSCounters.Tx
+				tx = traffic.Tx - user.Quotas.OSCountersIPSec.Tx
 			}
 
-			user.Quotas.OSCounters.Rx = traffic.Rx
-			user.Quotas.OSCounters.Tx = traffic.Tx
+			user.Quotas.OSCountersIPSec.Rx = traffic.Rx
+			user.Quotas.OSCountersIPSec.Tx = traffic.Tx
 
-			if inc {
-				total.Inc(rx, tx)
-
-				incDateSwitchRelated(now, rx, tx, &user.Quotas.Counters)
-				if user.Quotas.LimitMonthlyResetOn.Before(now) {
-					user.Quotas.LimitMonthlyRemaining = uint64(monthlyQuotaRemaining)
-					user.Quotas.LimitMonthlyResetOn = now.AddDate(0, 1, 0)
-				}
-
-				switch {
-				case user.Quotas.LimitMonthlyRemaining >= (rx + tx):
-					user.Quotas.LimitMonthlyRemaining -= (rx + tx)
-				default:
-					user.Quotas.LimitMonthlyRemaining = 0
-				}
-			}
+			sum.Inc(rx, tx)
+			totalIPSec.Inc(rx, tx)
+			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersIPSec)
 		}
 
-		if lastActivity, ok := lastSeenMap[id]; ok {
-			lastActivityMark(now, lastActivity.Time, &user.Quotas.LastActivity)
+		total.Inc(sum.Rx, sum.Tx)
+		incDateSwitchRelated(now, sum.Rx, sum.Tx, &user.Quotas.CountersTotal)
+
+		nextMonth := now.AddDate(0, 1, 0)
+		if user.Quotas.LimitMonthlyResetOn.Before(now) {
+			user.Quotas.LimitMonthlyRemaining = uint64(monthlyQuotaRemaining)
+			// nextMonth := now.AddDate(0, 1, 0)
+			// user.Quotas.LimitMonthlyResetOn = time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
 		}
+		// !!! force reset on next month.
+		user.Quotas.LimitMonthlyResetOn = time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
+
+		switch {
+		case user.Quotas.LimitMonthlyRemaining >= (sum.Rx + sum.Tx):
+			user.Quotas.LimitMonthlyRemaining -= (sum.Rx + sum.Tx)
+		default:
+			user.Quotas.LimitMonthlyRemaining = 0
+		}
+
+		// fix
+		ts0 := time.Unix(0, 0)
+		if user.Quotas.LastActivity.Total == ts0 {
+			user.Quotas.LastActivity.Total = time.Time{}
+		}
+		if user.Quotas.LastActivityWg.Total == ts0 {
+			user.Quotas.LastActivity.Total = time.Time{}
+		}
+		if user.Quotas.LastActivityIPSec.Total == ts0 {
+			user.Quotas.LastActivity.Total = time.Time{}
+		}
+
+		lastActivityWg := lastSeenMap.Wg[id]
+		lastActivityMark(now, lastActivityWg, &user.Quotas.LastActivityWg)
+
+		lastActivityIPSec := lastSeenMap.IPSec[id]
+		lastActivityMark(now, lastActivityIPSec, &user.Quotas.LastActivityIPSec)
+
+		lastActivityTotal := lastActivityWg
+		if lastActivityIPSec.After(lastActivityTotal) {
+			lastActivityTotal = lastActivityIPSec
+		}
+
+		lastActivityMark(now, lastActivityTotal, &user.Quotas.LastActivity)
 
 		if !user.Quotas.ThrottlingTill.IsZero() && user.Quotas.ThrottlingTill.After(now) {
 			throttled++
@@ -212,21 +318,39 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 		if !user.Quotas.LastActivity.Monthly.IsZero() {
 			active++
 		}
+
+		if !user.Quotas.LastActivityWg.Monthly.IsZero() {
+			activeWg++
+		}
+
+		if !user.Quotas.LastActivityIPSec.Monthly.IsZero() {
+			activeIPSec++
+		}
 	}
 
 	data.ThrottledUserCount = throttled
 	data.ActiveUsersCount = active
+	data.ActiveUsersCountWg = activeWg
+	data.ActiveUsersCountIPSec = activeIPSec
 
-	if inc {
-		incDateSwitchRelated(now, total.Rx, total.Tx, &data.TotalTraffic)
-	}
+	incDateSwitchRelated(now, total.Rx, total.Tx, &data.TotalTraffic)
+	incDateSwitchRelated(now, totalWg.Rx, totalWg.Tx, &data.TotalTrafficWg)
+	incDateSwitchRelated(now, totalIPSec.Rx, totalIPSec.Tx, &data.TotalTrafficIPSec)
 
 	if data.Endpoints == nil {
 		data.Endpoints = UsersNetworks{}
 	}
 
-	for _, prefix := range endpointMap {
-		data.Endpoints[prefix.Prefix.String()] = now
+	for _, prefix := range endpointMap.Wg {
+		if prefix.IsValid() {
+			data.Endpoints[prefix.String()] = now
+		}
+	}
+
+	for _, prefix := range endpointMap.IPSec {
+		if prefix.IsValid() {
+			data.Endpoints[prefix.String()] = now
+		}
 	}
 
 	lowLimit := now.Add(-endpointsTTL)
@@ -241,7 +365,7 @@ func mergeStats(data *Brigade, wgStats *vapnapi.WGStats, endpointsTTL time.Durat
 	return nil
 }
 
-func (db *BrigadeStorage) getStatsQuota(endpointsTTL time.Duration) (*Brigade, error) {
+func (db *BrigadeStorage) getStatsQuota(rdata bool, endpointsTTL time.Duration) (*Brigade, error) {
 	f, data, addr, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
@@ -250,13 +374,13 @@ func (db *BrigadeStorage) getStatsQuota(endpointsTTL time.Duration) (*Brigade, e
 	defer f.Close()
 
 	// if we catch a slowdown problems we need organize queue
-	wgStats, err := vapnapi.WgStat(addr, data.WgPublicKey)
+	wgStats, err := vpnapi.WgStat(addr, data.WgPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("wg stat: %w", err)
 	}
 
-	if wgStats != nil {
-		if err := mergeStats(data, wgStats, endpointsTTL, db.MonthlyQuotaRemaining); err != nil {
+	if wgStats != nil || rdata {
+		if err := mergeStats(data, wgStats, rdata, endpointsTTL, db.MonthlyQuotaRemaining); err != nil {
 			return nil, fmt.Errorf("merge stats: %w", err)
 		}
 	}
@@ -278,6 +402,8 @@ func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename, statsSpinl
 		ActiveUsersCount:   data.ActiveUsersCount,
 		ThrottledUserCount: data.ThrottledUserCount,
 		TotalTraffic:       data.TotalTraffic,
+		TotalTrafficWg:     data.TotalTrafficWg,
+		TotalTrafficIPSec:  data.TotalTrafficIPSec,
 		Endpoints:          data.Endpoints,
 		Updated:            time.Now().UTC(),
 		Ver:                StatsVersion,

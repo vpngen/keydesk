@@ -15,7 +15,7 @@ import (
 
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
-	"github.com/vpngen/keydesk/vapnapi"
+	"github.com/vpngen/keydesk/vpnapi"
 	"github.com/vpngen/vpngine/naclkey"
 )
 
@@ -52,7 +52,7 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, error)
 	brigadeID := flag.String("id", "", "brigadier_id")
 	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
-	addr := flag.String("a", vapnapi.TemplatedAddrPort, "API endpoint address:port")
+	addr := flag.String("a", vpnapi.TemplatedAddrPort, "API endpoint address:port")
 
 	flag.Parse()
 

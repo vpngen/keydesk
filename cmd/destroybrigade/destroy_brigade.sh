@@ -19,8 +19,6 @@ while [ -f "${spinlock}" ] ; do
 done
 touch "${spinlock}" 2>/dev/null
 
-set -e
-
 printdef () {
         echo "Usage: destroy <brigabe_id_encoded>" >&2
         exit 1
@@ -63,11 +61,10 @@ systemctl -q -f disable "${systemd_vgstats_instance}.service"
 sudo -u "${brigade_id}" "${BRIGADE_REMOVER_APP_PATH}" -id "${brigade_id}"
 
 if [ -d "${BASE_STATS_DIR}/${brigade_id}" ]; then
-        if [ -f "${BASE_STATS_DIR}/${brigade_id}/stats.json" ]; then
-                sudo -u "${brigade_id}" rm -f "${BASE_STATS_DIR}/${brigade_id}/stats.json"
+        if [ "${BASE_STATS_DIR}/${brigade_id}" != "" -a "${BASE_STATS_DIR}/${brigade_id}" != "/" ]; then
+                rm -f "${BASE_STATS_DIR}/${brigade_id}"/*
+                rmdir "${BASE_STATS_DIR}/${brigade_id}"
         fi
-
-        rmdir "${BASE_STATS_DIR}/${brigade_id}"
 fi
 
 # Remove system user

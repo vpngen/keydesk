@@ -70,14 +70,15 @@ fi
 
 # * Create system user
 
-useradd -p '*' -G "${VGCERT_CROUP}" -M -s /usr/sbin/nologin -d "${BASE_HOME_DIR}/${brigade_id}" "${brigade_id}"
+useradd -p '*' -G "${VGCERT_GROUP}" -M -s /usr/sbin/nologin -d "${BASE_HOME_DIR}/${brigade_id}" "${brigade_id}"
 install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${BASE_HOME_DIR}/${brigade_id}"
 install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 710 -d "${BASE_STATS_DIR}/${brigade_id}"
 
 # Create json datafile
 
-$(sudo -u "${brigade_id}" -g "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}")
+out=$(sudo -u "${brigade_id}" -g "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}")
 if [ "$?" -ne 0 ]; then
+        echo "Output: ${out}" >&2
         exit 1
 fi
 

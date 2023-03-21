@@ -83,6 +83,7 @@ func IsNotSupported(err error) bool {
 	return isNotSupported(underlyingError(err))
 }
 
+// ErrNotSupported is returned by functions that are not supported.
 var ErrNotSupported = errors.New("operation not supported")
 
 // underlyingError returns the underlying error for known os error types.

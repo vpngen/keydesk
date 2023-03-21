@@ -18,7 +18,7 @@ const (
 	BrigadeSpinlockFilename = "brigade.lock"
 	StatsFilename           = "stats.json"
 	StatsSpinlockFilename   = "stats.lock"
-	FileDbMode              = 0644
+	FileDbMode              = 0o644
 )
 
 var (

@@ -8,6 +8,7 @@ import (
 	"net/url"
 )
 
+// WGStats - wg_stats endpoint-API call.
 type WGStats struct {
 	Code         string `json:"code"`
 	Traffic      string `json:"traffic"`

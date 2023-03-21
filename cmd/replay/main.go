@@ -15,9 +15,8 @@ import (
 	"github.com/vpngen/keydesk/vpnapi"
 )
 
-var (
-	ErrInvalidArgs = errors.New("invalid arguments")
-)
+// ErrInvalidArgs - invalid arguments.
+var ErrInvalidArgs = errors.New("invalid arguments")
 
 func main() {
 	fresh, bonly, uonly, erase, brigadeID, dbDir, addr, err := parseArgs()
@@ -55,7 +54,6 @@ func main() {
 	if err = Do(db, fresh, bonly, uonly, erase, addr); err != nil {
 		log.Fatalf("Can't do: %s\n", err)
 	}
-
 }
 
 func parseArgs() (bool, bool, bool, bool, string, string, netip.AddrPort, error) {
@@ -122,6 +120,7 @@ func parseArgs() (bool, bool, bool, bool, string, string, netip.AddrPort, error)
 	return *fresh, *bonly, *uonly, *erase, id, dbdir, addrPort, nil
 }
 
+// Do - do replay.
 func Do(db *storage.BrigadeStorage, fresh, bonly, uonly, erase bool, addr netip.AddrPort) error {
 	if erase {
 		if err := db.DestroyBrigade(); err != nil {

@@ -106,7 +106,6 @@ func addUser(db *storage.BrigadeStorage, fullname string, person namesgenerator.
 }
 
 func genWgConf(u *storage.UserConfig, wgPriv, wgPSK []byte) string {
-
 	tmpl := `[Interface]
 Address = %s
 PrivateKey = %s

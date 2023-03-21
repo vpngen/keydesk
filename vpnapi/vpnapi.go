@@ -22,10 +22,8 @@ type ErrorResponse struct {
 	Error string `json:"error,omitempty"`
 }
 
-var (
-	// ErrInvalidRespCode - error from endpoint API.
-	ErrInvalidRespCode = errors.New("invalid resp code")
-)
+// ErrInvalidRespCode - error from endpoint API.
+var ErrInvalidRespCode = errors.New("invalid resp code")
 
 // CalcAPIAddrPort - calc API request address and port.
 func CalcAPIAddrPort(addr netip.Addr) netip.AddrPort {

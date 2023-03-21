@@ -2,6 +2,7 @@ package kdlib
 
 import "time"
 
+// NextMonth - return next month.
 func NextMonth(now time.Time) time.Time {
 	year, month, _ := now.UTC().AddDate(0, 1, 0).Date()
 

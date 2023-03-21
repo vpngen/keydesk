@@ -111,5 +111,4 @@ func main() {
 	if err := keydesk.DestroyBrigade(db); err != nil {
 		log.Fatalf("Can't destroy brigade: %s\n", err)
 	}
-
 }

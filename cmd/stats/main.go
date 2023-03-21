@@ -14,10 +14,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/keydesk/storage"
-	"github.com/vpngen/keydesk/vapnapi"
+	"github.com/vpngen/keydesk/vpnapi"
 )
 
+const random_data_env = "VGSTATS_RANDOM_DATA"
+
 func main() {
+	var rdata bool
+
 	//  dbDir, statsDir, err
 	addr, brigadeID, dbDir, statsDir, err := parseArgs()
 	if err != nil {
@@ -27,6 +31,7 @@ func main() {
 	fmt.Fprintf(os.Stderr, "Brigade: %s\n", brigadeID)
 	fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
 	fmt.Fprintf(os.Stderr, "Statistics dir: %s\n", statsDir)
+
 	switch {
 	case addr.IsValid() && !addr.Addr().IsUnspecified():
 		fmt.Fprintf(os.Stderr, "Command address:port: %s\n", addr)
@@ -34,6 +39,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Command address:port is COMMON")
 	default:
 		fmt.Fprintln(os.Stderr, "Command address:port is for DEBUG")
+		if os.Getenv(random_data_env) != "" {
+			rdata = true
+			fmt.Fprintln(os.Stderr, "Random data is ON")
+		}
 	}
 
 	// On signal, gracefully shut down the server and wait 5
@@ -54,7 +63,7 @@ func main() {
 
 	fmt.Fprintln(os.Stderr, "Starting...")
 
-	go CollectingData(kill, done, addr, brigadeID, dbDir, statsDir)
+	go CollectingData(kill, done, addr, rdata, brigadeID, dbDir, statsDir)
 
 	<-done
 }
@@ -74,7 +83,7 @@ func parseArgs() (netip.AddrPort, string, string, string, error) {
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
 	statsDir := flag.String("s", "", "Dir with brigades statistics. Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
-	addr := flag.String("a", vapnapi.TemplatedAddrPort, "API endpoint address:port")
+	addr := flag.String("a", vpnapi.TemplatedAddrPort, "API endpoint address:port")
 
 	flag.Parse()
 

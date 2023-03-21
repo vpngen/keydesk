@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
-	"github.com/vpngen/keydesk/vapnapi"
+	"github.com/vpngen/keydesk/vpnapi"
 )
 
 func parseArgs() (netip.AddrPort, string, string, error) {
@@ -32,7 +32,7 @@ func parseArgs() (netip.AddrPort, string, string, error) {
 	brigadeID := flag.String("id", "", "brigadier_id")
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
 
-	addr := flag.String("a", vapnapi.TemplatedAddrPort, "API endpoint address:port")
+	addr := flag.String("a", vpnapi.TemplatedAddrPort, "API endpoint address:port")
 
 	flag.Parse()
 

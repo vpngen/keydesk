@@ -13,7 +13,7 @@ import (
 	"github.com/vpngen/keydesk/keydesk/storage"
 )
 
-func CollectingData(kill <-chan struct{}, done chan<- struct{}, addr netip.AddrPort, brigadeID, dbDir, statsDir string) {
+func CollectingData(kill <-chan struct{}, done chan<- struct{}, addr netip.AddrPort, rdata bool, brigadeID, dbDir, statsDir string) {
 	defer close(done)
 
 	db := &storage.BrigadeStorage{
@@ -44,7 +44,7 @@ func CollectingData(kill <-chan struct{}, done chan<- struct{}, addr netip.AddrP
 		case ts := <-timer.C:
 			fmt.Fprintf(os.Stderr, "%s: Collecting data: %s: %s\n", ts.UTC().Format(time.RFC3339), brigadeID, statsFilename)
 
-			if err := db.GetStats(statsFilename, statsSpinlock, keydesk.DefaultEndpointsTTL); err != nil {
+			if err := db.GetStats(rdata, statsFilename, statsSpinlock, keydesk.DefaultEndpointsTTL); err != nil {
 				fmt.Fprintf(os.Stderr, "Error collecting stats: %s\n", err)
 			}
 

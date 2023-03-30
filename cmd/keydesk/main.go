@@ -556,7 +556,17 @@ func uiMiddleware(handler http.Handler, dir string, idleTimer *time.Timer, allow
 
 		mu.Unlock()
 
-		if allowedAddr != "" && r.RemoteAddr != allowedAddr {
+		remoteAddrPort, err := netip.ParseAddrPort(r.RemoteAddr)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+
+			return
+		}
+
+		remoteAddr := remoteAddrPort.Addr().String()
+
+		if allowedAddr != "" && remoteAddr != allowedAddr {
 			fmt.Fprintf(os.Stderr, "Connect From: %s Restricted\n", r.RemoteAddr)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 

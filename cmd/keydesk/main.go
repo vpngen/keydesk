@@ -568,6 +568,7 @@ func uiMiddleware(handler http.Handler, dir string, idleTimer *time.Timer, allow
 
 		if allowedAddr != "" && remoteAddr != allowedAddr {
 			fmt.Fprintf(os.Stderr, "Connect From: %s Restricted\n", r.RemoteAddr)
+			fmt.Fprintf(os.Stderr, "Remote: %s Expected:%s\n", remoteAddr, allowedAddr)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 
 			return

@@ -180,6 +180,17 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 
 		x := float64(int((float64(user.Quotas.LimitMonthlyRemaining/1024/1024)/1024)*100)) / 100
 		apiUsers[i].MonthlyQuotaRemainingGB = float32(x)
+
+		switch {
+		case user.Quotas.LastActivity.Total.IsZero():
+			apiUsers[i].Status = UserStatusNeverUsed
+		case user.Quotas.LastActivity.Monthly.IsZero() && user.Quotas.LastActivity.Daily.IsZero():
+			apiUsers[i].Status = UserStatusMonthlyInactive
+		case !user.Quotas.ThrottlingTill.IsZero():
+			apiUsers[i].Status = UserStatusLimited
+		default:
+			apiUsers[i].Status = UserStatusOK
+		}
 	}
 
 	return operations.NewGetUserOK().WithPayload(apiUsers)

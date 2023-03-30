@@ -21,3 +21,12 @@ const (
 const (
 	DefaultEndpointsTTL = 24 * 30 * 2 * time.Hour
 )
+
+// User statuses.
+const (
+	UserStatusOK              = "green"
+	UserStatusNeverUsed       = "black"
+	UserStatusMonthlyInactive = "gray"
+	UserStatusLimited         = "yellow"
+	UserStatusBlocked         = "red"
+)

@@ -47,6 +47,9 @@ type User struct {
 	// problems
 	Problems []string `json:"Problems"`
 
+	// status
+	Status string `json:"Status,omitempty"`
+
 	// throttling till
 	// Format: date-time
 	ThrottlingTill *strfmt.DateTime `json:"ThrottlingTill,omitempty"`

@@ -5,6 +5,9 @@ export SHARED_BASE="/data"
 constract_version () {
         repo_path=$1
 
+        # Check if the current branch is the same as the branch to build
+        git -C "$repo_path" checkout "${BRANCH}"
+
         # Get the last semver tag
         l_tag=$(git -C "$repo_path" tag --list --sort=-v:refname 'v[0-9]*\.[0-9]*\.[0-9]*' | head -n 1)
 
@@ -85,9 +88,6 @@ if [ "x$1" = "xpkg" ]; then
         go env -w GOPRIVATE=github.com/vpngen
 
         git clone ssh://git@github.com/vpngen/keydesk
-        
-        # Check if the current branch is the same as the branch to build
-        git -C keydesk checkout ${BRANCH}
         
         constract_version "keydesk"
 

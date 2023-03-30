@@ -7,15 +7,23 @@ if [ "x$1" = "xpkg" ]; then
 
         export USER_UID=${USER_UID}
         export BRANCH=${BRANCH}
+        export VERMETADATA=${VERMETADATA}
+
+        if [ -z "${BRANCH}" ]; then
+                echo "No branch specified"
+                exit 1
+        fi
 
         ssh-keyscan -t rsa github.com >> /etc/ssh/ssh_known_hosts
+        ssh-keyscan -t ecdsa github.com >> /etc/ssh/ssh_known_hosts
+        ssh-keyscan -t ed25519 github.com >> /etc/ssh/ssh_known_hosts
+
         git config --global url."ssh://git@github.com/".insteadOf "https://github.com/"
         go env -w GOPRIVATE=github.com/vpngen
 
         git clone ssh://git@github.com/vpngen/keydesk
-        if [ "x" != "x${BRANCH}" ]; then
-                git -C keydesk checkout ${BRANCH}
-        fi
+
+        constract_version "keydesk"
 
         keydesk/debpkg/src/build.sh
 
@@ -25,11 +33,17 @@ fi
 GOLANG_VER="$(grep -e "^go\s" $(dirname $0)/../go.mod | awk '{print $2}')"
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
+if [ -z "${VERMETADATA}" ]; then
+        VERMETADATA=$(hostname)
+        VERMETADATA=${VERMETADATA%%.*}
+fi
+
 docker run --rm \
         -v $(readlink -f $SSH_AUTH_SOCK):/ssh-agent \
         -e SSH_AUTH_SOCK=/ssh-agent \
         -e USER_UID=$(id -u) \
         -e BRANCH=${BRANCH} \
+        -e VERMETADATA="${VERMETADATA}" \
         -v ${PWD}:"${SHARED_BASE}" \
         golang:"${GOLANG_VER}" "${SHARED_BASE}/build" pkg
 

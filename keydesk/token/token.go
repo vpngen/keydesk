@@ -14,40 +14,40 @@ const tokenSecretLen = 16 // secret len.
 
 const tokenPurgePeriod = 300 * time.Second
 
-// TokenConfig - jwt token.
-type TokenConfig struct {
+// Config - jwt token.
+type Config struct {
 	jti    string
 	exp    time.Time
 	secret []byte
 }
 
 // Jti - jti getter.
-func (tc *TokenConfig) Jti() string {
+func (tc *Config) Jti() string {
 	return tc.jti
 }
 
 // Exp - exp getter.
-func (tc *TokenConfig) Exp() time.Time {
+func (tc *Config) Exp() time.Time {
 	return tc.exp
 }
 
 // Secret - secret getter.
-func (tc *TokenConfig) Secret() []byte {
+func (tc *Config) Secret() []byte {
 	return bytes.Clone(tc.secret)
 }
 
 type tokenStorage struct {
 	sync.Mutex
-	m    map[string]*TokenConfig
+	m    map[string]*Config
 	last time.Time // last purge
 }
 
 var tokens = &tokenStorage{
-	m:    make(map[string]*TokenConfig),
+	m:    make(map[string]*Config),
 	last: time.Now().Add(tokenPurgePeriod),
 }
 
-func (ts *tokenStorage) put(t *TokenConfig) {
+func (ts *tokenStorage) put(t *Config) {
 	ts.Lock()
 	defer ts.Unlock()
 
@@ -69,7 +69,7 @@ func (ts *tokenStorage) put(t *TokenConfig) {
 	}
 }
 
-func (ts *tokenStorage) get(jti string) *TokenConfig {
+func (ts *tokenStorage) get(jti string) *Config {
 	ts.Lock()
 	defer ts.Unlock()
 
@@ -102,7 +102,7 @@ func (ts *tokenStorage) _purge(now time.Time) {
 }
 
 // New - new jwt token
-func New(ttl int) (*TokenConfig, error) {
+func New(ttl int) (*Config, error) {
 	buf := make([]byte, tokenSecretLen)
 	if _, err := rand.Reader.Read(buf); err != nil {
 		return nil, err
@@ -111,7 +111,7 @@ func New(ttl int) (*TokenConfig, error) {
 	secret := make([]byte, base64.StdEncoding.EncodedLen(tokenSecretLen))
 	base64.StdEncoding.Encode(secret, buf)
 
-	token := &TokenConfig{
+	token := &Config{
 		exp:    time.Now().Add(time.Second * time.Duration(ttl)),
 		secret: secret,
 	}

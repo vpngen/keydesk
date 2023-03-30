@@ -212,6 +212,9 @@ func init() {
             "type": "string"
           }
         },
+        "Status": {
+          "type": "string"
+        },
         "ThrottlingTill": {
           "type": "string",
           "format": "date-time",
@@ -428,6 +431,9 @@ func init() {
           "items": {
             "type": "string"
           }
+        },
+        "Status": {
+          "type": "string"
         },
         "ThrottlingTill": {
           "type": "string",

@@ -18,15 +18,19 @@ import (
 	"github.com/vpngen/keydesk/keydesk/storage"
 )
 
+// AggrStatsVersion is a version of AggrStats structure.
 const AggrStatsVersion = 1
 
+// AggrStats is a structure for aggregated stats.
 type AggrStats struct {
 	Ver   int              `json:"version"`
 	Stats []*storage.Stats `json:"stats"`
 }
 
 var (
+	// ErrEmptyBrigadeName is an error for empty brigade name.
 	ErrEmptyBrigadeName = errors.New("empty name")
+	// ErrEmptyBrigadeList is an error for empty brigade list.
 	ErrEmptyBrigadeList = errors.New("empty list")
 )
 
@@ -54,7 +58,6 @@ func main() {
 	if _, err := w.Write(stats); err != nil {
 		log.Fatalf("Print stats: %s", err)
 	}
-
 }
 
 func getStats(statsBaseDir string, brigades []string) ([]byte, error) {
@@ -85,7 +88,7 @@ func getStats(statsBaseDir string, brigades []string) ([]byte, error) {
 }
 
 func readStatsFile(filename string) ([]byte, error) {
-	f, err := lockedfile.OpenFile(filename, os.O_RDONLY, 0644)
+	f, err := lockedfile.OpenFile(filename, os.O_RDONLY, 0o644)
 	if err != nil {
 		return nil, fmt.Errorf("open: %w", err)
 	}
@@ -101,9 +104,7 @@ func readStatsFile(filename string) ([]byte, error) {
 }
 
 func parseArgs() (bool, string, []string, error) {
-	var (
-		statsdir string
-	)
+	var statsdir string
 
 	// is id only for debug?
 	chunked := flag.Bool("ch", false, "chunked output")

@@ -91,7 +91,7 @@ func main() {
 			ActivityPeriod:        keydesk.ActivityPeriod,
 		},
 	}
-	if err := db.SelfCheck(); err != nil {
+	if err := db.CheckAndInit(); err != nil {
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 
@@ -120,8 +120,14 @@ func main() {
 	fmt.Fprintf(os.Stderr, "Permessive CORS: %t\n", pcors)
 	fmt.Fprintf(os.Stderr, "Starting %s keydesk\n", BrigadeID)
 
+	allowedAddress := ""
+	if calculatedAddrPort, ok := db.CalculatedAPIAddress(); ok {
+		allowedAddress = calculatedAddrPort.String()
+		fmt.Fprintf(os.Stderr, "Resqrict requests by address: %s \n", allowedAddress)
+	}
+
 	idleTimer := time.NewTimer(keydesk.MaxIdlePeriod)
-	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir, idleTimer)
+	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir, idleTimer, allowedAddress)
 
 	// On signal, gracefully shut down the server and wait 5
 	// seconds for current connections to stop.
@@ -493,6 +499,7 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	pcors bool,
 	webDir string,
 	idleTimer *time.Timer,
+	allowedAddr string,
 ) http.Handler {
 	// load embedded swagger file
 	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
@@ -527,19 +534,18 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	switch pcors {
 	case true:
 		return cors.AllowAll().Handler(
-			uiMiddleware(api.Serve(nil), webDir, idleTimer),
+			uiMiddleware(api.Serve(nil), webDir, idleTimer, allowedAddr),
 		)
 	default:
-		return uiMiddleware(api.Serve(nil), webDir, idleTimer)
+		return uiMiddleware(api.Serve(nil), webDir, idleTimer, allowedAddr)
 	}
 }
 
-func uiMiddleware(handler http.Handler, dir string, idleTimer *time.Timer) http.Handler {
+func uiMiddleware(handler http.Handler, dir string, idleTimer *time.Timer, allowedAddr string) http.Handler {
 	staticFS := http.Dir(dir)
+	mu := sync.Mutex{}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		mu := sync.Mutex{}
-
 		mu.Lock()
 
 		if !idleTimer.Stop() {
@@ -549,6 +555,13 @@ func uiMiddleware(handler http.Handler, dir string, idleTimer *time.Timer) http.
 		idleTimer.Reset(keydesk.MaxIdlePeriod)
 
 		mu.Unlock()
+
+		if allowedAddr != "" && r.RemoteAddr != allowedAddr {
+			fmt.Fprintf(os.Stderr, "Connect From: %s Restricted\n", r.RemoteAddr)
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+
+			return
+		}
 
 		filename := filepath.Join(dir, r.URL.Path)
 		finfo, err := os.Stat(filename)

@@ -56,7 +56,7 @@ func main() {
 			ActivityPeriod:        keydesk.ActivityPeriod,
 		},
 	}
-	if err := db.SelfCheck(); err != nil {
+	if err := db.CheckAndInit(); err != nil {
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 
@@ -67,7 +67,7 @@ func main() {
 
 // Do re-encodes wg private keys.
 func Do(db *storage.BrigadeStorage, dryrun bool, routerPublicKey, shufflerPublicKey, oldRouterPrivateKey, oldRouterPublicKey *[naclkey.NaclBoxKeyLength]byte) error {
-	f, data, _, err := db.OpenDbToModify()
+	f, data, err := db.OpenDbToModify()
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}

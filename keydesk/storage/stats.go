@@ -366,7 +366,7 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 }
 
 func (db *BrigadeStorage) getStatsQuota(rdata bool, endpointsTTL time.Duration) (*Brigade, error) {
-	f, data, addr, err := db.openWithReading()
+	f, data, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
@@ -374,7 +374,7 @@ func (db *BrigadeStorage) getStatsQuota(rdata bool, endpointsTTL time.Duration) 
 	defer f.Close()
 
 	// if we catch a slowdown problems we need organize queue
-	wgStats, err := vpnapi.WgStat(addr, data.WgPublicKey)
+	wgStats, err := vpnapi.WgStat(db.actualAddrPort, db.calculatedAddrPort, data.WgPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("wg stat: %w", err)
 	}

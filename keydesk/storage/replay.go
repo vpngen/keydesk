@@ -9,7 +9,7 @@ import (
 
 // ReplayBrigade - create brigade config.
 func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
-	f, data, addr, err := db.openWithReading()
+	f, data, err := db.openWithReading()
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
@@ -18,7 +18,7 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 
 	if fresh {
 		// if we catch a slowdown problems we need organize queue
-		err = vpnapi.WgDel(addr, data.WgPrivateRouterEnc)
+		err = vpnapi.WgDel(db.actualAddrPort, db.calculatedAddrPort, data.WgPrivateRouterEnc)
 		if err != nil {
 			return fmt.Errorf("wg add: %w", err)
 		}
@@ -26,7 +26,7 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 
 	if !uonly {
 		// if we catch a slowdown problems we need organize queue
-		err = vpnapi.WgAdd(addr, data.WgPrivateRouterEnc, data.EndpointIPv4, data.IPv4CGNAT, data.IPv6ULA)
+		err = vpnapi.WgAdd(db.actualAddrPort, db.calculatedAddrPort, data.WgPrivateRouterEnc, data.EndpointIPv4, data.IPv4CGNAT, data.IPv6ULA)
 		if err != nil {
 			return fmt.Errorf("wg add: %w", err)
 		}
@@ -43,7 +43,7 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 		}
 
 		// if we catch a slowdown problems we need organize queue
-		err = vpnapi.WgPeerAdd(addr, user.WgPublicKey, data.WgPublicKey, user.WgPSKRouterEnc, user.IPv4Addr, user.IPv6Addr, kd6)
+		err = vpnapi.WgPeerAdd(db.actualAddrPort, db.calculatedAddrPort, user.WgPublicKey, data.WgPublicKey, user.WgPSKRouterEnc, user.IPv4Addr, user.IPv6Addr, kd6)
 		if err != nil {
 			return fmt.Errorf("wg add: %w", err)
 		}

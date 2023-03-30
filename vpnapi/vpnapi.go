@@ -33,20 +33,26 @@ func CalcAPIAddrPort(addr netip.Addr) netip.AddrPort {
 	return netip.AddrPortFrom(netip.AddrFrom16(buf), endpointPort)
 }
 
-func getAPIRequest(addr netip.AddrPort, query string) ([]byte, error) {
-	if !addr.Addr().IsValid() {
+func getAPIRequest(actualAddrPort, calculatedAddrPort netip.AddrPort, query string) ([]byte, error) {
+	if !actualAddrPort.Addr().IsValid() || actualAddrPort.Addr().Compare(calculatedAddrPort.Addr()) != 0 || actualAddrPort.Port() != calculatedAddrPort.Port() {
+		fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", calculatedAddrPort)
+	}
+
+	if !actualAddrPort.Addr().IsValid() {
 		fmt.Fprintf(os.Stderr, "Test Request: %s\n", &url.URL{
 			Scheme:   "http",
-			Host:     "localhost.local",
+			Host:     calculatedAddrPort.String(),
 			RawQuery: query,
 		})
 
 		return nil, nil
 	}
 
+	fmt.Fprintf(os.Stderr, "API endpoint actual: %s\n", actualAddrPort)
+
 	apiURL := &url.URL{
 		Scheme:   "http",
-		Host:     addr.String(),
+		Host:     actualAddrPort.String(),
 		RawQuery: query,
 	}
 

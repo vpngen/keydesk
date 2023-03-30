@@ -97,7 +97,9 @@ if [ "x$1" = "xpkg" ]; then
 fi
 
 GOLANG_VER="$(grep -e "^go\s" $(dirname $0)/../go.mod | awk '{print $2}')"
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# Get the current branch
+BRANCH=$(git branch --show-current)
 
 if [ -z "${VERMETADATA}" ]; then
         VERMETADATA=$(hostname)

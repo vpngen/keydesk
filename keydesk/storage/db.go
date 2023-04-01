@@ -78,10 +78,8 @@ func commitStats(f *kdlib.FileDb, stats *Stats) error {
 	return nil
 }
 
-// CheckAndInit - self check func.
-func (db *BrigadeStorage) CheckAndInit() error {
-	addr := netip.AddrPort{}
-
+// SelfCheck - self check func.
+func (db *BrigadeStorage) SelfCheck() error {
 	if db.BrigadeFilename == "" ||
 		db.BrigadeSpinlock == "" ||
 		db.BrigadeID == "" ||
@@ -89,6 +87,17 @@ func (db *BrigadeStorage) CheckAndInit() error {
 		db.ActivityPeriod == 0 ||
 		db.MonthlyQuotaRemaining == 0 {
 		return ErrWrongStorageConfiguration
+	}
+
+	return nil
+}
+
+// SelfCheckAndInit - self check and init func.
+func (db *BrigadeStorage) SelfCheckAndInit() error {
+	addr := netip.AddrPort{}
+
+	if err := db.SelfCheck(); err != nil {
+		return fmt.Errorf("self check: %w", err)
 	}
 
 	f, data, err := db.openBrigadeWithReading()

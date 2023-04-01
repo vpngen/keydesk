@@ -222,8 +222,8 @@ func main() {
 			ActivityPeriod:        keydesk.ActivityPeriod,
 		},
 	}
-	if err := db.CheckAndInit(); err != nil {
-		log.Fatalf("Storage initialization: %s", err)
+	if err := db.SelfCheck(); err != nil {
+		log.Fatalf("Storage check error: %s", err)
 	}
 
 	// just do it.

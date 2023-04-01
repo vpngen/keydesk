@@ -1,2 +1,9 @@
 destroybrigade
-
+*.pub
+*.priv
+*.json
+*.tmp
+*.bak
+*.key
+*.crt
+*.lock

@@ -40,7 +40,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 	data.KeydeskIPv6 = config.KeydeskIPv6
 
 	// if we catch a slowdown problems we need organize queue
-	err = vpnapi.WgAdd(db.actualAddrPort, db.actualAddrPort, data.WgPrivateRouterEnc, config.EndpointIPv4, config.IPv4CGNAT, config.IPv6ULA)
+	err = vpnapi.WgAdd(db.actualAddrPort, db.calculatedAddrPort, data.WgPrivateRouterEnc, config.EndpointIPv4, config.IPv4CGNAT, config.IPv6ULA)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)
 	}

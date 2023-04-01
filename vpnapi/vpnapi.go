@@ -5,13 +5,22 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/netip"
 	"net/url"
 	"os"
+	"time"
 )
 
 const endpointPort = 8080
+
+const (
+	// CallTimeout - timeout for API call.
+	CallTimeout = 10 * time.Second // 60 seconds.
+	// ConnTimeout - timeout for API connection.
+	ConnTimeout = 5 * time.Second // 5 seconds.
+)
 
 // TemplatedAddrPort - value indicates that it is a template.
 const TemplatedAddrPort = "0.0.0.0:0"
@@ -63,7 +72,15 @@ func getAPIRequest(actualAddrPort, calculatedAddrPort netip.AddrPort, query stri
 
 	fmt.Fprintf(os.Stderr, "Request: %s\n", apiURL)
 
-	c := &http.Client{}
+	c := &http.Client{
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout: ConnTimeout,
+			}).Dial,
+		},
+		Timeout: CallTimeout,
+	}
+
 	resp, err := c.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("do req: %w", err)

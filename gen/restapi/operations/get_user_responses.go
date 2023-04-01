@@ -86,6 +86,31 @@ func (o *GetUserForbidden) WriteResponse(rw http.ResponseWriter, producer runtim
 	rw.WriteHeader(403)
 }
 
+// GetUserInternalServerErrorCode is the HTTP code returned for type GetUserInternalServerError
+const GetUserInternalServerErrorCode int = 500
+
+/*
+GetUserInternalServerError Internal server error
+
+swagger:response getUserInternalServerError
+*/
+type GetUserInternalServerError struct {
+}
+
+// NewGetUserInternalServerError creates GetUserInternalServerError with default headers values
+func NewGetUserInternalServerError() *GetUserInternalServerError {
+
+	return &GetUserInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *GetUserInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}
+
 /*
 GetUserDefault error
 

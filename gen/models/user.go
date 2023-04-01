@@ -33,7 +33,8 @@ type User struct {
 	LastVisitSubnet string `json:"LastVisitSubnet,omitempty"`
 
 	// monthly quota remaining g b
-	MonthlyQuotaRemainingGB float32 `json:"MonthlyQuotaRemainingGB,omitempty"`
+	// Required: true
+	MonthlyQuotaRemainingGB *float32 `json:"MonthlyQuotaRemainingGB"`
 
 	// person desc
 	PersonDesc string `json:"PersonDesc,omitempty"`
@@ -48,7 +49,8 @@ type User struct {
 	Problems []string `json:"Problems"`
 
 	// status
-	Status string `json:"Status,omitempty"`
+	// Required: true
+	Status *string `json:"Status"`
 
 	// throttling till
 	// Format: date-time
@@ -68,6 +70,14 @@ func (m *User) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateLastVisitHour(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateMonthlyQuotaRemainingGB(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStatus(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -95,6 +105,24 @@ func (m *User) validateLastVisitHour(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("LastVisitHour", "body", "date-time", m.LastVisitHour.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *User) validateMonthlyQuotaRemainingGB(formats strfmt.Registry) error {
+
+	if err := validate.Required("MonthlyQuotaRemainingGB", "body", m.MonthlyQuotaRemainingGB); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *User) validateStatus(formats strfmt.Registry) error {
+
+	if err := validate.Required("Status", "body", m.Status); err != nil {
 		return err
 	}
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/netip"
 	"net/url"
 	"os"
@@ -51,7 +52,7 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 	for {
 		fullname, person, err := namesgenerator.PeaceAwardeeShort()
 		if err != nil {
-			return operations.NewPostUserDefault(500)
+			return operations.NewPostUserInternalServerError()
 		}
 
 		user, wgPriv, wgPSK, err = addUser(db, fullname, person, false, false, routerPublicKey, shufflerPublicKey)
@@ -62,7 +63,7 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 
 			fmt.Fprintf(os.Stderr, "Add error: %s\n", err)
 
-			return operations.NewPostUserDefault(500)
+			return operations.NewPostUserInternalServerError()
 		}
 
 		break
@@ -178,19 +179,21 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 			apiUsers[i].LastVisitHour = (*strfmt.DateTime)(&lastActivity)
 		}
 
-		x := float64(int((float64(user.Quotas.LimitMonthlyRemaining/1024/1024)/1024)*100)) / 100
-		apiUsers[i].MonthlyQuotaRemainingGB = float32(x)
+		x := float32(float64(math.Round((float64(user.Quotas.LimitMonthlyRemaining/1024/1024)/1024)*100)) / 100)
+		apiUsers[i].MonthlyQuotaRemainingGB = &x
+
+		status := UserStatusOK
 
 		switch {
 		case user.Quotas.LastActivity.Total.IsZero():
-			apiUsers[i].Status = UserStatusNeverUsed
+			status = UserStatusNeverUsed
 		case user.Quotas.LastActivity.Monthly.IsZero() && user.Quotas.LastActivity.Daily.IsZero():
-			apiUsers[i].Status = UserStatusMonthlyInactive
+			status = UserStatusMonthlyInactive
 		case !user.Quotas.ThrottlingTill.IsZero():
-			apiUsers[i].Status = UserStatusLimited
-		default:
-			apiUsers[i].Status = UserStatusOK
+			status = UserStatusLimited
 		}
+
+		apiUsers[i].Status = &status
 	}
 
 	return operations.NewGetUserOK().WithPayload(apiUsers)

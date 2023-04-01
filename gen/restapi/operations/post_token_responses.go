@@ -58,6 +58,31 @@ func (o *PostTokenCreated) WriteResponse(rw http.ResponseWriter, producer runtim
 	}
 }
 
+// PostTokenInternalServerErrorCode is the HTTP code returned for type PostTokenInternalServerError
+const PostTokenInternalServerErrorCode int = 500
+
+/*
+PostTokenInternalServerError Internal server error
+
+swagger:response postTokenInternalServerError
+*/
+type PostTokenInternalServerError struct {
+}
+
+// NewPostTokenInternalServerError creates PostTokenInternalServerError with default headers values
+func NewPostTokenInternalServerError() *PostTokenInternalServerError {
+
+	return &PostTokenInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *PostTokenInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}
+
 /*
 PostTokenDefault error
 

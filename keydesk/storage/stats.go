@@ -270,32 +270,18 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 		total.Inc(sum.Rx, sum.Tx)
 		incDateSwitchRelated(now, sum.Rx, sum.Tx, &user.Quotas.CountersTotal)
 
-		nextMonth := now.AddDate(0, 1, 0)
 		if user.Quotas.LimitMonthlyResetOn.Before(now) {
+			// !!! reset monthly throttle ....
 			user.Quotas.LimitMonthlyRemaining = uint64(monthlyQuotaRemaining)
-			// nextMonth := now.AddDate(0, 1, 0)
-			// user.Quotas.LimitMonthlyResetOn = time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
+			user.Quotas.LimitMonthlyResetOn = kdlib.NextMonth(now)
 		}
-		// !!! force reset on next month.
-		user.Quotas.LimitMonthlyResetOn = time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
 
+		spentQuota := (sum.Rx + sum.Tx)
 		switch {
-		case user.Quotas.LimitMonthlyRemaining >= (sum.Rx + sum.Tx):
-			user.Quotas.LimitMonthlyRemaining -= (sum.Rx + sum.Tx)
+		case user.Quotas.LimitMonthlyRemaining >= spentQuota:
+			user.Quotas.LimitMonthlyRemaining -= spentQuota
 		default:
 			user.Quotas.LimitMonthlyRemaining = 0
-		}
-
-		// fix
-		ts0 := time.Unix(0, 0)
-		if user.Quotas.LastActivity.Total.Equal(ts0) {
-			user.Quotas.LastActivity.Total = time.Time{}
-		}
-		if user.Quotas.LastActivityWg.Total.Equal(ts0) {
-			user.Quotas.LastActivity.Total = time.Time{}
-		}
-		if user.Quotas.LastActivityIPSec.Total.Equal(ts0) {
-			user.Quotas.LastActivity.Total = time.Time{}
 		}
 
 		lastActivityWg := lastSeenMap.Wg[id]

@@ -1,10 +1,10 @@
 name: "vgkeydesk"
 arch: "amd64"
 platform: "linux"
-version: 1.0.15
+version: ${PACKAGE_VERSION}
 section: "default"
-priority: "extra"
-release: 1
+priority: "optional"
+release: ${PACKAGE_RELEASE}
 
 provides:
 - vgkeydesk
@@ -88,12 +88,6 @@ contents:
     group: root
 - src: keydesk/cmd/sshcmd/ssh_spawner_command.sh
   dst: /opt/vgkeydesk/ssh_spawner_command.sh
-  file_info:
-    mode: 0005
-    owner: root
-    group: root
-- src: keydesk/cmd/fetchstats/fetch_stats.sh
-  dst: /opt/vgkeydesk/fetch_stats.sh
   file_info:
     mode: 0005
     owner: root

@@ -18,7 +18,7 @@ const (
 	BrigadeSpinlockFilename = "brigade.lock"
 	StatsFilename           = "stats.json"
 	StatsSpinlockFilename   = "stats.lock"
-	FileDbMode              = 0644
+	FileDbMode              = 0o644
 )
 
 var (
@@ -45,10 +45,12 @@ type BrigadeStorageOpts struct {
 
 // BrigadeStorage - brigade file storage.
 type BrigadeStorage struct {
-	BrigadeID       string
-	BrigadeFilename string // i.e. /home/<BrigadeID>/brigade.json
-	BrigadeSpinlock string // i.e. /home/<BrigadeID>/brigade.lock
-	APIAddrPort     netip.AddrPort
+	BrigadeID          string
+	BrigadeFilename    string // i.e. /home/<BrigadeID>/brigade.json
+	BrigadeSpinlock    string // i.e. /home/<BrigadeID>/brigade.lock
+	APIAddrPort        netip.AddrPort
+	calculatedAddrPort netip.AddrPort
+	actualAddrPort     netip.AddrPort
 	BrigadeStorageOpts
 }
 
@@ -90,6 +92,41 @@ func (db *BrigadeStorage) SelfCheck() error {
 	return nil
 }
 
+// SelfCheckAndInit - self check and init func.
+func (db *BrigadeStorage) SelfCheckAndInit() error {
+	addr := netip.AddrPort{}
+
+	if err := db.SelfCheck(); err != nil {
+		return fmt.Errorf("self check: %w", err)
+	}
+
+	f, data, err := db.openBrigadeWithReading()
+	if err != nil {
+		return fmt.Errorf("open: %w", err)
+	}
+
+	defer f.Close()
+
+	db.calculatedAddrPort = vpnapi.CalcAPIAddrPort(data.EndpointIPv4)
+	fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", db.calculatedAddrPort)
+
+	switch {
+	case db.APIAddrPort.Addr().IsValid() && db.APIAddrPort.Addr().IsUnspecified():
+		db.actualAddrPort = db.calculatedAddrPort
+	default:
+		db.actualAddrPort = db.APIAddrPort
+		if addr.IsValid() {
+			fmt.Fprintf(os.Stderr, "API endpoint: %s\n", db.calculatedAddrPort)
+		}
+	}
+
+	return nil
+}
+
+func (db *BrigadeStorage) CalculatedAPIAddress() (netip.Addr, bool) {
+	return db.calculatedAddrPort.Addr(), db.APIAddrPort.Addr().IsValid() && db.APIAddrPort.Addr().IsUnspecified()
+}
+
 func (db *BrigadeStorage) openBrigadeWithReading() (*kdlib.FileDb, *Brigade, error) {
 	f, err := kdlib.OpenFileDb(db.BrigadeFilename, db.BrigadeSpinlock, FileDbMode)
 	if err != nil {
@@ -120,24 +157,10 @@ func (db *BrigadeStorage) openBrigadeWithReading() (*kdlib.FileDb, *Brigade, err
 	return f, data, nil
 }
 
-func (db *BrigadeStorage) openWithReading() (*kdlib.FileDb, *Brigade, netip.AddrPort, error) {
-	addr := netip.AddrPort{}
+func (db *BrigadeStorage) openWithReading() (*kdlib.FileDb, *Brigade, error) {
 	f, data, err := db.openBrigadeWithReading()
 	if err != nil {
-		return nil, nil, addr, fmt.Errorf("brigade: %w", err)
-	}
-
-	calculatedAddrPort := vpnapi.CalcAPIAddrPort(data.EndpointIPv4)
-	fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", calculatedAddrPort)
-
-	switch {
-	case db.APIAddrPort.Addr().IsValid() && db.APIAddrPort.Addr().IsUnspecified():
-		addr = calculatedAddrPort
-	default:
-		addr = db.APIAddrPort
-		if addr.IsValid() {
-			fmt.Fprintf(os.Stderr, "API endpoint: %s\n", calculatedAddrPort)
-		}
+		return nil, nil, fmt.Errorf("brigade: %w", err)
 	}
 
 	if data.Ver == 1 {
@@ -167,7 +190,7 @@ func (db *BrigadeStorage) openWithReading() (*kdlib.FileDb, *Brigade, netip.Addr
 		}
 	}
 
-	return f, data, addr, nil
+	return f, data, nil
 }
 
 func (db *BrigadeStorage) openBrigadeWithoutReading() (*kdlib.FileDb, *Brigade, error) {

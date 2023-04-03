@@ -37,6 +37,9 @@ func init() {
               "$ref": "#/definitions/token"
             }
           },
+          "500": {
+            "description": "Internal server error"
+          },
           "default": {
             "description": "error",
             "schema": {
@@ -68,6 +71,9 @@ func init() {
           },
           "403": {
             "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
           },
           "default": {
             "description": "error",
@@ -102,6 +108,9 @@ func init() {
           "403": {
             "description": "You do not have necessary permissions for the resource"
           },
+          "500": {
+            "description": "Internal server error"
+          },
           "default": {
             "description": "error",
             "schema": {
@@ -135,6 +144,9 @@ func init() {
           },
           "403": {
             "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
           },
           "default": {
             "description": "error",
@@ -176,7 +188,9 @@ func init() {
       "type": "object",
       "required": [
         "UserID",
-        "UserName"
+        "UserName",
+        "Status",
+        "MonthlyQuotaRemainingGB"
       ],
       "properties": {
         "LastVisitASCountry": {
@@ -211,6 +225,9 @@ func init() {
           "items": {
             "type": "string"
           }
+        },
+        "Status": {
+          "type": "string"
         },
         "ThrottlingTill": {
           "type": "string",
@@ -254,6 +271,9 @@ func init() {
               "$ref": "#/definitions/token"
             }
           },
+          "500": {
+            "description": "Internal server error"
+          },
           "default": {
             "description": "error",
             "schema": {
@@ -285,6 +305,9 @@ func init() {
           },
           "403": {
             "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
           },
           "default": {
             "description": "error",
@@ -319,6 +342,9 @@ func init() {
           "403": {
             "description": "You do not have necessary permissions for the resource"
           },
+          "500": {
+            "description": "Internal server error"
+          },
           "default": {
             "description": "error",
             "schema": {
@@ -352,6 +378,9 @@ func init() {
           },
           "403": {
             "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
           },
           "default": {
             "description": "error",
@@ -393,7 +422,9 @@ func init() {
       "type": "object",
       "required": [
         "UserID",
-        "UserName"
+        "UserName",
+        "Status",
+        "MonthlyQuotaRemainingGB"
       ],
       "properties": {
         "LastVisitASCountry": {
@@ -428,6 +459,9 @@ func init() {
           "items": {
             "type": "string"
           }
+        },
+        "Status": {
+          "type": "string"
         },
         "ThrottlingTill": {
           "type": "string",

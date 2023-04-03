@@ -31,11 +31,13 @@ type RxTx struct {
 	Tx uint64 `json:"tx"`
 }
 
+// Inc - increment counters.
 func (x *RxTx) Inc(rx, tx uint64) {
 	x.Rx += rx
 	x.Tx += tx
 }
 
+// Reset - reset counters.
 func (x *RxTx) Reset(rx, tx uint64) {
 	x.Rx = rx
 	x.Tx = tx

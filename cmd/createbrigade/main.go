@@ -223,7 +223,7 @@ func main() {
 		},
 	}
 	if err := db.SelfCheck(); err != nil {
-		log.Fatalf("Storage initialization: %s", err)
+		log.Fatalf("Storage check error: %s", err)
 	}
 
 	// just do it.

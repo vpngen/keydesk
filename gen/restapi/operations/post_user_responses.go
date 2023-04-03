@@ -104,6 +104,31 @@ func (o *PostUserForbidden) WriteResponse(rw http.ResponseWriter, producer runti
 	rw.WriteHeader(403)
 }
 
+// PostUserInternalServerErrorCode is the HTTP code returned for type PostUserInternalServerError
+const PostUserInternalServerErrorCode int = 500
+
+/*
+PostUserInternalServerError Internal server error
+
+swagger:response postUserInternalServerError
+*/
+type PostUserInternalServerError struct {
+}
+
+// NewPostUserInternalServerError creates PostUserInternalServerError with default headers values
+func NewPostUserInternalServerError() *PostUserInternalServerError {
+
+	return &PostUserInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *PostUserInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}
+
 /*
 PostUserDefault error
 

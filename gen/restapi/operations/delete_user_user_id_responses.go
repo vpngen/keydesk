@@ -63,6 +63,31 @@ func (o *DeleteUserUserIDForbidden) WriteResponse(rw http.ResponseWriter, produc
 	rw.WriteHeader(403)
 }
 
+// DeleteUserUserIDInternalServerErrorCode is the HTTP code returned for type DeleteUserUserIDInternalServerError
+const DeleteUserUserIDInternalServerErrorCode int = 500
+
+/*
+DeleteUserUserIDInternalServerError Internal server error
+
+swagger:response deleteUserUserIdInternalServerError
+*/
+type DeleteUserUserIDInternalServerError struct {
+}
+
+// NewDeleteUserUserIDInternalServerError creates DeleteUserUserIDInternalServerError with default headers values
+func NewDeleteUserUserIDInternalServerError() *DeleteUserUserIDInternalServerError {
+
+	return &DeleteUserUserIDInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *DeleteUserUserIDInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}
+
 /*
 DeleteUserUserIDDefault error
 

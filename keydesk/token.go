@@ -71,7 +71,7 @@ func CreateToken(BrigadierID string, TokenLifeTime int64) func(operations.PostTo
 	return func(params operations.PostTokenParams) middleware.Responder {
 		tc, err := token.New(int(TokenLifeTime))
 		if err != nil {
-			return operations.NewPostTokenDefault(500)
+			return operations.NewPostTokenInternalServerError()
 		}
 
 		// Create a new jwtoken object, specifying signing method and the claims
@@ -85,7 +85,7 @@ func CreateToken(BrigadierID string, TokenLifeTime int64) func(operations.PostTo
 		// Sign and get the complete encoded token as a string using the secret
 		tokenString, err := jwtoken.SignedString(tc.Secret())
 		if err != nil {
-			return operations.NewPostTokenDefault(500)
+			return operations.NewPostTokenInternalServerError()
 		}
 
 		return operations.NewPostTokenCreated().WithPayload(&models.Token{Token: &tokenString})

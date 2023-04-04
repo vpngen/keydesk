@@ -5,13 +5,22 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/netip"
 	"net/url"
 	"os"
+	"time"
 )
 
 const endpointPort = 8080
+
+const (
+	// CallTimeout - timeout for API call.
+	CallTimeout = 10 * time.Second // 60 seconds.
+	// ConnTimeout - timeout for API connection.
+	ConnTimeout = 5 * time.Second // 5 seconds.
+)
 
 // TemplatedAddrPort - value indicates that it is a template.
 const TemplatedAddrPort = "0.0.0.0:0"
@@ -22,10 +31,8 @@ type ErrorResponse struct {
 	Error string `json:"error,omitempty"`
 }
 
-var (
-	// ErrInvalidRespCode - error from endpoint API.
-	ErrInvalidRespCode = errors.New("invalid resp code")
-)
+// ErrInvalidRespCode - error from endpoint API.
+var ErrInvalidRespCode = errors.New("invalid resp code")
 
 // CalcAPIAddrPort - calc API request address and port.
 func CalcAPIAddrPort(addr netip.Addr) netip.AddrPort {
@@ -35,20 +42,26 @@ func CalcAPIAddrPort(addr netip.Addr) netip.AddrPort {
 	return netip.AddrPortFrom(netip.AddrFrom16(buf), endpointPort)
 }
 
-func getAPIRequest(addr netip.AddrPort, query string) ([]byte, error) {
-	if !addr.Addr().IsValid() {
+func getAPIRequest(actualAddrPort, calculatedAddrPort netip.AddrPort, query string) ([]byte, error) {
+	if !actualAddrPort.Addr().IsValid() || actualAddrPort.Addr().Compare(calculatedAddrPort.Addr()) != 0 || actualAddrPort.Port() != calculatedAddrPort.Port() {
+		fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", calculatedAddrPort)
+	}
+
+	if !actualAddrPort.Addr().IsValid() {
 		fmt.Fprintf(os.Stderr, "Test Request: %s\n", &url.URL{
 			Scheme:   "http",
-			Host:     "localhost.local",
+			Host:     calculatedAddrPort.String(),
 			RawQuery: query,
 		})
 
 		return nil, nil
 	}
 
+	fmt.Fprintf(os.Stderr, "API endpoint actual: %s\n", actualAddrPort)
+
 	apiURL := &url.URL{
 		Scheme:   "http",
-		Host:     addr.String(),
+		Host:     actualAddrPort.String(),
 		RawQuery: query,
 	}
 
@@ -59,7 +72,15 @@ func getAPIRequest(addr netip.AddrPort, query string) ([]byte, error) {
 
 	fmt.Fprintf(os.Stderr, "Request: %s\n", apiURL)
 
-	c := &http.Client{}
+	c := &http.Client{
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout: ConnTimeout,
+			}).Dial,
+		},
+		Timeout: CallTimeout,
+	}
+
 	resp, err := c.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("do req: %w", err)

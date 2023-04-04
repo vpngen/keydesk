@@ -20,9 +20,8 @@ import (
 	"golang.org/x/crypto/nacl/box"
 )
 
-var (
-	ErrInvalidArgs = errors.New("invalid arguments")
-)
+// ErrInvalidArgs is returned when arguments are invalid.
+var ErrInvalidArgs = errors.New("invalid arguments")
 
 func main() {
 	dryrun, brigadeID, dbDir, etcDir, oldKeyFilename, err := parseArgs()
@@ -57,18 +56,18 @@ func main() {
 			ActivityPeriod:        keydesk.ActivityPeriod,
 		},
 	}
-	if err := db.SelfCheck(); err != nil {
+	if err := db.SelfCheckAndInit(); err != nil {
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 
 	if err := Do(db, dryrun, &routerPublicKey, &shufflerPublicKey, &oldRouterPrivateKey, &oldRouterPublicKey); err != nil {
 		log.Fatalf("Do: %s\n", err)
 	}
-
 }
 
+// Do re-encodes wg private keys.
 func Do(db *storage.BrigadeStorage, dryrun bool, routerPublicKey, shufflerPublicKey, oldRouterPrivateKey, oldRouterPublicKey *[naclkey.NaclBoxKeyLength]byte) error {
-	f, data, _, err := db.OpenDbToModify()
+	f, data, err := db.OpenDbToModify()
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}
@@ -260,7 +259,6 @@ func readPrivKey(filename string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.Nacl
 
 			return keys.Private, keys.Public, nil
 		}
-
 	}
 
 	keys, err := naclkey.ReadKeypairFile(filename)

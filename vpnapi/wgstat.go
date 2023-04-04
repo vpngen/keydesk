@@ -9,35 +9,43 @@ import (
 	"time"
 )
 
+// WgStatTimestamp - VPN stat timestamp.
 type WgStatTimestamp struct {
 	Timestamp int64
 	Time      time.Time
 }
 
+// WgStatTraffic - VPN stat traffic.
 type WgStatTraffic struct {
 	Rx uint64
 	Tx uint64
 }
 
+// WgStatTrafficMap - VPN stat traffic map, key is User wg_public_key.
+// Dedicated map objects for wg and ipsec.
 type WgStatTrafficMap struct {
 	Wg    map[string]*WgStatTraffic
 	IPSec map[string]*WgStatTraffic
 }
 
+// WgStatLastActivityMap - VPN stat last activity map, key is User wg_public_key.
+// Dedicated map objects for wg and ipsec.
 type WgStatLastActivityMap struct {
 	Wg    map[string]time.Time
 	IPSec map[string]time.Time
 }
 
+// WgStatEndpointMap - VPN stat endpoint map, key is User wg_public_key.
+// Dedicated map objects for wg and ipsec.
 type WgStatEndpointMap struct {
 	Wg    map[string]netip.Prefix
 	IPSec map[string]netip.Prefix
 }
 
-var (
-	ErrInvalidStatFormat = errors.New("invalid stat")
-)
+// ErrInvalidStatFormat - invalid stat format.
+var ErrInvalidStatFormat = errors.New("invalid stat")
 
+// NewWgStatTrafficMap - create new WgStatTrafficMap.
 func NewWgStatTrafficMap() *WgStatTrafficMap {
 	return &WgStatTrafficMap{
 		Wg:    make(map[string]*WgStatTraffic),
@@ -45,6 +53,7 @@ func NewWgStatTrafficMap() *WgStatTrafficMap {
 	}
 }
 
+// NewWgStatLastActivityMap - create new WgStatLastActivityMap.
 func NewWgStatLastActivityMap() *WgStatLastActivityMap {
 	return &WgStatLastActivityMap{
 		Wg:    make(map[string]time.Time),
@@ -52,6 +61,7 @@ func NewWgStatLastActivityMap() *WgStatLastActivityMap {
 	}
 }
 
+// NewWgStatEndpointMap - create new WgStatEndpointMap.
 func NewWgStatEndpointMap() *WgStatEndpointMap {
 	return &WgStatEndpointMap{
 		Wg:    make(map[string]netip.Prefix),
@@ -59,6 +69,7 @@ func NewWgStatEndpointMap() *WgStatEndpointMap {
 	}
 }
 
+// WgStatParseTimestamp - parse timestamp value.
 func WgStatParseTimestamp(timestamp string) (*WgStatTimestamp, error) {
 	ts, err := strconv.ParseInt(timestamp, 10, 64)
 	if err != nil {
@@ -71,8 +82,9 @@ func WgStatParseTimestamp(timestamp string) (*WgStatTimestamp, error) {
 	}, nil
 }
 
+// WgStatParseTraffic - parse traffic from text.
 func WgStatParseTraffic(traffic string) (*WgStatTrafficMap, error) {
-	var m = NewWgStatTrafficMap()
+	m := NewWgStatTrafficMap()
 
 	for _, line := range strings.Split(traffic, "\n") {
 		if line == "" {
@@ -120,8 +132,9 @@ func WgStatParseTraffic(traffic string) (*WgStatTrafficMap, error) {
 	return m, nil
 }
 
+// WgStatParseLastActivity - parse last activity time from text.
 func WgStatParseLastActivity(lastSeen string) (*WgStatLastActivityMap, error) {
-	var m = NewWgStatLastActivityMap()
+	m := NewWgStatLastActivityMap()
 
 	for _, line := range strings.Split(lastSeen, "\n") {
 		if line == "" {
@@ -157,8 +170,9 @@ func WgStatParseLastActivity(lastSeen string) (*WgStatLastActivityMap, error) {
 	return m, nil
 }
 
+// WgStatParseEndpoints - parse last seen endpoints from text.
 func WgStatParseEndpoints(lastSeen string) (*WgStatEndpointMap, error) {
-	var m = NewWgStatEndpointMap()
+	m := NewWgStatEndpointMap()
 
 	for _, line := range strings.Split(lastSeen, "\n") {
 		if line == "" {
@@ -194,6 +208,8 @@ func WgStatParseEndpoints(lastSeen string) (*WgStatEndpointMap, error) {
 	return m, nil
 }
 
+// WgStatParse - parse stats from parsed response.
+// Most of fileds have a text format, so we need to parse them.
 func WgStatParse(resp *WGStats) (*WgStatTimestamp, *WgStatTrafficMap, *WgStatLastActivityMap, *WgStatEndpointMap, error) {
 	ts, err := WgStatParseTimestamp(resp.Timestamp)
 	if err != nil {

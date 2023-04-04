@@ -22,7 +22,7 @@ func (db *BrigadeStorage) CreateUser(
 	wgRouterPSK,
 	wgShufflerPSK []byte,
 ) (*UserConfig, error) {
-	f, data, addr, err := db.openWithReading()
+	f, data, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
@@ -30,7 +30,7 @@ func (db *BrigadeStorage) CreateUser(
 	defer f.Close()
 
 	if isBrigadier && replaceBrigadier {
-		err := db.removeBrigadier(data, addr)
+		err := db.removeBrigadier(data)
 		if err != nil {
 			return nil, fmt.Errorf("replace: %w", err)
 		}
@@ -76,7 +76,7 @@ func (db *BrigadeStorage) CreateUser(
 				Ver: NetCountersVersion,
 			},
 			LimitMonthlyRemaining: uint64(db.MonthlyQuotaRemaining),
-			LimitMonthlyResetOn:   kdlib.NextMonth(ts),
+			LimitMonthlyResetOn:   kdlib.NextMonthlyResetOn(ts),
 			Ver:                   QuotaVesrion,
 		},
 		Ver: UserVersion,
@@ -92,7 +92,7 @@ func (db *BrigadeStorage) CreateUser(
 	}
 
 	// if we catch a slowdown problems we need organize queue
-	err = vpnapi.WgPeerAdd(addr, wgPub, data.WgPublicKey, wgRouterPSK, userconf.IPv4, userconf.IPv6, kd6)
+	err = vpnapi.WgPeerAdd(db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey, wgRouterPSK, userconf.IPv4, userconf.IPv6, kd6)
 	if err != nil {
 		return nil, fmt.Errorf("wg add: %w", err)
 	}
@@ -185,7 +185,7 @@ func assembleUser(data *Brigade, fullname string, isBrigadier bool, maxUsers int
 
 // DeleteUser - remove user from the storage.
 func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
-	f, data, addr, err := db.openWithReading()
+	f, data, err := db.openWithReading()
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
@@ -203,7 +203,7 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 	}
 
 	// if we catch a slowdown problems we need organize queue
-	err = vpnapi.WgPeerDel(addr, wgPub, data.WgPublicKey)
+	err = vpnapi.WgPeerDel(db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey)
 	if err != nil {
 		return fmt.Errorf("peer del: %w", err)
 	}
@@ -215,14 +215,14 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 	return nil
 }
 
-func (db *BrigadeStorage) removeBrigadier(data *Brigade, addr netip.AddrPort) error {
+func (db *BrigadeStorage) removeBrigadier(data *Brigade) error {
 	for i, user := range data.Users {
 		if user.IsBrigadier {
 			wgPub := user.WgPublicKey
 			data.Users = append(data.Users[:i], data.Users[i+1:]...)
 
 			// if we catch a slowdown problems we need organize queue
-			err := vpnapi.WgPeerDel(addr, wgPub, data.WgPublicKey)
+			err := vpnapi.WgPeerDel(db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey)
 			if err != nil {
 				return fmt.Errorf("peer del: %w", err)
 			}
@@ -236,7 +236,7 @@ func (db *BrigadeStorage) removeBrigadier(data *Brigade, addr netip.AddrPort) er
 
 // ListUsers - list users.
 func (db *BrigadeStorage) ListUsers() ([]*User, error) {
-	f, data, _, err := db.openWithReading()
+	f, data, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}

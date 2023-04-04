@@ -251,11 +251,11 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 			rx := traffic.Rx
 			tx := traffic.Tx
 
-			if user.Quotas.OSCounters.Rx <= traffic.Rx {
+			if user.Quotas.OSCountersIPSec.Rx <= traffic.Rx {
 				rx = traffic.Rx - user.Quotas.OSCountersIPSec.Rx
 			}
 
-			if user.Quotas.OSCounters.Tx <= traffic.Tx {
+			if user.Quotas.OSCountersIPSec.Tx <= traffic.Tx {
 				tx = traffic.Tx - user.Quotas.OSCountersIPSec.Tx
 			}
 
@@ -270,32 +270,18 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 		total.Inc(sum.Rx, sum.Tx)
 		incDateSwitchRelated(now, sum.Rx, sum.Tx, &user.Quotas.CountersTotal)
 
-		nextMonth := now.AddDate(0, 1, 0)
 		if user.Quotas.LimitMonthlyResetOn.Before(now) {
+			// !!! reset monthly throttle ....
 			user.Quotas.LimitMonthlyRemaining = uint64(monthlyQuotaRemaining)
-			// nextMonth := now.AddDate(0, 1, 0)
-			// user.Quotas.LimitMonthlyResetOn = time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
+			user.Quotas.LimitMonthlyResetOn = kdlib.NextMonthlyResetOn(now)
 		}
-		// !!! force reset on next month.
-		user.Quotas.LimitMonthlyResetOn = time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
 
+		spentQuota := (sum.Rx + sum.Tx)
 		switch {
-		case user.Quotas.LimitMonthlyRemaining >= (sum.Rx + sum.Tx):
-			user.Quotas.LimitMonthlyRemaining -= (sum.Rx + sum.Tx)
+		case user.Quotas.LimitMonthlyRemaining >= spentQuota:
+			user.Quotas.LimitMonthlyRemaining -= spentQuota
 		default:
 			user.Quotas.LimitMonthlyRemaining = 0
-		}
-
-		// fix
-		ts0 := time.Unix(0, 0)
-		if user.Quotas.LastActivity.Total.Equal(ts0) {
-			user.Quotas.LastActivity.Total = time.Time{}
-		}
-		if user.Quotas.LastActivityWg.Total.Equal(ts0) {
-			user.Quotas.LastActivity.Total = time.Time{}
-		}
-		if user.Quotas.LastActivityIPSec.Total.Equal(ts0) {
-			user.Quotas.LastActivity.Total = time.Time{}
 		}
 
 		lastActivityWg := lastSeenMap.Wg[id]
@@ -366,7 +352,7 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 }
 
 func (db *BrigadeStorage) getStatsQuota(rdata bool, endpointsTTL time.Duration) (*Brigade, error) {
-	f, data, addr, err := db.openWithReading()
+	f, data, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
@@ -374,7 +360,7 @@ func (db *BrigadeStorage) getStatsQuota(rdata bool, endpointsTTL time.Duration) 
 	defer f.Close()
 
 	// if we catch a slowdown problems we need organize queue
-	wgStats, err := vpnapi.WgStat(addr, data.WgPublicKey)
+	wgStats, err := vpnapi.WgStat(db.actualAddrPort, db.calculatedAddrPort, data.WgPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("wg stat: %w", err)
 	}

@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"net/netip"
 	"os"
 
 	"github.com/vpngen/keydesk/vpnapi"
@@ -10,8 +9,6 @@ import (
 
 // CreateBrigade - create brigade config.
 func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPriv, wgShufflerPriv []byte) error {
-	var addr netip.AddrPort
-
 	f, data, err := db.openWithoutReading(config.BrigadeID)
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
@@ -19,16 +16,16 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 
 	defer f.Close()
 
-	calculatedAddrPort := vpnapi.CalcAPIAddrPort(config.EndpointIPv4)
-	fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", calculatedAddrPort)
+	db.calculatedAddrPort = vpnapi.CalcAPIAddrPort(config.EndpointIPv4)
+	fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", db.calculatedAddrPort)
 
 	switch {
 	case db.APIAddrPort.Addr().IsValid() && db.APIAddrPort.Addr().IsUnspecified():
-		addr = calculatedAddrPort
+		db.actualAddrPort = db.calculatedAddrPort
 	default:
-		addr = db.APIAddrPort
-		if addr.IsValid() {
-			fmt.Fprintf(os.Stderr, "API endpoint: %s\n", calculatedAddrPort)
+		db.actualAddrPort = db.APIAddrPort
+		if db.actualAddrPort.IsValid() {
+			fmt.Fprintf(os.Stderr, "API endpoint: %s\n", db.actualAddrPort)
 		}
 	}
 
@@ -43,7 +40,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 	data.KeydeskIPv6 = config.KeydeskIPv6
 
 	// if we catch a slowdown problems we need organize queue
-	err = vpnapi.WgAdd(addr, data.WgPrivateRouterEnc, config.EndpointIPv4, config.IPv4CGNAT, config.IPv6ULA)
+	err = vpnapi.WgAdd(db.actualAddrPort, db.calculatedAddrPort, data.WgPrivateRouterEnc, config.EndpointIPv4, config.IPv4CGNAT, config.IPv6ULA)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)
 	}
@@ -58,7 +55,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgPub, wgRouterPr
 
 // DestroyBrigade - remove brigade.
 func (db *BrigadeStorage) DestroyBrigade() error {
-	f, data, addr, err := db.openWithReading()
+	f, data, err := db.openWithReading()
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
@@ -66,7 +63,7 @@ func (db *BrigadeStorage) DestroyBrigade() error {
 	defer f.Close()
 
 	// if we catch a slowdown problems we need organize queue
-	err = vpnapi.WgDel(addr, data.WgPrivateRouterEnc)
+	err = vpnapi.WgDel(db.actualAddrPort, db.calculatedAddrPort, data.WgPrivateRouterEnc)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)
 	}

@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"net/netip"
 
 	"github.com/vpngen/keydesk/kdlib"
 )
@@ -23,11 +22,11 @@ func (r *RawOpenDbToModify) Commit(data *Brigade) error {
 }
 
 // OpenDbToModify - open FileDb to modify.
-func (db *BrigadeStorage) OpenDbToModify() (*RawOpenDbToModify, *Brigade, netip.AddrPort, error) {
-	f, data, addr, err := db.openWithReading()
+func (db *BrigadeStorage) OpenDbToModify() (*RawOpenDbToModify, *Brigade, error) {
+	f, data, err := db.openWithReading()
 	if err != nil {
-		return nil, nil, netip.AddrPort{}, fmt.Errorf("db: %w", err)
+		return nil, nil, fmt.Errorf("db: %w", err)
 	}
 
-	return &RawOpenDbToModify{f: f}, data, addr, nil
+	return &RawOpenDbToModify{f: f}, data, nil
 }

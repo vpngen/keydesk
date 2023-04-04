@@ -31,11 +31,13 @@ type RxTx struct {
 	Tx uint64 `json:"tx"`
 }
 
+// Inc - increment counters.
 func (x *RxTx) Inc(rx, tx uint64) {
 	x.Rx += rx
 	x.Tx += tx
 }
 
+// Reset - reset counters.
 func (x *RxTx) Reset(rx, tx uint64) {
 	x.Rx = rx
 	x.Tx = tx
@@ -47,10 +49,8 @@ const QuotaVesrion = 2
 // Quota - user quota.
 type Quota struct {
 	Ver                   int                `json:"version"`
-	OSCounters            RxTx               `json:"os_counters,omitempty"` //deprecated
 	OSCountersWg          RxTx               `json:"os_wg_counters"`
 	OSCountersIPSec       RxTx               `json:"os_ipsec_counters"`
-	Counters              NetCounters        `json:"counters,omitempty"` //deprecated
 	CountersTotal         NetCounters        `json:"counters_total"`
 	CountersWg            NetCounters        `json:"counters_wg"`
 	CountersIPSec         NetCounters        `json:"counters_ipsec"`

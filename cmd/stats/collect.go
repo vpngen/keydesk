@@ -27,7 +27,7 @@ func CollectingData(kill <-chan struct{}, done chan<- struct{}, addr netip.AddrP
 			ActivityPeriod:        keydesk.ActivityPeriod,
 		},
 	}
-	if err := db.SelfCheck(); err != nil {
+	if err := db.SelfCheckAndInit(); err != nil {
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 

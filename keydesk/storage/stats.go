@@ -251,11 +251,11 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 			rx := traffic.Rx
 			tx := traffic.Tx
 
-			if user.Quotas.OSCounters.Rx <= traffic.Rx {
+			if user.Quotas.OSCountersIPSec.Rx <= traffic.Rx {
 				rx = traffic.Rx - user.Quotas.OSCountersIPSec.Rx
 			}
 
-			if user.Quotas.OSCounters.Tx <= traffic.Tx {
+			if user.Quotas.OSCountersIPSec.Tx <= traffic.Tx {
 				tx = traffic.Tx - user.Quotas.OSCountersIPSec.Tx
 			}
 
@@ -273,7 +273,7 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 		if user.Quotas.LimitMonthlyResetOn.Before(now) {
 			// !!! reset monthly throttle ....
 			user.Quotas.LimitMonthlyRemaining = uint64(monthlyQuotaRemaining)
-			user.Quotas.LimitMonthlyResetOn = kdlib.NextMonth(now)
+			user.Quotas.LimitMonthlyResetOn = kdlib.NextMonthlyResetOn(now)
 		}
 
 		spentQuota := (sum.Rx + sum.Tx)

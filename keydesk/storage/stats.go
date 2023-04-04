@@ -273,7 +273,7 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 		if user.Quotas.LimitMonthlyResetOn.Before(now) {
 			// !!! reset monthly throttle ....
 			user.Quotas.LimitMonthlyRemaining = uint64(monthlyQuotaRemaining)
-			user.Quotas.LimitMonthlyResetOn = kdlib.NextMonth(now)
+			user.Quotas.LimitMonthlyResetOn = kdlib.NextMonthlyResetOn(now)
 		}
 
 		spentQuota := (sum.Rx + sum.Tx)

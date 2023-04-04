@@ -76,7 +76,7 @@ func (db *BrigadeStorage) CreateUser(
 				Ver: NetCountersVersion,
 			},
 			LimitMonthlyRemaining: uint64(db.MonthlyQuotaRemaining),
-			LimitMonthlyResetOn:   kdlib.NextMonth(ts),
+			LimitMonthlyResetOn:   kdlib.NextMonthlyResetOn(ts),
 			Ver:                   QuotaVesrion,
 		},
 		Ver: UserVersion,

@@ -26,7 +26,7 @@ const (
 const (
 	UserStatusOK              = "green"
 	UserStatusNeverUsed       = "black"
-	UserStatusMonthlyInactive = "gray"
+	UserStatusMonthlyInactive = "grey"
 	UserStatusLimited         = "yellow"
 	UserStatusBlocked         = "red"
 )

@@ -163,33 +163,6 @@ func (db *BrigadeStorage) openWithReading() (*kdlib.FileDb, *Brigade, error) {
 		return nil, nil, fmt.Errorf("brigade: %w", err)
 	}
 
-	if data.Ver == 1 {
-		data.TotalTrafficWg = data.TotalTraffic
-		data.TotalTrafficWg.Ver = NetCountersVersion
-		data.TotalTrafficIPSec.Ver = NetCountersVersion
-		data.TotalTraffic.Ver = NetCountersVersion
-		data.Ver = BrigadeVersion
-
-		for _, u := range data.Users {
-			if u.Ver == 1 && u.Quotas.Ver == 1 {
-				u.Quotas.CountersTotal = u.Quotas.Counters
-				u.Quotas.CountersTotal.Ver = NetCountersVersion
-				u.Quotas.CountersWg = u.Quotas.Counters
-				u.Quotas.CountersWg.Ver = NetCountersVersion
-				u.Quotas.Ver = QuotaVesrion
-				u.Quotas.Counters = NetCounters{}
-
-				u.Quotas.OSCountersWg = u.Quotas.OSCounters
-				u.Quotas.OSCounters = RxTx{}
-
-				u.Quotas.Ver = QuotaVesrion
-
-			}
-
-			u.Ver = UserVersion
-		}
-	}
-
 	return f, data, nil
 }
 

@@ -577,11 +577,14 @@ func uiMiddleware(handler http.Handler, dir string, idleTimer *time.Timer, allow
 		filename := filepath.Join(dir, r.URL.Path)
 		finfo, err := os.Stat(filename)
 
+		// If the file doesn't exist and it is a directory, try to serve the default index file.
 		if err == nil && finfo.IsDir() {
 			_, err = os.Stat(filepath.Join(filename, DefaultIndexFile))
 		}
 
+		// If the file exists, serve it.
 		if err == nil {
+			w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
 			http.FileServer(staticFS).ServeHTTP(w, r)
 
 			return

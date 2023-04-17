@@ -87,7 +87,7 @@ if [ "x$1" = "xpkg" ]; then
         git config --global url."ssh://git@github.com/".insteadOf "https://github.com/"
         go env -w GOPRIVATE=github.com/vpngen
 
-        git clone ssh://git@github.com/vpngen/keydesk
+        git clone -b "${BRANCH}" ssh://git@github.com/vpngen/keydesk
         
         constract_version "keydesk"
 

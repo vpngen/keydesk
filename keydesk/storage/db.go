@@ -38,9 +38,9 @@ var (
 
 // BrigadeStorageOpts - opts.
 type BrigadeStorageOpts struct {
-	MaxUsers              int
-	MonthlyQuotaRemaining int
-	ActivityPeriod        time.Duration
+	MaxUsers               int
+	MonthlyQuotaRemaining  int
+	MaxUserInctivityPeriod time.Duration
 }
 
 // BrigadeStorage - brigade file storage.
@@ -84,7 +84,7 @@ func (db *BrigadeStorage) SelfCheck() error {
 		db.BrigadeSpinlock == "" ||
 		db.BrigadeID == "" ||
 		db.MaxUsers == 0 ||
-		db.ActivityPeriod == 0 ||
+		db.MaxUserInctivityPeriod == 0 ||
 		db.MonthlyQuotaRemaining == 0 {
 		return ErrWrongStorageConfiguration
 	}

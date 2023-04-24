@@ -200,15 +200,15 @@ func randomData(data *Brigade, now time.Time) (*vpnapi.WgStatTimestamp, *vpnapi.
 	return ts, trafficMap, lastSeenMap, endpointMap
 }
 
-func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL time.Duration, monthlyQuotaRemaining int) error {
+func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL, maxUserInactiveDuration time.Duration, monthlyQuotaRemaining int) error {
 	var (
-		total, totalWg, totalIPSec               RxTx
-		throttled, active, activeWg, activeIPSec int
-		trafficMap                               *vpnapi.WgStatTrafficMap
-		lastSeenMap                              *vpnapi.WgStatLastActivityMap
-		endpointMap                              *vpnapi.WgStatEndpointMap
-		statsTimestamp                           *vpnapi.WgStatTimestamp
-		err                                      error
+		totalTraffic, totalWgTraffic, totalIPSecTraffic              RxTx
+		throttledUsers, activeUsers, activeWgUsers, activeIPSecUsers int
+		trafficMap                                                   *vpnapi.WgStatTrafficMap
+		lastSeenMap                                                  *vpnapi.WgStatLastActivityMap
+		endpointMap                                                  *vpnapi.WgStatEndpointMap
+		statsTimestamp                                               *vpnapi.WgStatTimestamp
+		err                                                          error
 	)
 
 	now := time.Now().UTC()
@@ -243,7 +243,7 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 			user.Quotas.OSCountersWg.Tx = traffic.Tx
 
 			sum.Inc(rx, tx)
-			totalWg.Inc(rx, tx)
+			totalWgTraffic.Inc(rx, tx)
 			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersWg)
 		}
 
@@ -263,11 +263,11 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 			user.Quotas.OSCountersIPSec.Tx = traffic.Tx
 
 			sum.Inc(rx, tx)
-			totalIPSec.Inc(rx, tx)
+			totalIPSecTraffic.Inc(rx, tx)
 			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersIPSec)
 		}
 
-		total.Inc(sum.Rx, sum.Tx)
+		totalTraffic.Inc(sum.Rx, sum.Tx)
 		incDateSwitchRelated(now, sum.Rx, sum.Tx, &user.Quotas.CountersTotal)
 
 		if user.Quotas.LimitMonthlyResetOn.Before(now) {
@@ -290,7 +290,12 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 		lastActivityIPSec := lastSeenMap.IPSec[id]
 		lastActivityMark(now, lastActivityIPSec, &user.Quotas.LastActivityIPSec)
 
-		lastActivityTotal := lastActivityWg
+		lastActivityTotal := user.Quotas.LastActivity.Total
+
+		if lastActivityWg.After(lastActivityTotal) {
+			lastActivityTotal = lastActivityWg
+		}
+
 		if lastActivityIPSec.After(lastActivityTotal) {
 			lastActivityTotal = lastActivityIPSec
 		}
@@ -298,30 +303,32 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 		lastActivityMark(now, lastActivityTotal, &user.Quotas.LastActivity)
 
 		if !user.Quotas.ThrottlingTill.IsZero() && user.Quotas.ThrottlingTill.After(now) {
-			throttled++
+			throttledUsers++
 		}
 
-		if !user.Quotas.LastActivity.Monthly.IsZero() {
-			active++
+		if user.Quotas.LastActivity.Total.After(now.Add(-maxUserInactiveDuration)) {
+			activeUsers++
 		}
 
-		if !user.Quotas.LastActivityWg.Monthly.IsZero() {
-			activeWg++
+		if user.Quotas.LastActivityWg.Total.After(now.Add(-maxUserInactiveDuration)) {
+			activeWgUsers++
 		}
 
-		if !user.Quotas.LastActivityIPSec.Monthly.IsZero() {
-			activeIPSec++
+		if user.Quotas.LastActivityIPSec.Total.After(now.Add(-maxUserInactiveDuration)) {
+			activeIPSecUsers++
 		}
+
+		data.TotalUsersCount++
 	}
 
-	data.ThrottledUserCount = throttled
-	data.ActiveUsersCount = active
-	data.ActiveUsersCountWg = activeWg
-	data.ActiveUsersCountIPSec = activeIPSec
+	data.ThrottledUserCount = throttledUsers
+	data.ActiveUsersCount = activeUsers
+	data.ActiveUsersCountWg = activeWgUsers
+	data.ActiveUsersCountIPSec = activeIPSecUsers
 
-	incDateSwitchRelated(now, total.Rx, total.Tx, &data.TotalTraffic)
-	incDateSwitchRelated(now, totalWg.Rx, totalWg.Tx, &data.TotalTrafficWg)
-	incDateSwitchRelated(now, totalIPSec.Rx, totalIPSec.Tx, &data.TotalTrafficIPSec)
+	incDateSwitchRelated(now, totalTraffic.Rx, totalTraffic.Tx, &data.TotalTraffic)
+	incDateSwitchRelated(now, totalWgTraffic.Rx, totalWgTraffic.Tx, &data.TotalTrafficWg)
+	incDateSwitchRelated(now, totalIPSecTraffic.Rx, totalIPSecTraffic.Tx, &data.TotalTrafficIPSec)
 
 	if data.Endpoints == nil {
 		data.Endpoints = UsersNetworks{}
@@ -346,7 +353,9 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 		}
 	}
 
-	data.OSCountersUpdated = statsTimestamp.Timestamp
+	data.CountersUpdateTime = statsTimestamp.Time
+
+	data.BrigadeCountersStack.Put(data.BaseBrigadeCounters)
 
 	return nil
 }
@@ -366,7 +375,7 @@ func (db *BrigadeStorage) getStatsQuota(rdata bool, endpointsTTL time.Duration) 
 	}
 
 	if wgStats != nil || rdata {
-		if err := mergeStats(data, wgStats, rdata, endpointsTTL, db.MonthlyQuotaRemaining); err != nil {
+		if err := mergeStats(data, wgStats, rdata, endpointsTTL, db.MaxUserInctivityPeriod, db.MonthlyQuotaRemaining); err != nil {
 			return nil, fmt.Errorf("merge stats: %w", err)
 		}
 	}
@@ -381,18 +390,23 @@ func (db *BrigadeStorage) getStatsQuota(rdata bool, endpointsTTL time.Duration) 
 
 func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename, statsSpinlock string) error {
 	stats := &Stats{
-		BrigadeID:          data.BrigadeID,
-		BrigadeCreatedAt:   data.CreatedAt,
-		KeydeskLastVisit:   data.KeydeskLastVisit,
-		UsersCount:         len(data.Users),
-		ActiveUsersCount:   data.ActiveUsersCount,
-		ThrottledUserCount: data.ThrottledUserCount,
-		TotalTraffic:       data.TotalTraffic,
-		TotalTrafficWg:     data.TotalTrafficWg,
-		TotalTrafficIPSec:  data.TotalTrafficIPSec,
-		Endpoints:          data.Endpoints,
-		Updated:            time.Now().UTC(),
-		Ver:                StatsVersion,
+		BaseBrigadeCounters: BaseBrigadeCounters{
+			TotalUsersCount:       data.TotalUsersCount,
+			ActiveUsersCount:      data.ActiveUsersCount,
+			ActiveUsersCountWg:    data.ActiveUsersCountWg,
+			ActiveUsersCountIPSec: data.ActiveUsersCountIPSec,
+			ThrottledUserCount:    data.ThrottledUserCount,
+			TotalTraffic:          data.TotalTraffic,
+			TotalTrafficWg:        data.TotalTrafficWg,
+			TotalTrafficIPSec:     data.TotalTrafficIPSec,
+			CountersUpdateTime:    data.CountersUpdateTime,
+		},
+		BrigadeID:        data.BrigadeID,
+		BrigadeCreatedAt: data.CreatedAt,
+		KeydeskLastVisit: data.KeydeskLastVisit,
+		Endpoints:        data.Endpoints,
+		UpdateTime:       time.Now().UTC(),
+		Ver:              StatsVersion,
 	}
 
 	fs, err := openStats(statsFilename, statsSpinlock)

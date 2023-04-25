@@ -217,9 +217,9 @@ func main() {
 		BrigadeSpinlock: filepath.Join(dbDir, storage.BrigadeSpinlockFilename),
 		APIAddrPort:     addr,
 		BrigadeStorageOpts: storage.BrigadeStorageOpts{
-			MaxUsers:              keydesk.MaxUsers,
-			MonthlyQuotaRemaining: keydesk.MonthlyQuotaRemaining,
-			ActivityPeriod:        keydesk.ActivityPeriod,
+			MaxUsers:               keydesk.MaxUsers,
+			MonthlyQuotaRemaining:  keydesk.MonthlyQuotaRemaining,
+			MaxUserInctivityPeriod: keydesk.DefaultMaxUserInactivityPeriod,
 		},
 	}
 	if err := db.SelfCheck(); err != nil {

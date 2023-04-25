@@ -38,8 +38,8 @@ const (
 	MaxUsers = 250
 	// MonthlyQuotaRemaining - .
 	MonthlyQuotaRemaining = 100 * 1024 * 1024 * 1024
-	// ActivityPeriod
-	ActivityPeriod = 24 * 30 * time.Hour // month?
+	// DefaultMaxUserInactivityPeriod
+	DefaultMaxUserInactivityPeriod = 24 * 30 * time.Hour // month
 )
 
 // AddUser - create user.

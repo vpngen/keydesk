@@ -47,12 +47,12 @@ func (x *RxTx) Reset(rx, tx uint64) {
 type BaseBrigadeCounters struct {
 	TotalUsersCount       int         `json:"total_users_count"`
 	ActiveUsersCount      int         `json:"active_users_count"`
-	ActiveUsersCountWg    int         `json:"active_wg_users_count"`
-	ActiveUsersCountIPSec int         `json:"active_ipsec_users_count"`
-	ThrottledUserCount    int         `json:"throttled_users_count"`
-	TotalTraffic          NetCounters `json:"total"`
-	TotalTrafficWg        NetCounters `json:"total_wg"`
-	TotalTrafficIPSec     NetCounters `json:"total_ipsec"`
+	ActiveWgUsersCount    int         `json:"active_wg_users_count"`
+	ActiveIPSecUsersCount int         `json:"active_ipsec_users_count"`
+	ThrottledUsersCount   int         `json:"throttled_users_count"`
+	TotalTraffic          NetCounters `json:"total_traffic"`
+	TotalTrafficWg        NetCounters `json:"total_wg_traffic"`
+	TotalTrafficIPSec     NetCounters `json:"total_ipsec_traffic"`
 	CountersUpdateTime    time.Time   `json:"counters_update_time"`
 }
 
@@ -81,16 +81,16 @@ const QuotaVesrion = 2
 // Quota - user quota.
 type Quota struct {
 	Ver                   int                `json:"version"`
-	OSCountersWg          RxTx               `json:"os_wg_counters"`
-	OSCountersIPSec       RxTx               `json:"os_ipsec_counters"`
+	OSWgCounters          RxTx               `json:"os_wg_counters"`
+	OSIPSecCounters       RxTx               `json:"os_ipsec_counters"`
 	CountersTotal         NetCounters        `json:"counters_total"`
 	CountersWg            NetCounters        `json:"counters_wg"`
 	CountersIPSec         NetCounters        `json:"counters_ipsec"`
 	LimitMonthlyRemaining uint64             `json:"limit_monthly_remaining"`
 	LimitMonthlyResetOn   time.Time          `json:"limit_monthly_reset_on,omitempty"`
 	LastActivity          LastActivityPoints `json:"last_activity,omitempty"`
-	LastActivityWg        LastActivityPoints `json:"last_activity_wg,omitempty"`
-	LastActivityIPSec     LastActivityPoints `json:"last_activity_ipsec,omitempty"`
+	LastWgActivity        LastActivityPoints `json:"last_wg_activity,omitempty"`
+	LastIPSecActivity     LastActivityPoints `json:"last_ipsec_activity,omitempty"`
 	ThrottlingTill        time.Time          `json:"throttling_till,omitempty"`
 }
 

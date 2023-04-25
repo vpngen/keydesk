@@ -327,9 +327,19 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 	data.ActiveWgUsersCount = activeWgUsers
 	data.ActiveWgUsersCount = activeIPSecUsers
 
+	if data.Ver < BrigadeVersion {
+		data.Ver = BrigadeVersion
+		data.TotalTraffic = data.Total
+		data.TotalWgTraffic = data.TotalWg
+		data.TotalIPSecTraffic = data.TotalIPSec
+		data.Total = NetCounters{}
+		data.TotalWg = NetCounters{}
+		data.TotalIPSec = NetCounters{}
+	}
+
 	incDateSwitchRelated(now, totalTraffic.Rx, totalTraffic.Tx, &data.TotalTraffic)
-	incDateSwitchRelated(now, totalWgTraffic.Rx, totalWgTraffic.Tx, &data.TotalTrafficWg)
-	incDateSwitchRelated(now, totalIPSecTraffic.Rx, totalIPSecTraffic.Tx, &data.TotalTrafficIPSec)
+	incDateSwitchRelated(now, totalWgTraffic.Rx, totalWgTraffic.Tx, &data.TotalWgTraffic)
+	incDateSwitchRelated(now, totalIPSecTraffic.Rx, totalIPSecTraffic.Tx, &data.TotalIPSecTraffic)
 
 	if data.Endpoints == nil {
 		data.Endpoints = UsersNetworks{}
@@ -398,8 +408,8 @@ func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename, statsSpinl
 			ActiveIPSecUsersCount: data.ActiveIPSecUsersCount,
 			ThrottledUsersCount:   data.ThrottledUsersCount,
 			TotalTraffic:          data.TotalTraffic,
-			TotalTrafficWg:        data.TotalTrafficWg,
-			TotalTrafficIPSec:     data.TotalTrafficIPSec,
+			TotalWgTraffic:        data.TotalWgTraffic,
+			TotalIPSecTraffic:     data.TotalIPSecTraffic,
 			CountersUpdateTime:    data.CountersUpdateTime,
 		},
 		BrigadeID:        data.BrigadeID,

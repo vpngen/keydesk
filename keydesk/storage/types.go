@@ -50,9 +50,12 @@ type BaseBrigadeCounters struct {
 	ActiveWgUsersCount    int         `json:"active_wg_users_count"`
 	ActiveIPSecUsersCount int         `json:"active_ipsec_users_count"`
 	ThrottledUsersCount   int         `json:"throttled_users_count"`
+	Total                 NetCounters `json:"total"`
+	TotalWg               NetCounters `json:"total_wg"`
+	TotalIPSec            NetCounters `json:"total_ipsec"`
 	TotalTraffic          NetCounters `json:"total_traffic"`
-	TotalTrafficWg        NetCounters `json:"total_wg_traffic"`
-	TotalTrafficIPSec     NetCounters `json:"total_ipsec_traffic"`
+	TotalWgTraffic        NetCounters `json:"total_wg_traffic"`
+	TotalIPSecTraffic     NetCounters `json:"total_ipsec_traffic"`
 	CountersUpdateTime    time.Time   `json:"counters_update_time"`
 }
 
@@ -114,7 +117,7 @@ type User struct {
 }
 
 // BrigadeVersion - json version.
-const BrigadeVersion = 3
+const BrigadeVersion = 4
 
 // Brigade - brigade.
 type Brigade struct {

@@ -202,13 +202,13 @@ func randomData(data *Brigade, now time.Time) (*vpnapi.WgStatTimestamp, *vpnapi.
 
 func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL, maxUserInactiveDuration time.Duration, monthlyQuotaRemaining int) error {
 	var (
-		totalTraffic, totalWgTraffic, totalIPSecTraffic                          RxTx
-		throttledUsers, totalUsers, activeUsers, activeWgUsers, activeIPSecUsers int
-		trafficMap                                                               *vpnapi.WgStatTrafficMap
-		lastSeenMap                                                              *vpnapi.WgStatLastActivityMap
-		endpointMap                                                              *vpnapi.WgStatEndpointMap
-		statsTimestamp                                                           *vpnapi.WgStatTimestamp
-		err                                                                      error
+		totalTraffic, totalWgTraffic, totalIPSecTraffic              RxTx
+		throttledUsers, activeUsers, activeWgUsers, activeIPSecUsers int
+		trafficMap                                                   *vpnapi.WgStatTrafficMap
+		lastSeenMap                                                  *vpnapi.WgStatLastActivityMap
+		endpointMap                                                  *vpnapi.WgStatEndpointMap
+		statsTimestamp                                               *vpnapi.WgStatTimestamp
+		err                                                          error
 	)
 
 	now := time.Now().UTC()
@@ -306,22 +306,22 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 			throttledUsers++
 		}
 
-		if user.Quotas.LastActivity.Total.After(now.Add(-maxUserInactiveDuration)) {
+		userInactiveEdge := now.Add(-maxUserInactiveDuration)
+
+		if user.Quotas.LastActivity.Total.After(userInactiveEdge) {
 			activeUsers++
 		}
 
-		if user.Quotas.LastActivityWg.Total.After(now.Add(-maxUserInactiveDuration)) {
+		if user.Quotas.LastActivityWg.Total.After(userInactiveEdge) {
 			activeWgUsers++
 		}
 
-		if user.Quotas.LastActivityIPSec.Total.After(now.Add(-maxUserInactiveDuration)) {
+		if user.Quotas.LastActivityIPSec.Total.After(userInactiveEdge) {
 			activeIPSecUsers++
 		}
-
-		totalUsers++
 	}
 
-	data.TotalUsersCount = totalUsers
+	data.TotalUsersCount = len(data.Users)
 	data.ThrottledUserCount = throttledUsers
 	data.ActiveUsersCount = activeUsers
 	data.ActiveUsersCountWg = activeWgUsers

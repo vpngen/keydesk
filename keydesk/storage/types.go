@@ -156,7 +156,6 @@ type Brigade struct {
 	KeydeskIPv6          netip.Addr    `json:"keydesk_ipv6"`
 	IPv4CGNAT            netip.Prefix  `json:"ipv4_cgnat"`
 	IPv6ULA              netip.Prefix  `json:"ipv6_ula"`
-	KeydeskLastVisit     time.Time     `json:"keydesk_last_visit,omitempty"`
 	KeydeskFirstVisit    time.Time     `json:"keydesk_first_visit,omitempty"`
 	Users                []*User       `json:"users,omitempty"`
 	Endpoints            UsersNetworks `json:"endpoints,omitempty"`
@@ -193,7 +192,6 @@ type Stats struct {
 	BrigadeID         string        `json:"brigade_id"`
 	UpdateTime        time.Time     `json:"update_time"`
 	BrigadeCreatedAt  time.Time     `json:"brigade_created_at"`
-	KeydeskLastVisit  time.Time     `json:"keydesk_last_visit,omitempty"`
 	KeydeskFirstVisit time.Time     `json:"keydesk_first_visit,omitempty"`
 	Endpoints         UsersNetworks `json:"endpoints,omitempty"`
 }

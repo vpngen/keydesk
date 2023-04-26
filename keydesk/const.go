@@ -19,7 +19,7 @@ const (
 )
 
 const (
-	DefaultEndpointsTTL = 24 * 30 * 2 * time.Hour
+	DefaultEndpointsTTL = 24 * 7 * time.Hour
 )
 
 // User statuses.

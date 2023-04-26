@@ -89,7 +89,7 @@ func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
 	points.Monthly = lastActivity
 }
 
-func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *NetCounters) {
+func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *DateSummaryNetCounters) {
 	defer func() {
 		counters.Update = now
 	}()
@@ -327,19 +327,14 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 	data.ActiveWgUsersCount = activeWgUsers
 	data.ActiveWgUsersCount = activeIPSecUsers
 
-	if data.Ver < BrigadeVersion {
-		data.Ver = BrigadeVersion
-		data.TotalTraffic = data.Total
-		data.TotalWgTraffic = data.TotalWg
-		data.TotalIPSecTraffic = data.TotalIPSec
-		data.Total = NetCounters{}
-		data.TotalWg = NetCounters{}
-		data.TotalIPSec = NetCounters{}
-	}
-
 	incDateSwitchRelated(now, totalTraffic.Rx, totalTraffic.Tx, &data.TotalTraffic)
 	incDateSwitchRelated(now, totalWgTraffic.Rx, totalWgTraffic.Tx, &data.TotalWgTraffic)
 	incDateSwitchRelated(now, totalIPSecTraffic.Rx, totalIPSecTraffic.Tx, &data.TotalIPSecTraffic)
+
+	if data.Ver < BrigadeVersion {
+		data.KeydeskFirstVisit = data.KeydeskLastVisit
+		data.Ver = BrigadeVersion
+	}
 
 	if data.Endpoints == nil {
 		data.Endpoints = UsersNetworks{}
@@ -366,7 +361,7 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 
 	data.CountersUpdateTime = statsTimestamp.Time
 
-	data.BrigadeCountersStack.Put(data.BaseBrigadeCounters)
+	data.StatsCountersStack.Put(data.BrigadeCounters)
 
 	return nil
 }
@@ -401,23 +396,22 @@ func (db *BrigadeStorage) getStatsQuota(rdata bool, endpointsTTL time.Duration) 
 
 func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename, statsSpinlock string) error {
 	stats := &Stats{
-		BaseBrigadeCounters: BaseBrigadeCounters{
-			TotalUsersCount:       data.TotalUsersCount,
-			ActiveUsersCount:      data.ActiveUsersCount,
-			ActiveWgUsersCount:    data.ActiveWgUsersCount,
-			ActiveIPSecUsersCount: data.ActiveIPSecUsersCount,
-			ThrottledUsersCount:   data.ThrottledUsersCount,
-			TotalTraffic:          data.TotalTraffic,
-			TotalWgTraffic:        data.TotalWgTraffic,
-			TotalIPSecTraffic:     data.TotalIPSecTraffic,
-			CountersUpdateTime:    data.CountersUpdateTime,
+		StatsCounters: StatsCounters{
+			UsersCounters: data.UsersCounters,
+			NetCounters: NetCounters{
+				TotalTraffic:      data.TotalTraffic.Total,
+				TotalWgTraffic:    data.TotalWgTraffic.Total,
+				TotalIPSecTraffic: data.TotalIPSecTraffic.Total,
+			},
+			CountersUpdateTime: data.CountersUpdateTime,
 		},
-		BrigadeID:        data.BrigadeID,
-		BrigadeCreatedAt: data.CreatedAt,
-		KeydeskLastVisit: data.KeydeskLastVisit,
-		Endpoints:        data.Endpoints,
-		UpdateTime:       time.Now().UTC(),
-		Ver:              StatsVersion,
+		BrigadeID:         data.BrigadeID,
+		BrigadeCreatedAt:  data.CreatedAt,
+		KeydeskLastVisit:  data.KeydeskFirstVisit,
+		KeydeskFirstVisit: data.KeydeskFirstVisit,
+		Endpoints:         data.Endpoints,
+		UpdateTime:        time.Now().UTC(),
+		Ver:               StatsVersion,
 	}
 
 	fs, err := openStats(statsFilename, statsSpinlock)

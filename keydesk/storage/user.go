@@ -66,14 +66,14 @@ func (db *BrigadeStorage) CreateUser(
 		WgPSKShufflerEnc: wgShufflerPSK,
 		Person:           person,
 		Quotas: Quota{
-			CountersTotal: NetCounters{
-				Ver: NetCountersVersion,
+			CountersTotal: DateSummaryNetCounters{
+				Ver: DateSummaryNetCountersVersion,
 			},
-			CountersWg: NetCounters{
-				Ver: NetCountersVersion,
+			CountersWg: DateSummaryNetCounters{
+				Ver: DateSummaryNetCountersVersion,
 			},
-			CountersIPSec: NetCounters{
-				Ver: NetCountersVersion,
+			CountersIPSec: DateSummaryNetCounters{
+				Ver: DateSummaryNetCountersVersion,
 			},
 			LimitMonthlyRemaining: uint64(db.MonthlyQuotaRemaining),
 			LimitMonthlyResetOn:   kdlib.NextMonthlyResetOn(ts),
@@ -243,10 +243,12 @@ func (db *BrigadeStorage) ListUsers() ([]*User, error) {
 
 	defer f.Close()
 
-	data.KeydeskLastVisit = time.Now().UTC()
+	if data.KeydeskFirstVisit.IsZero() {
+		data.KeydeskFirstVisit = time.Now().UTC()
 
-	if err := commitBrigade(f, data); err != nil {
-		return nil, fmt.Errorf("save: %w", err)
+		if err := commitBrigade(f, data); err != nil {
+			return nil, fmt.Errorf("save: %w", err)
+		}
 	}
 
 	return data.Users, nil

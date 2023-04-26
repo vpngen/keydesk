@@ -205,9 +205,9 @@ func (db *BrigadeStorage) openWithoutReading(brigadeID string) (*kdlib.FileDb, *
 	data.Ver = BrigadeVersion
 	data.BrigadeID = brigadeID
 	data.CreatedAt = ts
-	data.TotalTraffic = NetCounters{Ver: NetCountersVersion}
-	data.TotalWgTraffic = NetCounters{Ver: NetCountersVersion}
-	data.TotalIPSecTraffic = NetCounters{Ver: NetCountersVersion}
+	data.TotalTraffic = DateSummaryNetCounters{Ver: DateSummaryNetCountersVersion}
+	data.TotalWgTraffic = DateSummaryNetCounters{Ver: DateSummaryNetCountersVersion}
+	data.TotalIPSecTraffic = DateSummaryNetCounters{Ver: DateSummaryNetCountersVersion}
 
 	return f, data, nil
 }

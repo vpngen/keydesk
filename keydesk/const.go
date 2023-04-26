@@ -24,9 +24,9 @@ const (
 
 // User statuses.
 const (
-	UserStatusOK              = "green"
-	UserStatusNeverUsed       = "black"
-	UserStatusMonthlyInactive = "grey"
-	UserStatusLimited         = "yellow"
-	UserStatusBlocked         = "red"
+	UserStatusOK        = "green"
+	UserStatusNeverUsed = "black"
+	UserStatusInactive  = "grey"
+	UserStatusLimited   = "yellow"
+	UserStatusBlocked   = "red"
 )

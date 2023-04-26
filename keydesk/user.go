@@ -151,7 +151,7 @@ func DelUserUserID(db *storage.BrigadeStorage, params operations.DeleteUserUserI
 
 // GetUsers - .
 func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, principal interface{}) middleware.Responder {
-	storageUsers, userInactiveEdge, err := db.ListUsers()
+	storageUsers, err := db.ListUsers()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "List error: %s\n", err)
 
@@ -187,7 +187,7 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 		switch {
 		case user.Quotas.LastActivity.Total.IsZero():
 			status = UserStatusNeverUsed
-		case user.Quotas.LastActivity.Total.Before(userInactiveEdge):
+		case user.Quotas.LastActivity.Monthly.IsZero():
 			status = UserStatusInactive
 		case !user.Quotas.ThrottlingTill.IsZero():
 			status = UserStatusLimited

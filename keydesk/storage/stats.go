@@ -331,11 +331,6 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 	incDateSwitchRelated(now, totalWgTraffic.Rx, totalWgTraffic.Tx, &data.TotalWgTraffic)
 	incDateSwitchRelated(now, totalIPSecTraffic.Rx, totalIPSecTraffic.Tx, &data.TotalIPSecTraffic)
 
-	if data.Ver < BrigadeVersion {
-		data.KeydeskFirstVisit = data.KeydeskLastVisit
-		data.Ver = BrigadeVersion
-	}
-
 	if data.Endpoints == nil {
 		data.Endpoints = UsersNetworks{}
 	}
@@ -407,7 +402,6 @@ func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename, statsSpinl
 		},
 		BrigadeID:         data.BrigadeID,
 		BrigadeCreatedAt:  data.CreatedAt,
-		KeydeskLastVisit:  data.KeydeskFirstVisit,
 		KeydeskFirstVisit: data.KeydeskFirstVisit,
 		Endpoints:         data.Endpoints,
 		UpdateTime:        time.Now().UTC(),

@@ -11,11 +11,11 @@ import (
 // UsersNetworks - nets from stats.
 type UsersNetworks map[string]time.Time
 
-// NetCountersVersion - json version.
-const NetCountersVersion = 1
+// DateSummaryNetCountersVersion - json version.
+const DateSummaryNetCountersVersion = 1
 
-// NetCounters - traffic counters container.
-type NetCounters struct {
+// DateSummaryNetCounters - traffic counters container.
+type DateSummaryNetCounters struct {
 	Ver     int       `json:"version"`
 	Update  time.Time `json:"update,omitempty"`
 	Total   RxTx      `json:"total"`
@@ -43,27 +43,42 @@ func (x *RxTx) Reset(rx, tx uint64) {
 	x.Tx = tx
 }
 
-// BaseBrigadeCounters - brigade counters.
-type BaseBrigadeCounters struct {
-	TotalUsersCount       int         `json:"total_users_count"`
-	ActiveUsersCount      int         `json:"active_users_count"`
-	ActiveWgUsersCount    int         `json:"active_wg_users_count"`
-	ActiveIPSecUsersCount int         `json:"active_ipsec_users_count"`
-	ThrottledUsersCount   int         `json:"throttled_users_count"`
-	Total                 NetCounters `json:"total"`
-	TotalWg               NetCounters `json:"total_wg"`
-	TotalIPSec            NetCounters `json:"total_ipsec"`
-	TotalTraffic          NetCounters `json:"total_traffic"`
-	TotalWgTraffic        NetCounters `json:"total_wg_traffic"`
-	TotalIPSecTraffic     NetCounters `json:"total_ipsec_traffic"`
-	CountersUpdateTime    time.Time   `json:"counters_update_time"`
+// UserCounters - user counters.
+type UsersCounters struct {
+	TotalUsersCount       int `json:"total_users_count"`
+	ActiveUsersCount      int `json:"active_users_count"`
+	ActiveWgUsersCount    int `json:"active_wg_users_count"`
+	ActiveIPSecUsersCount int `json:"active_ipsec_users_count"`
+	ThrottledUsersCount   int `json:"throttled_users_count"`
 }
 
-// BrigadeCountersStack - brigade counters year based stack.
-type BrigadeCountersStack [12]BaseBrigadeCounters
+// NetCounters - net counters.
+type NetCounters struct {
+	TotalTraffic      RxTx `json:"total_traffic"`
+	TotalWgTraffic    RxTx `json:"total_wg_traffic"`
+	TotalIPSecTraffic RxTx `json:"total_ipsec_traffic"`
+}
+
+// BrigadeCounters - brigade counters.
+type BrigadeCounters struct {
+	UsersCounters
+	TotalTraffic       DateSummaryNetCounters `json:"total_traffic"`
+	TotalWgTraffic     DateSummaryNetCounters `json:"total_wg_traffic"`
+	TotalIPSecTraffic  DateSummaryNetCounters `json:"total_ipsec_traffic"`
+	CountersUpdateTime time.Time              `json:"counters_update_time"`
+}
+
+type StatsCounters struct {
+	UsersCounters
+	NetCounters
+	CountersUpdateTime time.Time `json:"counters_update_time"`
+}
+
+// StatsCountersStack - counters month based stack.
+type StatsCountersStack [12]StatsCounters
 
 // Put - put counters to stack. If month changed, then shift stack.
-func (x *BrigadeCountersStack) Put(counters BaseBrigadeCounters) {
+func (x *StatsCountersStack) Put(counters BrigadeCounters) {
 	now := counters.CountersUpdateTime
 	last := x[len(x)-1].CountersUpdateTime
 
@@ -71,11 +86,17 @@ func (x *BrigadeCountersStack) Put(counters BaseBrigadeCounters) {
 		for i := 0; i < len(x)-1; i++ {
 			x[i] = x[i+1]
 		}
-
-		x[len(x)-1] = counters
 	}
 
-	x[len(x)-1] = counters
+	x[len(x)-1] = StatsCounters{
+		UsersCounters: counters.UsersCounters,
+		NetCounters: NetCounters{
+			TotalTraffic:      counters.TotalTraffic.Total,
+			TotalWgTraffic:    counters.TotalWgTraffic.Total,
+			TotalIPSecTraffic: counters.TotalIPSecTraffic.Total,
+		},
+		CountersUpdateTime: counters.CountersUpdateTime,
+	}
 }
 
 // QuotaVesrion - json version.
@@ -83,18 +104,18 @@ const QuotaVesrion = 2
 
 // Quota - user quota.
 type Quota struct {
-	Ver                   int                `json:"version"`
-	OSWgCounters          RxTx               `json:"os_wg_counters"`
-	OSIPSecCounters       RxTx               `json:"os_ipsec_counters"`
-	CountersTotal         NetCounters        `json:"counters_total"`
-	CountersWg            NetCounters        `json:"counters_wg"`
-	CountersIPSec         NetCounters        `json:"counters_ipsec"`
-	LimitMonthlyRemaining uint64             `json:"limit_monthly_remaining"`
-	LimitMonthlyResetOn   time.Time          `json:"limit_monthly_reset_on,omitempty"`
-	LastActivity          LastActivityPoints `json:"last_activity,omitempty"`
-	LastWgActivity        LastActivityPoints `json:"last_wg_activity,omitempty"`
-	LastIPSecActivity     LastActivityPoints `json:"last_ipsec_activity,omitempty"`
-	ThrottlingTill        time.Time          `json:"throttling_till,omitempty"`
+	Ver                   int                    `json:"version"`
+	OSWgCounters          RxTx                   `json:"os_wg_counters"`
+	OSIPSecCounters       RxTx                   `json:"os_ipsec_counters"`
+	CountersTotal         DateSummaryNetCounters `json:"counters_total"`
+	CountersWg            DateSummaryNetCounters `json:"counters_wg"`
+	CountersIPSec         DateSummaryNetCounters `json:"counters_ipsec"`
+	LimitMonthlyRemaining uint64                 `json:"limit_monthly_remaining"`
+	LimitMonthlyResetOn   time.Time              `json:"limit_monthly_reset_on,omitempty"`
+	LastActivity          LastActivityPoints     `json:"last_activity,omitempty"`
+	LastWgActivity        LastActivityPoints     `json:"last_wg_activity,omitempty"`
+	LastIPSecActivity     LastActivityPoints     `json:"last_ipsec_activity,omitempty"`
+	ThrottlingTill        time.Time              `json:"throttling_till,omitempty"`
 }
 
 // UserVersion - json version.
@@ -117,12 +138,12 @@ type User struct {
 }
 
 // BrigadeVersion - json version.
-const BrigadeVersion = 4
+const BrigadeVersion = 5
 
 // Brigade - brigade.
 type Brigade struct {
-	BaseBrigadeCounters
-	BrigadeCountersStack `json:"counters_year_stack"`
+	BrigadeCounters
+	StatsCountersStack   `json:"counters_stack"`
 	Ver                  int           `json:"version"`
 	BrigadeID            string        `json:"brigade_id"`
 	CreatedAt            time.Time     `json:"created_at"`
@@ -136,6 +157,7 @@ type Brigade struct {
 	IPv4CGNAT            netip.Prefix  `json:"ipv4_cgnat"`
 	IPv6ULA              netip.Prefix  `json:"ipv6_ula"`
 	KeydeskLastVisit     time.Time     `json:"keydesk_last_visit,omitempty"`
+	KeydeskFirstVisit    time.Time     `json:"keydesk_first_visit,omitempty"`
 	Users                []*User       `json:"users,omitempty"`
 	Endpoints            UsersNetworks `json:"endpoints,omitempty"`
 }
@@ -166,13 +188,14 @@ const StatsVersion = 2
 
 // Stats - statistics.
 type Stats struct {
-	BaseBrigadeCounters
-	Ver              int           `json:"version"`
-	BrigadeID        string        `json:"brigade_id"`
-	UpdateTime       time.Time     `json:"update_time"`
-	BrigadeCreatedAt time.Time     `json:"brigade_created_at"`
-	KeydeskLastVisit time.Time     `json:"keydesk_last_visit,omitempty"`
-	Endpoints        UsersNetworks `json:"endpoints,omitempty"`
+	StatsCounters
+	Ver               int           `json:"version"`
+	BrigadeID         string        `json:"brigade_id"`
+	UpdateTime        time.Time     `json:"update_time"`
+	BrigadeCreatedAt  time.Time     `json:"brigade_created_at"`
+	KeydeskLastVisit  time.Time     `json:"keydesk_last_visit,omitempty"`
+	KeydeskFirstVisit time.Time     `json:"keydesk_first_visit,omitempty"`
+	Endpoints         UsersNetworks `json:"endpoints,omitempty"`
 }
 
 // LastActivityPoints - traffic counters container.

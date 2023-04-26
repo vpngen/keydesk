@@ -235,25 +235,21 @@ func (db *BrigadeStorage) removeBrigadier(data *Brigade) error {
 }
 
 // ListUsers - list users.
-func (db *BrigadeStorage) ListUsers() ([]*User, time.Time, error) {
+func (db *BrigadeStorage) ListUsers() ([]*User, error) {
 	f, data, err := db.openWithReading()
 	if err != nil {
-		return nil, time.Time{}, fmt.Errorf("db: %w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
 
 	defer f.Close()
 
-	now := time.Now().UTC()
-
 	if data.KeydeskFirstVisit.IsZero() {
-		data.KeydeskFirstVisit = now
+		data.KeydeskFirstVisit = time.Now().UTC()
 
 		if err := commitBrigade(f, data); err != nil {
-			return nil, time.Time{}, fmt.Errorf("save: %w", err)
+			return nil, fmt.Errorf("save: %w", err)
 		}
 	}
 
-	userInactiveEdge := now.Add(-db.MaxUserInctivityPeriod)
-
-	return data.Users, userInactiveEdge, nil
+	return data.Users, nil
 }

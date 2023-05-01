@@ -1,5 +1,6 @@
 #!/bin/sh
 
+BASE_HOME_DIR="/home"
 KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
 
 spinlock="`[ ! -z \"${TMPDIR}\" ] && echo -n \"${TMPDIR}/\" || echo -n \"/tmp/\" ; echo \"vgbrigade.spinlock\"`"

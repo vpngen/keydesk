@@ -107,7 +107,7 @@ func main() {
 	}
 
 	// Just create brigadier.
-	if name != "" {
+	if name != "" || replace {
 		if err := createBrigadier(db, chunked, name, person, replace, &routerPublicKey, &shufflerPublicKey); err != nil {
 			log.Fatalf("Can't create brigadier: %s\n", err)
 		}
@@ -337,6 +337,10 @@ func parseArgs() (bool, bool, []net.Listener, netip.AddrPort, string, string, st
 		if err != nil {
 			return false, false, nil, addrPort, "", "", "", "", "", "", person, false, fmt.Errorf("api addr: %w", err)
 		}
+	}
+
+	if *replaceBrigadier {
+		return *chunked, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, "", person, *replaceBrigadier, nil
 	}
 
 	if *brigadierName == "" {

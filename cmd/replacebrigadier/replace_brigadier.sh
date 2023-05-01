@@ -12,22 +12,18 @@ touch "${spinlock}" 2>/dev/null
 set -e
 
 printdef () {
-        echo "Usage: $0 <brigabe_id_encoded> <Brigadier Name :: base64> <Person Name :: base64> <Person Desc :: base64> <Person URL :: base64>" >&2
+        echo "Usage: $0 <brigabe_id_encoded> [chunked] [json]" >&2
         exit 1
 }
 
-if [ -z "${1}" -o -z "${2}" -o -z "${3}" -o -z "${4}" -o -z "${5}" ]; then 
+if [ -z "${1}" ]; then 
         printdef
 fi
 
 brigade_id=${1}
-brigadier_name=${2}
-person_name=${3}
-person_desc=${4}
-person_url=${5}
-chunked=${6}
+chunked=${2}
 
-if [ "xchunked" != "x${chunked}" ]; then
+if [ "chunked" != "${chunked}" ]; then
         chunked=""
 else
         chunked="-ch"
@@ -35,12 +31,14 @@ fi
 
 # * Check if brigade does not exists
 # !!! lib???
-if [ !-s "${BASE_HOME_DIR}/${brigade_id}/created" ]; then
+if [ ! -s "${BASE_HOME_DIR}/${brigade_id}/created" ]; then
         echo "Brigade ${brigade_id} does not exists" >&2
         exit 1
 fi
 
-if ! sudo -u ${brigade_id} -g  ${brigade_id} ${KEYDESK_APP_PATH} -r ${chunked} -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}"; then
+wgconf=$(sudo -u "${brigade_id}" -g  "${brigade_id}" "${KEYDESK_APP_PATH}" -r "${chunked}")
+rc=$?
+if [ $rc -ne 0 ]; then
         exit 1
 fi
 

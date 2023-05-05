@@ -19,6 +19,11 @@ import (
 // swagger:model user
 type User struct {
 
+	// created at
+	// Required: true
+	// Format: date-time
+	CreatedAt *strfmt.DateTime `json:"CreatedAt"`
+
 	// last visit a s country
 	LastVisitASCountry string `json:"LastVisitASCountry,omitempty"`
 
@@ -69,6 +74,10 @@ type User struct {
 func (m *User) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateCreatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateLastVisitHour(formats); err != nil {
 		res = append(res, err)
 	}
@@ -96,6 +105,19 @@ func (m *User) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *User) validateCreatedAt(formats strfmt.Registry) error {
+
+	if err := validate.Required("CreatedAt", "body", m.CreatedAt); err != nil {
+		return err
+	}
+
+	if err := validate.FormatOf("CreatedAt", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 

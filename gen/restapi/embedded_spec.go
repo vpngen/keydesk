@@ -189,10 +189,15 @@ func init() {
       "required": [
         "UserID",
         "UserName",
+        "CreatedAt",
         "Status",
         "MonthlyQuotaRemainingGB"
       ],
       "properties": {
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
         "LastVisitASCountry": {
           "type": "string"
         },
@@ -423,10 +428,15 @@ func init() {
       "required": [
         "UserID",
         "UserName",
+        "CreatedAt",
         "Status",
         "MonthlyQuotaRemainingGB"
       ],
       "properties": {
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
         "LastVisitASCountry": {
           "type": "string"
         },

@@ -168,6 +168,7 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 			PersonName:     user.Person.Name,
 			PersonDesc:     user.Person.Desc,
 			PersonDescLink: user.Person.URL,
+			CreatedAt:      (*strfmt.DateTime)(&user.CreatedAt),
 		}
 
 		if !user.Quotas.ThrottlingTill.IsZero() {

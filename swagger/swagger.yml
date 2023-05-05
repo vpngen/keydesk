@@ -98,6 +98,7 @@ definitions:
     required:
       - UserID
       - UserName
+      - CreatedAt
       - Status
       - MonthlyQuotaRemainingGB
     properties:
@@ -111,6 +112,9 @@ definitions:
         type: array
         items:
           type: string
+      CreatedAt:
+        type: string
+        format: date-time
       ThrottlingTill:
         type: string
         format: date-time

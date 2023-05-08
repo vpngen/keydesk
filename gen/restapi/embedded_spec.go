@@ -156,6 +156,38 @@ func init() {
           }
         }
       }
+    },
+    "/users/stats": {
+      "get": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of stats.",
+            "schema": {
+              "$ref": "#/definitions/stats"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -170,6 +202,59 @@ func init() {
         },
         "message": {
           "type": "string"
+        }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "required": [
+        "TotalUsers",
+        "ActiveUsers",
+        "TotalTrafficGB"
+      ],
+      "properties": {
+        "ActiveUsers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Month": {
+                "type": "integer"
+              },
+              "Value": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "TotalTrafficGB": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Month": {
+                "type": "integer"
+              },
+              "Value": {
+                "type": "number",
+                "format": "float"
+              }
+            }
+          }
+        },
+        "TotalUsers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Month": {
+                "type": "integer"
+              },
+              "Value": {
+                "type": "integer"
+              }
+            }
+          }
         }
       }
     },
@@ -395,9 +480,75 @@ func init() {
           }
         }
       }
+    },
+    "/users/stats": {
+      "get": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of stats.",
+            "schema": {
+              "$ref": "#/definitions/stats"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
+    "StatsActiveUsersItems0": {
+      "type": "object",
+      "properties": {
+        "Month": {
+          "type": "integer"
+        },
+        "Value": {
+          "type": "integer"
+        }
+      }
+    },
+    "StatsTotalTrafficGBItems0": {
+      "type": "object",
+      "properties": {
+        "Month": {
+          "type": "integer"
+        },
+        "Value": {
+          "type": "number",
+          "format": "float"
+        }
+      }
+    },
+    "StatsTotalUsersItems0": {
+      "type": "object",
+      "properties": {
+        "Month": {
+          "type": "integer"
+        },
+        "Value": {
+          "type": "integer"
+        }
+      }
+    },
     "error": {
       "type": "object",
       "required": [
@@ -409,6 +560,34 @@ func init() {
         },
         "message": {
           "type": "string"
+        }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "required": [
+        "TotalUsers",
+        "ActiveUsers",
+        "TotalTrafficGB"
+      ],
+      "properties": {
+        "ActiveUsers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StatsActiveUsersItems0"
+          }
+        },
+        "TotalTrafficGB": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StatsTotalTrafficGBItems0"
+          }
+        },
+        "TotalUsers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StatsTotalUsersItems0"
+          }
         }
       }
     },

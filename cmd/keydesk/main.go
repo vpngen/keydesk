@@ -534,6 +534,9 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	api.GetUserHandler = operations.GetUserHandlerFunc(func(params operations.GetUserParams, principal interface{}) middleware.Responder {
 		return keydesk.GetUsers(db, params, principal)
 	})
+	api.GetUsersStatsHandler = operations.GetUsersStatsHandlerFunc(func(params operations.GetUsersStatsParams, principal interface{}) middleware.Responder {
+		return keydesk.GetUsersStats(db, params, principal)
+	})
 
 	switch pcors {
 	case true:

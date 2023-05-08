@@ -261,3 +261,14 @@ func (db *BrigadeStorage) ListUsers() ([]*User, error) {
 
 	return data.Users, nil
 }
+
+func (db *BrigadeStorage) GetUsersStats() (StatsCountersStack, error) {
+	f, data, err := db.openWithReading()
+	if err != nil {
+		return StatsCountersStack{}, fmt.Errorf("db: %w", err)
+	}
+
+	defer f.Close()
+
+	return data.StatsCountersStack, nil
+}

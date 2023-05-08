@@ -149,6 +149,40 @@ func DelUserUserID(db *storage.BrigadeStorage, params operations.DeleteUserUserI
 	return operations.NewDeleteUserUserIDNoContent()
 }
 
+func GetUsersStats(db *storage.BrigadeStorage, params operations.GetUsersStatsParams, principal interface{}) middleware.Responder {
+	storageUsersStats, err := db.GetUsersStats()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Stats error: %s\n", err)
+
+		return operations.NewGetUsersStatsDefault(500)
+	}
+
+	stats := &models.Stats{}
+
+	prevMonth := storageUsersStats[len(storageUsersStats)-1].CountersUpdateTime.Month()
+	for _, monthStat := range storageUsersStats {
+		totalUsers := monthStat.TotalUsersCount
+		activeUsers := monthStat.ActiveUsersCount
+		totalTrafficGB := float32(float64(math.Round((float64((monthStat.TotalTraffic.Rx+monthStat.TotalTraffic.Tx)/1024/1024)/1024)*100)) / 100)
+
+		monthNum := monthStat.CountersUpdateTime.Month()
+		if monthStat.CountersUpdateTime.IsZero() {
+			monthNum = prevMonth + 1
+			if monthNum > 12 {
+				monthNum = 1
+			}
+		}
+
+		stats.TotalUsers = append(stats.TotalUsers, &models.StatsTotalUsersItems0{Month: int64(monthNum), Value: int64(totalUsers)})
+		stats.ActiveUsers = append(stats.ActiveUsers, &models.StatsActiveUsersItems0{Month: int64(monthNum), Value: int64(activeUsers)})
+		stats.TotalTrafficGB = append(stats.TotalTrafficGB, &models.StatsTotalTrafficGBItems0{Month: int64(monthNum), Value: totalTrafficGB})
+
+		prevMonth = monthNum
+	}
+
+	return operations.NewGetUsersStatsOK().WithPayload(stats)
+}
+
 // GetUsers - .
 func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, principal interface{}) middleware.Responder {
 	storageUsers, err := db.ListUsers()

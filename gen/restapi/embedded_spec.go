@@ -222,7 +222,8 @@ func init() {
                 "type": "integer"
               },
               "Value": {
-                "type": "integer"
+                "type": "integer",
+                "x-nullable": false
               }
             }
           }
@@ -237,7 +238,8 @@ func init() {
               },
               "Value": {
                 "type": "number",
-                "format": "float"
+                "format": "float",
+                "x-nullable": false
               }
             }
           }
@@ -251,7 +253,8 @@ func init() {
                 "type": "integer"
               },
               "Value": {
-                "type": "integer"
+                "type": "integer",
+                "x-nullable": false
               }
             }
           }
@@ -522,7 +525,8 @@ func init() {
           "type": "integer"
         },
         "Value": {
-          "type": "integer"
+          "type": "integer",
+          "x-nullable": false
         }
       }
     },
@@ -534,7 +538,8 @@ func init() {
         },
         "Value": {
           "type": "number",
-          "format": "float"
+          "format": "float",
+          "x-nullable": false
         }
       }
     },
@@ -545,7 +550,8 @@ func init() {
           "type": "integer"
         },
         "Value": {
-          "type": "integer"
+          "type": "integer",
+          "x-nullable": false
         }
       }
     },

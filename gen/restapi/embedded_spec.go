@@ -217,13 +217,16 @@ func init() {
           "type": "array",
           "items": {
             "type": "object",
+            "required": [
+              "Month",
+              "Value"
+            ],
             "properties": {
               "Month": {
                 "type": "integer"
               },
               "Value": {
-                "type": "integer",
-                "x-nullable": false
+                "type": "integer"
               }
             }
           }
@@ -232,14 +235,17 @@ func init() {
           "type": "array",
           "items": {
             "type": "object",
+            "required": [
+              "Month",
+              "Value"
+            ],
             "properties": {
               "Month": {
                 "type": "integer"
               },
               "Value": {
                 "type": "number",
-                "format": "float",
-                "x-nullable": false
+                "format": "float"
               }
             }
           }
@@ -248,13 +254,16 @@ func init() {
           "type": "array",
           "items": {
             "type": "object",
+            "required": [
+              "Month",
+              "Value"
+            ],
             "properties": {
               "Month": {
                 "type": "integer"
               },
               "Value": {
-                "type": "integer",
-                "x-nullable": false
+                "type": "integer"
               }
             }
           }
@@ -520,38 +529,47 @@ func init() {
   "definitions": {
     "StatsActiveUsersItems0": {
       "type": "object",
+      "required": [
+        "Month",
+        "Value"
+      ],
       "properties": {
         "Month": {
           "type": "integer"
         },
         "Value": {
-          "type": "integer",
-          "x-nullable": false
+          "type": "integer"
         }
       }
     },
     "StatsTotalTrafficGBItems0": {
       "type": "object",
+      "required": [
+        "Month",
+        "Value"
+      ],
       "properties": {
         "Month": {
           "type": "integer"
         },
         "Value": {
           "type": "number",
-          "format": "float",
-          "x-nullable": false
+          "format": "float"
         }
       }
     },
     "StatsTotalUsersItems0": {
       "type": "object",
+      "required": [
+        "Month",
+        "Value"
+      ],
       "properties": {
         "Month": {
           "type": "integer"
         },
         "Value": {
-          "type": "integer",
-          "x-nullable": false
+          "type": "integer"
         }
       }
     },

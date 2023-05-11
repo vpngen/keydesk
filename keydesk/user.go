@@ -159,13 +159,13 @@ func GetUsersStats(db *storage.BrigadeStorage, params operations.GetUsersStatsPa
 
 	stats := &models.Stats{}
 
-	prevMonth := storageUsersStats[len(storageUsersStats)-1].CountersUpdateTime.Month()
+	prevMonth := int64(storageUsersStats[len(storageUsersStats)-1].CountersUpdateTime.Month())
 	for _, monthStat := range storageUsersStats {
-		totalUsers := monthStat.TotalUsersCount
-		activeUsers := monthStat.ActiveUsersCount
+		totalUsers := int64(monthStat.TotalUsersCount)
+		activeUsers := int64(monthStat.ActiveUsersCount)
 		totalTrafficGB := float32(float64(math.Round((float64((monthStat.TotalTraffic.Rx+monthStat.TotalTraffic.Tx)/1024/1024)/1024)*100)) / 100)
 
-		monthNum := monthStat.CountersUpdateTime.Month()
+		monthNum := int64(monthStat.CountersUpdateTime.Month())
 		if monthStat.CountersUpdateTime.IsZero() {
 			monthNum = prevMonth + 1
 			if monthNum > 12 {
@@ -173,9 +173,9 @@ func GetUsersStats(db *storage.BrigadeStorage, params operations.GetUsersStatsPa
 			}
 		}
 
-		stats.TotalUsers = append(stats.TotalUsers, &models.StatsTotalUsersItems0{Month: int64(monthNum), Value: int64(totalUsers)})
-		stats.ActiveUsers = append(stats.ActiveUsers, &models.StatsActiveUsersItems0{Month: int64(monthNum), Value: int64(activeUsers)})
-		stats.TotalTrafficGB = append(stats.TotalTrafficGB, &models.StatsTotalTrafficGBItems0{Month: int64(monthNum), Value: totalTrafficGB})
+		stats.TotalUsers = append(stats.TotalUsers, &models.StatsTotalUsersItems0{Month: &monthNum, Value: &totalUsers})
+		stats.ActiveUsers = append(stats.ActiveUsers, &models.StatsActiveUsersItems0{Month: &monthNum, Value: &activeUsers})
+		stats.TotalTrafficGB = append(stats.TotalTrafficGB, &models.StatsTotalTrafficGBItems0{Month: &monthNum, Value: &totalTrafficGB})
 
 		prevMonth = monthNum
 	}

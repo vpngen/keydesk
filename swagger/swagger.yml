@@ -168,33 +168,39 @@ definitions:
         type: array
         items:
           type: object
+          required:
+            - Month
+            - Value
           properties:
             Month: 
               type: integer
             Value:
               type: integer
-              x-nullable: false
       ActiveUsers:
         type: array
         items:
           type: object
+          required:
+            - Month
+            - Value
           properties:
             Month: 
               type: integer
             Value:
               type: integer
-              x-nullable: false
       TotalTrafficGB:
         type: array
         items:
           type: object
+          required:
+            - Month
+            - Value
           properties:
             Month: 
               type: integer
             Value:
               type: number
               format: float
-              x-nullable: false
   error:
     type: object
     required:

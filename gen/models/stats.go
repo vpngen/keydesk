@@ -242,14 +242,47 @@ func (m *Stats) UnmarshalBinary(b []byte) error {
 type StatsActiveUsersItems0 struct {
 
 	// month
-	Month int64 `json:"Month,omitempty"`
+	// Required: true
+	Month *int64 `json:"Month"`
 
 	// value
-	Value int64 `json:"Value,omitempty"`
+	// Required: true
+	Value *int64 `json:"Value"`
 }
 
 // Validate validates this stats active users items0
 func (m *StatsActiveUsersItems0) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateMonth(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateValue(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *StatsActiveUsersItems0) validateMonth(formats strfmt.Registry) error {
+
+	if err := validate.Required("Month", "body", m.Month); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *StatsActiveUsersItems0) validateValue(formats strfmt.Registry) error {
+
+	if err := validate.Required("Value", "body", m.Value); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -282,14 +315,47 @@ func (m *StatsActiveUsersItems0) UnmarshalBinary(b []byte) error {
 type StatsTotalTrafficGBItems0 struct {
 
 	// month
-	Month int64 `json:"Month,omitempty"`
+	// Required: true
+	Month *int64 `json:"Month"`
 
 	// value
-	Value float32 `json:"Value,omitempty"`
+	// Required: true
+	Value *float32 `json:"Value"`
 }
 
 // Validate validates this stats total traffic g b items0
 func (m *StatsTotalTrafficGBItems0) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateMonth(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateValue(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *StatsTotalTrafficGBItems0) validateMonth(formats strfmt.Registry) error {
+
+	if err := validate.Required("Month", "body", m.Month); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *StatsTotalTrafficGBItems0) validateValue(formats strfmt.Registry) error {
+
+	if err := validate.Required("Value", "body", m.Value); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -322,14 +388,47 @@ func (m *StatsTotalTrafficGBItems0) UnmarshalBinary(b []byte) error {
 type StatsTotalUsersItems0 struct {
 
 	// month
-	Month int64 `json:"Month,omitempty"`
+	// Required: true
+	Month *int64 `json:"Month"`
 
 	// value
-	Value int64 `json:"Value,omitempty"`
+	// Required: true
+	Value *int64 `json:"Value"`
 }
 
 // Validate validates this stats total users items0
 func (m *StatsTotalUsersItems0) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateMonth(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateValue(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *StatsTotalUsersItems0) validateMonth(formats strfmt.Registry) error {
+
+	if err := validate.Required("Month", "body", m.Month); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *StatsTotalUsersItems0) validateValue(formats strfmt.Registry) error {
+
+	if err := validate.Required("Value", "body", m.Value); err != nil {
+		return err
+	}
+
 	return nil
 }
 

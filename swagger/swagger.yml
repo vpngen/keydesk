@@ -173,6 +173,7 @@ definitions:
               type: integer
             Value:
               type: integer
+              x-nullable: false
       ActiveUsers:
         type: array
         items:
@@ -182,6 +183,7 @@ definitions:
               type: integer
             Value:
               type: integer
+              x-nullable: false
       TotalTrafficGB:
         type: array
         items:
@@ -192,6 +194,7 @@ definitions:
             Value:
               type: number
               format: float
+              x-nullable: false
   error:
     type: object
     required:

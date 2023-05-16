@@ -528,6 +528,9 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	api.PostUserHandler = operations.PostUserHandlerFunc(func(params operations.PostUserParams, principal interface{}) middleware.Responder {
 		return keydesk.AddUser(db, params, principal, routerPublicKey, shufflerPublicKey)
 	})
+	api.PostUserngHandler = operations.PostUserngHandlerFunc(func(params operations.PostUserngParams, principal interface{}) middleware.Responder {
+		return keydesk.AddUserNg(db, params, principal, routerPublicKey, shufflerPublicKey)
+	})
 	api.DeleteUserUserIDHandler = operations.DeleteUserUserIDHandlerFunc(func(params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
 		return keydesk.DelUserUserID(db, params, principal)
 	})
@@ -598,6 +601,12 @@ func uiMiddleware(handler http.Handler, dir string, idleTimer *time.Timer, allow
 		}
 
 		fmt.Fprintf(os.Stderr, "Connect From: %s\n", r.RemoteAddr)
+
+		if r.URL.Path == "/user" &&
+			r.Method == http.MethodPost &&
+			r.Header.Get("Accept") == "application/json" {
+			r.URL.Path = "/userng"
+		}
 
 		handler.ServeHTTP(w, r)
 	})

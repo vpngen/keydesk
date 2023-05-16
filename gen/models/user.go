@@ -24,18 +24,9 @@ type User struct {
 	// Format: date-time
 	CreatedAt *strfmt.DateTime `json:"CreatedAt"`
 
-	// last visit a s country
-	LastVisitASCountry string `json:"LastVisitASCountry,omitempty"`
-
-	// last visit a s name
-	LastVisitASName string `json:"LastVisitASName,omitempty"`
-
 	// last visit hour
 	// Format: date-time
 	LastVisitHour *strfmt.DateTime `json:"LastVisitHour,omitempty"`
-
-	// last visit subnet
-	LastVisitSubnet string `json:"LastVisitSubnet,omitempty"`
 
 	// monthly quota remaining g b
 	// Required: true
@@ -49,9 +40,6 @@ type User struct {
 
 	// person name
 	PersonName string `json:"PersonName,omitempty"`
-
-	// problems
-	Problems []string `json:"Problems"`
 
 	// status
 	// Required: true

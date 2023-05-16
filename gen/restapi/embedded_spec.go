@@ -157,6 +157,38 @@ func init() {
         }
       }
     },
+    "/userng": {
+      "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "New user created.",
+            "schema": {
+              "$ref": "#/definitions/newuser"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/users/stats": {
       "get": {
         "security": [
@@ -202,6 +234,37 @@ func init() {
         },
         "message": {
           "type": "string"
+        }
+      }
+    },
+    "newuser": {
+      "type": "object",
+      "required": [
+        "UserName",
+        "WireguardConfig"
+      ],
+      "properties": {
+        "UserName": {
+          "type": "string"
+        },
+        "WireguardConfig": {
+          "type": "object",
+          "required": [
+            "TonnelName",
+            "FileName",
+            "FileContent"
+          ],
+          "properties": {
+            "FileContent": {
+              "type": "string"
+            },
+            "FileName": {
+              "type": "string"
+            },
+            "TonnelName": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -295,19 +358,10 @@ func init() {
           "type": "string",
           "format": "date-time"
         },
-        "LastVisitASCountry": {
-          "type": "string"
-        },
-        "LastVisitASName": {
-          "type": "string"
-        },
         "LastVisitHour": {
           "type": "string",
           "format": "date-time",
           "x-nullable": true
-        },
-        "LastVisitSubnet": {
-          "type": "string"
         },
         "MonthlyQuotaRemainingGB": {
           "type": "number",
@@ -321,12 +375,6 @@ func init() {
         },
         "PersonName": {
           "type": "string"
-        },
-        "Problems": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         },
         "Status": {
           "type": "string"
@@ -493,6 +541,38 @@ func init() {
         }
       }
     },
+    "/userng": {
+      "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "New user created.",
+            "schema": {
+              "$ref": "#/definitions/newuser"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/users/stats": {
       "get": {
         "security": [
@@ -527,6 +607,25 @@ func init() {
     }
   },
   "definitions": {
+    "NewuserWireguardConfig": {
+      "type": "object",
+      "required": [
+        "TonnelName",
+        "FileName",
+        "FileContent"
+      ],
+      "properties": {
+        "FileContent": {
+          "type": "string"
+        },
+        "FileName": {
+          "type": "string"
+        },
+        "TonnelName": {
+          "type": "string"
+        }
+      }
+    },
     "StatsActiveUsersItems0": {
       "type": "object",
       "required": [
@@ -587,6 +686,37 @@ func init() {
         }
       }
     },
+    "newuser": {
+      "type": "object",
+      "required": [
+        "UserName",
+        "WireguardConfig"
+      ],
+      "properties": {
+        "UserName": {
+          "type": "string"
+        },
+        "WireguardConfig": {
+          "type": "object",
+          "required": [
+            "TonnelName",
+            "FileName",
+            "FileContent"
+          ],
+          "properties": {
+            "FileContent": {
+              "type": "string"
+            },
+            "FileName": {
+              "type": "string"
+            },
+            "TonnelName": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "stats": {
       "type": "object",
       "required": [
@@ -640,19 +770,10 @@ func init() {
           "type": "string",
           "format": "date-time"
         },
-        "LastVisitASCountry": {
-          "type": "string"
-        },
-        "LastVisitASName": {
-          "type": "string"
-        },
         "LastVisitHour": {
           "type": "string",
           "format": "date-time",
           "x-nullable": true
-        },
-        "LastVisitSubnet": {
-          "type": "string"
         },
         "MonthlyQuotaRemainingGB": {
           "type": "number",
@@ -666,12 +787,6 @@ func init() {
         },
         "PersonName": {
           "type": "string"
-        },
-        "Problems": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         },
         "Status": {
           "type": "string"

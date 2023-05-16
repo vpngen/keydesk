@@ -42,31 +42,31 @@ const (
 	DefaultMaxUserInactivityPeriod = 24 * 30 * time.Hour // month
 )
 
-// AddUser - create user.
-func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
-	var (
-		user          *storage.UserConfig
-		wgPriv, wgPSK []byte
-	)
-
+func pickUpUser(data *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*storage.UserConfig, []byte, []byte, error) {
 	for {
 		fullname, person, err := namesgenerator.PeaceAwardeeShort()
 		if err != nil {
-			return operations.NewPostUserInternalServerError()
+			return nil, nil, nil, fmt.Errorf("namesgenerator: %w", err)
 		}
 
-		user, wgPriv, wgPSK, err = addUser(db, fullname, person, false, false, routerPublicKey, shufflerPublicKey)
+		user, wgPriv, wgPSK, err := addUser(data, fullname, person, false, false, routerPublicKey, shufflerPublicKey)
 		if err != nil {
 			if errors.Is(err, storage.ErrUserCollision) {
 				continue
 			}
 
-			fmt.Fprintf(os.Stderr, "Add error: %s\n", err)
-
-			return operations.NewPostUserInternalServerError()
+			return nil, nil, nil, fmt.Errorf("addUser: %w", err)
 		}
 
-		break
+		return user, wgPriv, wgPSK, nil
+	}
+}
+
+// AddUser - create user.
+func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
+	user, wgPriv, wgPSK, err := pickUpUser(db, routerPublicKey, shufflerPublicKey)
+	if err != nil {
+		return operations.NewPostUserInternalServerError()
 	}
 
 	wgconf := genWgConf(user, wgPriv, wgPSK)
@@ -74,6 +74,29 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 	rc := io.NopCloser(strings.NewReader(wgconf))
 
 	return operations.NewPostUserCreated().WithContentDisposition(constructContentDisposition(user.Name, user.ID.String())).WithPayload(rc)
+}
+
+// AddUserNg - create user.
+func AddUserNg(db *storage.BrigadeStorage, params operations.PostUserngParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
+	user, wgPriv, wgPSK, err := pickUpUser(db, routerPublicKey, shufflerPublicKey)
+	if err != nil {
+		return operations.NewPostUserngInternalServerError()
+	}
+
+	wgconf := genWgConf(user, wgPriv, wgPSK)
+	wgConfFilename := kdlib.SanitizeFilename(user.Name)
+	wgConfName := strings.TrimSuffix(wgConfFilename, ".conf")
+
+	newuser := &models.Newuser{
+		UserName: &user.Name,
+		WireguardConfig: &models.NewuserWireguardConfig{
+			FileContent: &wgconf,
+			FileName:    &wgConfFilename,
+			TonnelName:  &wgConfName,
+		},
+	}
+
+	return operations.NewPostUserngCreated().WithPayload(newuser)
 }
 
 // AddBrigadier - create brigadier user.
@@ -134,7 +157,7 @@ AllowedIPs = 0.0.0.0/0,::/0
 func constructContentDisposition(name, id string) string {
 	filename := kdlib.SanitizeFilename(name)
 
-	return fmt.Sprintf("attachment; filename=%s; filename*=%s", "wg-"+id+".conf", "utf-8''"+url.QueryEscape(filename))
+	return fmt.Sprintf("attachment; filename=%s; filename*=%s", url.QueryEscape(filename), "utf-8''"+url.QueryEscape(filename))
 }
 
 // DelUserUserID - delete user by UserID.

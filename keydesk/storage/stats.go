@@ -202,7 +202,7 @@ func randomData(data *Brigade, now time.Time) (*vpnapi.WgStatTimestamp, *vpnapi.
 
 func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL, maxUserInactiveDuration time.Duration, monthlyQuotaRemaining int) error {
 	var (
-		totalTraffic, totalWgTraffic, totalIPSecTraffic              RxTx
+		totalTraffic                                                 TrafficCountersContainer
 		throttledUsers, activeUsers, activeWgUsers, activeIPSecUsers int
 		trafficMap                                                   *vpnapi.WgStatTrafficMap
 		lastSeenMap                                                  *vpnapi.WgStatLastActivityMap
@@ -243,7 +243,7 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 			user.Quotas.OSWgCounters.Tx = traffic.Tx
 
 			sum.Inc(rx, tx)
-			totalWgTraffic.Inc(rx, tx)
+			totalTraffic.TrafficWg.Inc(rx, tx)
 			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersWg)
 		}
 
@@ -263,11 +263,11 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 			user.Quotas.OSIPSecCounters.Tx = traffic.Tx
 
 			sum.Inc(rx, tx)
-			totalIPSecTraffic.Inc(rx, tx)
+			totalTraffic.TrafficIPSec.Inc(rx, tx)
 			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersIPSec)
 		}
 
-		totalTraffic.Inc(sum.Rx, sum.Tx)
+		totalTraffic.TrafficSummary.Inc(sum.Rx, sum.Tx)
 		incDateSwitchRelated(now, sum.Rx, sum.Tx, &user.Quotas.CountersTotal)
 
 		if user.Quotas.LimitMonthlyResetOn.Before(now) {
@@ -325,11 +325,11 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 	data.ThrottledUsersCount = throttledUsers
 	data.ActiveUsersCount = activeUsers
 	data.ActiveWgUsersCount = activeWgUsers
-	data.ActiveWgUsersCount = activeIPSecUsers
+	data.ActiveIPSecUsersCount = activeIPSecUsers
 
-	incDateSwitchRelated(now, totalTraffic.Rx, totalTraffic.Tx, &data.TotalTraffic)
-	incDateSwitchRelated(now, totalWgTraffic.Rx, totalWgTraffic.Tx, &data.TotalWgTraffic)
-	incDateSwitchRelated(now, totalIPSecTraffic.Rx, totalIPSecTraffic.Tx, &data.TotalIPSecTraffic)
+	incDateSwitchRelated(now, totalTraffic.TrafficSummary.Rx, totalTraffic.TrafficSummary.Tx, &data.TotalTraffic)
+	incDateSwitchRelated(now, totalTraffic.TrafficWg.Rx, totalTraffic.TrafficWg.Tx, &data.TotalWgTraffic)
+	incDateSwitchRelated(now, totalTraffic.TrafficIPSec.Rx, totalTraffic.TrafficIPSec.Tx, &data.TotalIPSecTraffic)
 
 	if data.Endpoints == nil {
 		data.Endpoints = UsersNetworks{}
@@ -356,7 +356,32 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 
 	data.CountersUpdateTime = statsTimestamp.Time
 
-	data.StatsCountersStack.Put(data.BrigadeCounters)
+	if data.Ver < 6 {
+		/*stats := &data.StatsCountersStack[len(data.StatsCountersStack)-1]
+		stats.TotalTraffic = data.TotalTraffic.Monthly
+		stats.TotalWgTraffic = data.TotalWgTraffic.Monthly
+		stats.TotalIPSecTraffic = data.TotalIPSecTraffic.Monthly*/
+
+		data.StatsCountersStack[0].ActiveWgUsersCount = data.StatsCountersStack[0].ActiveUsersCount
+
+		for i := len(data.StatsCountersStack) - 1; i > 0; i-- {
+			x := data.StatsCountersStack[i]
+			y := data.StatsCountersStack[i-1]
+
+			data.StatsCountersStack[i].TotalTraffic.Rx = x.NetCounters.TotalTraffic.Rx - y.NetCounters.TotalTraffic.Rx
+			data.StatsCountersStack[i].TotalTraffic.Tx = x.NetCounters.TotalTraffic.Tx - y.NetCounters.TotalTraffic.Tx
+			data.StatsCountersStack[i].TotalWgTraffic.Rx = x.NetCounters.TotalWgTraffic.Rx - y.NetCounters.TotalWgTraffic.Rx
+			data.StatsCountersStack[i].TotalWgTraffic.Tx = x.NetCounters.TotalWgTraffic.Tx - y.NetCounters.TotalWgTraffic.Tx
+			data.StatsCountersStack[i].TotalIPSecTraffic.Rx = x.NetCounters.TotalIPSecTraffic.Rx - y.NetCounters.TotalIPSecTraffic.Rx
+			data.StatsCountersStack[i].TotalIPSecTraffic.Tx = x.NetCounters.TotalIPSecTraffic.Tx - y.NetCounters.TotalIPSecTraffic.Tx
+
+			data.StatsCountersStack[i].ActiveWgUsersCount = data.StatsCountersStack[i].ActiveUsersCount
+		}
+
+		data.Ver = BrigadeVersion
+	}
+
+	data.StatsCountersStack.Put(data.BrigadeCounters, totalTraffic)
 
 	return nil
 }

@@ -53,8 +53,8 @@ paths:
               type: file
           headers:
               Content-Disposition:
-                  type: string
-                  description: the value is `attachment; filename="wg.conf"`
+                type: string
+                description: the value is `attachment; filename="wg.conf"`
         403: 
           description: 'You do not have necessary permissions for the resource'
         500:
@@ -63,6 +63,26 @@ paths:
           description: error
           schema:
               $ref: "#/definitions/error"
+  /userng:
+    post:
+      security:
+        - Bearer: []
+      produces:
+        - application/json
+      responses:
+        201:
+          description: New user created.
+          schema:
+            $ref: "#/definitions/newuser"
+        403: 
+          description: 'You do not have necessary permissions for the resource'
+        500:
+          description: 'Internal server error'
+        default:
+          description: error
+          schema:
+              $ref: "#/definitions/error"
+
   /user/{UserID}:
     delete:
       security:
@@ -85,6 +105,25 @@ paths:
           description: error
           schema:
               $ref: "#/definitions/error"
+  /users/stats:
+    get:
+      security:
+        - Bearer: []
+      produces:
+        - application/json
+      responses:
+        200:
+          description: A list of stats.
+          schema:
+            $ref: "#/definitions/stats"
+        403: 
+          description: 'You do not have necessary permissions for the resource'
+        500:
+          description: 'Internal server error'
+        default:
+          description: error
+          schema:
+              $ref: "#/definitions/error"
 definitions:
   token:
     type: object
@@ -92,7 +131,28 @@ definitions:
       - Token
     properties:
       Token:
-        type: string  
+        type: string
+  newuser:
+    type: object
+    required:
+      - UserName
+      - WireguardConfig
+    properties:
+      UserName:
+        type: string
+      WireguardConfig:
+        type: object
+        required:
+          - TonnelName
+          - FileName
+          - FileContent
+        properties:
+          TonnelName:
+            type: string
+          FileName:
+            type: string
+          FileContent:
+            type: string
   user:
     type: object
     required:
@@ -108,10 +168,6 @@ definitions:
         type: string
       Status:
         type: string
-      Problems:
-        type: array
-        items:
-          type: string
       CreatedAt:
         type: string
         format: date-time
@@ -126,18 +182,56 @@ definitions:
         type: string
         format: date-time
         x-nullable: true
-      LastVisitSubnet:
-        type: string
-      LastVisitASName:
-        type: string
-      LastVisitASCountry:
-        type: string
       PersonName:
         type: string
       PersonDesc:
         type: string
       PersonDescLink:
         type: string
+  stats:
+    type: object
+    required:
+      - TotalUsers
+      - ActiveUsers
+      - TotalTrafficGB
+    properties:
+      TotalUsers:
+        type: array
+        items:
+          type: object
+          required:
+            - Month
+            - Value
+          properties:
+            Month: 
+              type: integer
+            Value:
+              type: integer
+      ActiveUsers:
+        type: array
+        items:
+          type: object
+          required:
+            - Month
+            - Value
+          properties:
+            Month: 
+              type: integer
+            Value:
+              type: integer
+      TotalTrafficGB:
+        type: array
+        items:
+          type: object
+          required:
+            - Month
+            - Value
+          properties:
+            Month: 
+              type: integer
+            Value:
+              type: number
+              format: float
   error:
     type: object
     required:

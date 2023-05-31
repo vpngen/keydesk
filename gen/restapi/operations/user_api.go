@@ -49,11 +49,17 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 		GetUserHandler: GetUserHandlerFunc(func(params GetUserParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation GetUser has not yet been implemented")
 		}),
+		GetUsersStatsHandler: GetUsersStatsHandlerFunc(func(params GetUsersStatsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation GetUsersStats has not yet been implemented")
+		}),
 		PostTokenHandler: PostTokenHandlerFunc(func(params PostTokenParams) middleware.Responder {
 			return middleware.NotImplemented("operation PostToken has not yet been implemented")
 		}),
 		PostUserHandler: PostUserHandlerFunc(func(params PostUserParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation PostUser has not yet been implemented")
+		}),
+		PostUserngHandler: PostUserngHandlerFunc(func(params PostUserngParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation PostUserng has not yet been implemented")
 		}),
 
 		// Applies when the "Authorization" header is set
@@ -112,10 +118,14 @@ type UserAPI struct {
 	DeleteUserUserIDHandler DeleteUserUserIDHandler
 	// GetUserHandler sets the operation handler for the get user operation
 	GetUserHandler GetUserHandler
+	// GetUsersStatsHandler sets the operation handler for the get users stats operation
+	GetUsersStatsHandler GetUsersStatsHandler
 	// PostTokenHandler sets the operation handler for the post token operation
 	PostTokenHandler PostTokenHandler
 	// PostUserHandler sets the operation handler for the post user operation
 	PostUserHandler PostUserHandler
+	// PostUserngHandler sets the operation handler for the post userng operation
+	PostUserngHandler PostUserngHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -206,11 +216,17 @@ func (o *UserAPI) Validate() error {
 	if o.GetUserHandler == nil {
 		unregistered = append(unregistered, "GetUserHandler")
 	}
+	if o.GetUsersStatsHandler == nil {
+		unregistered = append(unregistered, "GetUsersStatsHandler")
+	}
 	if o.PostTokenHandler == nil {
 		unregistered = append(unregistered, "PostTokenHandler")
 	}
 	if o.PostUserHandler == nil {
 		unregistered = append(unregistered, "PostUserHandler")
+	}
+	if o.PostUserngHandler == nil {
+		unregistered = append(unregistered, "PostUserngHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -319,6 +335,10 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/user"] = NewGetUser(o.context, o.GetUserHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/users/stats"] = NewGetUsersStats(o.context, o.GetUsersStatsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -327,6 +347,10 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/user"] = NewPostUser(o.context, o.PostUserHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/userng"] = NewPostUserng(o.context, o.PostUserngHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

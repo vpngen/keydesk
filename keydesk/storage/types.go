@@ -68,6 +68,12 @@ type BrigadeCounters struct {
 	CountersUpdateTime time.Time              `json:"counters_update_time"`
 }
 
+type TrafficCountersContainer struct {
+	TrafficSummary RxTx
+	TrafficWg      RxTx
+	TrafficIPSec   RxTx
+}
+
 type StatsCounters struct {
 	UsersCounters
 	NetCounters
@@ -78,7 +84,7 @@ type StatsCounters struct {
 type StatsCountersStack [12]StatsCounters
 
 // Put - put counters to stack. If month changed, then shift stack.
-func (x *StatsCountersStack) Put(counters BrigadeCounters) {
+func (x *StatsCountersStack) Put(counters BrigadeCounters, traffic TrafficCountersContainer) {
 	now := counters.CountersUpdateTime
 	last := x[len(x)-1].CountersUpdateTime
 
@@ -86,17 +92,16 @@ func (x *StatsCountersStack) Put(counters BrigadeCounters) {
 		for i := 0; i < len(x)-1; i++ {
 			x[i] = x[i+1]
 		}
+
+		x[len(x)-1] = StatsCounters{}
 	}
 
-	x[len(x)-1] = StatsCounters{
-		UsersCounters: counters.UsersCounters,
-		NetCounters: NetCounters{
-			TotalTraffic:      counters.TotalTraffic.Total,
-			TotalWgTraffic:    counters.TotalWgTraffic.Total,
-			TotalIPSecTraffic: counters.TotalIPSecTraffic.Total,
-		},
-		CountersUpdateTime: counters.CountersUpdateTime,
-	}
+	stats := &x[len(x)-1]
+	stats.UsersCounters = counters.UsersCounters
+	stats.NetCounters.TotalTraffic.Inc(traffic.TrafficSummary.Rx, traffic.TrafficSummary.Tx)
+	stats.NetCounters.TotalWgTraffic.Inc(traffic.TrafficWg.Rx, traffic.TrafficWg.Tx)
+	stats.NetCounters.TotalIPSecTraffic.Inc(traffic.TrafficIPSec.Rx, traffic.TrafficIPSec.Tx)
+	stats.CountersUpdateTime = counters.CountersUpdateTime
 }
 
 // QuotaVesrion - json version.
@@ -138,7 +143,7 @@ type User struct {
 }
 
 // BrigadeVersion - json version.
-const BrigadeVersion = 5
+const BrigadeVersion = 6
 
 // Brigade - brigade.
 type Brigade struct {

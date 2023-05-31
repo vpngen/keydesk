@@ -42,31 +42,31 @@ const (
 	DefaultMaxUserInactivityPeriod = 24 * 30 * time.Hour // month
 )
 
-// AddUser - create user.
-func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
-	var (
-		user          *storage.UserConfig
-		wgPriv, wgPSK []byte
-	)
-
+func pickUpUser(data *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*storage.UserConfig, []byte, []byte, error) {
 	for {
 		fullname, person, err := namesgenerator.PeaceAwardeeShort()
 		if err != nil {
-			return operations.NewPostUserInternalServerError()
+			return nil, nil, nil, fmt.Errorf("namesgenerator: %w", err)
 		}
 
-		user, wgPriv, wgPSK, err = addUser(db, fullname, person, false, false, routerPublicKey, shufflerPublicKey)
+		user, wgPriv, wgPSK, err := addUser(data, fullname, person, false, false, routerPublicKey, shufflerPublicKey)
 		if err != nil {
 			if errors.Is(err, storage.ErrUserCollision) {
 				continue
 			}
 
-			fmt.Fprintf(os.Stderr, "Add error: %s\n", err)
-
-			return operations.NewPostUserInternalServerError()
+			return nil, nil, nil, fmt.Errorf("addUser: %w", err)
 		}
 
-		break
+		return user, wgPriv, wgPSK, nil
+	}
+}
+
+// AddUser - create user.
+func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
+	user, wgPriv, wgPSK, err := pickUpUser(db, routerPublicKey, shufflerPublicKey)
+	if err != nil {
+		return operations.NewPostUserInternalServerError()
 	}
 
 	wgconf := genWgConf(user, wgPriv, wgPSK)
@@ -74,6 +74,29 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 	rc := io.NopCloser(strings.NewReader(wgconf))
 
 	return operations.NewPostUserCreated().WithContentDisposition(constructContentDisposition(user.Name, user.ID.String())).WithPayload(rc)
+}
+
+// AddUserNg - create user.
+func AddUserNg(db *storage.BrigadeStorage, params operations.PostUserngParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
+	user, wgPriv, wgPSK, err := pickUpUser(db, routerPublicKey, shufflerPublicKey)
+	if err != nil {
+		return operations.NewPostUserngInternalServerError()
+	}
+
+	wgconf := genWgConf(user, wgPriv, wgPSK)
+	wgConfFilename := kdlib.SanitizeFilename(user.Name)
+	wgConfName := strings.TrimSuffix(wgConfFilename, ".conf")
+
+	newuser := &models.Newuser{
+		UserName: &user.Name,
+		WireguardConfig: &models.NewuserWireguardConfig{
+			FileContent: &wgconf,
+			FileName:    &wgConfFilename,
+			TonnelName:  &wgConfName,
+		},
+	}
+
+	return operations.NewPostUserngCreated().WithPayload(newuser)
 }
 
 // AddBrigadier - create brigadier user.
@@ -134,7 +157,7 @@ AllowedIPs = 0.0.0.0/0,::/0
 func constructContentDisposition(name, id string) string {
 	filename := kdlib.SanitizeFilename(name)
 
-	return fmt.Sprintf("attachment; filename=%s; filename*=%s", "wg-"+id+".conf", "utf-8''"+url.QueryEscape(filename))
+	return fmt.Sprintf("attachment; filename=%s; filename*=%s", url.QueryEscape(filename), "utf-8''"+url.QueryEscape(filename))
 }
 
 // DelUserUserID - delete user by UserID.
@@ -147,6 +170,40 @@ func DelUserUserID(db *storage.BrigadeStorage, params operations.DeleteUserUserI
 	}
 
 	return operations.NewDeleteUserUserIDNoContent()
+}
+
+func GetUsersStats(db *storage.BrigadeStorage, params operations.GetUsersStatsParams, principal interface{}) middleware.Responder {
+	storageUsersStats, err := db.GetUsersStats()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Stats error: %s\n", err)
+
+		return operations.NewGetUsersStatsDefault(500)
+	}
+
+	stats := &models.Stats{}
+
+	prevMonth := int64(storageUsersStats[len(storageUsersStats)-1].CountersUpdateTime.Month())
+	for _, monthStat := range storageUsersStats {
+		totalUsers := int64(monthStat.TotalUsersCount)
+		activeUsers := int64(monthStat.ActiveUsersCount)
+		totalTrafficGB := float32(float64(math.Round((float64((monthStat.TotalTraffic.Rx+monthStat.TotalTraffic.Tx)/1024/1024)/1024)*100)) / 100)
+
+		monthNum := int64(monthStat.CountersUpdateTime.Month())
+		if monthStat.CountersUpdateTime.IsZero() {
+			monthNum = prevMonth + 1
+			if monthNum > 12 {
+				monthNum = 1
+			}
+		}
+
+		stats.TotalUsers = append(stats.TotalUsers, &models.StatsTotalUsersItems0{Month: &monthNum, Value: &totalUsers})
+		stats.ActiveUsers = append(stats.ActiveUsers, &models.StatsActiveUsersItems0{Month: &monthNum, Value: &activeUsers})
+		stats.TotalTrafficGB = append(stats.TotalTrafficGB, &models.StatsTotalTrafficGBItems0{Month: &monthNum, Value: &totalTrafficGB})
+
+		prevMonth = monthNum
+	}
+
+	return operations.NewGetUsersStatsOK().WithPayload(stats)
 }
 
 // GetUsers - .
@@ -168,6 +225,7 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 			PersonName:     user.Person.Name,
 			PersonDesc:     user.Person.Desc,
 			PersonDescLink: user.Person.URL,
+			CreatedAt:      (*strfmt.DateTime)(&user.CreatedAt),
 		}
 
 		if !user.Quotas.ThrottlingTill.IsZero() {

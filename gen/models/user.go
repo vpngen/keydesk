@@ -19,18 +19,14 @@ import (
 // swagger:model user
 type User struct {
 
-	// last visit a s country
-	LastVisitASCountry string `json:"LastVisitASCountry,omitempty"`
-
-	// last visit a s name
-	LastVisitASName string `json:"LastVisitASName,omitempty"`
+	// created at
+	// Required: true
+	// Format: date-time
+	CreatedAt *strfmt.DateTime `json:"CreatedAt"`
 
 	// last visit hour
 	// Format: date-time
 	LastVisitHour *strfmt.DateTime `json:"LastVisitHour,omitempty"`
-
-	// last visit subnet
-	LastVisitSubnet string `json:"LastVisitSubnet,omitempty"`
 
 	// monthly quota remaining g b
 	// Required: true
@@ -44,9 +40,6 @@ type User struct {
 
 	// person name
 	PersonName string `json:"PersonName,omitempty"`
-
-	// problems
-	Problems []string `json:"Problems"`
 
 	// status
 	// Required: true
@@ -68,6 +61,10 @@ type User struct {
 // Validate validates this user
 func (m *User) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateCreatedAt(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateLastVisitHour(formats); err != nil {
 		res = append(res, err)
@@ -96,6 +93,19 @@ func (m *User) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *User) validateCreatedAt(formats strfmt.Registry) error {
+
+	if err := validate.Required("CreatedAt", "body", m.CreatedAt); err != nil {
+		return err
+	}
+
+	if err := validate.FormatOf("CreatedAt", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 

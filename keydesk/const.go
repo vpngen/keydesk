@@ -30,3 +30,11 @@ const (
 	UserStatusLimited   = "yellow"
 	UserStatusBlocked   = "red"
 )
+
+// port range
+const (
+	LowLimitPort          = 1024
+	StandardWireguardPort = 51820
+	LowWireguardPort      = 40000
+	HighWireguardPort     = 60000
+)

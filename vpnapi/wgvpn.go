@@ -54,10 +54,11 @@ func WgPeerDel(actualAddrPort, calculatedAddrPort netip.AddrPort, wgPub, wgIface
 }
 
 // WgAdd - wg_add endpoint-API call.
-func WgAdd(actualAddrPort, calculatedAddrPort netip.AddrPort, wgPriv []byte, endpointIPv4 netip.Addr, IPv4CGNAT, IPv6ULA netip.Prefix) error {
-	query := fmt.Sprintf("wg_add=%s&external-ip=%s&internal-nets=%s",
+func WgAdd(actualAddrPort, calculatedAddrPort netip.AddrPort, wgPriv []byte, endpointIPv4 netip.Addr, endpointPort uint16, IPv4CGNAT, IPv6ULA netip.Prefix) error {
+	query := fmt.Sprintf("wg_add=%s&external-ip=%s&wireguard-port=%s&internal-nets=%s",
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPriv)),
 		url.QueryEscape(endpointIPv4.String()),
+		url.QueryEscape(fmt.Sprintf("%d", endpointPort)),
 		url.QueryEscape(IPv4CGNAT.String()+","+IPv6ULA.String()),
 	)
 

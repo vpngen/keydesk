@@ -154,6 +154,10 @@ func (db *BrigadeStorage) openBrigadeWithReading() (*kdlib.FileDb, *Brigade, err
 		return nil, nil, fmt.Errorf("backup: %w", err)
 	}
 
+	if data.Ver < 7 && data.EndpointPort == 0 {
+		data.EndpointPort = 51820
+	}
+
 	return f, data, nil
 }
 

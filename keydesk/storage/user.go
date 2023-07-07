@@ -51,6 +51,8 @@ func (db *BrigadeStorage) CreateUser(
 		IPv6:             ipv6,
 		EndpointWgPublic: data.WgPublicKey,
 		EndpointIPv4:     data.EndpointIPv4,
+		EndpointDomain:   data.EndpointDomain,
+		EndPointPort:     data.EndpointPort,
 		DNSv4:            data.DNSv4,
 		DNSv6:            data.DNSv6,
 	}

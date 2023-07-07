@@ -38,7 +38,17 @@ printdef () {
         exit 1
 }
 
-if [ -z "${1}" -o -z "${2}" -o -z "${3}" -o -z "${4}" -o -z "${5}" -o -z "${6}" -o -z "${7}" -o -z "${8}" -o -z "${9}" -o -z "${10}" -o -z "${11}" ]; then 
+if [ -z "${1}" ] || \
+         [ -z "${2}" ] || \
+         [ -z "${3}" ] || \
+         [ -z "${4}" ] || \
+         [ -z "${5}" ] || \
+         [ -z "${6}" ] || \
+         [ -z "${7}" ] || \
+         [ -z "${8}" ] || \
+         [ -z "${9}" ] || \
+         [ -z "${10}" ] || \
+         [ -z "${11}" ]; then 
         printdef
 fi
 
@@ -53,13 +63,33 @@ brigadier_name=${8}
 person_name=${9}
 person_desc=${10}
 person_url=${11}
-chunked=${12}
 
-if [ "xchunked" != "x${chunked}" ]; then
-        chunked=""
-else
-        chunked="-ch"
-fi
+shift 11
+
+chunked=""
+port="0"
+domain=""
+
+for i in "$@";
+do
+    case $i in
+        [0-9]*)
+                if [ "$i" -ge 1024 ] && [ "$i" -le 65535 ]; then
+                        port="$i"
+                fi
+                ;;
+        *.*)
+                if printf "%s" "$i" | grep -E '^([a-z0-9_]+(-[a-z0-9_]+)*\.)+[a-z0-9_]+([a-z0-9_-]+)$'; then
+                        domain="$i"
+                fi
+        ;;
+        *)
+                if [ "$i" = "chunked" ]; then
+                        chunked="-ch"
+                fi
+        ;;
+    esac
+done
 
 # * Check if brigade is exists
 
@@ -76,14 +106,29 @@ install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 710 -d "${BASE_STATS_DIR}/${
 
 # Create json datafile
 
-out=$(sudo -u "${brigade_id}" -g "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" -ep4 "${endpoint_ip4}" -dns4 "${dns_ip4}" -dns6 "${dns_ip6}" -int4 "${ip4_cgnat}" -int6 "${ip6_ula}" -kd6 "${keydesk_ip6}")
-if [ "$?" -ne 0 ]; then
-        echo "Output: ${out}" >&2
+if ! out=$(sudo -u "${brigade_id}" -g "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" \
+        -ep4 "${endpoint_ip4}" \
+        -dns4 "${dns_ip4}" \
+        -dns6 "${dns_ip6}" \
+        -int4 "${ip4_cgnat}" \
+        -int6 "${ip6_ula}" \
+        -kd6 "${keydesk_ip6}" \
+        -p "$port" \
+        -dn "$domain" \
+        ); then
+        echo "Can't create brigade: ${out}" >&2
+
         exit 1
 fi
 
-wgconf=$(sudo -u ${brigade_id} -g  ${brigade_id} ${KEYDESK_APP_PATH} ${chunked} -name "${brigadier_name}" -person "${person_name}" -desc "${person_desc}" -url "${person_url}")
-if [ "$?" -ne 0 ]; then
+if ! wgconf=$(sudo -u "${brigade_id}" -g "${brigade_id}" "${KEYDESK_APP_PATH}" \
+        "${chunked}" \
+        -name "${brigadier_name}" \
+        -person "${person_name}" \
+        -desc "${person_desc}" \
+        -url "${person_url}"); then
+        echo "Can't create brigadier: ${wgconf}" >&2
+
         exit 1
 fi
 
@@ -95,12 +140,13 @@ systemd_vgkeydesk_instance="vgkeydesk@${brigade_id}"
 # https://www.freedesktop.org/software/systemd/man/systemd.unit.html
 systemd_vgkeydesk_conf_dir="/etc/systemd/system/${systemd_vgkeydesk_instance}.socket.d"
 
+#shellcheck disable=SC2174
 mkdir -p "${systemd_vgkeydesk_conf_dir}" -m 0755
 
 # it;s necessary to listen certain IP
 
 # calculated listen IPv6 
-listen_ip6=$(echo ${endpoint_ip4} | sed 's/\./\n/g' | xargs printf 'fdcc:%02x%02x:%02x%02x::2' | sed 's/:0000/:/g' | sed 's/:00/:/g')
+listen_ip6=$(echo "${endpoint_ip4}" | sed 's/\./\n/g' | xargs printf 'fdcc:%02x%02x:%02x%02x::2' | sed 's/:0000/:/g' | sed 's/:00/:/g')
 
 cat << EOF > "${systemd_vgkeydesk_conf_dir}/listen.conf"
 [Socket]
@@ -122,4 +168,4 @@ systemctl -q start "${systemd_vgstats_instance}.service"
 # Print brigadier config
 echo "${wgconf}"
 
-echo  $(date -u +"%Y-%m-%dT%H:%M:%S") > "${BASE_HOME_DIR}/${brigade_id}/created"
+date -u +"%Y-%m-%dT%H:%M:%S" > "${BASE_HOME_DIR}/${brigade_id}/created"

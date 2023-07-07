@@ -12,6 +12,7 @@ func TestIsValidDomainName(t *testing.T) {
 		{"_domainkey.example.com", true},
 		{"domain-with-hyphen.com", true},
 		{"domain..com", false},
+		{"rus.xn--p1ai", true},
 		{"toolonglabeltoolonglabeltoolonglabeltoolonglabeltoolonglabel1234.com", false},
 	}
 

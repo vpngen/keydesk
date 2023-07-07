@@ -73,7 +73,7 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, error)
 	}
 
 	config.EndpointDomain = *domainName
-	if !kdlib.IsDomainNameValid(config.EndpointDomain) {
+	if config.EndpointDomain != "" && !kdlib.IsDomainNameValid(config.EndpointDomain) {
 		return nil, addrPort, "", "", fmt.Errorf("domain: %s: %w", config.EndpointDomain, ErrInvalidDomainName)
 	}
 

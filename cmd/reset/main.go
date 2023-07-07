@@ -112,7 +112,7 @@ func parseArgs() (string, string, netip.AddrPort, string, int, error) {
 	}
 
 	endpointDomain := *domainName
-	if endpointDomain != "." && !kdlib.IsDomainNameValid(endpointDomain) {
+	if endpointDomain != "." && endpointDomain != "" && !kdlib.IsDomainNameValid(endpointDomain) {
 		return "", "", addrPort, "", 0, fmt.Errorf("domain: %s: %w", endpointDomain, ErrInvalidDomainName)
 	}
 

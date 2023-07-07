@@ -156,6 +156,70 @@ func init() {
           }
         }
       }
+    },
+    "/userng": {
+      "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "New user created.",
+            "schema": {
+              "$ref": "#/definitions/newuser"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/users/stats": {
+      "get": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of stats.",
+            "schema": {
+              "$ref": "#/definitions/stats"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -170,6 +234,102 @@ func init() {
         },
         "message": {
           "type": "string"
+        }
+      }
+    },
+    "newuser": {
+      "type": "object",
+      "required": [
+        "UserName",
+        "WireguardConfig"
+      ],
+      "properties": {
+        "UserName": {
+          "type": "string"
+        },
+        "WireguardConfig": {
+          "type": "object",
+          "required": [
+            "TonnelName",
+            "FileName",
+            "FileContent"
+          ],
+          "properties": {
+            "FileContent": {
+              "type": "string"
+            },
+            "FileName": {
+              "type": "string"
+            },
+            "TonnelName": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "required": [
+        "TotalUsers",
+        "ActiveUsers",
+        "TotalTrafficGB"
+      ],
+      "properties": {
+        "ActiveUsers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "Month",
+              "Value"
+            ],
+            "properties": {
+              "Month": {
+                "type": "integer"
+              },
+              "Value": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "TotalTrafficGB": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "Month",
+              "Value"
+            ],
+            "properties": {
+              "Month": {
+                "type": "integer"
+              },
+              "Value": {
+                "type": "number",
+                "format": "float"
+              }
+            }
+          }
+        },
+        "TotalUsers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "Month",
+              "Value"
+            ],
+            "properties": {
+              "Month": {
+                "type": "integer"
+              },
+              "Value": {
+                "type": "integer"
+              }
+            }
+          }
         }
       }
     },
@@ -189,23 +349,19 @@ func init() {
       "required": [
         "UserID",
         "UserName",
+        "CreatedAt",
         "Status",
         "MonthlyQuotaRemainingGB"
       ],
       "properties": {
-        "LastVisitASCountry": {
-          "type": "string"
-        },
-        "LastVisitASName": {
-          "type": "string"
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time"
         },
         "LastVisitHour": {
           "type": "string",
           "format": "date-time",
           "x-nullable": true
-        },
-        "LastVisitSubnet": {
-          "type": "string"
         },
         "MonthlyQuotaRemainingGB": {
           "type": "number",
@@ -219,12 +375,6 @@ func init() {
         },
         "PersonName": {
           "type": "string"
-        },
-        "Problems": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         },
         "Status": {
           "type": "string"
@@ -390,9 +540,138 @@ func init() {
           }
         }
       }
+    },
+    "/userng": {
+      "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "New user created.",
+            "schema": {
+              "$ref": "#/definitions/newuser"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/users/stats": {
+      "get": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of stats.",
+            "schema": {
+              "$ref": "#/definitions/stats"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
+    "NewuserWireguardConfig": {
+      "type": "object",
+      "required": [
+        "TonnelName",
+        "FileName",
+        "FileContent"
+      ],
+      "properties": {
+        "FileContent": {
+          "type": "string"
+        },
+        "FileName": {
+          "type": "string"
+        },
+        "TonnelName": {
+          "type": "string"
+        }
+      }
+    },
+    "StatsActiveUsersItems0": {
+      "type": "object",
+      "required": [
+        "Month",
+        "Value"
+      ],
+      "properties": {
+        "Month": {
+          "type": "integer"
+        },
+        "Value": {
+          "type": "integer"
+        }
+      }
+    },
+    "StatsTotalTrafficGBItems0": {
+      "type": "object",
+      "required": [
+        "Month",
+        "Value"
+      ],
+      "properties": {
+        "Month": {
+          "type": "integer"
+        },
+        "Value": {
+          "type": "number",
+          "format": "float"
+        }
+      }
+    },
+    "StatsTotalUsersItems0": {
+      "type": "object",
+      "required": [
+        "Month",
+        "Value"
+      ],
+      "properties": {
+        "Month": {
+          "type": "integer"
+        },
+        "Value": {
+          "type": "integer"
+        }
+      }
+    },
     "error": {
       "type": "object",
       "required": [
@@ -404,6 +683,65 @@ func init() {
         },
         "message": {
           "type": "string"
+        }
+      }
+    },
+    "newuser": {
+      "type": "object",
+      "required": [
+        "UserName",
+        "WireguardConfig"
+      ],
+      "properties": {
+        "UserName": {
+          "type": "string"
+        },
+        "WireguardConfig": {
+          "type": "object",
+          "required": [
+            "TonnelName",
+            "FileName",
+            "FileContent"
+          ],
+          "properties": {
+            "FileContent": {
+              "type": "string"
+            },
+            "FileName": {
+              "type": "string"
+            },
+            "TonnelName": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "required": [
+        "TotalUsers",
+        "ActiveUsers",
+        "TotalTrafficGB"
+      ],
+      "properties": {
+        "ActiveUsers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StatsActiveUsersItems0"
+          }
+        },
+        "TotalTrafficGB": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StatsTotalTrafficGBItems0"
+          }
+        },
+        "TotalUsers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StatsTotalUsersItems0"
+          }
         }
       }
     },
@@ -423,23 +761,19 @@ func init() {
       "required": [
         "UserID",
         "UserName",
+        "CreatedAt",
         "Status",
         "MonthlyQuotaRemainingGB"
       ],
       "properties": {
-        "LastVisitASCountry": {
-          "type": "string"
-        },
-        "LastVisitASName": {
-          "type": "string"
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time"
         },
         "LastVisitHour": {
           "type": "string",
           "format": "date-time",
           "x-nullable": true
-        },
-        "LastVisitSubnet": {
-          "type": "string"
         },
         "MonthlyQuotaRemainingGB": {
           "type": "number",
@@ -453,12 +787,6 @@ func init() {
         },
         "PersonName": {
           "type": "string"
-        },
-        "Problems": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         },
         "Status": {
           "type": "string"

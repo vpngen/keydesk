@@ -68,6 +68,12 @@ type BrigadeCounters struct {
 	CountersUpdateTime time.Time              `json:"counters_update_time"`
 }
 
+type TrafficCountersContainer struct {
+	TrafficSummary RxTx
+	TrafficWg      RxTx
+	TrafficIPSec   RxTx
+}
+
 type StatsCounters struct {
 	UsersCounters
 	NetCounters
@@ -78,7 +84,7 @@ type StatsCounters struct {
 type StatsCountersStack [12]StatsCounters
 
 // Put - put counters to stack. If month changed, then shift stack.
-func (x *StatsCountersStack) Put(counters BrigadeCounters) {
+func (x *StatsCountersStack) Put(counters BrigadeCounters, traffic TrafficCountersContainer) {
 	now := counters.CountersUpdateTime
 	last := x[len(x)-1].CountersUpdateTime
 
@@ -86,17 +92,16 @@ func (x *StatsCountersStack) Put(counters BrigadeCounters) {
 		for i := 0; i < len(x)-1; i++ {
 			x[i] = x[i+1]
 		}
+
+		x[len(x)-1] = StatsCounters{}
 	}
 
-	x[len(x)-1] = StatsCounters{
-		UsersCounters: counters.UsersCounters,
-		NetCounters: NetCounters{
-			TotalTraffic:      counters.TotalTraffic.Total,
-			TotalWgTraffic:    counters.TotalWgTraffic.Total,
-			TotalIPSecTraffic: counters.TotalIPSecTraffic.Total,
-		},
-		CountersUpdateTime: counters.CountersUpdateTime,
-	}
+	stats := &x[len(x)-1]
+	stats.UsersCounters = counters.UsersCounters
+	stats.NetCounters.TotalTraffic.Inc(traffic.TrafficSummary.Rx, traffic.TrafficSummary.Tx)
+	stats.NetCounters.TotalWgTraffic.Inc(traffic.TrafficWg.Rx, traffic.TrafficWg.Tx)
+	stats.NetCounters.TotalIPSecTraffic.Inc(traffic.TrafficIPSec.Rx, traffic.TrafficIPSec.Tx)
+	stats.CountersUpdateTime = counters.CountersUpdateTime
 }
 
 // QuotaVesrion - json version.
@@ -138,7 +143,7 @@ type User struct {
 }
 
 // BrigadeVersion - json version.
-const BrigadeVersion = 5
+const BrigadeVersion = 7
 
 // Brigade - brigade.
 type Brigade struct {
@@ -151,6 +156,8 @@ type Brigade struct {
 	WgPrivateRouterEnc   []byte        `json:"wg_private_router_enc"`
 	WgPrivateShufflerEnc []byte        `json:"wg_private_shuffler_enc"`
 	EndpointIPv4         netip.Addr    `json:"endpoint_ipv4"`
+	EndpointDomain       string        `json:"endpoint_domain"`
+	EndpointPort         uint16        `json:"endpoint_port"`
 	DNSv4                netip.Addr    `json:"dns4"`
 	DNSv6                netip.Addr    `json:"dns6"`
 	KeydeskIPv6          netip.Addr    `json:"keydesk_ipv6"`
@@ -169,17 +176,21 @@ type UserConfig struct {
 	DNSv4, DNSv6     netip.Addr
 	IPv4, IPv6       netip.Addr
 	EndpointIPv4     netip.Addr
+	EndpointDomain   string
+	EndPointPort     uint16
 }
 
 // BrigadeConfig - new brigade structure.
 type BrigadeConfig struct {
-	BrigadeID    string
-	EndpointIPv4 netip.Addr
-	DNSIPv4      netip.Addr
-	DNSIPv6      netip.Addr
-	IPv4CGNAT    netip.Prefix
-	IPv6ULA      netip.Prefix
-	KeydeskIPv6  netip.Addr
+	BrigadeID      string
+	EndpointIPv4   netip.Addr
+	EndpointDomain string
+	EndPointPort   uint16
+	DNSIPv4        netip.Addr
+	DNSIPv6        netip.Addr
+	IPv4CGNAT      netip.Prefix
+	IPv6ULA        netip.Prefix
+	KeydeskIPv6    netip.Addr
 }
 
 // StatsVersion - json version.

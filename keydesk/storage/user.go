@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/netip"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,7 +31,7 @@ func (db *BrigadeStorage) CreateUser(
 	defer f.Close()
 
 	if isBrigadier && replaceBrigadier {
-		err := db.removeBrigadier(data)
+		fullname, person, err = db.removeBrigadier(data)
 		if err != nil {
 			return nil, fmt.Errorf("replace: %w", err)
 		}
@@ -50,6 +51,8 @@ func (db *BrigadeStorage) CreateUser(
 		IPv6:             ipv6,
 		EndpointWgPublic: data.WgPublicKey,
 		EndpointIPv4:     data.EndpointIPv4,
+		EndpointDomain:   data.EndpointDomain,
+		EndPointPort:     data.EndpointPort,
 		DNSv4:            data.DNSv4,
 		DNSv6:            data.DNSv6,
 	}
@@ -215,23 +218,30 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 	return nil
 }
 
-func (db *BrigadeStorage) removeBrigadier(data *Brigade) error {
+func (db *BrigadeStorage) removeBrigadier(data *Brigade) (string, namesgenerator.Person, error) {
+	var (
+		fullname string
+		person   namesgenerator.Person
+	)
+
 	for i, user := range data.Users {
 		if user.IsBrigadier {
+			fullname, person = strings.TrimLeft(user.Name, "0123456789 "), user.Person
+
 			wgPub := user.WgPublicKey
 			data.Users = append(data.Users[:i], data.Users[i+1:]...)
 
 			// if we catch a slowdown problems we need organize queue
 			err := vpnapi.WgPeerDel(db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey)
 			if err != nil {
-				return fmt.Errorf("peer del: %w", err)
+				return "", namesgenerator.Person{}, fmt.Errorf("peer del: %w", err)
 			}
 
 			break
 		}
 	}
 
-	return nil
+	return fullname, person, nil
 }
 
 // ListUsers - list users.
@@ -252,4 +262,15 @@ func (db *BrigadeStorage) ListUsers() ([]*User, error) {
 	}
 
 	return data.Users, nil
+}
+
+func (db *BrigadeStorage) GetUsersStats() (StatsCountersStack, error) {
+	f, data, err := db.openWithReading()
+	if err != nil {
+		return StatsCountersStack{}, fmt.Errorf("db: %w", err)
+	}
+
+	defer f.Close()
+
+	return data.StatsCountersStack, nil
 }

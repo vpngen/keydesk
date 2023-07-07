@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/netip"
 	"os"
 	"os/user"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/vpngen/keydesk/kdlib"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/vpnapi"
@@ -27,6 +29,8 @@ var (
 	ErrInvalidNetCGNAT     = errors.New("invalid cgnat net")
 	ErrInvalidNetULA       = errors.New("invalid ula net")
 	ErrInvalidKeydeskIPv6  = errors.New("invalid keydesk ip6 endpoint")
+	ErrInvalidPort         = errors.New("port < 1024")
+	ErrInvalidDomainName   = errors.New("invalid domain name")
 )
 
 func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, error) {
@@ -48,6 +52,9 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, error)
 	IPv4CGNAT := flag.String("int4", "", "IPv4CGNAT")
 	IPv6ULA := flag.String("int6", "", "IPv6ULA")
 	keydeskIPv6 := flag.String("kd6", "", "keydeskIPv6")
+	// optional
+	port := flag.Int("p", 0, "port, 0 is random")
+	domainName := flag.String("dn", "", "domainName")
 	// !!! is the flags below only for debug?
 	brigadeID := flag.String("id", "", "brigadier_id")
 	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
@@ -55,6 +62,20 @@ func parseArgs() (*storage.BrigadeConfig, netip.AddrPort, string, string, error)
 	addr := flag.String("a", vpnapi.TemplatedAddrPort, "API endpoint address:port")
 
 	flag.Parse()
+
+	config.EndPointPort = uint16(*port)
+	if config.EndPointPort == 0 {
+		config.EndPointPort = uint16(rand.Int31n(keydesk.HighWireguardPort-keydesk.LowWireguardPort) + keydesk.LowWireguardPort)
+	}
+
+	if config.EndPointPort <= keydesk.LowLimitPort {
+		return nil, addrPort, "", "", fmt.Errorf("port: %d: %w", config.EndPointPort, ErrInvalidPort)
+	}
+
+	config.EndpointDomain = *domainName
+	if !kdlib.IsDomainNameValid(config.EndpointDomain) {
+		return nil, addrPort, "", "", fmt.Errorf("domain: %s: %w", config.EndpointDomain, ErrInvalidDomainName)
+	}
 
 	if *filedbDir != "" {
 		dbdir, err = filepath.Abs(*filedbDir)

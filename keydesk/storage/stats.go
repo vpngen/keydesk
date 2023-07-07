@@ -381,6 +381,11 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 		data.Ver = BrigadeVersion
 	}
 
+	if data.Ver < 7 || data.EndpointPort == 0 {
+		data.EndpointPort = 51820
+		data.Ver = BrigadeVersion
+	}
+
 	data.StatsCountersStack.Put(data.BrigadeCounters, totalTraffic)
 
 	return nil

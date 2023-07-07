@@ -143,7 +143,7 @@ type User struct {
 }
 
 // BrigadeVersion - json version.
-const BrigadeVersion = 6
+const BrigadeVersion = 7
 
 // Brigade - brigade.
 type Brigade struct {
@@ -156,6 +156,8 @@ type Brigade struct {
 	WgPrivateRouterEnc   []byte        `json:"wg_private_router_enc"`
 	WgPrivateShufflerEnc []byte        `json:"wg_private_shuffler_enc"`
 	EndpointIPv4         netip.Addr    `json:"endpoint_ipv4"`
+	EndpointDomain       string        `json:"endpoint_domain"`
+	EndpointPort         uint16        `json:"endpoint_port"`
 	DNSv4                netip.Addr    `json:"dns4"`
 	DNSv6                netip.Addr    `json:"dns6"`
 	KeydeskIPv6          netip.Addr    `json:"keydesk_ipv6"`
@@ -174,17 +176,21 @@ type UserConfig struct {
 	DNSv4, DNSv6     netip.Addr
 	IPv4, IPv6       netip.Addr
 	EndpointIPv4     netip.Addr
+	EndpointDomain   string
+	EndPointPort     uint16
 }
 
 // BrigadeConfig - new brigade structure.
 type BrigadeConfig struct {
-	BrigadeID    string
-	EndpointIPv4 netip.Addr
-	DNSIPv4      netip.Addr
-	DNSIPv6      netip.Addr
-	IPv4CGNAT    netip.Prefix
-	IPv6ULA      netip.Prefix
-	KeydeskIPv6  netip.Addr
+	BrigadeID      string
+	EndpointIPv4   netip.Addr
+	EndpointDomain string
+	EndPointPort   uint16
+	DNSIPv4        netip.Addr
+	DNSIPv6        netip.Addr
+	IPv4CGNAT      netip.Prefix
+	IPv6ULA        netip.Prefix
+	KeydeskIPv6    netip.Addr
 }
 
 // StatsVersion - json version.

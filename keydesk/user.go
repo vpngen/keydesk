@@ -136,17 +136,22 @@ PrivateKey = %s
 DNS = %s
 
 [Peer]
-Endpoint = %s:51820
+Endpoint = %s:%d
 PublicKey = %s
 PresharedKey = %s
 AllowedIPs = 0.0.0.0/0,::/0
 `
 
+	endpointHostString := u.EndpointDomain
+	if endpointHostString == "" {
+		endpointHostString = u.EndpointIPv4.String()
+	}
+
 	wgconf := fmt.Sprintf(tmpl,
 		netip.PrefixFrom(u.IPv4, 32).String()+","+netip.PrefixFrom(u.IPv6, 128).String(),
 		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPriv),
 		u.DNSv4.String()+","+u.DNSv6.String(),
-		u.EndpointIPv4.String(),
+		endpointHostString, u.EndPointPort,
 		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.EndpointWgPublic),
 		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPSK),
 	)

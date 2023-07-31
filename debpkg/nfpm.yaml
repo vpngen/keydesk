@@ -62,6 +62,12 @@ contents:
     mode: 0005
     owner: root
     group: root
+- src: bin/reset
+  dst: /opt/vgkeydesk/reset
+  file_info:
+    mode: 0005
+    owner: root
+    group: root
 - src: bin/fetchstats
   dst: /opt/vgkeydesk/fetchstats
   file_info:

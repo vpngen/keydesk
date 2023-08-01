@@ -79,7 +79,7 @@ do
                 fi
                 ;;
         *.*)
-                if printf "%s" "$i" | grep -E '^([a-z0-9_]+(-[a-z0-9_]+)*\.)+[a-z0-9_]+([a-z0-9_-]+)$'; then
+                if printf "%s" "$i" | grep -E '^([a-z0-9_]+(-[a-z0-9_]+)*\.)+[a-z0-9_]+([a-z0-9_-]+)$' > /dev/null; then
                         domain="$i"
                 fi
         ;;

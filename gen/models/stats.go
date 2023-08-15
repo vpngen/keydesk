@@ -163,6 +163,11 @@ func (m *Stats) contextValidateActiveUsers(ctx context.Context, formats strfmt.R
 	for i := 0; i < len(m.ActiveUsers); i++ {
 
 		if m.ActiveUsers[i] != nil {
+
+			if swag.IsZero(m.ActiveUsers[i]) { // not required
+				return nil
+			}
+
 			if err := m.ActiveUsers[i].ContextValidate(ctx, formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("ActiveUsers" + "." + strconv.Itoa(i))
@@ -183,6 +188,11 @@ func (m *Stats) contextValidateTotalTrafficGB(ctx context.Context, formats strfm
 	for i := 0; i < len(m.TotalTrafficGB); i++ {
 
 		if m.TotalTrafficGB[i] != nil {
+
+			if swag.IsZero(m.TotalTrafficGB[i]) { // not required
+				return nil
+			}
+
 			if err := m.TotalTrafficGB[i].ContextValidate(ctx, formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("TotalTrafficGB" + "." + strconv.Itoa(i))
@@ -203,6 +213,11 @@ func (m *Stats) contextValidateTotalUsers(ctx context.Context, formats strfmt.Re
 	for i := 0; i < len(m.TotalUsers); i++ {
 
 		if m.TotalUsers[i] != nil {
+
+			if swag.IsZero(m.TotalUsers[i]) { // not required
+				return nil
+			}
+
 			if err := m.TotalUsers[i].ContextValidate(ctx, formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("TotalUsers" + "." + strconv.Itoa(i))

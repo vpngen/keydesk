@@ -35,7 +35,6 @@ func configureAPI(api *operations.UserAPI) http.Handler {
 
 	api.JSONConsumer = runtime.JSONConsumer()
 
-	api.BinProducer = runtime.ByteStreamProducer()
 	api.JSONProducer = runtime.JSONProducer()
 
 	// Applies when the "Authorization" header is set
@@ -59,6 +58,11 @@ func configureAPI(api *operations.UserAPI) http.Handler {
 	if api.GetUserHandler == nil {
 		api.GetUserHandler = operations.GetUserHandlerFunc(func(params operations.GetUserParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation operations.GetUser has not yet been implemented")
+		})
+	}
+	if api.GetUsersStatsHandler == nil {
+		api.GetUsersStatsHandler = operations.GetUsersStatsHandlerFunc(func(params operations.GetUsersStatsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operations.GetUsersStats has not yet been implemented")
 		})
 	}
 	if api.PostTokenHandler == nil {

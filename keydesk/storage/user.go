@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/netip"
 	"sort"
@@ -13,6 +14,11 @@ import (
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
 
+type APIUserResponse struct {
+	Code                     string `json:"code"`
+	OpenvpnClientCertificate string `json:"openvpn-client-certificate"`
+}
+
 // CreateUser - put user to the storage.
 func (db *BrigadeStorage) CreateUser(
 	fullname string,
@@ -22,6 +28,7 @@ func (db *BrigadeStorage) CreateUser(
 	wgPub,
 	wgRouterPSK,
 	wgShufflerPSK []byte,
+	ovcCertRequestGzipBase64 string,
 ) (*UserConfig, error) {
 	f, data, err := db.openWithReading()
 	if err != nil {
@@ -44,6 +51,11 @@ func (db *BrigadeStorage) CreateUser(
 
 	ts := time.Now().UTC()
 
+	caPem, err := kdlib.Unbase64Ungzip(data.OvCACertPemGzipBase64)
+	if err != nil {
+		return nil, fmt.Errorf("unbase64 ca: %w", err)
+	}
+
 	userconf := &UserConfig{
 		ID:               id,
 		Name:             name,
@@ -55,7 +67,28 @@ func (db *BrigadeStorage) CreateUser(
 		EndPointPort:     data.EndpointPort,
 		DNSv4:            data.DNSv4,
 		DNSv6:            data.DNSv6,
+		OvCACertPem:      string(caPem),
 	}
+
+	kd6 := netip.Addr{}
+	if isBrigadier {
+		kd6 = data.KeydeskIPv6
+	}
+
+	// if we catch a slowdown problems we need organize queue
+	body, err := vpnapi.WgPeerAdd(db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey, wgRouterPSK, userconf.IPv4, userconf.IPv6, kd6, ovcCertRequestGzipBase64)
+	if err != nil {
+		return nil, fmt.Errorf("wg add: %w", err)
+	}
+
+	payload := &APIUserResponse{}
+
+	err = json.Unmarshal(body, payload)
+	if err != nil {
+		return nil, fmt.Errorf("resp body: %w", err)
+	}
+
+	userconf.OvClientCertPem = payload.OpenvpnClientCertificate
 
 	data.Users = append(data.Users, &User{
 		UserID:           userconf.ID,
@@ -67,6 +100,7 @@ func (db *BrigadeStorage) CreateUser(
 		WgPublicKey:      wgPub,
 		WgPSKRouterEnc:   wgRouterPSK,
 		WgPSKShufflerEnc: wgShufflerPSK,
+		OvCSRGzipBase64:  ovcCertRequestGzipBase64,
 		Person:           person,
 		Quotas: Quota{
 			CountersTotal: DateSummaryNetCounters{
@@ -88,17 +122,6 @@ func (db *BrigadeStorage) CreateUser(
 	sort.Slice(data.Users, func(i, j int) bool {
 		return data.Users[i].IsBrigadier || !data.Users[j].IsBrigadier && (data.Users[i].UserID.String() > data.Users[j].UserID.String())
 	})
-
-	kd6 := netip.Addr{}
-	if isBrigadier {
-		kd6 = data.KeydeskIPv6
-	}
-
-	// if we catch a slowdown problems we need organize queue
-	err = vpnapi.WgPeerAdd(db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey, wgRouterPSK, userconf.IPv4, userconf.IPv6, kd6)
-	if err != nil {
-		return nil, fmt.Errorf("wg add: %w", err)
-	}
 
 	if err := commitBrigade(f, data); err != nil {
 		return nil, fmt.Errorf("save: %w", err)

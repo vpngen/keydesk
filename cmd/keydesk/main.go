@@ -652,12 +652,6 @@ func uiMiddleware(handler http.Handler, dir string, idleTimer *time.Timer, allow
 
 		fmt.Fprintf(os.Stderr, "Connect From: %s\n", r.RemoteAddr)
 
-		if r.URL.Path == "/user" &&
-			r.Method == http.MethodPost &&
-			r.Header.Get("Accept") == "application/json" {
-			r.URL.Path = "/userng"
-		}
-
 		handler.ServeHTTP(w, r)
 	})
 }

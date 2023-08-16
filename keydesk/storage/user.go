@@ -80,6 +80,7 @@ func (db *BrigadeStorage) CreateUser(
 		}
 
 		userconf.OvCACertPem = string(caPem)
+		userconf.CloakBypassUID = data.CloakBypassUID
 	}
 
 	// if we catch a slowdown problems we need organize queue

@@ -42,6 +42,7 @@ const (
 
 // AddUser - create user.
 func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
+	fmt.Fprintf(os.Stderr, "****************** AddUser(db *storage.BrigadeStorage\n")
 	user, vpnCfgs, wgPriv, wgPSK, ovcPriv, err := pickUpUser(db, routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return operations.NewPostUserngInternalServerError()
@@ -213,6 +214,7 @@ func GetUsersStats(db *storage.BrigadeStorage, params operations.GetUsersStatsPa
 
 // GetUsers - .
 func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, principal interface{}) middleware.Responder {
+	fmt.Fprintf(os.Stderr, "****************** GetUsers(db *storage.BrigadeStorage\n")
 	storageUsers, err := db.ListUsers()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "List error: %s\n", err)

@@ -114,7 +114,9 @@ func (db *BrigadeStorage) GetVpnConfigs() (*ConfigsImplemented, error) {
 
 	defer f.Close()
 
-	vpnCfgs := &ConfigsImplemented{}
+	vpnCfgs := NewConfigsImplemented()
+	vpnCfgs.NewWgConfigs()
+
 	if data.CloakBypassUID != "" && data.OvCACertPemGzipBase64 != "" && data.OvCAKeyRouterEnc != "" && data.OvCAKeyShufflerEnc != "" {
 		vpnCfgs.NewOvcConfigs()
 	}

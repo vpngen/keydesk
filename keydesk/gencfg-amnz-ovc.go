@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -113,7 +112,7 @@ type AmneziaConfig struct {
 func NewAmneziaConfig(hostname, vpnName, cloak, openvpn, dns string) AmneziaConfig {
 	a := AmneziaConfig{
 		Containers: []AmneziaContainer{
-			newAmneziaContainer(cloak, openvpn, ""),
+			newAmneziaContainer(cloak, openvpn, "{}"),
 		},
 		DefaultContainer: "amnezia-openvpn-cloak",
 		Description:      vpnName,
@@ -216,12 +215,12 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (s
 		return "", fmt.Errorf("marshal amnezia config: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "amneziaConfigString: %s\n", amneziaConfigString)
-
 	buf := new(bytes.Buffer)
 	if _, err := buf.Write([]byte("vpn://")); err != nil {
 		return "", fmt.Errorf("write vpn:// magick: %w", err)
 	}
+
+	// fmt.Fprintf(os.Stderr, " ********** Amnezia config: %s\n", amneziaConfigString)
 
 	b64w := base64.NewEncoder(base64.URLEncoding.WithPadding(base64.NoPadding), buf)
 

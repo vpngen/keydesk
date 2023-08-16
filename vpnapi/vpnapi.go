@@ -25,8 +25,8 @@ const (
 // TemplatedAddrPort - value indicates that it is a template.
 const TemplatedAddrPort = "0.0.0.0:0"
 
-// ErrorResponse - GW response type.
-type ErrorResponse struct {
+// APIResponse - GW response type.
+type APIResponse struct {
 	Code  string `json:"code"`
 	Error string `json:"error,omitempty"`
 }
@@ -54,7 +54,7 @@ func getAPIRequest(actualAddrPort, calculatedAddrPort netip.AddrPort, query stri
 			RawQuery: query,
 		})
 
-		return nil, nil
+		return []byte("{}"), nil
 	}
 
 	fmt.Fprintf(os.Stderr, "API endpoint actual: %s\n", actualAddrPort)
@@ -95,7 +95,7 @@ func getAPIRequest(actualAddrPort, calculatedAddrPort netip.AddrPort, query stri
 		return nil, fmt.Errorf("resp code: %w", err)
 	}
 
-	data := &ErrorResponse{}
+	data := &APIResponse{}
 
 	err = json.Unmarshal(body, data)
 	if err != nil {

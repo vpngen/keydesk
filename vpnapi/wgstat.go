@@ -26,6 +26,7 @@ type WgStatTraffic struct {
 type WgStatTrafficMap struct {
 	Wg    map[string]*WgStatTraffic
 	IPSec map[string]*WgStatTraffic
+	Ovc   map[string]*WgStatTraffic
 }
 
 // WgStatLastActivityMap - VPN stat last activity map, key is User wg_public_key.
@@ -33,6 +34,7 @@ type WgStatTrafficMap struct {
 type WgStatLastActivityMap struct {
 	Wg    map[string]time.Time
 	IPSec map[string]time.Time
+	Ovc   map[string]time.Time
 }
 
 // WgStatEndpointMap - VPN stat endpoint map, key is User wg_public_key.
@@ -40,6 +42,7 @@ type WgStatLastActivityMap struct {
 type WgStatEndpointMap struct {
 	Wg    map[string]netip.Prefix
 	IPSec map[string]netip.Prefix
+	Ovc   map[string]netip.Prefix
 }
 
 // ErrInvalidStatFormat - invalid stat format.
@@ -50,6 +53,7 @@ func NewWgStatTrafficMap() *WgStatTrafficMap {
 	return &WgStatTrafficMap{
 		Wg:    make(map[string]*WgStatTraffic),
 		IPSec: make(map[string]*WgStatTraffic),
+		Ovc:   make(map[string]*WgStatTraffic),
 	}
 }
 
@@ -58,6 +62,7 @@ func NewWgStatLastActivityMap() *WgStatLastActivityMap {
 	return &WgStatLastActivityMap{
 		Wg:    make(map[string]time.Time),
 		IPSec: make(map[string]time.Time),
+		Ovc:   make(map[string]time.Time),
 	}
 }
 
@@ -66,6 +71,7 @@ func NewWgStatEndpointMap() *WgStatEndpointMap {
 	return &WgStatEndpointMap{
 		Wg:    make(map[string]netip.Prefix),
 		IPSec: make(map[string]netip.Prefix),
+		Ovc:   make(map[string]netip.Prefix),
 	}
 }
 
@@ -91,38 +97,55 @@ func WgStatParseTraffic(traffic string) (*WgStatTrafficMap, error) {
 			continue
 		}
 
-		clmns := strings.Split(line, "\t")
-		if len(clmns) < 3 {
+		columns := strings.Split(line, "\t")
+		if len(columns) < 3 {
 			return nil, fmt.Errorf("traffic: %w", ErrInvalidStatFormat)
 		}
 
-		rx, err := strconv.ParseUint(clmns[1], 10, 64)
+		rx, err := strconv.ParseUint(columns[1], 10, 64)
 		if err != nil {
 			continue
 		}
 
-		tx, err := strconv.ParseUint(clmns[2], 10, 64)
+		tx, err := strconv.ParseUint(columns[2], 10, 64)
 		if err != nil {
 			continue
 		}
 
-		m.Wg[clmns[0]] = &WgStatTraffic{
+		m.Wg[columns[0]] = &WgStatTraffic{
 			Rx: rx,
 			Tx: tx,
 		}
 
-		if len(clmns) >= 5 {
-			rx, err := strconv.ParseUint(clmns[3], 10, 64)
+		if len(columns) >= 5 {
+			rx, err := strconv.ParseUint(columns[3], 10, 64)
 			if err != nil {
 				continue
 			}
 
-			tx, err := strconv.ParseUint(clmns[4], 10, 64)
+			tx, err := strconv.ParseUint(columns[4], 10, 64)
 			if err != nil {
 				continue
 			}
 
-			m.IPSec[clmns[0]] = &WgStatTraffic{
+			m.IPSec[columns[0]] = &WgStatTraffic{
+				Rx: rx,
+				Tx: tx,
+			}
+		}
+
+		if len(columns) >= 7 {
+			rx, err := strconv.ParseUint(columns[5], 10, 64)
+			if err != nil {
+				continue
+			}
+
+			tx, err := strconv.ParseUint(columns[6], 10, 64)
+			if err != nil {
+				continue
+			}
+
+			m.Ovc[columns[0]] = &WgStatTraffic{
 				Rx: rx,
 				Tx: tx,
 			}
@@ -141,28 +164,39 @@ func WgStatParseLastActivity(lastSeen string) (*WgStatLastActivityMap, error) {
 			continue
 		}
 
-		clmns := strings.Split(line, "\t")
-		if len(clmns) < 2 {
+		columns := strings.Split(line, "\t")
+		if len(columns) < 2 {
 			return nil, fmt.Errorf("last seen: %w", ErrInvalidStatFormat)
 		}
 
-		ts, err := strconv.ParseInt(clmns[1], 10, 64)
+		ts, err := strconv.ParseInt(columns[1], 10, 64)
 		if err != nil {
 			continue
 		}
 
 		if ts != 0 {
-			m.Wg[clmns[0]] = time.Unix(ts, 0).UTC()
+			m.Wg[columns[0]] = time.Unix(ts, 0).UTC()
 		}
 
-		if len(clmns) >= 3 {
-			ts, err := strconv.ParseInt(clmns[2], 10, 64)
+		if len(columns) >= 3 {
+			ts, err := strconv.ParseInt(columns[2], 10, 64)
 			if err != nil {
 				continue
 			}
 
 			if ts != 0 {
-				m.IPSec[clmns[0]] = time.Unix(ts, 0).UTC()
+				m.IPSec[columns[0]] = time.Unix(ts, 0).UTC()
+			}
+		}
+
+		if len(columns) >= 4 {
+			ts, err := strconv.ParseInt(columns[3], 10, 64)
+			if err != nil {
+				continue
+			}
+
+			if ts != 0 {
+				m.Ovc[columns[0]] = time.Unix(ts, 0).UTC()
 			}
 		}
 	}
@@ -179,28 +213,39 @@ func WgStatParseEndpoints(lastSeen string) (*WgStatEndpointMap, error) {
 			continue
 		}
 
-		clmns := strings.Split(line, "\t")
-		if len(clmns) < 2 {
+		columns := strings.Split(line, "\t")
+		if len(columns) < 2 {
 			return nil, fmt.Errorf("endpoints: %w", ErrInvalidStatFormat)
 		}
 
-		prefix, err := netip.ParsePrefix(clmns[1])
+		prefix, err := netip.ParsePrefix(columns[1])
 		if err != nil {
 			continue
 		}
 
 		if prefix.IsValid() {
-			m.Wg[clmns[0]] = prefix
+			m.Wg[columns[0]] = prefix
 		}
 
-		if len(clmns) >= 3 {
-			prefix, err := netip.ParsePrefix(clmns[2])
+		if len(columns) >= 3 {
+			prefix, err := netip.ParsePrefix(columns[2])
 			if err != nil {
 				continue
 			}
 
 			if prefix.IsValid() {
-				m.IPSec[clmns[0]] = prefix
+				m.IPSec[columns[0]] = prefix
+			}
+		}
+
+		if len(columns) >= 4 {
+			prefix, err := netip.ParsePrefix(columns[2])
+			if err != nil {
+				continue
+			}
+
+			if prefix.IsValid() {
+				m.Ovc[columns[0]] = prefix
 			}
 		}
 	}

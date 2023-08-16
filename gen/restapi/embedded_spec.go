@@ -90,19 +90,13 @@ func init() {
           }
         ],
         "produces": [
-          "application/octet-stream"
+          "application/json"
         ],
         "responses": {
           "201": {
             "description": "New user created.",
             "schema": {
-              "type": "file"
-            },
-            "headers": {
-              "Content-Disposition": {
-                "type": "string",
-                "description": "the value is ` + "`" + `attachment; filename=\"wg.conf\"` + "`" + `"
-              }
+              "$ref": "#/definitions/newuser"
             }
           },
           "403": {
@@ -141,38 +135,6 @@ func init() {
         "responses": {
           "204": {
             "description": "User deleted."
-          },
-          "403": {
-            "description": "You do not have necessary permissions for the resource"
-          },
-          "500": {
-            "description": "Internal server error"
-          },
-          "default": {
-            "description": "error",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/userng": {
-      "post": {
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "201": {
-            "description": "New user created.",
-            "schema": {
-              "$ref": "#/definitions/newuser"
-            }
           },
           "403": {
             "description": "You do not have necessary permissions for the resource"
@@ -240,10 +202,28 @@ func init() {
     "newuser": {
       "type": "object",
       "required": [
-        "UserName",
-        "WireguardConfig"
+        "UserName"
       ],
       "properties": {
+        "AmnzOvcConfig": {
+          "type": "object",
+          "required": [
+            "TonnelName",
+            "FileName",
+            "FileContent"
+          ],
+          "properties": {
+            "FileContent": {
+              "type": "string"
+            },
+            "FileName": {
+              "type": "string"
+            },
+            "TonnelName": {
+              "type": "string"
+            }
+          }
+        },
         "UserName": {
           "type": "string"
         },
@@ -474,19 +454,13 @@ func init() {
           }
         ],
         "produces": [
-          "application/octet-stream"
+          "application/json"
         ],
         "responses": {
           "201": {
             "description": "New user created.",
             "schema": {
-              "type": "file"
-            },
-            "headers": {
-              "Content-Disposition": {
-                "type": "string",
-                "description": "the value is ` + "`" + `attachment; filename=\"wg.conf\"` + "`" + `"
-              }
+              "$ref": "#/definitions/newuser"
             }
           },
           "403": {
@@ -541,38 +515,6 @@ func init() {
         }
       }
     },
-    "/userng": {
-      "post": {
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "201": {
-            "description": "New user created.",
-            "schema": {
-              "$ref": "#/definitions/newuser"
-            }
-          },
-          "403": {
-            "description": "You do not have necessary permissions for the resource"
-          },
-          "500": {
-            "description": "Internal server error"
-          },
-          "default": {
-            "description": "error",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/users/stats": {
       "get": {
         "security": [
@@ -607,6 +549,25 @@ func init() {
     }
   },
   "definitions": {
+    "NewuserAmnzOvcConfig": {
+      "type": "object",
+      "required": [
+        "TonnelName",
+        "FileName",
+        "FileContent"
+      ],
+      "properties": {
+        "FileContent": {
+          "type": "string"
+        },
+        "FileName": {
+          "type": "string"
+        },
+        "TonnelName": {
+          "type": "string"
+        }
+      }
+    },
     "NewuserWireguardConfig": {
       "type": "object",
       "required": [
@@ -689,10 +650,28 @@ func init() {
     "newuser": {
       "type": "object",
       "required": [
-        "UserName",
-        "WireguardConfig"
+        "UserName"
       ],
       "properties": {
+        "AmnzOvcConfig": {
+          "type": "object",
+          "required": [
+            "TonnelName",
+            "FileName",
+            "FileContent"
+          ],
+          "properties": {
+            "FileContent": {
+              "type": "string"
+            },
+            "FileName": {
+              "type": "string"
+            },
+            "TonnelName": {
+              "type": "string"
+            }
+          }
+        },
         "UserName": {
           "type": "string"
         },

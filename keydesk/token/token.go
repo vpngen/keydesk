@@ -54,7 +54,7 @@ func (ts *tokenStorage) put(t *Config) {
 	for {
 		jti := uuid.New().String()
 		v, ok := ts.m[jti]
-		if ok && v.exp.Before(time.Now()) {
+		if ok && v.exp.Before(time.Now().UTC()) {
 			continue
 		}
 
@@ -73,7 +73,7 @@ func (ts *tokenStorage) get(jti string) *Config {
 	ts.Lock()
 	defer ts.Unlock()
 
-	now := time.Now()
+	now := time.Now().UTC()
 
 	ts._purge(now)
 
@@ -112,7 +112,7 @@ func New(ttl int) (*Config, error) {
 	base64.StdEncoding.Encode(secret, buf)
 
 	token := &Config{
-		exp:    time.Now().Add(time.Second * time.Duration(ttl)),
+		exp:    time.Now().UTC().Add(time.Second * time.Duration(ttl)),
 		secret: secret,
 	}
 

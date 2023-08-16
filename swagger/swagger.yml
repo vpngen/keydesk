@@ -45,29 +45,6 @@ paths:
       security:
         - Bearer: []
       produces:
-        - application/octet-stream
-      responses:
-        201:
-          description: New user created.
-          schema:
-              type: file
-          headers:
-              Content-Disposition:
-                type: string
-                description: the value is `attachment; filename="wg.conf"`
-        403: 
-          description: 'You do not have necessary permissions for the resource'
-        500:
-          description: 'Internal server error'
-        default:
-          description: error
-          schema:
-              $ref: "#/definitions/error"
-  /userng:
-    post:
-      security:
-        - Bearer: []
-      produces:
         - application/json
       responses:
         201:
@@ -136,11 +113,23 @@ definitions:
     type: object
     required:
       - UserName
-      - WireguardConfig
     properties:
       UserName:
         type: string
       WireguardConfig:
+        type: object
+        required:
+          - TonnelName
+          - FileName
+          - FileContent
+        properties:
+          TonnelName:
+            type: string
+          FileName:
+            type: string
+          FileContent:
+            type: string      
+      AmnzOvcConfig:
         type: object
         required:
           - TonnelName
@@ -241,7 +230,7 @@ definitions:
         type: integer
       message:
         type: string
-        
+
 securityDefinitions:
   Bearer:
     type: apiKey

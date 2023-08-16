@@ -49,6 +49,7 @@ type UsersCounters struct {
 	ActiveUsersCount      int `json:"active_users_count"`
 	ActiveWgUsersCount    int `json:"active_wg_users_count"`
 	ActiveIPSecUsersCount int `json:"active_ipsec_users_count"`
+	ActiveOvcUsersCount   int `json:"active_ovc_users_count"`
 	ThrottledUsersCount   int `json:"throttled_users_count"`
 }
 
@@ -57,6 +58,7 @@ type NetCounters struct {
 	TotalTraffic      RxTx `json:"total_traffic"`
 	TotalWgTraffic    RxTx `json:"total_wg_traffic"`
 	TotalIPSecTraffic RxTx `json:"total_ipsec_traffic"`
+	TotalOvcTraffic   RxTx `json:"total_ovc_traffic"`
 }
 
 // BrigadeCounters - brigade counters.
@@ -65,6 +67,7 @@ type BrigadeCounters struct {
 	TotalTraffic       DateSummaryNetCounters `json:"total_traffic"`
 	TotalWgTraffic     DateSummaryNetCounters `json:"total_wg_traffic"`
 	TotalIPSecTraffic  DateSummaryNetCounters `json:"total_ipsec_traffic"`
+	TotalOvcTraffic    DateSummaryNetCounters `json:"total_ovc_traffic"`
 	CountersUpdateTime time.Time              `json:"counters_update_time"`
 }
 
@@ -72,6 +75,7 @@ type TrafficCountersContainer struct {
 	TrafficSummary RxTx
 	TrafficWg      RxTx
 	TrafficIPSec   RxTx
+	TrafficOvc     RxTx
 }
 
 type StatsCounters struct {
@@ -105,26 +109,29 @@ func (x *StatsCountersStack) Put(counters BrigadeCounters, traffic TrafficCounte
 }
 
 // QuotaVesrion - json version.
-const QuotaVesrion = 2
+const QuotaVesrion = 3
 
 // Quota - user quota.
 type Quota struct {
 	Ver                   int                    `json:"version"`
 	OSWgCounters          RxTx                   `json:"os_wg_counters"`
 	OSIPSecCounters       RxTx                   `json:"os_ipsec_counters"`
+	OSOvcCounters         RxTx                   `json:"os_ovc_counters"`
 	CountersTotal         DateSummaryNetCounters `json:"counters_total"`
 	CountersWg            DateSummaryNetCounters `json:"counters_wg"`
 	CountersIPSec         DateSummaryNetCounters `json:"counters_ipsec"`
+	CountersOvc           DateSummaryNetCounters `json:"counters_ovc"`
 	LimitMonthlyRemaining uint64                 `json:"limit_monthly_remaining"`
 	LimitMonthlyResetOn   time.Time              `json:"limit_monthly_reset_on,omitempty"`
 	LastActivity          LastActivityPoints     `json:"last_activity,omitempty"`
 	LastWgActivity        LastActivityPoints     `json:"last_wg_activity,omitempty"`
 	LastIPSecActivity     LastActivityPoints     `json:"last_ipsec_activity,omitempty"`
+	LastOvcActivity       LastActivityPoints     `json:"last_ovc_activity,omitempty"`
 	ThrottlingTill        time.Time              `json:"throttling_till,omitempty"`
 }
 
 // UserVersion - json version.
-const UserVersion = 2
+const UserVersion = 4
 
 // User - user structure.
 type User struct {
@@ -138,34 +145,39 @@ type User struct {
 	WgPublicKey      []byte                `json:"wg_public_key"`
 	WgPSKRouterEnc   []byte                `json:"wg_psk_router_enc"`
 	WgPSKShufflerEnc []byte                `json:"wg_psk_shuffler_enc"`
+	OvCSRGzipBase64  string                `json:"openvpn_csr,omitempty"` // OpenVPN CSR base64 encoded
 	Person           namesgenerator.Person `json:"person"`
 	Quotas           Quota                 `json:"quotas"`
 }
 
 // BrigadeVersion - json version.
-const BrigadeVersion = 7
+const BrigadeVersion = 8
 
 // Brigade - brigade.
 type Brigade struct {
 	BrigadeCounters
-	StatsCountersStack   `json:"counters_stack"`
-	Ver                  int           `json:"version"`
-	BrigadeID            string        `json:"brigade_id"`
-	CreatedAt            time.Time     `json:"created_at"`
-	WgPublicKey          []byte        `json:"wg_public_key"`
-	WgPrivateRouterEnc   []byte        `json:"wg_private_router_enc"`
-	WgPrivateShufflerEnc []byte        `json:"wg_private_shuffler_enc"`
-	EndpointIPv4         netip.Addr    `json:"endpoint_ipv4"`
-	EndpointDomain       string        `json:"endpoint_domain"`
-	EndpointPort         uint16        `json:"endpoint_port"`
-	DNSv4                netip.Addr    `json:"dns4"`
-	DNSv6                netip.Addr    `json:"dns6"`
-	KeydeskIPv6          netip.Addr    `json:"keydesk_ipv6"`
-	IPv4CGNAT            netip.Prefix  `json:"ipv4_cgnat"`
-	IPv6ULA              netip.Prefix  `json:"ipv6_ula"`
-	KeydeskFirstVisit    time.Time     `json:"keydesk_first_visit,omitempty"`
-	Users                []*User       `json:"users,omitempty"`
-	Endpoints            UsersNetworks `json:"endpoints,omitempty"`
+	StatsCountersStack    `json:"counters_stack"`
+	Ver                   int           `json:"version"`
+	BrigadeID             string        `json:"brigade_id"`
+	CreatedAt             time.Time     `json:"created_at"`
+	WgPublicKey           []byte        `json:"wg_public_key"`
+	WgPrivateRouterEnc    []byte        `json:"wg_private_router_enc"`
+	WgPrivateShufflerEnc  []byte        `json:"wg_private_shuffler_enc"`
+	CloakBypassUID        string        `json:"cloak_bypass_uid"`            // Cloak bypass UID
+	OvCAKeyRouterEnc      string        `json:"openvpn_ca_key_router_enc"`   // OpenVPN CA key PEM PKSC8 for router prepared
+	OvCAKeyShufflerEnc    string        `json:"openvpn_ca_key_shuffler_enc"` // OpenVPN CA key PEM PKSC8 for shuffler prepared
+	OvCACertPemGzipBase64 string        `json:"openvpn_ca_cert"`             // OpenVPN CA cert PEM encoded
+	EndpointIPv4          netip.Addr    `json:"endpoint_ipv4"`
+	EndpointDomain        string        `json:"endpoint_domain"`
+	EndpointPort          uint16        `json:"endpoint_port"`
+	DNSv4                 netip.Addr    `json:"dns4"`
+	DNSv6                 netip.Addr    `json:"dns6"`
+	KeydeskIPv6           netip.Addr    `json:"keydesk_ipv6"`
+	IPv4CGNAT             netip.Prefix  `json:"ipv4_cgnat"`
+	IPv6ULA               netip.Prefix  `json:"ipv6_ula"`
+	KeydeskFirstVisit     time.Time     `json:"keydesk_first_visit,omitempty"`
+	Users                 []*User       `json:"users,omitempty"`
+	Endpoints             UsersNetworks `json:"endpoints,omitempty"`
 }
 
 // UserConfig - new user structure.
@@ -178,6 +190,9 @@ type UserConfig struct {
 	EndpointIPv4     netip.Addr
 	EndpointDomain   string
 	EndPointPort     uint16
+	OvCACertPem      string
+	OvClientCertPem  string
+	CloakBypassUID   string
 }
 
 // BrigadeConfig - new brigade structure.

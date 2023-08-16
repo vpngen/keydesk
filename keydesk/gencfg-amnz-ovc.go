@@ -64,9 +64,17 @@ type AmneziaOpenVPNConfig struct {
 	LastConfig string `json:"last_config"`
 }
 
+type AmneziaOpenVPNConfigJson struct {
+	Config string `json:"config"`
+}
+
 func newAmneziaOpenVPNConfig(cfg string) AmneziaOpenVPNConfig {
+	buf, _ := json.Marshal(AmneziaOpenVPNConfigJson{
+		Config: cfg,
+	})
+
 	return AmneziaOpenVPNConfig{
-		LastConfig: cfg,
+		LastConfig: string(buf),
 	}
 }
 
@@ -184,7 +192,7 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (s
 	}
 
 	openvpnConfig := NewOpenVPNConfig(
-		u.DNSv4.String()+","+u.DNSv6.String(),
+		u.DNSv4.String(), //+","+u.DNSv6.String(),
 		u.EndpointIPv4.String(),
 		u.OvCACertPem,
 		u.OvClientCertPem,
@@ -201,7 +209,7 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (s
 		u.Name,
 		string(cloakConfigString),
 		string(openvpnConfigString),
-		u.DNSv4.String()+","+u.DNSv6.String(),
+		u.DNSv4.String(), //+","+u.DNSv6.String(),
 	)
 
 	amneziaConfigString, err := json.Marshal(amneziaConfig)

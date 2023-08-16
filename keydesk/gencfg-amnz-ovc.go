@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -69,12 +70,8 @@ type AmneziaOpenVPNConfigJson struct {
 }
 
 func newAmneziaOpenVPNConfig(cfg string) AmneziaOpenVPNConfig {
-	buf, _ := json.Marshal(AmneziaOpenVPNConfigJson{
-		Config: cfg,
-	})
-
 	return AmneziaOpenVPNConfig{
-		LastConfig: string(buf),
+		LastConfig: cfg,
 	}
 }
 
@@ -199,7 +196,9 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (s
 		ovcKeyPriv,
 	)
 
-	openvpnConfigString, err := json.Marshal(openvpnConfig)
+	openvpnConfigConfig, err := json.Marshal(AmneziaOpenVPNConfigJson{
+		Config: openvpnConfig,
+	})
 	if err != nil {
 		return "", fmt.Errorf("marshal openvpn config: %w", err)
 	}
@@ -208,7 +207,7 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (s
 		endpointHostString,
 		u.Name,
 		string(cloakConfigString),
-		string(openvpnConfigString),
+		string(openvpnConfigConfig),
 		u.DNSv4.String(), //+","+u.DNSv6.String(),
 	)
 
@@ -216,6 +215,8 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (s
 	if err != nil {
 		return "", fmt.Errorf("marshal amnezia config: %w", err)
 	}
+
+	fmt.Fprintf(os.Stderr, "amneziaConfigString: %s\n", amneziaConfigString)
 
 	buf := new(bytes.Buffer)
 	if _, err := buf.Write([]byte("vpn://")); err != nil {

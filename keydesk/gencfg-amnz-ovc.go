@@ -28,7 +28,6 @@ type CloakConfig struct {
 
 const (
 	defaultOvcBrowserSig = "chrome"
-	defaultOvcFakeDomain = "yandex.com"
 )
 
 func NewCloackConfig(domain, pubKey, uid, browser, fakeDomain string) CloakConfig {
@@ -176,7 +175,7 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (s
 		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.EndpointWgPublic),
 		u.CloakBypassUID,
 		defaultOvcBrowserSig,
-		defaultOvcFakeDomain,
+		GetRandomSite(),
 	)
 
 	cloakConfigString, err := json.Marshal(cloakConfig)

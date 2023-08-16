@@ -16,15 +16,22 @@ import (
 )
 
 // CreateBrigade - create brigadier user.
-func CreateBrigade(db *storage.BrigadeStorage, config *storage.BrigadeConfig, routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) error {
+func CreateBrigade(db *storage.BrigadeStorage, vpnCfgs *storage.ConfigsImplemented, config *storage.BrigadeConfig, routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) error {
 	wgConf, err := genEndpointWGKeys(routerPubkey, shufflerPubkey)
 	if err != nil {
 		return fmt.Errorf("wg keys: %w", err)
 	}
 
-	ovcConf, err := genEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey)
-	if err != nil {
-		return fmt.Errorf("ovc creds: %w", err)
+	// fmt.Fprintf(os.Stderr, "cfgs: %#v\n", vpnCfgs)
+
+	var ovcConf *storage.BrigadeOvcConfig
+	if len(vpnCfgs.Ovc) > 0 {
+		var err error
+
+		ovcConf, err = genEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey)
+		if err != nil {
+			return fmt.Errorf("ovc creds: %w", err)
+		}
 	}
 
 	err = db.CreateBrigade(config, wgConf, ovcConf)

@@ -34,8 +34,8 @@ fatal() {
         cat << EOF
 {
         "code": $1,
-        "status": "error",
         "desc": "$2"
+        "status": "error",
         "message": "$3"
 }
 EOF
@@ -43,7 +43,7 @@ EOF
 }
 
 printdef () {
-        msg="$3"
+        msg="$1"
 
         echo "Usage: $0 -id <brigabe_id_encoded>" >&2
         echo "  +debug: -d <db_dir> -s <stats_dir> -a <api_addr>|-" >&2
@@ -60,7 +60,7 @@ while [ "$#" -gt 0 ]; do
                 ;;
         -s)
                 if [ -z "$DEBUG" ]; then
-                        printdef "-s option is only for debug"
+                        printdef "The -s option is only for debug"
                 fi
 
                 STATS_DIR="$2"
@@ -68,7 +68,7 @@ while [ "$#" -gt 0 ]; do
                 ;;
         -d)
                 if [ -z "$DEBUG" ]; then
-                        printdef "-d option is only for debug"
+                        printdef "The -d option is only for debug"
                 fi
 
                 DB_DIR="$2"
@@ -76,7 +76,7 @@ while [ "$#" -gt 0 ]; do
                 ;;
         -a) 
                 if [ -z "$DEBUG" ]; then
-                        printdef "-a option is only for debug"
+                        printdef "The -a option is only for debug"
                 fi
 
                 apiaddr="-a $2"

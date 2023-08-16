@@ -55,10 +55,12 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgConf *BrigadeWg
 	data.WgPrivateRouterEnc = wgConf.WgPrivateRouterEnc
 	data.WgPrivateShufflerEnc = wgConf.WgPrivateShufflerEnc
 
-	data.CloakBypassUID = ovcConf.OvcUID
-	data.OvCAKeyRouterEnc = ovcConf.OvcRouterCAKey
-	data.OvCAKeyShufflerEnc = ovcConf.OvcShufflerCAKey
-	data.OvCACertPemGzipBase64 = ovcConf.OvcCACertPemGzipBase64
+	if ovcConf != nil {
+		data.CloakBypassUID = ovcConf.OvcUID
+		data.OvCAKeyRouterEnc = ovcConf.OvcRouterCAKey
+		data.OvCAKeyShufflerEnc = ovcConf.OvcShufflerCAKey
+		data.OvCACertPemGzipBase64 = ovcConf.OvcCACertPemGzipBase64
+	}
 
 	// if we catch a slowdown problems we need organize queue
 	err = vpnapi.WgAdd(
@@ -101,4 +103,21 @@ func (db *BrigadeStorage) DestroyBrigade() error {
 	}
 
 	return nil
+}
+
+// DestroyBrigade - remove brigade.
+func (db *BrigadeStorage) GetVpnConfigs() (*ConfigsImplemented, error) {
+	f, data, err := db.openWithReading()
+	if err != nil {
+		return nil, fmt.Errorf("db: %w", err)
+	}
+
+	defer f.Close()
+
+	vpnCfgs := &ConfigsImplemented{}
+	if data.CloakBypassUID != "" && data.OvCACertPemGzipBase64 != "" && data.OvCAKeyRouterEnc != "" && data.OvCAKeyShufflerEnc != "" {
+		vpnCfgs.NewOvcConfigs()
+	}
+
+	return vpnCfgs, nil
 }

@@ -223,7 +223,7 @@ func main() {
 	<-done
 }
 
-func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, string, string, string, string, string, namesgenerator.Person, bool, *keydesk.ConfigsImplemented, error) {
+func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, string, string, string, string, string, namesgenerator.Person, bool, *storage.ConfigsImplemented, error) {
 	var (
 		id                     string
 		etcdir, dbdir, certdir string
@@ -261,10 +261,18 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 
 	flag.Parse()
 
-	vpnCfgs := &keydesk.ConfigsImplemented{
-		Wg:    strings.Split(*wgcCfgs, ","),
-		Ovc:   strings.Split(*ovcCfgs, ","),
-		IPSec: strings.Split(*ipsecCfgs, ","),
+	vpnCfgs := storage.NewConfigsImplemented()
+
+	if *wgcCfgs != "" {
+		vpnCfgs.AddWg(*wgcCfgs)
+	}
+
+	if *ovcCfgs != "" {
+		vpnCfgs.AddOvc(*ovcCfgs)
+	}
+
+	if *ipsecCfgs != "" {
+		vpnCfgs.AddIPSec(*ipsecCfgs)
 	}
 
 	if *webDir == "" {
@@ -480,13 +488,11 @@ func createBrigadier(db *storage.BrigadeStorage,
 	name string,
 	person namesgenerator.Person,
 	replace bool,
-	vpnCfgs *keydesk.ConfigsImplemented,
+	vpnCfgs *storage.ConfigsImplemented,
 	routerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 ) error {
 	var w io.WriteCloser
-
-	wgconf, filename, confJson, creationErr := keydesk.AddBrigadier(db, name, person, replace, vpnCfgs, routerPublicKey, shufflerPublicKey)
 
 	switch chunked {
 	case true:
@@ -495,6 +501,8 @@ func createBrigadier(db *storage.BrigadeStorage,
 	default:
 		w = os.Stdout
 	}
+
+	wgconf, filename, confJson, creationErr := keydesk.AddBrigadier(db, name, person, replace, vpnCfgs, routerPublicKey, shufflerPublicKey)
 
 	switch jsonOut {
 	case true:

@@ -42,12 +42,12 @@ const (
 
 // AddUser - create user.
 func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
-	user, wgPriv, wgPSK, ovcPriv, err := pickUpUser(db, routerPublicKey, shufflerPublicKey)
+	user, vpnCfgs, wgPriv, wgPSK, ovcPriv, err := pickUpUser(db, routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return operations.NewPostUserngInternalServerError()
 	}
 
-	_, _, confJson, err := assembleConfig(user, wgPriv, wgPSK, ovcPriv)
+	_, _, confJson, err := assembleConfig(user, vpnCfgs, wgPriv, wgPSK, ovcPriv)
 	if err != nil {
 		return operations.NewPostUserngInternalServerError()
 	}
@@ -56,13 +56,13 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 }
 
 // AddBrigadier - create brigadier user.
-func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgenerator.Person, replaceBrigadier bool, vpnCfgs *ConfigsImplemented, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, *models.Newuser, error) {
-	user, wgPriv, wgPSK, ovcPriv, err := addUser(db, fullname, person, true, replaceBrigadier, routerPublicKey, shufflerPublicKey)
+func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgenerator.Person, replaceBrigadier bool, vpnCfgs *storage.ConfigsImplemented, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, *models.Newuser, error) {
+	user, wgPriv, wgPSK, ovcPriv, err := addUser(db, vpnCfgs, fullname, person, true, replaceBrigadier, routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("addUser: %w", err)
 	}
 
-	wgconf, _, confJson, err := assembleConfig(user, wgPriv, wgPSK, ovcPriv)
+	wgconf, _, confJson, err := assembleConfig(user, vpnCfgs, wgPriv, wgPSK, ovcPriv)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("assembleConfig: %w", err)
 	}
@@ -70,56 +70,72 @@ func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgener
 	return wgconf, kdlib.AssembleWgStyleTunName(user.Name), confJson, nil
 }
 
-func assembleConfig(user *storage.UserConfig, wgPriv, wgPSK []byte, ovcPriv string) (string, string, *models.Newuser, error) {
-	wgconf := GenConfWireguard(user, wgPriv, wgPSK)
-	wgStyleTunName := kdlib.AssembleWgStyleTunName(user.Name)
-	wgConfFilename := wgStyleTunName + ".conf"
-
-	aovcConf, err := GenConfAmneziaOpenVPNoverCloak(user, ovcPriv)
-	if err != nil {
-		return "", "", nil, fmt.Errorf("ovc gen: %w", err)
-	}
-
-	aovcConfFilename := wgStyleTunName + ".vpn"
+func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemented, wgPriv, wgPSK []byte, ovcPriv string) (string, string, *models.Newuser, error) {
+	var wgconf, aovcConf string
 
 	newuser := &models.Newuser{
 		UserName: &user.Name,
-		WireguardConfig: &models.NewuserWireguardConfig{
+	}
+
+	wgStyleTunName := kdlib.AssembleWgStyleTunName(user.Name)
+
+	if len(vpnCfgs.Wg) > 0 {
+		wgconf = GenConfWireguard(user, wgPriv, wgPSK)
+		wgConfFilename := wgStyleTunName + ".conf"
+
+		newuser.WireguardConfig = &models.NewuserWireguardConfig{
 			FileContent: &wgconf,
 			FileName:    &wgConfFilename,
 			TonnelName:  &wgStyleTunName,
-		},
-		AmnzOvcConfig: &models.NewuserAmnzOvcConfig{
+		}
+	}
+
+	if _, ok := vpnCfgs.Ovc[storage.ConfigOvcTypeAmnezia]; ok {
+		var err error
+
+		aovcConf, err = GenConfAmneziaOpenVPNoverCloak(user, ovcPriv)
+		if err != nil {
+			return "", "", nil, fmt.Errorf("ovc gen: %w", err)
+		}
+
+		aovcConfFilename := wgStyleTunName + ".vpn"
+
+		newuser.AmnzOvcConfig = &models.NewuserAmnzOvcConfig{
 			FileContent: &aovcConf,
 			FileName:    &aovcConfFilename,
 			TonnelName:  &user.Name,
-		},
+		}
 	}
 
 	return wgconf, aovcConf, newuser, nil
 }
 
-func pickUpUser(data *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*storage.UserConfig, []byte, []byte, string, error) {
+func pickUpUser(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*storage.UserConfig, *storage.ConfigsImplemented, []byte, []byte, string, error) {
 	for {
 		fullname, person, err := namesgenerator.PeaceAwardeeShort()
 		if err != nil {
-			return nil, nil, nil, "", fmt.Errorf("namesgenerator: %w", err)
+			return nil, nil, nil, nil, "", fmt.Errorf("namesgenerator: %w", err)
 		}
 
-		user, wgPriv, wgPSK, ovcPriv, err := addUser(data, fullname, person, false, false, routerPublicKey, shufflerPublicKey)
+		vpnCfgs, err := db.GetVpnConfigs()
+		if err != nil {
+			return nil, nil, nil, nil, "", fmt.Errorf("get vpn configs: %w", err)
+		}
+
+		user, wgPriv, wgPSK, ovcPriv, err := addUser(db, vpnCfgs, fullname, person, false, false, routerPublicKey, shufflerPublicKey)
 		if err != nil {
 			if errors.Is(err, storage.ErrUserCollision) {
 				continue
 			}
 
-			return nil, nil, nil, "", fmt.Errorf("addUser: %w", err)
+			return nil, nil, nil, nil, "", fmt.Errorf("addUser: %w", err)
 		}
 
-		return user, wgPriv, wgPSK, ovcPriv, nil
+		return user, vpnCfgs, wgPriv, wgPSK, ovcPriv, nil
 	}
 }
 
-func addUser(db *storage.BrigadeStorage, fullname string, person namesgenerator.Person, IsBrigadier, replaceBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*storage.UserConfig, []byte, []byte, string, error) {
+func addUser(db *storage.BrigadeStorage, vpnCfgs *storage.ConfigsImplemented, fullname string, person namesgenerator.Person, IsBrigadier, replaceBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*storage.UserConfig, []byte, []byte, string, error) {
 	wgPub, wgPriv, wgPSK, wgRouterPSK, wgShufflerPSK, err := genUserWGKeys(routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "wg gen: %s\n", err)
@@ -127,14 +143,19 @@ func addUser(db *storage.BrigadeStorage, fullname string, person namesgenerator.
 		return nil, nil, nil, "", fmt.Errorf("wg gen: %w", err)
 	}
 
-	ovcKeyPriv, ovcCsrGzipBase64, err := genUserOvcKeys(routerPublicKey, shufflerPublicKey)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ovc gen: %s\n", err)
+	var ovcKeyPriv, ovcCsrGzipBase64 string
+	if len(vpnCfgs.Ovc) > 0 {
+		var err error
 
-		return nil, nil, nil, "", fmt.Errorf("ovc gen: %w", err)
+		ovcKeyPriv, ovcCsrGzipBase64, err = genUserOvcKeys(routerPublicKey, shufflerPublicKey)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ovc gen: %s\n", err)
+
+			return nil, nil, nil, "", fmt.Errorf("ovc gen: %w", err)
+		}
 	}
 
-	userconf, err := db.CreateUser(fullname, person, IsBrigadier, replaceBrigadier, wgPub, wgRouterPSK, wgShufflerPSK, ovcCsrGzipBase64)
+	userconf, err := db.CreateUser(vpnCfgs, fullname, person, IsBrigadier, replaceBrigadier, wgPub, wgRouterPSK, wgShufflerPSK, ovcCsrGzipBase64)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "put: %s\n", err)
 

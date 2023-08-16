@@ -44,8 +44,8 @@ fatal() {
         cat << EOF
 {
         "code": $1,
-        "status": "error",
         "desc": "$2"
+        "status": "error",
         "message": "$3"
 }
 EOF
@@ -53,9 +53,9 @@ EOF
 }
 
 printdef () {
-        msg="$3"
+        msg="$1"
 
-        echo "Usage: $0 <brigabe_id_encoded> <endpoint IPv4> <CGNAT IPv4> <IPv6 ULA> <DNS IPv4> <DNS IPv6> <keydesk IPv6> <B1rigadier Name :: base64> <Person Name :: base64> <Person Desc :: base64> <Person URL :: base64>" >&2
+        echo "Usage: $0 -id <brigabe_id_encoded> -ep4 <endpoint IPv4> -int4 <CGNAT IPv4> -int6 <IPv6 ULA> -dns4 <DNS IPv4> -dns6 <DNS IPv6> -kd6 <keydesk IPv6> -name <B1rigadier Name :: base64> -person <Person Name :: base64> -desc <Person Desc :: base64> -url <Person URL :: base64> [-ch] [-j]" >&2
         
         fatal "400" "Bad request" "$msg"
 }
@@ -76,7 +76,7 @@ while [ "$#" -gt 0 ]; do
                 ;;
         -d)
                 if [ -z "$DEBUG" ]; then
-                        printdef "-d option is only for debug"
+                        printdef "The '-d' option is only for debug"
                 fi
 
                 DB_DIR="$2"
@@ -84,7 +84,7 @@ while [ "$#" -gt 0 ]; do
                 ;;
         -c)
                 if [ -z "$DEBUG" ]; then
-                        printdef "-c option is only for debug"
+                        printdef "The '-c' option is only for debug"
                 fi
 
                 CONF_DIR="$2"
@@ -92,7 +92,7 @@ while [ "$#" -gt 0 ]; do
                 ;;
         -a) 
                 if [ -z "$DEBUG" ]; then
-                        printdef "-a option is only for debug"
+                        printdef "The '-a' option is only for debug"
                 fi
 
                 apiaddr="-a $2"
@@ -159,7 +159,7 @@ while [ "$#" -gt 0 ]; do
                                 ;;
                         *)
                                 echo "invalid port ${port}" >&2
-                                printdef "invalid port ${port}"
+                                printdef "Invalid port ${port}"
                         ;;
                 esac     
                 ;;
@@ -168,8 +168,8 @@ while [ "$#" -gt 0 ]; do
                 shift 2
 
                 if ! printf "%s" "${domain}" | grep -E '^([a-z0-9_]+(-[a-z0-9_]+)*\.)+[a-z0-9_]+([a-z0-9_-]+)$' > /dev/null; then
-                        echo "invalid domain name" >&2
-                        printdef "invalid domain name"
+                        echo "Invalid domain name ${domain}" >&2
+                        printdef "Invalid domain name ${domain}"
                 fi
                 ;;
         *)
@@ -205,7 +205,7 @@ if [ -z "${DEBUG}" ]; then
                 useradd -p '*' -G "${VGCERT_GROUP}" -M -s /usr/sbin/nologin -d "${DB_DIR}/${brigade_id}" "${brigade_id}"
                 install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${DB_DIR}/${brigade_id}"
                 install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 710 -d "${STATS_DIR}/${brigade_id}"
-        } || fatal "500" "Internal server error" "Can't create brigade"
+        } || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
 else 
         echo "DEBUG: useradd -p '*' -G ${VGCERT_GROUP} -M -s /usr/sbin/nologin -d ${DB_DIR}/${brigade_id} ${brigade_id}" >&2
         echo "DEBUG: install -o ${brigade_id} -g ${brigade_id} -m 0700 -d ${DB_DIR}/${brigade_id}" >&2
@@ -216,6 +216,7 @@ EXECUTABLE_DIR="$(realpath "$(dirname "$0")")"
 
 if [ -z "${DEBUG}" ]; then
         # Create json datafile
+        # shellcheck disable=SC2086
         sudo -u "${brigade_id}" -g "${brigade_id}" "${BRIGADE_MAKER_APP_PATH}" \
                 -ep4 "${endpoint_ip4}" \
                 -dns4 "${dns_ip4}" \
@@ -225,7 +226,8 @@ if [ -z "${DEBUG}" ]; then
                 -kd6 "${keydesk_ip6}" \
                 -p "$port" \
                 -dn "$domain" \
-                >&2 || fatal "500" "Internal server error" "Can't create brigade"
+                ${wg_configs} ${ipsec_configs} ${ovc_configs} \
+                >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
 else
         BRIGADE_SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}")"
         if [ -x "${BRIGADE_MAKER_APP_PATH}" ]; then
@@ -242,8 +244,9 @@ else
                         -id "${brigade_id}" \
                         -d "${DB_DIR}" \
                         -c "${CONF_DIR}" \
+                        ${wg_configs} ${ipsec_configs} ${ovc_configs} \
                         ${apiaddr} \
-                        >&2 || fatal "500" "Internal server error" "Can't create brigade"
+                        >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
         elif [ -s "${BRIGADE_SOURCE_DIR}/main.go" ]; then
                 # shellcheck disable=SC2086
                 go run "${BRIGADE_SOURCE_DIR}" \
@@ -258,8 +261,9 @@ else
                         -id "${brigade_id}" \
                         -d "${DB_DIR}" \
                         -c "${CONF_DIR}" \
+                        ${wg_configs} ${ipsec_configs} ${ovc_configs} \
                         ${apiaddr} \
-                        >&2 || fatal "500" "Internal server error" "Can't create brigade"
+                        >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
         else 
                 echo "ERROR: Can't find ${BRIGADE_MAKER_APP_PATH} or ${BRIGADE_SOURCE_DIR}/main.go" >&2
 
@@ -337,14 +341,13 @@ fi
 # calculated listen IPv6 
 listen_ip6=$(echo "${endpoint_ip4}" | sed 's/\./\n/g' | xargs printf 'fdcc:%02x%02x:%02x%02x::2' | sed 's/:0000/:/g' | sed 's/:00/:/g')
 
-cat << EOF > "${systemd_vgkeydesk_conf_dir}/listen.conf"
+if [ -z "${DEBUG}" ]; then
+        {
+                cat << EOF > "${systemd_vgkeydesk_conf_dir}/listen.conf"
 [Socket]
 ListenStream = [${listen_ip6}]:80
 ListenStream = [${listen_ip6}]:443
 EOF
-
-if [ -z "${DEBUG}" ]; then
-        {
                 systemctl -q enable "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service"
                 # Start systemD services
                 systemctl -q start "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service"

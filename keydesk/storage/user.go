@@ -21,6 +21,7 @@ type APIUserResponse struct {
 
 // CreateUser - put user to the storage.
 func (db *BrigadeStorage) CreateUser(
+	vpnCfgs *ConfigsImplemented,
 	fullname string,
 	person namesgenerator.Person,
 	isBrigadier,
@@ -51,11 +52,6 @@ func (db *BrigadeStorage) CreateUser(
 
 	ts := time.Now().UTC()
 
-	caPem, err := kdlib.Unbase64Ungzip(data.OvCACertPemGzipBase64)
-	if err != nil {
-		return nil, fmt.Errorf("unbase64 ca: %w", err)
-	}
-
 	userconf := &UserConfig{
 		ID:               id,
 		Name:             name,
@@ -67,12 +63,23 @@ func (db *BrigadeStorage) CreateUser(
 		EndPointPort:     data.EndpointPort,
 		DNSv4:            data.DNSv4,
 		DNSv6:            data.DNSv6,
-		OvCACertPem:      string(caPem),
 	}
 
 	kd6 := netip.Addr{}
 	if isBrigadier {
 		kd6 = data.KeydeskIPv6
+	}
+
+	switch len(vpnCfgs.Ovc) {
+	case 0:
+		ovcCertRequestGzipBase64 = ""
+	default:
+		caPem, err := kdlib.Unbase64Ungzip(data.OvCACertPemGzipBase64)
+		if err != nil {
+			return nil, fmt.Errorf("unbase64 ca: %w", err)
+		}
+
+		userconf.OvCACertPem = string(caPem)
 	}
 
 	// if we catch a slowdown problems we need organize queue

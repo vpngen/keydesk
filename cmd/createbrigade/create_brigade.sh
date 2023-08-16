@@ -274,7 +274,6 @@ fi
 if [ -z "${DEBUG}" ]; then
 # shellcheck disable=SC2086
 wgconf="$(sudo -u "${brigade_id}" -g "${brigade_id}" "${KEYDESK_APP_PATH}" \
-        "${chunked}" \
         -name "${brigadier_name}" \
         -person "${person_name}" \
         -desc "${person_desc}" \

@@ -17,22 +17,22 @@ const (
 )
 
 type ConfigsImplemented struct {
-	Wg    map[string]string
-	Ovc   map[string]string
-	IPSec map[string]string
+	Wg    map[string]bool
+	Ovc   map[string]bool
+	IPSec map[string]bool
 }
 
 func NewConfigsImplemented() *ConfigsImplemented {
 	return &ConfigsImplemented{
-		Wg:    make(map[string]string),
-		Ovc:   make(map[string]string),
-		IPSec: make(map[string]string),
+		Wg:    make(map[string]bool),
+		Ovc:   make(map[string]bool),
+		IPSec: make(map[string]bool),
 	}
 }
 
-func add(m map[string]string, s string) {
+func add(m map[string]bool, s string) {
 	for _, v := range strings.Split(s, ",") {
-		m[v] = strings.Trim(v, " ")
+		m[strings.Trim(v, " ")] = true
 	}
 }
 

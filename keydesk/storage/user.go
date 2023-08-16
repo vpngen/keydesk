@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/netip"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -32,7 +31,7 @@ func (db *BrigadeStorage) CreateUser(
 	wgShufflerPSK []byte,
 	ovcCertRequestGzipBase64 string,
 ) (*UserConfig, error) {
-	fmt.Fprintf(os.Stderr, "****************** (db *BrigadeStorage) CreateUser\n")
+	// fmt.Fprintf(os.Stderr, "****************** (db *BrigadeStorage) CreateUser\n")
 
 	f, data, err := db.openWithReading()
 	if err != nil {

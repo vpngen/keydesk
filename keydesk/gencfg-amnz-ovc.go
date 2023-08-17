@@ -12,6 +12,16 @@ import (
 	"github.com/vpngen/keydesk/keydesk/storage"
 )
 
+const (
+	defaultCloakBrowserSig       = "chrome"
+	defaultCloakEncryptionMethod = "aes-gcm"
+	defaultCloakStreamTimeout    = 300 // seconds
+	defaultCloakNumConn          = 1
+	defaultCloakRemotePort       = "443"
+	defaultCloakTransport        = "direct"
+	cloakProxyMethodOpenVPN      = "openvpn"
+)
+
 type CloakConfig struct {
 	BrowserSig       string `json:"BrowserSig"`
 	EncryptionMethod string `json:"EncryptionMethod"`
@@ -26,110 +36,29 @@ type CloakConfig struct {
 	UID              string `json:"UID"`
 }
 
-const (
-	defaultOvcBrowserSig = "chrome"
-)
-
-func NewCloackConfig(domain, pubKey, uid, browser, fakeDomain string) CloakConfig {
-	return CloakConfig{
-		BrowserSig:       browser, // chrome
-		EncryptionMethod: "aes-gcm",
-		NumConn:          1,
-		ProxyMethod:      "openvpn",
+func NewCloackConfig(domain, pubKey, uid, browser, proxyMethod, fakeDomain string) (string, error) {
+	conf, err := json.Marshal(&CloakConfig{
 		PublicKey:        pubKey,
 		RemoteHost:       domain,
-		RemotePort:       "443",
-		ServerName:       fakeDomain, // yandex.com
-		StreamTimeout:    300,
-		Transport:        "direct",
 		UID:              uid,
+		ProxyMethod:      proxyMethod,                  // openvpn
+		BrowserSig:       browser,                      // chrome
+		EncryptionMethod: defaultCloakEncryptionMethod, // aes-gcm
+		NumConn:          defaultCloakNumConn,          // 1
+		RemotePort:       defaultCloakRemotePort,       // 443
+		ServerName:       fakeDomain,                   // yandex.com
+		StreamTimeout:    defaultCloakStreamTimeout,    // 300 seconds
+		Transport:        defaultCloakTransport,        // direct
+	})
+	if err != nil {
+		return "", fmt.Errorf("marshal cloak config: %w", err)
 	}
+
+	return string(conf), nil
 }
 
-type AmneziaCloakConfig struct {
-	LastConfig string `json:"last_config"`
-	Port       string `json:"port"`            // 443
-	Transport  string `json:"transport_proto"` // tcp
-}
-
-func newAmneziaCloakConfig(cfg string) AmneziaCloakConfig {
-	return AmneziaCloakConfig{
-		LastConfig: cfg,
-		Port:       "443",
-		Transport:  "tcp",
-	}
-}
-
-type AmneziaOpenVPNConfig struct {
-	LastConfig string `json:"last_config"`
-}
-
-type AmneziaOpenVPNConfigJson struct {
+type AmneziaConfigInnerJson struct {
 	Config string `json:"config"`
-}
-
-func newAmneziaOpenVPNConfig(cfg string) AmneziaOpenVPNConfig {
-	return AmneziaOpenVPNConfig{
-		LastConfig: cfg,
-	}
-}
-
-type AmneziaShadowSocksConfig struct {
-	LastConfig string `json:"last_config"`
-}
-
-func newAmneziaShadowSocksConfig(cfg string) AmneziaShadowSocksConfig {
-	return AmneziaShadowSocksConfig{
-		LastConfig: cfg,
-	}
-}
-
-type AmneziaContainer struct {
-	Container   string                   `json:"container"`
-	Cloak       AmneziaCloakConfig       `json:"cloak"`
-	OpenVPN     AmneziaOpenVPNConfig     `json:"openvpn"`
-	ShadowSocks AmneziaShadowSocksConfig `json:"shadowsocks"`
-}
-
-func newAmneziaContainer(cloak, openvpn, shadowsocks string) AmneziaContainer {
-	return AmneziaContainer{
-		Container:   "amnezia-openvpn-cloak",
-		Cloak:       newAmneziaCloakConfig(cloak),
-		OpenVPN:     newAmneziaOpenVPNConfig(openvpn),
-		ShadowSocks: newAmneziaShadowSocksConfig(shadowsocks),
-	}
-}
-
-type AmneziaConfig struct {
-	Containers       []AmneziaContainer `json:"containers"`
-	DefaultContainer string             `json:"defaultContainer"` // amnezia-openvpn-cloak
-	Description      string             `json:"description"`      // VPN Generator
-	DNS1             string             `json:"dns1,omitempty"`   //
-	DNS2             string             `json:"dns2,omitempty"`   //
-	HostName         string             `json:"hostName"`         // ${EXT_IP}
-}
-
-func NewAmneziaConfig(hostname, vpnName, cloak, openvpn, dns string) AmneziaConfig {
-	a := AmneziaConfig{
-		Containers: []AmneziaContainer{
-			newAmneziaContainer(cloak, openvpn, "{}"),
-		},
-		DefaultContainer: "amnezia-openvpn-cloak",
-		Description:      vpnName,
-		HostName:         hostname,
-	}
-
-	if dns != "" {
-		dnsList := strings.Split(dns, ",")
-		if len(dnsList) > 0 {
-			a.DNS1 = dnsList[0]
-		}
-		if len(dnsList) > 1 {
-			a.DNS2 = dnsList[1]
-		}
-	}
-
-	return a
 }
 
 const OpenVPNConfigTemplate = `client
@@ -164,53 +93,129 @@ remote 127.0.0.1 1194
 %s
 </key>`
 
-func NewOpenVPNConfig(dns, ip, ca, cert, key string) string {
-	return fmt.Sprintf(OpenVPNConfigTemplate, dns, ip, ca, cert, key)
-}
+func NewOpenVPNConfigJson(dns, ip, ca, cert, key string) (string, error) {
+	ov := fmt.Sprintf(OpenVPNConfigTemplate, dns, ip, ca, cert, key)
 
-func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (string, error) {
-	endpointHostString := u.EndpointDomain
-	if endpointHostString == "" {
-		endpointHostString = u.EndpointIPv4.String()
-	}
-
-	cloakConfig := NewCloackConfig(
-		endpointHostString,
-		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.EndpointWgPublic),
-		u.CloakBypassUID,
-		defaultOvcBrowserSig,
-		GetRandomSite(),
-	)
-
-	cloakConfigString, err := json.Marshal(cloakConfig)
-	if err != nil {
-		return "", fmt.Errorf("marshal cloak config: %w", err)
-	}
-
-	openvpnConfig := NewOpenVPNConfig(
-		u.DNSv4.String(), //+","+u.DNSv6.String(),
-		u.EndpointIPv4.String(),
-		u.OvCACertPem,
-		u.OvClientCertPem,
-		ovcKeyPriv,
-	)
-
-	openvpnConfigConfig, err := json.Marshal(AmneziaOpenVPNConfigJson{
-		Config: openvpnConfig,
+	conf, err := json.Marshal(&AmneziaConfigInnerJson{
+		Config: ov,
 	})
 	if err != nil {
 		return "", fmt.Errorf("marshal openvpn config: %w", err)
 	}
 
-	amneziaConfig := NewAmneziaConfig(
-		endpointHostString,
-		u.Name,
-		string(cloakConfigString),
-		string(openvpnConfigConfig),
-		u.DNSv4.String(), //+","+u.DNSv6.String(),
-	)
+	return string(conf), nil
+}
 
-	amneziaConfigString, err := json.Marshal(amneziaConfig)
+func NewWireguardConfigJson(wg string) (string, error) {
+	conf, err := json.Marshal(&AmneziaConfigInnerJson{
+		Config: wg,
+	})
+	if err != nil {
+		return "", fmt.Errorf("marshal wireguard config: %w", err)
+	}
+
+	return string(conf), nil
+}
+
+type AmneziaCloakConfig struct {
+	LastConfig string `json:"last_config"`
+	Port       string `json:"port"`            // 443
+	Transport  string `json:"transport_proto"` // tcp
+}
+
+type AmneziaOpenVPNConfig struct {
+	LastConfig string `json:"last_config"`
+}
+
+type AmneziaShadowSocksConfig struct {
+	LastConfig string `json:"last_config"`
+}
+
+type AmneziaWireguardConfig struct {
+	LastConfig string `json:"last_config"`
+}
+
+type AmneziaContainer struct {
+	Container          string                    `json:"container"`
+	Cloak              *AmneziaCloakConfig       `json:"cloak,omitempty"`
+	OpenVPN            *AmneziaOpenVPNConfig     `json:"openvpn,omitempty"`
+	ShadowSocks        *AmneziaShadowSocksConfig `json:"shadowsocks,omitempty"`
+	Wireguard          *AmneziaWireguardConfig   `json:"wireguard,omitempty"`
+	IsThirdPartyConfig bool                      `json:"isThirdPartyConfig,omitempty"`
+}
+
+const (
+	AmneziaContainerOpenVPNCloak = "amnezia-openvpn-cloak"
+	AmneziaContainerWireguard    = "amnezia-wireguard"
+	CloakPort                    = "443"
+	CloakTransport               = "tcp"
+)
+
+func NewAmneziaContainerWithOvc(cloak, openvpn, shadowsocks string) *AmneziaContainer {
+	return &AmneziaContainer{
+		Container: AmneziaContainerOpenVPNCloak,
+		Cloak: &AmneziaCloakConfig{
+			LastConfig: cloak,
+			Port:       CloakPort,
+			Transport:  CloakTransport,
+		},
+		OpenVPN: &AmneziaOpenVPNConfig{
+			LastConfig: openvpn,
+		},
+		ShadowSocks: &AmneziaShadowSocksConfig{
+			LastConfig: shadowsocks,
+		},
+	}
+}
+
+func NewAmneziaContainerWithWg(wg string) *AmneziaContainer {
+	return &AmneziaContainer{
+		Container: AmneziaContainerWireguard,
+		Wireguard: &AmneziaWireguardConfig{
+			LastConfig: wg,
+		},
+		IsThirdPartyConfig: true,
+	}
+}
+
+type AmneziaConfig struct {
+	Containers       []*AmneziaContainer `json:"containers"`
+	DefaultContainer string              `json:"defaultContainer"` // amnezia-openvpn-cloak
+	Description      string              `json:"description"`      // VPN Generator
+	DNS1             string              `json:"dns1,omitempty"`   //
+	DNS2             string              `json:"dns2,omitempty"`   //
+	HostName         string              `json:"hostName"`         // ${EXT_IP}
+}
+
+func NewAmneziaConfig(hostname, vpnName, dns string) *AmneziaConfig {
+	a := &AmneziaConfig{
+		Description: vpnName,
+		HostName:    hostname,
+	}
+
+	if dns != "" {
+		dnsList := strings.Split(dns, ",")
+		if len(dnsList) > 0 {
+			a.DNS1 = dnsList[0]
+		}
+		if len(dnsList) > 1 {
+			a.DNS2 = dnsList[1]
+		}
+	}
+
+	return a
+}
+
+func (ac *AmneziaConfig) AddContainer(c *AmneziaContainer) {
+	ac.Containers = append(ac.Containers, c)
+}
+
+func (ac *AmneziaConfig) SetDefaultContainer(c string) {
+	ac.DefaultContainer = c
+}
+
+func (ac *AmneziaConfig) Marshal() (string, error) {
+	conf, err := json.Marshal(ac)
 	if err != nil {
 		return "", fmt.Errorf("marshal amnezia config: %w", err)
 	}
@@ -229,7 +234,7 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (s
 	}
 
 	gzw := zlib.NewWriter(b64w)
-	if _, err := io.Copy(gzw, bytes.NewReader(amneziaConfigString)); err != nil {
+	if _, err := io.Copy(gzw, bytes.NewReader(conf)); err != nil {
 		return "", fmt.Errorf("compress amnezia config: %w", err)
 	}
 
@@ -242,4 +247,45 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (s
 	}
 
 	return buf.String(), nil
+}
+
+func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (*AmneziaContainer, error) {
+	endpointHostString := u.EndpointDomain
+	if endpointHostString == "" {
+		endpointHostString = u.EndpointIPv4.String()
+	}
+
+	cloakConfig, err := NewCloackConfig(
+		endpointHostString,
+		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.EndpointWgPublic),
+		u.CloakBypassUID,
+		defaultCloakBrowserSig,
+		cloakProxyMethodOpenVPN,
+		GetRandomSite(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("marshal cloak config: %w", err)
+	}
+
+	openvpnConfig, err := NewOpenVPNConfigJson(
+		u.DNSv4.String(), //+","+u.DNSv6.String(),
+		u.EndpointIPv4.String(),
+		u.OvCACertPem,
+		u.OvClientCertPem,
+		ovcKeyPriv,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("marshal openvpn config: %w", err)
+	}
+
+	return NewAmneziaContainerWithOvc(cloakConfig, openvpnConfig, "{}"), nil
+}
+
+func GenConfAmneziaWireguard(wgconf string) (*AmneziaContainer, error) {
+	wgConf, err := NewWireguardConfigJson(wgconf)
+	if err != nil {
+		return nil, fmt.Errorf("marshal wireguard config: %w", err)
+	}
+
+	return NewAmneziaContainerWithWg(wgConf), nil
 }

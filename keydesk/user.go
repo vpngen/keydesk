@@ -42,13 +42,13 @@ const (
 
 // AddUser - create user.
 func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
-	fmt.Fprintf(os.Stderr, "****************** AddUser(db *storage.BrigadeStorage\n")
+	/// fmt.Fprintf(os.Stderr, "****************** AddUser(db *storage.BrigadeStorage\n")
 	user, vpnCfgs, wgPriv, wgPSK, ovcPriv, err := pickUpUser(db, routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return operations.NewPostUserngInternalServerError()
 	}
 
-	_, _, confJson, err := assembleConfig(user, vpnCfgs, wgPriv, wgPSK, ovcPriv)
+	_, confJson, err := assembleConfig(user, vpnCfgs, wgPriv, wgPSK, ovcPriv)
 	if err != nil {
 		return operations.NewPostUserngInternalServerError()
 	}
@@ -63,7 +63,7 @@ func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgener
 		return "", "", nil, fmt.Errorf("addUser: %w", err)
 	}
 
-	wgconf, _, confJson, err := assembleConfig(user, vpnCfgs, wgPriv, wgPSK, ovcPriv)
+	wgconf, confJson, err := assembleConfig(user, vpnCfgs, wgPriv, wgPSK, ovcPriv)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("assembleConfig: %w", err)
 	}
@@ -71,8 +71,11 @@ func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgener
 	return wgconf, kdlib.AssembleWgStyleTunName(user.Name), confJson, nil
 }
 
-func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemented, wgPriv, wgPSK []byte, ovcPriv string) (string, string, *models.Newuser, error) {
-	var wgconf, aovcConf string
+func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemented, wgPriv, wgPSK []byte, ovcPriv string) (string, *models.Newuser, error) {
+	var (
+		wgconf        string
+		amneziaConfig *AmneziaConfig
+	)
 
 	newuser := &models.Newuser{
 		UserName: &user.Name,
@@ -91,24 +94,36 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 		}
 	}
 
-	if _, ok := vpnCfgs.Ovc[storage.ConfigOvcTypeAmnezia]; ok {
-		var err error
-
-		aovcConf, err = GenConfAmneziaOpenVPNoverCloak(user, ovcPriv)
-		if err != nil {
-			return "", "", nil, fmt.Errorf("ovc gen: %w", err)
+	if vpnCfgs.Ovc[storage.ConfigOvcTypeAmnezia] {
+		endpointHostString := user.EndpointDomain
+		if endpointHostString == "" {
+			endpointHostString = user.EndpointIPv4.String()
 		}
 
-		aovcConfFilename := wgStyleTunName + ".vpn"
+		amneziaConfig = NewAmneziaConfig(endpointHostString, user.Name, user.DNSv4.String())
 
+		aovcConf, err := GenConfAmneziaOpenVPNoverCloak(user, ovcPriv)
+		if err != nil {
+			return "", nil, fmt.Errorf("ovc gen: %w", err)
+		}
+
+		amneziaConfig.AddContainer(aovcConf)
+		amneziaConfig.SetDefaultContainer(AmneziaContainerOpenVPNCloak)
+
+		amnzConf, err := amneziaConfig.Marshal()
+		if err != nil {
+			return "", nil, fmt.Errorf("amnz marshal: %w", err)
+		}
+
+		amneziaConfFilename := wgStyleTunName + ".vpn"
 		newuser.AmnzOvcConfig = &models.NewuserAmnzOvcConfig{
-			FileContent: &aovcConf,
-			FileName:    &aovcConfFilename,
+			FileContent: &amnzConf,
+			FileName:    &amneziaConfFilename,
 			TonnelName:  &user.Name,
 		}
 	}
 
-	return wgconf, aovcConf, newuser, nil
+	return wgconf, newuser, nil
 }
 
 func pickUpUser(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*storage.UserConfig, *storage.ConfigsImplemented, []byte, []byte, string, error) {
@@ -214,7 +229,7 @@ func GetUsersStats(db *storage.BrigadeStorage, params operations.GetUsersStatsPa
 
 // GetUsers - .
 func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, principal interface{}) middleware.Responder {
-	fmt.Fprintf(os.Stderr, "****************** GetUsers(db *storage.BrigadeStorage\n")
+	// fmt.Fprintf(os.Stderr, "****************** GetUsers(db *storage.BrigadeStorage\n")
 	storageUsers, err := db.ListUsers()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "List error: %s\n", err)

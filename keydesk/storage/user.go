@@ -19,6 +19,23 @@ type APIUserResponse struct {
 	OpenvpnClientCertificate string `json:"openvpn-client-certificate"`
 }
 
+const testCert = `-----BEGIN CERTIFICATE-----
+MIIChjCCAeigAwIBAgIUHYRJHPNW+eqW3TkSaWhpRxqyk68wCgYIKoZIzj0EAwIw
+VDELMAkGA1UEBhMCUlUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGElu
+dGVybmV0IFdpZGdpdHMgUHR5IEx0ZDENMAsGA1UEAwwEVGVzdDAgFw0yMzA4MTcx
+NDE0MTRaGA8yMDUxMDEwMjE0MTQxNFowVDELMAkGA1UEBhMCUlUxEzARBgNVBAgM
+ClNvbWUtU3RhdGUxITAfBgNVBAoMGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDEN
+MAsGA1UEAwwEVGVzdDCBmzAQBgcqhkjOPQIBBgUrgQQAIwOBhgAEADrZB/oUNXuU
+kAoyC1DCoqWnp0pdJx5GuxqxAJD9uMYOS05G3PjAboesJohnoFGOld2Zh2Kuj6OJ
+ULh9hTj14eB7AZT4YX/vjA/odBS/Bu9PSjMiyrwTCms1hkMl2EvS06Hc3ElrjsuY
+YMma/Chd8G+GAX12ijNO7BMlhLjhoZm383oao1MwUTAdBgNVHQ4EFgQU3x7cM6Kd
+TEJN6KQvc0cHjAODOCwwHwYDVR0jBBgwFoAU3x7cM6KdTEJN6KQvc0cHjAODOCww
+DwYDVR0TAQH/BAUwAwEB/zAKBggqhkjOPQQDAgOBiwAwgYcCQUtlwuBJgT4gSGfH
+yax9nYcFz6DzTaXWe3CZG0oLReUTrP88CeYfevWAvO7etL8IRKr48OWWm+sARDzY
+GH/IDRigAkIBI45wN1CUGzzBjF8/faxNy6XWhcSkFZW7oCRR0MWaL6bn69naej8K
+0msNdKBh0Uyk4SK0q+4NlBMTgoimpXcNdk8=
+-----END CERTIFICATE-----`
+
 // CreateUser - put user to the storage.
 func (db *BrigadeStorage) CreateUser(
 	vpnCfgs *ConfigsImplemented,
@@ -83,6 +100,7 @@ func (db *BrigadeStorage) CreateUser(
 
 		userconf.OvCACertPem = string(caPem)
 		userconf.CloakBypassUID = data.CloakBypassUID
+		userconf.CloakFakeDomain = data.CloakFakeDomain
 	}
 
 	// if we catch a slowdown problems we need organize queue
@@ -93,9 +111,14 @@ func (db *BrigadeStorage) CreateUser(
 
 	payload := &APIUserResponse{}
 
-	err = json.Unmarshal(body, payload)
-	if err != nil {
-		return nil, fmt.Errorf("resp body: %w", err)
+	switch db.actualAddrPort.Addr().IsValid() {
+	case true:
+		if err := json.Unmarshal(body, payload); err != nil {
+			return nil, fmt.Errorf("resp body: %w", err)
+		}
+	default:
+		payload.Code = "0"
+		payload.OpenvpnClientCertificate = testCert
 	}
 
 	userconf.OvClientCertPem = payload.OpenvpnClientCertificate

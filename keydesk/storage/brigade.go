@@ -15,6 +15,7 @@ type BrigadeWgConfig struct {
 
 type BrigadeOvcConfig struct {
 	OvcUID                 string
+	OvcFakeDomain          string
 	OvcCACertPemGzipBase64 string
 	OvcRouterCAKey         string
 	OvcShufflerCAKey       string
@@ -57,6 +58,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgConf *BrigadeWg
 
 	if ovcConf != nil {
 		data.CloakBypassUID = ovcConf.OvcUID
+		data.CloakFakeDomain = ovcConf.OvcFakeDomain
 		data.OvCAKeyRouterEnc = ovcConf.OvcRouterCAKey
 		data.OvCAKeyShufflerEnc = ovcConf.OvcShufflerCAKey
 		data.OvCACertPemGzipBase64 = ovcConf.OvcCACertPemGzipBase64
@@ -72,6 +74,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgConf *BrigadeWg
 		config.IPv4CGNAT,
 		config.IPv6ULA,
 		data.CloakBypassUID,
+		data.CloakFakeDomain,
 		data.OvCACertPemGzipBase64,
 		data.OvCAKeyRouterEnc,
 	)

@@ -31,7 +31,7 @@ fi
 
 
 fatal() {
-        cat << EOF
+        cat << EOF | awk -v chunked="${chunked}" 'BEGIN {ORS=""; if (chunked != "") print length($0) "\r\n" $0 "\r\n0\r\n\r\n"; else print $0}'
 {
         "code": $1,
         "desc": "$2"
@@ -57,6 +57,10 @@ while [ "$#" -gt 0 ]; do
         -id)
                 brigade_id="$2"
                 shift 2
+                ;;
+        -ch)
+                chunked="-ch"
+                shift 1
                 ;;
         -s)
                 if [ -z "$DEBUG" ]; then

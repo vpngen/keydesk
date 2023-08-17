@@ -112,6 +112,7 @@ func genEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey *[naclkey.Nac
 
 	return &storage.BrigadeOvcConfig{
 		OvcUID:                 base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(uid[:]),
+		OvcFakeDomain:          GetRandomSite(),
 		OvcCACertPemGzipBase64: string(caPemGzipBase64),
 		OvcRouterCAKey:         base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(routerKey),
 		OvcShufflerCAKey:       base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(shufflerKey),

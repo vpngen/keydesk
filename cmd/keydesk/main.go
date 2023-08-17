@@ -513,7 +513,8 @@ func createBrigadier(db *storage.BrigadeStorage,
 		if creationErr != nil {
 			answer := &keydesk.Answer{
 				Code:    http.StatusInternalServerError,
-				Status:  "Internal Server Error",
+				Desc:    http.StatusText(http.StatusInternalServerError),
+				Status:  keydesk.AnswerStatusError,
 				Message: fmt.Sprintf("%s", creationErr),
 			}
 
@@ -526,7 +527,8 @@ func createBrigadier(db *storage.BrigadeStorage,
 
 		answer := &keydesk.Answer{
 			Code:    http.StatusCreated,
-			Status:  "Created",
+			Desc:    http.StatusText(http.StatusCreated),
+			Status:  keydesk.AnswerStatusSuccess,
 			Configs: *confJson,
 		}
 

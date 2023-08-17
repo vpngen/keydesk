@@ -2,6 +2,11 @@ package keydesk
 
 import "github.com/vpngen/keydesk/gen/models"
 
+const (
+	AnswerStatusSuccess = "success"
+	AnswerStatusError   = "error"
+)
+
 // Answer - answer from keydesk
 // Means: HTTP/1.1 Code Desc
 // Code: 200, 400, 500

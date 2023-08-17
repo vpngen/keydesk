@@ -77,6 +77,7 @@ func WgAdd(
 	IPv4CGNAT,
 	IPv6ULA netip.Prefix,
 	ovcUID string,
+	ovcFakeDomain string,
 	ovcCACert string,
 	ovcRouterCAKey string,
 ) error {
@@ -90,10 +91,11 @@ func WgAdd(
 	)
 
 	if ovcUID != "" && ovcCACert != "" && len(ovcRouterCAKey) > 0 {
-		query += fmt.Sprintf("&cloak-bypass-uid=%s&openvpn-ca-crt=%s&openvpn-ca-key=%s",
+		query += fmt.Sprintf("&cloak-bypass-uid=%s&openvpn-ca-crt=%s&openvpn-ca-key=%s&cloak-domain=%s",
 			url.QueryEscape(ovcUID),
 			url.QueryEscape(ovcCACert),
 			url.QueryEscape(ovcRouterCAKey),
+			url.QueryEscape(ovcFakeDomain),
 		)
 	}
 

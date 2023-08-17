@@ -20,7 +20,7 @@ if [ "root" != "$(whoami)" ]; then
 fi
 
 fatal() {
-        cat << EOF
+        cat << EOF | awk -v chunked="${chunked}" 'BEGIN {ORS=""; if (chunked != "") print length($0) "\r\n" $0 "\r\n0\r\n\r\n"; else print $0}'
 {
         "code": $1,
         "desc": "$2"
@@ -109,7 +109,7 @@ if [ -z "${brigade_id}" ]; then
 fi
 
 if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ]; then
-        wg_configs="-wg native,amnezia"
+        wg_configs="-wg native"
 fi
 
 # * Check if brigade does not exists

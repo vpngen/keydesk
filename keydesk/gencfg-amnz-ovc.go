@@ -261,7 +261,7 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (*
 		u.CloakBypassUID,
 		defaultCloakBrowserSig,
 		cloakProxyMethodOpenVPN,
-		GetRandomSite(),
+		u.CloakFakeDomain,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("marshal cloak config: %w", err)

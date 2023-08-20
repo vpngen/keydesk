@@ -27,6 +27,7 @@ func WgPeerAdd(
 	ipv6,
 	keydesk netip.Addr,
 	ovcCertRequest string,
+	cloakBypasUID string,
 ) ([]byte, error) {
 	query := fmt.Sprintf("peer_add=%s&wg-public-key=%s&wg-psk-key=%s&allowed-ips=%s",
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub)),
@@ -36,7 +37,10 @@ func WgPeerAdd(
 	)
 
 	if ovcCertRequest != "" {
-		query += fmt.Sprintf("&openvpn-client-csr=%s", url.QueryEscape(ovcCertRequest))
+		query += fmt.Sprintf("&openvpn-client-csr=%scloak-uid=%s",
+			url.QueryEscape(ovcCertRequest),
+			url.QueryEscape(cloakBypasUID),
+		)
 	}
 
 	if keydesk.IsValid() {

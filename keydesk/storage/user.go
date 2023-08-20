@@ -47,6 +47,8 @@ func (db *BrigadeStorage) CreateUser(
 	wgRouterPSK,
 	wgShufflerPSK []byte,
 	ovcCertRequestGzipBase64 string,
+	cloakBypassUIDRouterEnc string,
+	cloakBypassUIDShufflerEnc string,
 ) (*UserConfig, error) {
 	// fmt.Fprintf(os.Stderr, "****************** (db *BrigadeStorage) CreateUser\n")
 
@@ -99,12 +101,11 @@ func (db *BrigadeStorage) CreateUser(
 		}
 
 		userconf.OvCACertPem = string(caPem)
-		userconf.WgPublicKey = wgPub
 		userconf.CloakFakeDomain = data.CloakFakeDomain
 	}
 
 	// if we catch a slowdown problems we need organize queue
-	body, err := vpnapi.WgPeerAdd(db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey, wgRouterPSK, userconf.IPv4, userconf.IPv6, kd6, ovcCertRequestGzipBase64)
+	body, err := vpnapi.WgPeerAdd(db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey, wgRouterPSK, userconf.IPv4, userconf.IPv6, kd6, ovcCertRequestGzipBase64, cloakBypassUIDRouterEnc)
 	if err != nil {
 		return nil, fmt.Errorf("wg add: %w", err)
 	}
@@ -124,17 +125,19 @@ func (db *BrigadeStorage) CreateUser(
 	userconf.OvClientCertPem = payload.OpenvpnClientCertificate
 
 	data.Users = append(data.Users, &User{
-		UserID:           userconf.ID,
-		Name:             userconf.Name,
-		CreatedAt:        ts, // creazy but can be data.KeydeskLastVisit
-		IsBrigadier:      isBrigadier,
-		IPv4Addr:         userconf.IPv4,
-		IPv6Addr:         userconf.IPv6,
-		WgPublicKey:      wgPub,
-		WgPSKRouterEnc:   wgRouterPSK,
-		WgPSKShufflerEnc: wgShufflerPSK,
-		OvCSRGzipBase64:  ovcCertRequestGzipBase64,
-		Person:           person,
+		UserID:                    userconf.ID,
+		Name:                      userconf.Name,
+		CreatedAt:                 ts, // creazy but can be data.KeydeskLastVisit
+		IsBrigadier:               isBrigadier,
+		IPv4Addr:                  userconf.IPv4,
+		IPv6Addr:                  userconf.IPv6,
+		WgPublicKey:               wgPub,
+		WgPSKRouterEnc:            wgRouterPSK,
+		WgPSKShufflerEnc:          wgShufflerPSK,
+		OvCSRGzipBase64:           ovcCertRequestGzipBase64,
+		CloakByPassUIDRouterEnc:   cloakBypassUIDRouterEnc,
+		CloakByPassUIDShufflerEnc: cloakBypassUIDShufflerEnc,
+		Person:                    person,
 		Quotas: Quota{
 			CountersTotal: DateSummaryNetCounters{
 				Ver: DateSummaryNetCountersVersion,
@@ -143,6 +146,9 @@ func (db *BrigadeStorage) CreateUser(
 				Ver: DateSummaryNetCountersVersion,
 			},
 			CountersIPSec: DateSummaryNetCounters{
+				Ver: DateSummaryNetCountersVersion,
+			},
+			CountersOvc: DateSummaryNetCounters{
 				Ver: DateSummaryNetCountersVersion,
 			},
 			LimitMonthlyRemaining: uint64(db.MonthlyQuotaRemaining),

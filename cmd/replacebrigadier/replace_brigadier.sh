@@ -141,4 +141,4 @@ else
 fi
 
 # Print brigadier config
-echo "${output}"
+printf "%s" "$output"

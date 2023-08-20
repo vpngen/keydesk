@@ -7,7 +7,6 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/kdlib"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/vpngine/naclkey"
@@ -28,7 +27,7 @@ func CreateBrigade(db *storage.BrigadeStorage, vpnCfgs *storage.ConfigsImplement
 	if len(vpnCfgs.Ovc) > 0 {
 		var err error
 
-		ovcConf, err = genEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey)
+		ovcConf, err = GenEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey)
 		if err != nil {
 			return fmt.Errorf("ovc creds: %w", err)
 		}
@@ -77,9 +76,7 @@ func genEndpointWGKeys(routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]b
 	}, nil
 }
 
-func genEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) (*storage.BrigadeOvcConfig, error) {
-	uid := uuid.New()
-
+func GenEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) (*storage.BrigadeOvcConfig, error) {
 	cert, key, err := kdlib.NewOvCA()
 	if err != nil {
 		return nil, fmt.Errorf("ov new ca: %w", err)
@@ -111,7 +108,6 @@ func genEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey *[naclkey.Nac
 	}
 
 	return &storage.BrigadeOvcConfig{
-		OvcUID:                 base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(uid[:]),
 		OvcFakeDomain:          GetRandomSite(),
 		OvcCACertPemGzipBase64: string(caPemGzipBase64),
 		OvcRouterCAKey:         base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(routerKey),

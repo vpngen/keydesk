@@ -202,9 +202,9 @@ fi
 # * Create system user
 if [ -z "${DEBUG}" ]; then
         {
-                useradd -p '*' -G "${VGCERT_GROUP}" -M -s /usr/sbin/nologin -d "${DB_DIR}/${brigade_id}" "${brigade_id}"
-                install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${DB_DIR}/${brigade_id}"
-                install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 710 -d "${STATS_DIR}/${brigade_id}"
+                useradd -p '*' -G "${VGCERT_GROUP}" -M -s /usr/sbin/nologin -d "${DB_DIR}/${brigade_id}" "${brigade_id}" >&2
+                install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${DB_DIR}/${brigade_id}" >&2
+                install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 710 -d "${STATS_DIR}/${brigade_id}" >&2
         } || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
 else 
         echo "DEBUG: useradd -p '*' -G ${VGCERT_GROUP} -M -s /usr/sbin/nologin -d ${DB_DIR}/${brigade_id} ${brigade_id}" >&2
@@ -330,7 +330,7 @@ systemd_vgkeydesk_conf_dir="/etc/systemd/system/${systemd_vgkeydesk_instance}.so
 
 if [ -z "${DEBUG}" ]; then
         #shellcheck disable=SC2174
-        mkdir -p "${systemd_vgkeydesk_conf_dir}" -m 0755 || fatal "500" "Internal server error" "Can't create ${systemd_vgkeydesk_conf_dir}"
+        mkdir -p "${systemd_vgkeydesk_conf_dir}" -m 0755 >&2 || fatal "500" "Internal server error" "Can't create ${systemd_vgkeydesk_conf_dir}"
 else
         echo "DEBUG: mkdir -p ${systemd_vgkeydesk_conf_dir} -m 0755" >&2
 fi
@@ -338,18 +338,18 @@ fi
 # it;s necessary to listen certain IP
 
 # calculated listen IPv6 
-listen_ip6=$(echo "${endpoint_ip4}" | sed 's/\./\n/g' | xargs printf 'fdcc:%02x%02x:%02x%02x::2' | sed 's/:0000/:/g' | sed 's/:00/:/g')
+listen_ip6=$(echo "${endpoint_ip4}" | sed 's/\./\n/g' | xargs printf 'fdcc:%02x%02x:%02x%02x::2' | sed 's/:0000/:/g' | sed 's/:00/:/g' >&2)
 
 if [ -z "${DEBUG}" ]; then
         {
-                cat << EOF > "${systemd_vgkeydesk_conf_dir}/listen.conf"
+                cat << EOF > "${systemd_vgkeydesk_conf_dir}/listen.conf" >&2
 [Socket]
 ListenStream = [${listen_ip6}]:80
 ListenStream = [${listen_ip6}]:443
 EOF
-                systemctl -q enable "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service"
+                systemctl -q enable "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service" >&2
                 # Start systemD services
-                systemctl -q start "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service"
+                systemctl -q start "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service" >&2
         } || fatal "500" "Internal server error" "Can't start or enable ${systemd_vgkeydesk_instance}"
 else
         echo "DEBUG: systemctl -q enable ${systemd_vgkeydesk_instance}.socket ${systemd_vgkeydesk_instance}.service" >&2
@@ -361,8 +361,8 @@ fi
 systemd_vgstats_instance="vgstats@${brigade_id}"
 if [ -z "${DEBUG}" ]; then
         {
-                systemctl -q enable "${systemd_vgstats_instance}.service"
-                systemctl -q start "${systemd_vgstats_instance}.service"
+                systemctl -q enable "${systemd_vgstats_instance}.service" >&2
+                systemctl -q start "${systemd_vgstats_instance}.service" >&2
         } || fatal "500" "Internal server error" "Can't start or enable ${systemd_vgstats_instance}"
 else
         echo "DEBUG: systemctl -q enable ${systemd_vgstats_instance}.service" >&2
@@ -370,6 +370,6 @@ else
 fi
 
 # Print brigadier config
-echo "${wgconf}"
+printf "%s" "${wgconf}"
 
 [ -z "${DEBUG}" ] && date -u +"%Y-%m-%dT%H:%M:%S" > "${DB_DIR}/${brigade_id}/created"

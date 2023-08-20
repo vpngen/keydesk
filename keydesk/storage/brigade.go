@@ -14,7 +14,6 @@ type BrigadeWgConfig struct {
 }
 
 type BrigadeOvcConfig struct {
-	OvcUID                 string
 	OvcFakeDomain          string
 	OvcCACertPemGzipBase64 string
 	OvcRouterCAKey         string
@@ -57,7 +56,6 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgConf *BrigadeWg
 	data.WgPrivateShufflerEnc = wgConf.WgPrivateShufflerEnc
 
 	if ovcConf != nil {
-		data.CloakBypassUID = ovcConf.OvcUID
 		data.CloakFakeDomain = ovcConf.OvcFakeDomain
 		data.OvCAKeyRouterEnc = ovcConf.OvcRouterCAKey
 		data.OvCAKeyShufflerEnc = ovcConf.OvcShufflerCAKey
@@ -73,7 +71,6 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgConf *BrigadeWg
 		config.EndPointPort,
 		config.IPv4CGNAT,
 		config.IPv6ULA,
-		data.CloakBypassUID,
 		data.CloakFakeDomain,
 		data.OvCACertPemGzipBase64,
 		data.OvCAKeyRouterEnc,
@@ -109,7 +106,7 @@ func (db *BrigadeStorage) DestroyBrigade() error {
 }
 
 // DestroyBrigade - remove brigade.
-func (db *BrigadeStorage) GetVpnConfigs() (*ConfigsImplemented, error) {
+func (db *BrigadeStorage) GetVpnConfigs(req *ConfigsImplemented) (*ConfigsImplemented, error) {
 	f, data, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
@@ -117,11 +114,15 @@ func (db *BrigadeStorage) GetVpnConfigs() (*ConfigsImplemented, error) {
 
 	defer f.Close()
 
-	vpnCfgs := NewConfigsImplemented()
-	vpnCfgs.NewWgConfigs()
+	if req == nil {
+		req = &ConfigsImplemented{} // just for nil vectors
+	}
 
-	if data.CloakBypassUID != "" && data.OvCACertPemGzipBase64 != "" && data.OvCAKeyRouterEnc != "" && data.OvCAKeyShufflerEnc != "" {
-		vpnCfgs.NewOvcConfigs()
+	vpnCfgs := NewConfigsImplemented()
+	vpnCfgs.NewWgConfigs(req.Wg)
+
+	if data.OvCACertPemGzipBase64 != "" && data.OvCAKeyRouterEnc != "" && data.OvCAKeyShufflerEnc != "" {
+		vpnCfgs.NewOvcConfigs(req.Ovc)
 	}
 
 	return vpnCfgs, nil

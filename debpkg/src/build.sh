@@ -9,6 +9,7 @@ go build -C keydesk/cmd/stats -o ../../../bin/stats
 go build -C keydesk/cmd/createbrigade -o ../../../bin/createbrigade
 go build -C keydesk/cmd/replay -o ../../../bin/replay
 go build -C keydesk/cmd/reset -o ../../../bin/reset
+go build -C keydesk/cmd/ovcon -o ../../../bin/ovcon
 go build -C keydesk/cmd/destroybrigade -o ../../../bin/destroybrigade
 go build -C keydesk/cmd/fetchstats -o ../../../bin/fetchstats
 

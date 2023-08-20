@@ -48,14 +48,32 @@ func (c *ConfigsImplemented) AddIPSec(s string) {
 	add(c.IPSec, s)
 }
 
-func (c *ConfigsImplemented) NewWgConfigs() {
-	c.AddWg(ConfigsWg)
+func (c *ConfigsImplemented) NewWgConfigs(req map[string]bool) {
+	if req == nil {
+		c.AddWg(ConfigsWg)
+
+		return
+	}
+
+	c.Wg = req
 }
 
-func (c *ConfigsImplemented) NewOvcConfigs() {
-	c.AddOvc(ConfigsOvc)
+func (c *ConfigsImplemented) NewOvcConfigs(req map[string]bool) {
+	if req == nil {
+		c.AddOvc(ConfigsOvc)
+
+		return
+	}
+
+	c.Ovc = req
 }
 
-func (c *ConfigsImplemented) NewIPSecConfigs() {
-	c.AddIPSec(ConfigsIPSec)
+func (c *ConfigsImplemented) NewIPSecConfigs(req map[string]bool) {
+	if req == nil {
+		c.AddIPSec(ConfigsIPSec)
+
+		return
+	}
+
+	c.IPSec = req
 }

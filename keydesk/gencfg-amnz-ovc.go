@@ -249,7 +249,7 @@ func (ac *AmneziaConfig) Marshal() (string, error) {
 	return buf.String(), nil
 }
 
-func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (*AmneziaContainer, error) {
+func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv, cloakByPassUID string) (*AmneziaContainer, error) {
 	endpointHostString := u.EndpointDomain
 	if endpointHostString == "" {
 		endpointHostString = u.EndpointIPv4.String()
@@ -258,7 +258,7 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (*
 	cloakConfig, err := NewCloackConfig(
 		endpointHostString,
 		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.EndpointWgPublic),
-		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.WgPublicKey[15:]), // Cloak UID
+		cloakByPassUID,
 		defaultCloakBrowserSig,
 		cloakProxyMethodOpenVPN,
 		u.CloakFakeDomain,

@@ -135,19 +135,21 @@ const UserVersion = 4
 
 // User - user structure.
 type User struct {
-	Ver              int                   `json:"version"`
-	UserID           uuid.UUID             `json:"user_id"`
-	Name             string                `json:"name"`
-	CreatedAt        time.Time             `json:"created_at"`
-	IsBrigadier      bool                  `json:"is_brigadier,omitempty"`
-	IPv4Addr         netip.Addr            `json:"ipv4_addr"`
-	IPv6Addr         netip.Addr            `json:"ipv6_addr"`
-	WgPublicKey      []byte                `json:"wg_public_key"`
-	WgPSKRouterEnc   []byte                `json:"wg_psk_router_enc"`
-	WgPSKShufflerEnc []byte                `json:"wg_psk_shuffler_enc"`
-	OvCSRGzipBase64  string                `json:"openvpn_csr,omitempty"` // OpenVPN CSR base64 encoded
-	Person           namesgenerator.Person `json:"person"`
-	Quotas           Quota                 `json:"quotas"`
+	Ver                       int                   `json:"version"`
+	UserID                    uuid.UUID             `json:"user_id"`
+	Name                      string                `json:"name"`
+	CreatedAt                 time.Time             `json:"created_at"`
+	IsBrigadier               bool                  `json:"is_brigadier,omitempty"`
+	IPv4Addr                  netip.Addr            `json:"ipv4_addr"`
+	IPv6Addr                  netip.Addr            `json:"ipv6_addr"`
+	WgPublicKey               []byte                `json:"wg_public_key"`
+	WgPSKRouterEnc            []byte                `json:"wg_psk_router_enc"`
+	WgPSKShufflerEnc          []byte                `json:"wg_psk_shuffler_enc"`
+	CloakByPassUIDRouterEnc   string                `json:"cloak_bypass_uid_router_enc"`   // Cloak bypass UID for router prepared
+	CloakByPassUIDShufflerEnc string                `json:"cloak_bypass_uid_shuffler_enc"` // Cloak bypass UID for shuffler prepared
+	OvCSRGzipBase64           string                `json:"openvpn_csr,omitempty"`         // OpenVPN CSR base64 encoded
+	Person                    namesgenerator.Person `json:"person"`
+	Quotas                    Quota                 `json:"quotas"`
 }
 
 // BrigadeVersion - json version.
@@ -192,7 +194,7 @@ type UserConfig struct {
 	EndPointPort     uint16
 	OvCACertPem      string
 	OvClientCertPem  string
-	WgPublicKey      []byte // Cloak bypass UID too
+	CloakByPassUID   []byte
 	CloakFakeDomain  string
 }
 

@@ -258,7 +258,7 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv string) (*
 	cloakConfig, err := NewCloackConfig(
 		endpointHostString,
 		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.EndpointWgPublic),
-		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.WgPublicKey), // Cloak UID
+		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.WgPublicKey[15:]), // Cloak UID
 		defaultCloakBrowserSig,
 		cloakProxyMethodOpenVPN,
 		u.CloakFakeDomain,

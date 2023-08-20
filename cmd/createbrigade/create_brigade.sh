@@ -338,11 +338,11 @@ fi
 # it;s necessary to listen certain IP
 
 # calculated listen IPv6 
-listen_ip6=$(echo "${endpoint_ip4}" | sed 's/\./\n/g' | xargs printf 'fdcc:%02x%02x:%02x%02x::2' | sed 's/:0000/:/g' | sed 's/:00/:/g' >&2)
+listen_ip6=$(echo "${endpoint_ip4}" | sed 's/\./\n/g' | xargs printf 'fdcc:%02x%02x:%02x%02x::2' | sed 's/:0000/:/g' | sed 's/:00/:/g')
 
 if [ -z "${DEBUG}" ]; then
         {
-                cat << EOF > "${systemd_vgkeydesk_conf_dir}/listen.conf" >&2
+                cat << EOF > "${systemd_vgkeydesk_conf_dir}/listen.conf"
 [Socket]
 ListenStream = [${listen_ip6}]:80
 ListenStream = [${listen_ip6}]:443

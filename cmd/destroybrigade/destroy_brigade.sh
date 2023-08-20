@@ -101,9 +101,9 @@ systemd_vgkeydesk_instance="vgkeydesk@${brigade_id}"
 if [ -z "${DEBUG}" ]; then
         {
                 # Stop keydesk systemD services.
-                systemctl -q -f stop "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service"
+                systemctl -q -f stop "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service" ||:
                 # Disable keydesk systemD srvices.
-                systemctl -q -f disable "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service"
+                systemctl -q -f disable "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service" ||:
                 # Delete spesial keydesk dir
         } || fatal "500" "Internal server error" "Can't stop or disable ${systemd_vgkeydesk_instance}"
 else
@@ -130,9 +130,9 @@ systemd_vgstats_instance="vgstats@${brigade_id}"
 if [ -z "${DEBUG}" ]; then
         {
                 # Stop stats systemD services.
-                systemctl -q -f stop "${systemd_vgstats_instance}.service"
+                systemctl -q -f stop "${systemd_vgstats_instance}.service" ||:
                 # Disable stats systemD srvices.
-                systemctl -q -f disable "${systemd_vgstats_instance}.service"
+                systemctl -q -f disable "${systemd_vgstats_instance}.service" ||:
         } || fatal "500" "Internal server error" "Can't stop or disable ${systemd_vgstats_instance}"
 else 
         echo "DEBUG: systemctl -q -f stop ${systemd_vgstats_instance}.service" >&2
@@ -142,7 +142,9 @@ fi
 if [ -z "${DEBUG}" ]; then
         # Remove brigade
         # shellcheck disable=SC2086
-        sudo -u "${brigade_id}" "${REMOVER_PATH}" -id "${brigade_id}" ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
+        if id "${brigade_id}" >/dev/null 2>&1; then
+                sudo -u "${brigade_id}" "${REMOVER_PATH}" -id "${brigade_id}" ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
+        fi
 else
         DB_DIR=${DB_DIR:-"${STATS_DIR}"}
         EXECUTABLE_DIR="$(realpath "$(dirname "$0")")"
@@ -177,7 +179,9 @@ fi
 
 if [ -z "${DEBUG}" ]; then
         # Remove system user
-        userdel -rf "${brigade_id}" || fatal "500" "Internal server error" "Can't remove system user"
+        if id "${brigade_id}" >/dev/null 2>&1; then
+                userdel -rf "${brigade_id}" || fatal "500" "Internal server error" "Can't remove system user" 
+        fi
 else 
         echo "DEBUG: userdel -rf ${brigade_id}" >&2
 fi

@@ -163,7 +163,6 @@ type Brigade struct {
 	WgPublicKey           []byte        `json:"wg_public_key"`
 	WgPrivateRouterEnc    []byte        `json:"wg_private_router_enc"`
 	WgPrivateShufflerEnc  []byte        `json:"wg_private_shuffler_enc"`
-	CloakBypassUID        string        `json:"cloak_bypass_uid"`            // Cloak bypass UID
 	CloakFakeDomain       string        `json:"cloak_faek_domain"`           // Cloak fake domain
 	OvCAKeyRouterEnc      string        `json:"openvpn_ca_key_router_enc"`   // OpenVPN CA key PEM PKSC8 for router prepared
 	OvCAKeyShufflerEnc    string        `json:"openvpn_ca_key_shuffler_enc"` // OpenVPN CA key PEM PKSC8 for shuffler prepared
@@ -193,7 +192,7 @@ type UserConfig struct {
 	EndPointPort     uint16
 	OvCACertPem      string
 	OvClientCertPem  string
-	CloakBypassUID   string
+	WgPublicKey      []byte // Cloak bypass UID too
 	CloakFakeDomain  string
 }
 

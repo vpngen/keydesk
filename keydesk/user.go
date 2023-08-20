@@ -57,13 +57,18 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 }
 
 // AddBrigadier - create brigadier user.
-func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgenerator.Person, replaceBrigadier bool, vpnCfgs *storage.ConfigsImplemented, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, *models.Newuser, error) {
-	user, wgPriv, wgPSK, ovcPriv, err := addUser(db, vpnCfgs, fullname, person, true, replaceBrigadier, routerPublicKey, shufflerPublicKey)
+func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgenerator.Person, replaceBrigadier bool, reqVpnCfgs *storage.ConfigsImplemented, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, *models.Newuser, error) {
+	dbVpnCfgs, err := db.GetVpnConfigs(reqVpnCfgs)
+	if err != nil {
+		return "", "", nil, fmt.Errorf("get vpn configs: %w", err)
+	}
+
+	user, wgPriv, wgPSK, ovcPriv, err := addUser(db, dbVpnCfgs, fullname, person, true, replaceBrigadier, routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("addUser: %w", err)
 	}
 
-	wgconf, confJson, err := assembleConfig(user, vpnCfgs, wgPriv, wgPSK, ovcPriv)
+	wgconf, confJson, err := assembleConfig(user, dbVpnCfgs, wgPriv, wgPSK, ovcPriv)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("assembleConfig: %w", err)
 	}
@@ -133,7 +138,7 @@ func pickUpUser(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *
 			return nil, nil, nil, nil, "", fmt.Errorf("namesgenerator: %w", err)
 		}
 
-		vpnCfgs, err := db.GetVpnConfigs()
+		vpnCfgs, err := db.GetVpnConfigs(nil)
 		if err != nil {
 			return nil, nil, nil, nil, "", fmt.Errorf("get vpn configs: %w", err)
 		}

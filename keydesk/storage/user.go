@@ -99,7 +99,7 @@ func (db *BrigadeStorage) CreateUser(
 		}
 
 		userconf.OvCACertPem = string(caPem)
-		userconf.CloakBypassUID = data.CloakBypassUID
+		userconf.WgPublicKey = wgPub
 		userconf.CloakFakeDomain = data.CloakFakeDomain
 	}
 

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/netip"
 	"net/url"
-	"os"
 )
 
 // WGStats - wg_stats endpoint-API call.
@@ -76,12 +75,11 @@ func WgAdd(
 	endpointPort uint16,
 	IPv4CGNAT,
 	IPv6ULA netip.Prefix,
-	ovcUID string,
 	ovcFakeDomain string,
 	ovcCACert string,
 	ovcRouterCAKey string,
 ) error {
-	fmt.Fprintf(os.Stderr, "WgAdd: %d\n", len(wgPriv))
+	// fmt.Fprintf(os.Stderr, "WgAdd: %d\n", len(wgPriv))
 
 	query := fmt.Sprintf("wg_add=%s&external-ip=%s&wireguard-port=%s&internal-nets=%s",
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPriv)),
@@ -90,9 +88,8 @@ func WgAdd(
 		url.QueryEscape(IPv4CGNAT.String()+","+IPv6ULA.String()),
 	)
 
-	if ovcUID != "" && ovcCACert != "" && len(ovcRouterCAKey) > 0 {
-		query += fmt.Sprintf("&cloak-bypass-uid=%s&openvpn-ca-crt=%s&openvpn-ca-key=%s&cloak-domain=%s",
-			url.QueryEscape(ovcUID),
+	if ovcCACert != "" && len(ovcRouterCAKey) > 0 {
+		query += fmt.Sprintf("&openvpn-ca-crt=%s&openvpn-ca-key=%s&cloak-domain=%s",
 			url.QueryEscape(ovcCACert),
 			url.QueryEscape(ovcRouterCAKey),
 			url.QueryEscape(ovcFakeDomain),

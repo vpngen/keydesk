@@ -34,7 +34,6 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 			data.EndpointPort,
 			data.IPv4CGNAT,
 			data.IPv6ULA,
-			data.CloakBypassUID,
 			data.CloakFakeDomain,
 			data.OvCACertPemGzipBase64,
 			data.OvCAKeyRouterEnc,

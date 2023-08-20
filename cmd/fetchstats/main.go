@@ -58,6 +58,8 @@ func main() {
 	if _, err := w.Write(stats); err != nil {
 		log.Fatalf("Print stats: %s", err)
 	}
+
+	fmt.Println()
 }
 
 func getStats(statsBaseDir string, brigades []string) ([]byte, error) {

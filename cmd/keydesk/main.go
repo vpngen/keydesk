@@ -511,18 +511,20 @@ func createBrigadier(db *storage.BrigadeStorage,
 		enc.SetIndent(" ", " ")
 
 		if creationErr != nil {
+			err := fmt.Errorf("add brigadier: %w", creationErr)
+
 			answer := &keydesk.Answer{
 				Code:    http.StatusInternalServerError,
 				Desc:    http.StatusText(http.StatusInternalServerError),
 				Status:  keydesk.AnswerStatusError,
-				Message: fmt.Sprintf("%s", creationErr),
+				Message: err.Error(),
 			}
 
 			if err := enc.Encode(answer); err != nil {
 				return fmt.Errorf("print json: %w", err)
 			}
 
-			return fmt.Errorf("add brigadier: %w", creationErr)
+			return err
 		}
 
 		answer := &keydesk.Answer{
@@ -547,6 +549,10 @@ func createBrigadier(db *storage.BrigadeStorage,
 		if _, err := fmt.Fprintln(w, wgconf); err != nil {
 			return fmt.Errorf("pring wgconf: %w", err)
 		}
+	}
+
+	if _, err := fmt.Println(); err != nil {
+		return fmt.Errorf("print newline: %w", err)
 	}
 
 	return nil

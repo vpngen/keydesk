@@ -115,7 +115,7 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 	}
 
 	if vpnCfgs.Ovc[storage.ConfigOvcTypeAmnezia] {
-		amneziaConfig = NewAmneziaConfig(endpointHostString, user.Name, user.DNSv4.String())
+		amneziaConfig = NewAmneziaConfig(endpointHostString, user.Name, user.DNSv4.String()+","+user.DNSv4.String())
 
 		aovcConf, err := GenConfAmneziaOpenVPNoverCloak(user, ovcPriv, cloakBypassUID)
 		if err != nil {

@@ -268,7 +268,7 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv, cloakByPa
 	}
 
 	openvpnConfig, err := NewOpenVPNConfigJson(
-		u.DNSv4.String(), //+","+u.DNSv6.String(),
+		u.DNSv4.String(), //+","+u.DNSv4.String(),
 		u.EndpointIPv4.String(),
 		u.OvCACertPem,
 		u.OvClientCertPem,

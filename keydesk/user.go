@@ -23,6 +23,8 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/btcsuite/btcd/btcutil/base58"
 )
 
 // Allowed prefixes.
@@ -44,12 +46,12 @@ const (
 // AddUser - create user.
 func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, principal interface{}, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) middleware.Responder {
 	/// fmt.Fprintf(os.Stderr, "****************** AddUser(db *storage.BrigadeStorage\n")
-	user, vpnCfgs, wgPriv, wgPSK, ovcPriv, cloakBypassUID, err := pickUpUser(db, routerPublicKey, shufflerPublicKey)
+	user, vpnCfgs, wgPriv, wgPSK, ovcPriv, cloakBypassUID, ipsecUsername, ipsecPassword, err := pickUpUser(db, routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return operations.NewPostUserngInternalServerError()
 	}
 
-	_, confJson, err := assembleConfig(user, vpnCfgs, wgPriv, wgPSK, ovcPriv, cloakBypassUID)
+	_, confJson, err := assembleConfig(user, vpnCfgs, wgPriv, wgPSK, ovcPriv, cloakBypassUID, ipsecUsername, ipsecPassword)
 	if err != nil {
 		return operations.NewPostUserngInternalServerError()
 	}
@@ -64,12 +66,19 @@ func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgener
 		return "", "", nil, fmt.Errorf("get vpn configs: %w", err)
 	}
 
-	user, wgPriv, wgPSK, ovcPriv, cloakBypassUID, err := addUser(db, dbVpnCfgs, fullname, person, true, replaceBrigadier, routerPublicKey, shufflerPublicKey)
+	addIPSec := false
+	// For IPSec turn on on brigadir request.
+	if len(reqVpnCfgs.IPSec) > 0 && len(dbVpnCfgs.IPSec) == 0 {
+		dbVpnCfgs.NewIPSecConfigs(reqVpnCfgs.IPSec)
+		addIPSec = true
+	}
+
+	user, wgPriv, wgPSK, ovcPriv, cloakBypassUID, ipsecUsername, ipsecPassword, err := addUser(db, dbVpnCfgs, fullname, person, addIPSec, true, replaceBrigadier, routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("addUser: %w", err)
 	}
 
-	wgconf, confJson, err := assembleConfig(user, dbVpnCfgs, wgPriv, wgPSK, ovcPriv, cloakBypassUID)
+	wgconf, confJson, err := assembleConfig(user, dbVpnCfgs, wgPriv, wgPSK, ovcPriv, cloakBypassUID, ipsecUsername, ipsecPassword)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("assembleConfig: %w", err)
 	}
@@ -77,11 +86,16 @@ func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgener
 	return wgconf, kdlib.AssembleWgStyleTunName(user.Name), confJson, nil
 }
 
-func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemented, wgPriv, wgPSK []byte, ovcPriv, cloakBypassUID string) (string, *models.Newuser, error) {
+func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemented, wgPriv, wgPSK []byte, ovcPriv, cloakBypassUID string, ipsecUsername, ipsecPassword string) (string, *models.Newuser, error) {
 	var (
 		wgconf        string
 		amneziaConfig *AmneziaConfig
 	)
+
+	endpointHostString := user.EndpointDomain
+	if endpointHostString == "" {
+		endpointHostString = user.EndpointIPv4.String()
+	}
 
 	newuser := &models.Newuser{
 		UserName: &user.Name,
@@ -101,11 +115,6 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 	}
 
 	if vpnCfgs.Ovc[storage.ConfigOvcTypeAmnezia] {
-		endpointHostString := user.EndpointDomain
-		if endpointHostString == "" {
-			endpointHostString = user.EndpointIPv4.String()
-		}
-
 		amneziaConfig = NewAmneziaConfig(endpointHostString, user.Name, user.DNSv4.String())
 
 		aovcConf, err := GenConfAmneziaOpenVPNoverCloak(user, ovcPriv, cloakBypassUID)
@@ -129,40 +138,49 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 		}
 	}
 
+	if vpnCfgs.IPSec[storage.ConfigIPSecTypeManual] {
+		newuser.IPSecL2TPManualConfig = &models.NewuserIPSecL2TPManualConfig{
+			Username: &ipsecUsername,
+			Password: &ipsecPassword,
+			PSK:      &user.IPSecPSK,
+			Server:   &endpointHostString,
+		}
+	}
+
 	return wgconf, newuser, nil
 }
 
-func pickUpUser(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*storage.UserConfig, *storage.ConfigsImplemented, []byte, []byte, string, string, error) {
+func pickUpUser(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*storage.UserConfig, *storage.ConfigsImplemented, []byte, []byte, string, string, string, string, error) {
 	for {
 		fullname, person, err := namesgenerator.PeaceAwardeeShort()
 		if err != nil {
-			return nil, nil, nil, nil, "", "", fmt.Errorf("namesgenerator: %w", err)
+			return nil, nil, nil, nil, "", "", "", "", fmt.Errorf("namesgenerator: %w", err)
 		}
 
 		vpnCfgs, err := db.GetVpnConfigs(nil)
 		if err != nil {
-			return nil, nil, nil, nil, "", "", fmt.Errorf("get vpn configs: %w", err)
+			return nil, nil, nil, nil, "", "", "", "", fmt.Errorf("get vpn configs: %w", err)
 		}
 
-		user, wgPriv, wgPSK, ovcPriv, CloakByPassUID, err := addUser(db, vpnCfgs, fullname, person, false, false, routerPublicKey, shufflerPublicKey)
+		user, wgPriv, wgPSK, ovcPriv, CloakByPassUID, ippsecUsername, ipsecPassword, err := addUser(db, vpnCfgs, fullname, person, false, false, false, routerPublicKey, shufflerPublicKey)
 		if err != nil {
 			if errors.Is(err, storage.ErrUserCollision) {
 				continue
 			}
 
-			return nil, nil, nil, nil, "", "", fmt.Errorf("addUser: %w", err)
+			return nil, nil, nil, nil, "", "", "", "", fmt.Errorf("addUser: %w", err)
 		}
 
-		return user, vpnCfgs, wgPriv, wgPSK, ovcPriv, CloakByPassUID, nil
+		return user, vpnCfgs, wgPriv, wgPSK, ovcPriv, CloakByPassUID, ippsecUsername, ipsecPassword, nil
 	}
 }
 
-func addUser(db *storage.BrigadeStorage, vpnCfgs *storage.ConfigsImplemented, fullname string, person namesgenerator.Person, IsBrigadier, replaceBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*storage.UserConfig, []byte, []byte, string, string, error) {
+func addUser(db *storage.BrigadeStorage, vpnCfgs *storage.ConfigsImplemented, fullname string, person namesgenerator.Person, addIPSec, IsBrigadier, replaceBrigadier bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*storage.UserConfig, []byte, []byte, string, string, string, string, error) {
 	wgPub, wgPriv, wgPSK, wgRouterPSK, wgShufflerPSK, err := genUserWGKeys(routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "wg gen: %s\n", err)
 
-		return nil, nil, nil, "", "", fmt.Errorf("wg gen: %w", err)
+		return nil, nil, nil, "", "", "", "", fmt.Errorf("wg gen: %w", err)
 	}
 
 	var (
@@ -176,18 +194,54 @@ func addUser(db *storage.BrigadeStorage, vpnCfgs *storage.ConfigsImplemented, fu
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ovc gen: %s\n", err)
 
-			return nil, nil, nil, "", "", fmt.Errorf("ovc gen: %w", err)
+			return nil, nil, nil, "", "", "", "", fmt.Errorf("ovc gen: %w", err)
 		}
 	}
 
-	userconf, err := db.CreateUser(vpnCfgs, fullname, person, IsBrigadier, replaceBrigadier, wgPub, wgRouterPSK, wgShufflerPSK, ovcCsrGzipBase64, cloakByPassUIDRouterEnc, CloakByPassUIDShufflerEnc)
+	var (
+		ipsecConf = &storage.BrigadeIPSecConfig{
+			IPSecPSK:            "",
+			IPSecPSKRouterEnc:   "",
+			IPSecPSKShufflerEnc: "",
+		}
+		ipsecUsername, ipsecPassword                 string
+		ipsecUsernameRouter, ipsecPasswordRouter     string
+		ipsecUsernameShuffler, ipsecPasswordShuffler string
+	)
+	if len(vpnCfgs.IPSec) > 0 {
+		if addIPSec {
+			ipsecConf, err = genIPSecPSK(routerPublicKey, shufflerPublicKey)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ipsec gen: %s\n", err)
+			}
+		}
+
+		ipsecUsername, ipsecUsernameRouter, ipsecUsernameShuffler,
+			ipsecPassword, ipsecPasswordRouter, ipsecPasswordShuffler,
+			err = genUserIPSecUserPass(routerPublicKey, shufflerPublicKey)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ipsec gen: %s\n", err)
+
+			return nil, nil, nil, "", "", "", "", fmt.Errorf("ipsec gen: %w", err)
+		}
+	}
+
+	userconf, err := db.CreateUser(
+		vpnCfgs, fullname, person,
+		IsBrigadier, replaceBrigadier,
+		wgPub, wgRouterPSK, wgShufflerPSK,
+		ovcCsrGzipBase64, cloakByPassUIDRouterEnc, CloakByPassUIDShufflerEnc,
+		ipsecConf.IPSecPSK,
+		ipsecConf.IPSecPSKRouterEnc, ipsecUsernameRouter, ipsecPasswordRouter,
+		ipsecConf.IPSecPSKShufflerEnc, ipsecUsernameShuffler, ipsecPasswordShuffler,
+	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "put: %s\n", err)
 
-		return nil, nil, nil, "", "", fmt.Errorf("put: %w", err)
+		return nil, nil, nil, "", "", "", "", fmt.Errorf("put: %w", err)
 	}
 
-	return userconf, wgPriv, wgPSK, ovcKeyPriv, cloakBypassUID, nil
+	return userconf, wgPriv, wgPSK, ovcKeyPriv, cloakBypassUID, ipsecUsername, ipsecPassword, nil
 }
 
 // DelUserUserID - delete user by UserID.
@@ -351,4 +405,94 @@ func genUserWGKeys(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength
 	wgPubKey := wgPrivKey.PublicKey()
 
 	return wgPubKey[:], wgPrivKey[:], wgPSK[:], routerWgPSK, shufflerWgPSK, nil
+}
+
+const (
+	IPSecUsernameLen = 16 // 12-16
+	IPSecPasswordLen = 32 // 16-64
+	IPSecPSKLen      = 32 // 16-64
+
+	Base58UsernameLen = IPSecUsernameLen/1.37 + 1
+	Base58PasswordLen = IPSecPasswordLen/1.37 + 1
+	Base58PSKLen      = IPSecPSKLen/1.37 + 1
+)
+
+func genUserIPSecUserPass(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, string, string, string, string, error) {
+	// Username/Password
+
+	usernameRand := make([]byte, IPSecUsernameLen)
+	if _, err := rand.Read(usernameRand); err != nil {
+		return "", "", "", "", "", "", fmt.Errorf("username rand: %w", err)
+	}
+
+	passwordRand := make([]byte, IPSecPasswordLen)
+	if _, err := rand.Read(passwordRand); err != nil {
+		return "", "", "", "", "", "", fmt.Errorf("password rand: %w", err)
+	}
+
+	username := base58.Encode(usernameRand)
+	password := base58.Encode(passwordRand)
+
+	if len(username) < IPSecUsernameLen || len(password) < IPSecPasswordLen {
+		return "", "", "", "", "", "", fmt.Errorf("encoded len err")
+	}
+
+	username = username[:IPSecUsernameLen]
+	password = password[:IPSecPasswordLen]
+	usernameRouter, err := box.SealAnonymous(nil, []byte(username), routerPublicKey, rand.Reader)
+	if err != nil {
+		return "", "", "", "", "", "", fmt.Errorf("username router seal: %w", err)
+	}
+
+	passwordRouter, err := box.SealAnonymous(nil, []byte(password), routerPublicKey, rand.Reader)
+	if err != nil {
+		return "", "", "", "", "", "", fmt.Errorf("password router seal: %w", err)
+	}
+
+	usernameShuffler, err := box.SealAnonymous(nil, []byte(username), shufflerPublicKey, rand.Reader)
+	if err != nil {
+		return "", "", "", "", "", "", fmt.Errorf("username shuffler seal: %w", err)
+	}
+
+	passwordShuffler, err := box.SealAnonymous(nil, []byte(password), shufflerPublicKey, rand.Reader)
+	if err != nil {
+		return "", "", "", "", "", "", fmt.Errorf("password shuffler seal: %w", err)
+	}
+
+	return username,
+		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(usernameRouter),
+		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(usernameShuffler),
+		password,
+		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(passwordRouter),
+		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(passwordShuffler),
+		nil
+}
+
+func genIPSecPSK(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (*storage.BrigadeIPSecConfig, error) {
+	pskRand := make([]byte, IPSecPSKLen)
+	if _, err := rand.Read(pskRand); err != nil {
+		return nil, fmt.Errorf("psk rand: %w", err)
+	}
+
+	psk := base58.Encode(pskRand)
+	if len(psk) < IPSecPSKLen {
+		return nil, fmt.Errorf("encoded len err")
+	}
+
+	psk = psk[:IPSecPSKLen]
+
+	pskRouter, err := box.SealAnonymous(nil, []byte(psk), routerPublicKey, rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("psk router seal: %w", err)
+	}
+	pskShuffler, err := box.SealAnonymous(nil, []byte(psk), shufflerPublicKey, rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("psk shuffler seal: %w", err)
+	}
+
+	return &storage.BrigadeIPSecConfig{
+		IPSecPSK:            psk,
+		IPSecPSKRouterEnc:   base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(pskRouter),
+		IPSecPSKShufflerEnc: base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(pskShuffler),
+	}, nil
 }

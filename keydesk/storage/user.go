@@ -49,6 +49,13 @@ func (db *BrigadeStorage) CreateUser(
 	ovcCertRequestGzipBase64 string,
 	cloakBypassUIDRouterEnc string,
 	cloakBypassUIDShufflerEnc string,
+	ipsecPSK string,
+	ipsecPSKRouterEnc string,
+	ipsecUsernameRouterEnc string,
+	ipsecPasswordRouterEnc string,
+	ipsecPSKShufflerEnc string,
+	ipsecUsernameShufflerEnc string,
+	ipsecPasswordShufflerEnc string,
 ) (*UserConfig, error) {
 	// fmt.Fprintf(os.Stderr, "****************** (db *BrigadeStorage) CreateUser\n")
 
@@ -73,6 +80,12 @@ func (db *BrigadeStorage) CreateUser(
 
 	ts := time.Now().UTC()
 
+	if len(vpnCfgs.IPSec) > 0 && (data.IPSecPSK == "" || data.IPSecPSKRouterEnc == "" || data.IPSecPSKShufflerEnc == "") {
+		data.IPSecPSK = ipsecPSK
+		data.IPSecPSKRouterEnc = ipsecPSKRouterEnc
+		data.IPSecPSKShufflerEnc = ipsecPSKShufflerEnc
+	}
+
 	userconf := &UserConfig{
 		ID:               id,
 		Name:             name,
@@ -84,6 +97,7 @@ func (db *BrigadeStorage) CreateUser(
 		EndPointPort:     data.EndpointPort,
 		DNSv4:            data.DNSv4,
 		DNSv6:            data.DNSv6,
+		IPSecPSK:         data.IPSecPSK,
 	}
 
 	kd6 := netip.Addr{}
@@ -105,7 +119,13 @@ func (db *BrigadeStorage) CreateUser(
 	}
 
 	// if we catch a slowdown problems we need organize queue
-	body, err := vpnapi.WgPeerAdd(db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey, wgRouterPSK, userconf.IPv4, userconf.IPv6, kd6, ovcCertRequestGzipBase64, cloakBypassUIDRouterEnc)
+	body, err := vpnapi.WgPeerAdd(
+		db.actualAddrPort, db.calculatedAddrPort,
+		wgPub, data.WgPublicKey, wgRouterPSK,
+		userconf.IPv4, userconf.IPv6, kd6,
+		ovcCertRequestGzipBase64, cloakBypassUIDRouterEnc,
+		userconf.IPSecPSK, ipsecUsernameRouterEnc, ipsecPasswordRouterEnc,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("wg add: %w", err)
 	}
@@ -137,6 +157,10 @@ func (db *BrigadeStorage) CreateUser(
 		OvCSRGzipBase64:           ovcCertRequestGzipBase64,
 		CloakByPassUIDRouterEnc:   cloakBypassUIDRouterEnc,
 		CloakByPassUIDShufflerEnc: cloakBypassUIDShufflerEnc,
+		IPSecUsernameRouterEnc:    ipsecUsernameRouterEnc,
+		IPSecUsernameShufflerEnc:  ipsecUsernameShufflerEnc,
+		IPSecPasswordRouterEnc:    ipsecPasswordRouterEnc,
+		IPSecPasswordShufflerEnc:  ipsecPasswordShufflerEnc,
 		Person:                    person,
 		Quotas: Quota{
 			CountersTotal: DateSummaryNetCounters{

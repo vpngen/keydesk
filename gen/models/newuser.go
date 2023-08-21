@@ -22,6 +22,9 @@ type Newuser struct {
 	// amnz ovc config
 	AmnzOvcConfig *NewuserAmnzOvcConfig `json:"AmnzOvcConfig,omitempty"`
 
+	// IP sec l2 t p manual config
+	IPSecL2TPManualConfig *NewuserIPSecL2TPManualConfig `json:"IPSecL2TPManualConfig,omitempty"`
+
 	// user name
 	// Required: true
 	UserName *string `json:"UserName"`
@@ -35,6 +38,10 @@ func (m *Newuser) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateAmnzOvcConfig(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateIPSecL2TPManualConfig(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -63,6 +70,25 @@ func (m *Newuser) validateAmnzOvcConfig(formats strfmt.Registry) error {
 				return ve.ValidateName("AmnzOvcConfig")
 			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("AmnzOvcConfig")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *Newuser) validateIPSecL2TPManualConfig(formats strfmt.Registry) error {
+	if swag.IsZero(m.IPSecL2TPManualConfig) { // not required
+		return nil
+	}
+
+	if m.IPSecL2TPManualConfig != nil {
+		if err := m.IPSecL2TPManualConfig.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("IPSecL2TPManualConfig")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("IPSecL2TPManualConfig")
 			}
 			return err
 		}
@@ -107,6 +133,10 @@ func (m *Newuser) ContextValidate(ctx context.Context, formats strfmt.Registry) 
 		res = append(res, err)
 	}
 
+	if err := m.contextValidateIPSecL2TPManualConfig(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateWireguardConfig(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -130,6 +160,27 @@ func (m *Newuser) contextValidateAmnzOvcConfig(ctx context.Context, formats strf
 				return ve.ValidateName("AmnzOvcConfig")
 			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("AmnzOvcConfig")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *Newuser) contextValidateIPSecL2TPManualConfig(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.IPSecL2TPManualConfig != nil {
+
+		if swag.IsZero(m.IPSecL2TPManualConfig) { // not required
+			return nil
+		}
+
+		if err := m.IPSecL2TPManualConfig.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("IPSecL2TPManualConfig")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("IPSecL2TPManualConfig")
 			}
 			return err
 		}
@@ -260,6 +311,113 @@ func (m *NewuserAmnzOvcConfig) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (m *NewuserAmnzOvcConfig) UnmarshalBinary(b []byte) error {
 	var res NewuserAmnzOvcConfig
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// NewuserIPSecL2TPManualConfig newuser IP sec l2 t p manual config
+//
+// swagger:model NewuserIPSecL2TPManualConfig
+type NewuserIPSecL2TPManualConfig struct {
+
+	// p s k
+	// Required: true
+	PSK *string `json:"PSK"`
+
+	// password
+	// Required: true
+	Password *string `json:"Password"`
+
+	// server
+	// Required: true
+	Server *string `json:"Server"`
+
+	// username
+	// Required: true
+	Username *string `json:"Username"`
+}
+
+// Validate validates this newuser IP sec l2 t p manual config
+func (m *NewuserIPSecL2TPManualConfig) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validatePSK(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePassword(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateServer(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateUsername(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *NewuserIPSecL2TPManualConfig) validatePSK(formats strfmt.Registry) error {
+
+	if err := validate.Required("IPSecL2TPManualConfig"+"."+"PSK", "body", m.PSK); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *NewuserIPSecL2TPManualConfig) validatePassword(formats strfmt.Registry) error {
+
+	if err := validate.Required("IPSecL2TPManualConfig"+"."+"Password", "body", m.Password); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *NewuserIPSecL2TPManualConfig) validateServer(formats strfmt.Registry) error {
+
+	if err := validate.Required("IPSecL2TPManualConfig"+"."+"Server", "body", m.Server); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *NewuserIPSecL2TPManualConfig) validateUsername(formats strfmt.Registry) error {
+
+	if err := validate.Required("IPSecL2TPManualConfig"+"."+"Username", "body", m.Username); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this newuser IP sec l2 t p manual config based on context it is used
+func (m *NewuserIPSecL2TPManualConfig) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *NewuserIPSecL2TPManualConfig) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *NewuserIPSecL2TPManualConfig) UnmarshalBinary(b []byte) error {
+	var res NewuserIPSecL2TPManualConfig
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

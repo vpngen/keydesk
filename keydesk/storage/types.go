@@ -148,6 +148,10 @@ type User struct {
 	CloakByPassUIDRouterEnc   string                `json:"cloak_bypass_uid_router_enc"`   // Cloak bypass UID for router prepared
 	CloakByPassUIDShufflerEnc string                `json:"cloak_bypass_uid_shuffler_enc"` // Cloak bypass UID for shuffler prepared
 	OvCSRGzipBase64           string                `json:"openvpn_csr,omitempty"`         // OpenVPN CSR base64 encoded
+	IPSecUsernameRouterEnc    string                `json:"ipsec_username_router_enc"`     // IPSec user name for router prepared
+	IPSecUsernameShufflerEnc  string                `json:"ipsec_username_shuffler_enc"`   // IPSec user name for shuffler prepared
+	IPSecPasswordRouterEnc    string                `json:"ipsec_password_router_enc"`     // IPSec password for router prepared
+	IPSecPasswordShufflerEnc  string                `json:"ipsec_password_shuffler_enc"`   // IPSec password for shuffler prepared
 	Person                    namesgenerator.Person `json:"person"`
 	Quotas                    Quota                 `json:"quotas"`
 }
@@ -169,6 +173,9 @@ type Brigade struct {
 	OvCAKeyRouterEnc      string        `json:"openvpn_ca_key_router_enc"`   // OpenVPN CA key PEM PKSC8 for router prepared
 	OvCAKeyShufflerEnc    string        `json:"openvpn_ca_key_shuffler_enc"` // OpenVPN CA key PEM PKSC8 for shuffler prepared
 	OvCACertPemGzipBase64 string        `json:"openvpn_ca_cert"`             // OpenVPN CA cert PEM encoded
+	IPSecPSK              string        `json:"ipsec_psk"`                   // IPSec PSK
+	IPSecPSKRouterEnc     string        `json:"ipsec_psk_router_enc"`        // IPSec PSK for router prepared
+	IPSecPSKShufflerEnc   string        `json:"ipsec_psk_shuffler_enc"`      // IPSec PSK for shuffler prepared
 	EndpointIPv4          netip.Addr    `json:"endpoint_ipv4"`
 	EndpointDomain        string        `json:"endpoint_domain"`
 	EndpointPort          uint16        `json:"endpoint_port"`
@@ -196,6 +203,9 @@ type UserConfig struct {
 	OvClientCertPem  string
 	CloakByPassUID   []byte
 	CloakFakeDomain  string
+	IPSecPSK         string
+	IPSecUserName    string
+	IPSecPassword    string
 }
 
 // BrigadeConfig - new brigade structure.

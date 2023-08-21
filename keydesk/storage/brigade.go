@@ -20,8 +20,14 @@ type BrigadeOvcConfig struct {
 	OvcShufflerCAKey       string
 }
 
+type BrigadeIPSecConfig struct {
+	IPSecPSK            string
+	IPSecPSKRouterEnc   string
+	IPSecPSKShufflerEnc string
+}
+
 // CreateBrigade - create brigade config.
-func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgConf *BrigadeWgConfig, ovcConf *BrigadeOvcConfig) error {
+func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgConf *BrigadeWgConfig, ovcConf *BrigadeOvcConfig, ipcseConf *BrigadeIPSecConfig) error {
 	f, data, err := db.openWithoutReading(config.BrigadeID)
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
@@ -60,6 +66,12 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgConf *BrigadeWg
 		data.OvCAKeyRouterEnc = ovcConf.OvcRouterCAKey
 		data.OvCAKeyShufflerEnc = ovcConf.OvcShufflerCAKey
 		data.OvCACertPemGzipBase64 = ovcConf.OvcCACertPemGzipBase64
+	}
+
+	if ipcseConf != nil {
+		data.IPSecPSK = ipcseConf.IPSecPSK
+		data.IPSecPSKRouterEnc = ipcseConf.IPSecPSKRouterEnc
+		data.IPSecPSKShufflerEnc = ipcseConf.IPSecPSKShufflerEnc
 	}
 
 	// if we catch a slowdown problems we need organize queue
@@ -123,6 +135,10 @@ func (db *BrigadeStorage) GetVpnConfigs(req *ConfigsImplemented) (*ConfigsImplem
 
 	if data.OvCACertPemGzipBase64 != "" && data.OvCAKeyRouterEnc != "" && data.OvCAKeyShufflerEnc != "" {
 		vpnCfgs.NewOvcConfigs(req.Ovc)
+	}
+
+	if data.IPSecPSK != "" && data.IPSecPSKRouterEnc != "" && data.IPSecPSKShufflerEnc != "" {
+		vpnCfgs.NewIPSecConfigs(req.IPSec)
 	}
 
 	return vpnCfgs, nil

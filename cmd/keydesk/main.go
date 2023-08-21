@@ -255,9 +255,9 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 	chunked := flag.Bool("ch", false, "chunked output")
 	jsonOut := flag.Bool("j", false, "json output")
 
-	wgcCfgs := flag.String("wg", "native,amnezia", "Wireguard configs (native,amnezia)")
-	ovcCfgs := flag.String("ovc", "", "OpenVPN over Cloak configs (amnezia)")
-	ipsecCfgs := flag.String("ipsec", "", "IPSec configs (text,mobileconfig,ps)")
+	wgcCfgs := flag.String("wg", "native,amnezia", "Wireguard configs ("+storage.ConfigsWg+")")
+	ovcCfgs := flag.String("ovc", "", "OpenVPN over Cloak configs ("+storage.ConfigsOvc+")")
+	ipsecCfgs := flag.String("ipsec", "", "IPSec configs ("+storage.ConfigsIPSec+")")
 
 	flag.Parse()
 

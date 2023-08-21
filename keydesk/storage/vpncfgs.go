@@ -10,10 +10,10 @@ const (
 	ConfigOvcTypeAmnezia = "amnezia"
 	ConfigsOvc           = ConfigOvcTypeAmnezia
 
-	ConfigIPSecTypeText       = "text"
+	ConfigIPSecTypeManual     = "manual"
 	ConfigIPSecTypePowerShell = "ps"
 	ConfigIPSecTypeMobileConf = "mobileconfig"
-	ConfigsIPSec              = ConfigIPSecTypeText + "," + ConfigIPSecTypePowerShell + "," + ConfigIPSecTypeMobileConf
+	ConfigsIPSec              = ConfigIPSecTypeManual + "," + ConfigIPSecTypePowerShell + "," + ConfigIPSecTypeMobileConf
 )
 
 type ConfigsImplemented struct {

@@ -33,7 +33,15 @@ func CreateBrigade(db *storage.BrigadeStorage, vpnCfgs *storage.ConfigsImplement
 		}
 	}
 
-	err = db.CreateBrigade(config, wgConf, ovcConf)
+	var ipsecConf *storage.BrigadeIPSecConfig
+	if len(vpnCfgs.IPSec) > 0 {
+		ipsecConf, err = genIPSecPSK(routerPubkey, shufflerPubkey)
+		if err != nil {
+			return fmt.Errorf("ipsec psk: %w", err)
+		}
+	}
+
+	err = db.CreateBrigade(config, wgConf, ovcConf, ipsecConf)
 	if err != nil {
 		return fmt.Errorf("put: %w", err)
 	}

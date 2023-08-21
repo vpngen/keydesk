@@ -54,7 +54,13 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 		}
 
 		// if we catch a slowdown problems we need organize queue
-		_, err = vpnapi.WgPeerAdd(db.actualAddrPort, db.calculatedAddrPort, user.WgPublicKey, data.WgPublicKey, user.WgPSKRouterEnc, user.IPv4Addr, user.IPv6Addr, kd6, user.OvCSRGzipBase64, user.CloakByPassUIDRouterEnc)
+		_, err = vpnapi.WgPeerAdd(
+			db.actualAddrPort, db.calculatedAddrPort,
+			user.WgPublicKey, data.WgPublicKey, user.WgPSKRouterEnc,
+			user.IPv4Addr, user.IPv6Addr, kd6,
+			user.OvCSRGzipBase64, user.CloakByPassUIDRouterEnc,
+			data.IPSecPSK, user.IPSecUsernameRouterEnc, user.IPSecPasswordRouterEnc,
+		)
 		if err != nil {
 			return fmt.Errorf("wg add: %w", err)
 		}

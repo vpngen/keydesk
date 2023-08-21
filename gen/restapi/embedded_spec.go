@@ -224,6 +224,29 @@ func init() {
             }
           }
         },
+        "IPSecL2TPManualConfig": {
+          "type": "object",
+          "required": [
+            "Server",
+            "PSK",
+            "Username",
+            "Password"
+          ],
+          "properties": {
+            "PSK": {
+              "type": "string"
+            },
+            "Password": {
+              "type": "string"
+            },
+            "Server": {
+              "type": "string"
+            },
+            "Username": {
+              "type": "string"
+            }
+          }
+        },
         "UserName": {
           "type": "string"
         },
@@ -568,6 +591,29 @@ func init() {
         }
       }
     },
+    "NewuserIPSecL2TPManualConfig": {
+      "type": "object",
+      "required": [
+        "Server",
+        "PSK",
+        "Username",
+        "Password"
+      ],
+      "properties": {
+        "PSK": {
+          "type": "string"
+        },
+        "Password": {
+          "type": "string"
+        },
+        "Server": {
+          "type": "string"
+        },
+        "Username": {
+          "type": "string"
+        }
+      }
+    },
     "NewuserWireguardConfig": {
       "type": "object",
       "required": [
@@ -668,6 +714,29 @@ func init() {
               "type": "string"
             },
             "TonnelName": {
+              "type": "string"
+            }
+          }
+        },
+        "IPSecL2TPManualConfig": {
+          "type": "object",
+          "required": [
+            "Server",
+            "PSK",
+            "Username",
+            "Password"
+          ],
+          "properties": {
+            "PSK": {
+              "type": "string"
+            },
+            "Password": {
+              "type": "string"
+            },
+            "Server": {
+              "type": "string"
+            },
+            "Username": {
               "type": "string"
             }
           }

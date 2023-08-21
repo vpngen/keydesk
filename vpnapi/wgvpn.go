@@ -37,7 +37,7 @@ func WgPeerAdd(
 	)
 
 	if ovcCertRequest != "" {
-		query += fmt.Sprintf("&openvpn-client-csr=%scloak-uid=%s",
+		query += fmt.Sprintf("&openvpn-client-csr=%s&cloak-uid=%s",
 			url.QueryEscape(ovcCertRequest),
 			url.QueryEscape(cloakBypasUID),
 		)

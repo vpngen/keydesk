@@ -119,6 +119,10 @@ func parseArgs() (bool, bool, string, string, string, netip.AddrPort, error) {
 		if *filedbDir == "" {
 			dbdir = filepath.Join(storage.DefaultHomeDir, id)
 		}
+
+		if *etcDir == "" {
+			etcdir = keydesk.DefaultEtcDir
+		}
 	default:
 		id = *brigadeID
 
@@ -129,6 +133,10 @@ func parseArgs() (bool, bool, string, string, string, netip.AddrPort, error) {
 
 		if *filedbDir == "" {
 			dbdir = cwd
+		}
+
+		if *etcDir == "" {
+			etcdir = cwd
 		}
 	}
 

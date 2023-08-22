@@ -28,7 +28,6 @@ func WgPeerAdd(
 	keydesk netip.Addr,
 	ovcCertRequest string,
 	cloakBypasUID string,
-	ipsecPSK string,
 	ipsecUsername string,
 	ipsecPassword string,
 ) ([]byte, error) {
@@ -46,9 +45,8 @@ func WgPeerAdd(
 		)
 	}
 
-	if ipsecPSK != "" && ipsecUsername != "" && ipsecPassword != "" {
-		query += fmt.Sprintf("&l2tp-preshared-key=%s&l2tp-username=%s&l2tp-password=%s",
-			url.QueryEscape(ipsecPSK),
+	if ipsecUsername != "" && ipsecPassword != "" {
+		query += fmt.Sprintf("&l2tp-username=%s&l2tp-password=%s",
 			url.QueryEscape(ipsecUsername),
 			url.QueryEscape(ipsecPassword),
 		)
@@ -93,6 +91,7 @@ func WgAdd(
 	ovcFakeDomain string,
 	ovcCACert string,
 	ovcRouterCAKey string,
+	ipsecPSK string,
 ) error {
 	// fmt.Fprintf(os.Stderr, "WgAdd: %d\n", len(wgPriv))
 
@@ -108,6 +107,12 @@ func WgAdd(
 			url.QueryEscape(ovcCACert),
 			url.QueryEscape(ovcRouterCAKey),
 			url.QueryEscape(ovcFakeDomain),
+		)
+	}
+
+	if ipsecPSK != "" {
+		query += fmt.Sprintf("&l2tp-preshared-key=%s",
+			url.QueryEscape(ipsecPSK),
 		)
 	}
 

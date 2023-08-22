@@ -86,6 +86,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgConf *BrigadeWg
 		data.CloakFakeDomain,
 		data.OvCACertPemGzipBase64,
 		data.OvCAKeyRouterEnc,
+		data.IPSecPSKRouterEnc,
 	)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)

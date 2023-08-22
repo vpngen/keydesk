@@ -115,7 +115,7 @@ func (db *BrigadeStorage) CreateUser(
 		wgPub, data.WgPublicKey, wgRouterPSK,
 		userconf.IPv4, userconf.IPv6, kd6,
 		ovcCertRequestGzipBase64, cloakBypassUIDRouterEnc,
-		data.IPSecPSKRouterEnc, ipsecUsernameRouterEnc, ipsecPasswordRouterEnc,
+		ipsecUsernameRouterEnc, ipsecPasswordRouterEnc,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("wg add: %w", err)

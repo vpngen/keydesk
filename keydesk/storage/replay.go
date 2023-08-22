@@ -37,6 +37,7 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 			data.CloakFakeDomain,
 			data.OvCACertPemGzipBase64,
 			data.OvCAKeyRouterEnc,
+			data.IPSecPSKRouterEnc,
 		)
 		if err != nil {
 			return fmt.Errorf("wg add: %w", err)
@@ -59,7 +60,7 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 			user.WgPublicKey, data.WgPublicKey, user.WgPSKRouterEnc,
 			user.IPv4Addr, user.IPv6Addr, kd6,
 			user.OvCSRGzipBase64, user.CloakByPassUIDRouterEnc,
-			data.IPSecPSKRouterEnc, user.IPSecUsernameRouterEnc, user.IPSecPasswordRouterEnc,
+			user.IPSecUsernameRouterEnc, user.IPSecPasswordRouterEnc,
 		)
 		if err != nil {
 			return fmt.Errorf("wg add: %w", err)

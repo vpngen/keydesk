@@ -68,8 +68,14 @@ contents:
     mode: 0005
     owner: root
     group: root
-- src: bin/ovcon
-  dst: /opt/vgkeydesk/ovcon
+- src: bin/turnon-ovc
+  dst: /opt/vgkeydesk/turnon-ovc
+  file_info:
+    mode: 0005
+    owner: root
+    group: root
+- src: bin/turnon-ipsec
+  dst: /opt/vgkeydesk/turnon-ipsec
   file_info:
     mode: 0005
     owner: root

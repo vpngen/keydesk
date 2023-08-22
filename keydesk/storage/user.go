@@ -49,11 +49,8 @@ func (db *BrigadeStorage) CreateUser(
 	ovcCertRequestGzipBase64 string,
 	cloakBypassUIDRouterEnc string,
 	cloakBypassUIDShufflerEnc string,
-	ipsecPSK string,
-	ipsecPSKRouterEnc string,
 	ipsecUsernameRouterEnc string,
 	ipsecPasswordRouterEnc string,
-	ipsecPSKShufflerEnc string,
 	ipsecUsernameShufflerEnc string,
 	ipsecPasswordShufflerEnc string,
 ) (*UserConfig, error) {
@@ -79,12 +76,6 @@ func (db *BrigadeStorage) CreateUser(
 	}
 
 	ts := time.Now().UTC()
-
-	if len(vpnCfgs.IPSec) > 0 && (data.IPSecPSK == "" || data.IPSecPSKRouterEnc == "" || data.IPSecPSKShufflerEnc == "") {
-		data.IPSecPSK = ipsecPSK
-		data.IPSecPSKRouterEnc = ipsecPSKRouterEnc
-		data.IPSecPSKShufflerEnc = ipsecPSKShufflerEnc
-	}
 
 	userconf := &UserConfig{
 		ID:               id,
@@ -124,7 +115,7 @@ func (db *BrigadeStorage) CreateUser(
 		wgPub, data.WgPublicKey, wgRouterPSK,
 		userconf.IPv4, userconf.IPv6, kd6,
 		ovcCertRequestGzipBase64, cloakBypassUIDRouterEnc,
-		ipsecPSKRouterEnc, ipsecUsernameRouterEnc, ipsecPasswordRouterEnc,
+		data.IPSecPSKRouterEnc, ipsecUsernameRouterEnc, ipsecPasswordRouterEnc,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("wg add: %w", err)

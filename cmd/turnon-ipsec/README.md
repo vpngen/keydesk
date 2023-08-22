@@ -2,7 +2,7 @@
 
 ## Usage
 
-`/opt/vgkeydesk/ovcon`
+`/opt/vgkeydesk/turnon-ovc`
 
 * `-id` - (for test only) brigade id (base32 format)
 * `-d` - (for test only) directory with brigade files, default is `/home/<BrigadeID>`

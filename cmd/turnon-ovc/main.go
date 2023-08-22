@@ -19,12 +19,14 @@ import (
 var (
 	// ErrInvalidArgs - invalid arguments.
 	ErrInvalidArgs = errors.New("invalid arguments")
-	// ErrInvalidPort - invalid port.
-	ErrOvcAlreadyPresents = errors.New("ovc already presents")
+	// ErrOvcAlreadyPresent - OVC already presents.
+	ErrOvcAlreadyPresent = errors.New("ovc already presents")
+	// ErrOvcAlreadyAbsent - OVC already absent.
+	ErrOvcAlreadyAbsent = errors.New("ovc already absent")
 )
 
 func main() {
-	brigadeID, etcDir, dbDir, addr, err := parseArgs()
+	replay, purge, brigadeID, etcDir, dbDir, addr, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 		os.Exit(1)
@@ -61,12 +63,12 @@ func main() {
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 
-	if err = Do(db, &routerPublicKey, &shufflerPublicKey); err != nil {
+	if err = Do(db, replay, purge, &routerPublicKey, &shufflerPublicKey); err != nil {
 		log.Fatalf("Can't do: %s\n", err)
 	}
 }
 
-func parseArgs() (string, string, string, netip.AddrPort, error) {
+func parseArgs() (bool, bool, string, string, string, netip.AddrPort, error) {
 	var (
 		id       string
 		dbdir    string
@@ -77,34 +79,36 @@ func parseArgs() (string, string, string, netip.AddrPort, error) {
 
 	sysUser, err := user.Current()
 	if err != nil {
-		return "", "", "", addrPort, fmt.Errorf("cannot define user: %w", err)
+		return false, false, "", "", "", addrPort, fmt.Errorf("cannot define user: %w", err)
 	}
 
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
 	addr := flag.String("a", vpnapi.TemplatedAddrPort, "API endpoint address:port")
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
 	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
+	replay := flag.Bool("r", false, "Replay brigade")
+	purge := flag.String("p", "", "Purge IPSec (need brigadeID)")
 
 	flag.Parse()
 
 	if *filedbDir != "" {
 		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return "", "", "", addrPort, fmt.Errorf("dbdir dir: %w", err)
+			return false, false, "", "", "", addrPort, fmt.Errorf("dbdir dir: %w", err)
 		}
 	}
 
 	if *etcDir != "" {
 		etcdir, err = filepath.Abs(*etcDir)
 		if err != nil {
-			return "", "", "", addrPort, fmt.Errorf("etcdir dir: %w", err)
+			return false, false, "", "", "", addrPort, fmt.Errorf("etcdir dir: %w", err)
 		}
 	}
 
 	if *addr != "-" {
 		addrPort, err = netip.ParseAddrPort(*addr)
 		if err != nil {
-			return "", "", "", addrPort, fmt.Errorf("addr: %w", err)
+			return false, false, "", "", "", addrPort, fmt.Errorf("addr: %w", err)
 		}
 	}
 
@@ -128,27 +132,40 @@ func parseArgs() (string, string, string, netip.AddrPort, error) {
 		}
 	}
 
-	return id, etcdir, dbdir, addrPort, nil
+	return *replay, *purge == id, id, etcdir, dbdir, addrPort, nil
 }
 
 // Do - do replay.
-func Do(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) error {
-	if err := applyOVC(db, routerPublicKey, shufflerPublicKey); err != nil {
-		if errors.Is(err, ErrOvcAlreadyPresents) {
-			return nil
-		}
+func Do(db *storage.BrigadeStorage, replay, purge bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) error {
+	switch purge {
+	case true:
+		if err := removeOVCSupport(db, routerPublicKey, shufflerPublicKey); err != nil {
+			if errors.Is(err, ErrOvcAlreadyAbsent) {
+				return nil
+			}
 
-		return fmt.Errorf("apply OVC: %w", err)
+			return fmt.Errorf("remove OVC: %w", err)
+		}
+	default:
+		if err := addOVCSupport(db, routerPublicKey, shufflerPublicKey); err != nil {
+			if errors.Is(err, ErrOvcAlreadyPresent) {
+				return nil
+			}
+
+			return fmt.Errorf("apply OVC: %w", err)
+		}
 	}
 
-	if err := db.ReplayBrigade(true, false, false); err != nil {
-		return fmt.Errorf("replay brigade: %w", err)
+	if replay {
+		if err := db.ReplayBrigade(true, false, false); err != nil {
+			return fmt.Errorf("replay brigade: %w", err)
+		}
 	}
 
 	return nil
 }
 
-func applyOVC(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) error {
+func addOVCSupport(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) error {
 	f, data, err := db.OpenDbToModify()
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
@@ -159,7 +176,7 @@ func applyOVC(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[n
 	if data.OvCACertPemGzipBase64 != "" && data.OvCAKeyRouterEnc != "" && data.OvCAKeyShufflerEnc != "" {
 		fmt.Fprintf(os.Stderr, "Brigade %s already has Ovc\n", db.BrigadeID)
 
-		return ErrOvcAlreadyPresents
+		return ErrOvcAlreadyPresent
 	}
 
 	ovcConf, err := keydesk.GenEndpointOpenVPNoverCloakCreds(routerPublicKey, shufflerPublicKey)
@@ -171,6 +188,30 @@ func applyOVC(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[n
 	data.OvCAKeyRouterEnc = ovcConf.OvcRouterCAKey
 	data.OvCAKeyShufflerEnc = ovcConf.OvcShufflerCAKey
 	data.OvCACertPemGzipBase64 = ovcConf.OvcCACertPemGzipBase64
+
+	f.Commit(data)
+
+	return nil
+}
+
+func removeOVCSupport(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) error {
+	f, data, err := db.OpenDbToModify()
+	if err != nil {
+		return fmt.Errorf("open db: %w", err)
+	}
+
+	defer f.Close()
+
+	if data.OvCACertPemGzipBase64 == "" && data.OvCAKeyRouterEnc == "" && data.OvCAKeyShufflerEnc == "" {
+		fmt.Fprintf(os.Stderr, "Brigade %s already hasn't Ovc\n", db.BrigadeID)
+
+		return ErrOvcAlreadyAbsent
+	}
+
+	data.CloakFakeDomain = ""
+	data.OvCAKeyRouterEnc = ""
+	data.OvCAKeyShufflerEnc = ""
+	data.OvCACertPemGzipBase64 = ""
 
 	f.Commit(data)
 

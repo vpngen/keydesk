@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -20,6 +19,7 @@ const (
 	defaultCloakRemotePort       = "443"
 	defaultCloakTransport        = "direct"
 	cloakProxyMethodOpenVPN      = "openvpn"
+	defaultInternalDNS           = "100.128.0.1"
 )
 
 type CloakConfig struct {
@@ -96,25 +96,33 @@ remote 127.0.0.1 1194
 func NewOpenVPNConfigJson(dns, ip, ca, cert, key string) (string, error) {
 	ov := fmt.Sprintf(OpenVPNConfigTemplate, dns, ip, ca, cert, key)
 
-	conf, err := json.Marshal(&AmneziaConfigInnerJson{
+	conf := new(bytes.Buffer)
+
+	enc := json.NewEncoder(conf)
+	enc.SetEscapeHTML(false)
+
+	if err := enc.Encode(&AmneziaConfigInnerJson{
 		Config: ov,
-	})
-	if err != nil {
+	}); err != nil {
 		return "", fmt.Errorf("marshal openvpn config: %w", err)
 	}
 
-	return string(conf), nil
+	return conf.String(), nil
 }
 
 func NewWireguardConfigJson(wg string) (string, error) {
-	conf, err := json.Marshal(&AmneziaConfigInnerJson{
+	conf := new(bytes.Buffer)
+
+	enc := json.NewEncoder(conf)
+	enc.SetEscapeHTML(false)
+
+	if err := enc.Encode(&AmneziaConfigInnerJson{
 		Config: wg,
-	})
-	if err != nil {
+	}); err != nil {
 		return "", fmt.Errorf("marshal wireguard config: %w", err)
 	}
 
-	return string(conf), nil
+	return conf.String(), nil
 }
 
 type AmneziaCloakConfig struct {
@@ -215,10 +223,10 @@ func (ac *AmneziaConfig) SetDefaultContainer(c string) {
 }
 
 func (ac *AmneziaConfig) Marshal() (string, error) {
-	conf, err := json.Marshal(ac)
-	if err != nil {
-		return "", fmt.Errorf("marshal amnezia config: %w", err)
-	}
+	//conf, err := json.Marshal(ac)
+	//if err != nil {
+	//	return "", fmt.Errorf("marshal amnezia config: %w", err)
+	//}
 
 	buf := new(bytes.Buffer)
 	if _, err := buf.Write([]byte("vpn://")); err != nil {
@@ -234,8 +242,15 @@ func (ac *AmneziaConfig) Marshal() (string, error) {
 	}
 
 	gzw := zlib.NewWriter(b64w)
-	if _, err := io.Copy(gzw, bytes.NewReader(conf)); err != nil {
-		return "", fmt.Errorf("compress amnezia config: %w", err)
+	//if _, err := io.Copy(gzw, bytes.NewReader(conf)); err != nil {
+	//	return "", fmt.Errorf("compress amnezia config: %w", err)
+	//}
+
+	enc := json.NewEncoder(gzw)
+	enc.SetEscapeHTML(false)
+
+	if err := enc.Encode(ac); err != nil {
+		return "", fmt.Errorf("encode amnezia config: %w", err)
 	}
 
 	if err := gzw.Close(); err != nil {
@@ -268,7 +283,7 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv, cloakByPa
 	}
 
 	openvpnConfig, err := NewOpenVPNConfigJson(
-		u.DNSv4.String(), //+","+u.DNSv4.String(),
+		defaultInternalDNS,
 		u.EndpointIPv4.String(),
 		u.OvCACertPem,
 		u.OvClientCertPem,

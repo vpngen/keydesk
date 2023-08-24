@@ -189,7 +189,7 @@ if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" 
 fi
 
 if [ -z "${port}" ]; then
-        port="51820"
+        port="0"
 fi
 
 # * Check if brigade is exists

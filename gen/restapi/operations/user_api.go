@@ -40,7 +40,6 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 
 		JSONConsumer: runtime.JSONConsumer(),
 
-		BinProducer:  runtime.ByteStreamProducer(),
 		JSONProducer: runtime.JSONProducer(),
 
 		DeleteUserUserIDHandler: DeleteUserUserIDHandlerFunc(func(params DeleteUserUserIDParams, principal interface{}) middleware.Responder {
@@ -57,9 +56,6 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 		}),
 		PostUserHandler: PostUserHandlerFunc(func(params PostUserParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation PostUser has not yet been implemented")
-		}),
-		PostUserngHandler: PostUserngHandlerFunc(func(params PostUserngParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation PostUserng has not yet been implemented")
 		}),
 
 		// Applies when the "Authorization" header is set
@@ -100,9 +96,6 @@ type UserAPI struct {
 	//   - application/json
 	JSONConsumer runtime.Consumer
 
-	// BinProducer registers a producer for the following mime types:
-	//   - application/octet-stream
-	BinProducer runtime.Producer
 	// JSONProducer registers a producer for the following mime types:
 	//   - application/json
 	JSONProducer runtime.Producer
@@ -124,8 +117,6 @@ type UserAPI struct {
 	PostTokenHandler PostTokenHandler
 	// PostUserHandler sets the operation handler for the post user operation
 	PostUserHandler PostUserHandler
-	// PostUserngHandler sets the operation handler for the post userng operation
-	PostUserngHandler PostUserngHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -199,9 +190,6 @@ func (o *UserAPI) Validate() error {
 		unregistered = append(unregistered, "JSONConsumer")
 	}
 
-	if o.BinProducer == nil {
-		unregistered = append(unregistered, "BinProducer")
-	}
 	if o.JSONProducer == nil {
 		unregistered = append(unregistered, "JSONProducer")
 	}
@@ -224,9 +212,6 @@ func (o *UserAPI) Validate() error {
 	}
 	if o.PostUserHandler == nil {
 		unregistered = append(unregistered, "PostUserHandler")
-	}
-	if o.PostUserngHandler == nil {
-		unregistered = append(unregistered, "PostUserngHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -283,8 +268,6 @@ func (o *UserAPI) ProducersFor(mediaTypes []string) map[string]runtime.Producer 
 	result := make(map[string]runtime.Producer, len(mediaTypes))
 	for _, mt := range mediaTypes {
 		switch mt {
-		case "application/octet-stream":
-			result["application/octet-stream"] = o.BinProducer
 		case "application/json":
 			result["application/json"] = o.JSONProducer
 		}
@@ -347,10 +330,6 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/user"] = NewPostUser(o.context, o.PostUserHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/userng"] = NewPostUserng(o.context, o.PostUserngHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP
@@ -392,6 +371,6 @@ func (o *UserAPI) AddMiddlewareFor(method, path string, builder middleware.Build
 	}
 	o.Init()
 	if h, ok := o.handlers[um][path]; ok {
-		o.handlers[method][path] = builder(h)
+		o.handlers[um][path] = builder(h)
 	}
 }

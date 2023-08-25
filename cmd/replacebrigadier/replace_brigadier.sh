@@ -1,47 +1,144 @@
 #!/bin/sh
 
-BASE_HOME_DIR="/home"
-KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
-
-spinlock="`[ ! -z \"${TMPDIR}\" ] && echo -n \"${TMPDIR}/\" || echo -n \"/tmp/\" ; echo \"vgbrigade.spinlock\"`"
-trap "rm -f \"${spinlock}\" 2>/dev/null" EXIT
-while [ -f "${spinlock}" ] ; do
+# [ ${FLOCKER} != $0 ] && exec env FLOCKER="$0" flock -e "$0" "$0" $@ ||
+spinlock="${TMPDIR:-/tmp}/vgbrigade.spinlock"
+# shellcheck disable=SC2064
+trap "rm -f '${spinlock}' 2>/dev/null" EXIT
+while [ -f "${spinlock}" ]; do
     sleep 0.1
 done
 touch "${spinlock}" 2>/dev/null
 
 set -e
 
-printdef () {
-        echo "Usage: $0 <brigabe_id_encoded> [chunked] [json]" >&2
+DB_DIR="/home"
+KEYDESK_PATH="/opt/vgkeydesk/keydesk"
+
+if [ "root" != "$(whoami)" ]; then
+        echo "DEBUG EXECUTION" >&2
+        DEBUG="yes"
+fi
+
+fatal() {
+        cat << EOF | awk -v chunked="${chunked}" 'BEGIN {ORS=""; if (chunked != "") print length($0) "\r\n" $0 "\r\n0\r\n\r\n"; else print $0}'
+{
+        "code": $1,
+        "desc": "$2"
+        "status": "error",
+        "message": "$3"
+}
+EOF
         exit 1
 }
 
-if [ -z "${1}" ]; then 
-        printdef
+printdef () {
+        msg="$1"
+
+        echo "Usage: $0 -id <brigabe_id_encoded> [-ch] [-j] [-wg <conf types list>] [-ipsec <conf types list>] [-ovc <conf types list>]" >&2
+        echo "  +debug: -d <db_dir> -c <conf_dir> -a <api_addr>|-" >&2
+
+        fatal "400" "Bad request" "${msg}"
+}
+
+chunked=""
+json=""
+apiaddr=""
+
+wg_configs=""
+ipsec_configs=""
+ovc_configs=""
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -id)
+                brigade_id="$2"
+                shift 2
+                ;;
+        -ch)
+                chunked="-ch"
+                shift 1
+                ;;
+        -j)
+                json="-j"
+                shift 1
+                ;;
+        -d)
+                if [ -z "$DEBUG" ]; then
+                        printdef "The -d option is only for debug"
+                fi
+
+                DB_DIR="$2"
+                shift 2
+                ;;
+        -c)
+                if [ -z "$DEBUG" ]; then
+                        printdef "The -c option is only for debug"
+                fi
+
+                CONF_DIR="$2"
+                shift 2
+                ;;
+        -a) 
+                if [ -z "$DEBUG" ]; then
+                        printdef "The -a option is only for debug"
+                fi
+
+                apiaddr="-a $2"
+                shift 2
+                ;;
+        -wg)
+                wg_configs="-wg $2"
+                shift 2
+                ;;
+        -ipsec)
+                ipsec_configs="-ipsec $2"
+                shift 2
+                ;;
+        -ovc)
+                ovc_configs="-ovc $2"
+                shift 2
+                ;;
+        *)
+                printdef "Unknown option: $1"
+                ;;
+    esac
+done
+
+if [ -z "${brigade_id}" ]; then
+        printdef "Brigade ID is required"
 fi
 
-brigade_id=${1}
-chunked=${2}
-
-if [ "chunked" != "${chunked}" ]; then
-        chunked=""
-else
-        chunked="-ch"
+if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ]; then
+        wg_configs="-wg native"
 fi
 
 # * Check if brigade does not exists
 # !!! lib???
-if [ ! -s "${BASE_HOME_DIR}/${brigade_id}/created" ]; then
+if [ -z "${DEBUG}" ] && [ ! -s "${DB_DIR}/${brigade_id}/created" ]; then
         echo "Brigade ${brigade_id} does not exists" >&2
-        exit 1
+        
+        fatal "404" "Not found" "Brigade ${brigade_id} does not exists"
 fi
 
-wgconf=$(sudo -u "${brigade_id}" -g  "${brigade_id}" "${KEYDESK_APP_PATH}" -r "${chunked}")
-rc=$?
-if [ $rc -ne 0 ]; then
-        exit 1
+if [ -z "${DEBUG}" ]; then
+        # shellcheck disable=SC2086
+        output="$(sudo -u "${brigade_id}" -g  "${brigade_id}" "${KEYDESK_PATH}" -r ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs})" || (echo "$output"; exit 1)
+else
+        CONF_DIR="${CONF_DIR:-${DB_DIR}}"
+        EXECUTABLE_DIR="$(realpath "$(dirname "$0")")"
+        SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}/../keydesk")"
+        if [ -x "${KEYDESK_PATH}" ]; then
+                # shellcheck disable=SC2086
+                output="$("${KEYDESK_PATH}" -r -d "${DB_DIR}" -c "${CONF_DIR}" -id "${brigade_id}" ${apiaddr} ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs})" || (echo "$output"; exit 1)
+        elif [ -s "${SOURCE_DIR}/main.go" ]; then
+                # shellcheck disable=SC2086
+                output="$(go run "${SOURCE_DIR}" -r -d "${DB_DIR}" -c "${CONF_DIR}" -id "${brigade_id}" ${apiaddr} ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs})" || (echo "$output"; exit 1)
+        else
+                echo "ERROR: can't find ${KEYDESK_PATH} or ${SOURCE_DIR}/main.go" >&2
+                
+                fatal "500" "Internal server error" "Can't find keydesk binary or source code"
+        fi
 fi
 
 # Print brigadier config
-echo "${wgconf}"
+printf "%s" "$output"

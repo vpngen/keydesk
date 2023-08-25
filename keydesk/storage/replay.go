@@ -26,7 +26,19 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 
 	if !uonly {
 		// if we catch a slowdown problems we need organize queue
-		err = vpnapi.WgAdd(db.actualAddrPort, db.calculatedAddrPort, data.WgPrivateRouterEnc, data.EndpointIPv4, data.EndpointPort, data.IPv4CGNAT, data.IPv6ULA)
+		err = vpnapi.WgAdd(
+			db.actualAddrPort,
+			db.calculatedAddrPort,
+			data.WgPrivateRouterEnc,
+			data.EndpointIPv4,
+			data.EndpointPort,
+			data.IPv4CGNAT,
+			data.IPv6ULA,
+			data.CloakFakeDomain,
+			data.OvCACertPemGzipBase64,
+			data.OvCAKeyRouterEnc,
+			data.IPSecPSKRouterEnc,
+		)
 		if err != nil {
 			return fmt.Errorf("wg add: %w", err)
 		}
@@ -43,7 +55,13 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 		}
 
 		// if we catch a slowdown problems we need organize queue
-		err = vpnapi.WgPeerAdd(db.actualAddrPort, db.calculatedAddrPort, user.WgPublicKey, data.WgPublicKey, user.WgPSKRouterEnc, user.IPv4Addr, user.IPv6Addr, kd6)
+		_, err = vpnapi.WgPeerAdd(
+			db.actualAddrPort, db.calculatedAddrPort,
+			user.WgPublicKey, data.WgPublicKey, user.WgPSKRouterEnc,
+			user.IPv4Addr, user.IPv6Addr, kd6,
+			user.OvCSRGzipBase64, user.CloakByPassUIDRouterEnc,
+			user.IPSecUsernameRouterEnc, user.IPSecPasswordRouterEnc,
+		)
 		if err != nil {
 			return fmt.Errorf("wg add: %w", err)
 		}

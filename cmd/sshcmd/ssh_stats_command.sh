@@ -15,12 +15,12 @@ if [ $# -eq 0 ]; then
 fi
 
 cmd=${1}; shift
-basedir=$(dirname $0)
+basedir=$(dirname "$0")
 
 set -e
 
-if [ "xfetchstats" = "x${cmd}" ]; then
-        ${basedir}/fetchstats "$@"
+if [ "${cmd}" = "fetchstats" ]; then
+        "${basedir}/fetchstats" "$@"
 else
     echo "Unknown command: ${cmd}"
     printdef

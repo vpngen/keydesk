@@ -6,7 +6,6 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"io"
 	"net/http"
 
 	"github.com/go-openapi/runtime"
@@ -23,15 +22,11 @@ PostUserCreated New user created.
 swagger:response postUserCreated
 */
 type PostUserCreated struct {
-	/*the value is `attachment; filename="wg.conf"`
-
-	 */
-	ContentDisposition string `json:"Content-Disposition"`
 
 	/*
 	  In: Body
 	*/
-	Payload io.ReadCloser `json:"body,omitempty"`
+	Payload *models.Newuser `json:"body,omitempty"`
 }
 
 // NewPostUserCreated creates PostUserCreated with default headers values
@@ -40,42 +35,26 @@ func NewPostUserCreated() *PostUserCreated {
 	return &PostUserCreated{}
 }
 
-// WithContentDisposition adds the contentDisposition to the post user created response
-func (o *PostUserCreated) WithContentDisposition(contentDisposition string) *PostUserCreated {
-	o.ContentDisposition = contentDisposition
-	return o
-}
-
-// SetContentDisposition sets the contentDisposition to the post user created response
-func (o *PostUserCreated) SetContentDisposition(contentDisposition string) {
-	o.ContentDisposition = contentDisposition
-}
-
 // WithPayload adds the payload to the post user created response
-func (o *PostUserCreated) WithPayload(payload io.ReadCloser) *PostUserCreated {
+func (o *PostUserCreated) WithPayload(payload *models.Newuser) *PostUserCreated {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the post user created response
-func (o *PostUserCreated) SetPayload(payload io.ReadCloser) {
+func (o *PostUserCreated) SetPayload(payload *models.Newuser) {
 	o.Payload = payload
 }
 
 // WriteResponse to the client
 func (o *PostUserCreated) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	// response header Content-Disposition
-
-	contentDisposition := o.ContentDisposition
-	if contentDisposition != "" {
-		rw.Header().Set("Content-Disposition", contentDisposition)
-	}
-
 	rw.WriteHeader(201)
-	payload := o.Payload
-	if err := producer.Produce(rw, payload); err != nil {
-		panic(err) // let the recovery middleware deal with this
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
 	}
 }
 

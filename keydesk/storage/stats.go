@@ -202,13 +202,17 @@ func randomData(data *Brigade, now time.Time) (*vpnapi.WgStatTimestamp, *vpnapi.
 
 func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL, maxUserInactiveDuration time.Duration, monthlyQuotaRemaining int) error {
 	var (
-		totalTraffic                                                 TrafficCountersContainer
-		throttledUsers, activeUsers, activeWgUsers, activeIPSecUsers int
-		trafficMap                                                   *vpnapi.WgStatTrafficMap
-		lastSeenMap                                                  *vpnapi.WgStatLastActivityMap
-		endpointMap                                                  *vpnapi.WgStatEndpointMap
-		statsTimestamp                                               *vpnapi.WgStatTimestamp
-		err                                                          error
+		totalTraffic TrafficCountersContainer
+		throttledUsers,
+		activeUsers,
+		activeWgUsers,
+		activeIPSecUsers,
+		activeOvcUsers int
+		trafficMap     *vpnapi.WgStatTrafficMap
+		lastSeenMap    *vpnapi.WgStatLastActivityMap
+		endpointMap    *vpnapi.WgStatEndpointMap
+		statsTimestamp *vpnapi.WgStatTimestamp
+		err            error
 	)
 
 	now := time.Now().UTC()
@@ -267,6 +271,26 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersIPSec)
 		}
 
+		if traffic, ok := trafficMap.Ovc[id]; ok {
+			rx := traffic.Rx
+			tx := traffic.Tx
+
+			if user.Quotas.OSOvcCounters.Rx <= traffic.Rx {
+				rx = traffic.Rx - user.Quotas.OSOvcCounters.Rx
+			}
+
+			if user.Quotas.OSOvcCounters.Tx <= traffic.Tx {
+				tx = traffic.Tx - user.Quotas.OSOvcCounters.Tx
+			}
+
+			user.Quotas.OSOvcCounters.Rx = traffic.Rx
+			user.Quotas.OSOvcCounters.Tx = traffic.Tx
+
+			sum.Inc(rx, tx)
+			totalTraffic.TrafficOvc.Inc(rx, tx)
+			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersOvc)
+		}
+
 		totalTraffic.TrafficSummary.Inc(sum.Rx, sum.Tx)
 		incDateSwitchRelated(now, sum.Rx, sum.Tx, &user.Quotas.CountersTotal)
 
@@ -290,6 +314,9 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 		lastActivityIPSec := lastSeenMap.IPSec[id]
 		lastActivityMark(now, lastActivityIPSec, &user.Quotas.LastIPSecActivity)
 
+		lastActivityOvc := lastSeenMap.Ovc[id]
+		lastActivityMark(now, lastActivityOvc, &user.Quotas.LastOvcActivity)
+
 		lastActivityTotal := user.Quotas.LastActivity.Total
 
 		if lastActivityWg.After(lastActivityTotal) {
@@ -298,6 +325,10 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 
 		if lastActivityIPSec.After(lastActivityTotal) {
 			lastActivityTotal = lastActivityIPSec
+		}
+
+		if lastActivityOvc.After(lastActivityTotal) {
+			lastActivityTotal = lastActivityOvc
 		}
 
 		lastActivityMark(now, lastActivityTotal, &user.Quotas.LastActivity)
@@ -319,6 +350,10 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 		if user.Quotas.LastIPSecActivity.Total.After(userInactiveEdge) {
 			activeIPSecUsers++
 		}
+
+		if user.Quotas.LastOvcActivity.Total.After(userInactiveEdge) {
+			activeOvcUsers++
+		}
 	}
 
 	data.TotalUsersCount = len(data.Users)
@@ -326,10 +361,12 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 	data.ActiveUsersCount = activeUsers
 	data.ActiveWgUsersCount = activeWgUsers
 	data.ActiveIPSecUsersCount = activeIPSecUsers
+	data.ActiveOvcUsersCount = activeOvcUsers
 
 	incDateSwitchRelated(now, totalTraffic.TrafficSummary.Rx, totalTraffic.TrafficSummary.Tx, &data.TotalTraffic)
 	incDateSwitchRelated(now, totalTraffic.TrafficWg.Rx, totalTraffic.TrafficWg.Tx, &data.TotalWgTraffic)
 	incDateSwitchRelated(now, totalTraffic.TrafficIPSec.Rx, totalTraffic.TrafficIPSec.Tx, &data.TotalIPSecTraffic)
+	incDateSwitchRelated(now, totalTraffic.TrafficOvc.Rx, totalTraffic.TrafficOvc.Tx, &data.TotalOvcTraffic)
 
 	if data.Endpoints == nil {
 		data.Endpoints = UsersNetworks{}
@@ -342,6 +379,12 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 	}
 
 	for _, prefix := range endpointMap.IPSec {
+		if prefix.IsValid() {
+			data.Endpoints[prefix.String()] = now
+		}
+	}
+
+	for _, prefix := range endpointMap.Ovc {
 		if prefix.IsValid() {
 			data.Endpoints[prefix.String()] = now
 		}
@@ -427,6 +470,7 @@ func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename, statsSpinl
 				TotalTraffic:      data.TotalTraffic.Total,
 				TotalWgTraffic:    data.TotalWgTraffic.Total,
 				TotalIPSecTraffic: data.TotalIPSecTraffic.Total,
+				TotalOvcTraffic:   data.TotalOvcTraffic.Total,
 			},
 			CountersUpdateTime: data.CountersUpdateTime,
 		},

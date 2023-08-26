@@ -55,10 +55,12 @@ printdef () {
 while [ "$#" -gt 0 ]; do
     case "$1" in
         -id)
+                NEW_STYLE="yes"
                 brigade_id="$2"
                 shift 2
                 ;;
         -ch)
+                NEW_STYLE="yes"
                 chunked="-ch"
                 shift 1
                 ;;
@@ -87,7 +89,24 @@ while [ "$#" -gt 0 ]; do
                 shift 2
                 ;;
         *)
-                printdef "Unknown option: $1"
+                if [ -n "$NEW_STYLE" ]; then
+                        printdef "Unknown option: $1"
+                fi
+
+                if [ -z "$1" ]; then 
+                        printdef "Brigade ID is required"
+                fi
+
+                brigade_id="$1"
+                chunked=${2}
+
+                if [ "xchunked" != "x${chunked}" ]; then
+                        chunked=""
+                else
+                        chunked="-ch"
+                fi
+
+                break
                 ;;
         esac
 done

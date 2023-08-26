@@ -19,7 +19,7 @@ const (
 	defaultCloakRemotePort       = "443"
 	defaultCloakTransport        = "direct"
 	cloakProxyMethodOpenVPN      = "openvpn"
-	defaultInternalDNS           = "100.128.0.1"
+	defaultInternalDNS           = "100.126.0.1"
 )
 
 type CloakConfig struct {

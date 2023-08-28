@@ -118,7 +118,7 @@ func (db *BrigadeStorage) CreateUser(
 		ipsecUsernameRouterEnc, ipsecPasswordRouterEnc,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("wg add: %w", err)
+		return nil, fmt.Errorf("wg peer add: %w", err)
 	}
 
 	payload := &APIUserResponse{}

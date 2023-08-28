@@ -8,13 +8,36 @@ import (
 	"net/url"
 )
 
+type WgStatTraffic2 struct {
+	Received string `json:"received"`
+	Sent     string `json:"sent"`
+}
+
+type (
+	WgStatTrafficData2    map[string]WgStatTraffic2
+	WgStatTrafficMap2     map[string]WgStatTrafficData2
+	WgStatLastseenData2   map[string]string
+	WgStatLastseenMap2    map[string]WgStatLastseenData2
+	WgStatEndpointData2   map[string]string
+	WgStatEndpointMap2    map[string]WgStatEndpointData2
+	WgStatAggregatedData2 map[string]int
+)
+
+type WgStatData2 struct {
+	WgStatAggregatedData2 `json:"aggregated,omitempty"`
+	WgStatTrafficMap2     `json:"traffic,omitempty"`
+	WgStatLastseenMap2    `json:"lastseen,omitempty"`
+	WgStatEndpointMap2    `json:"endpoint,omitempty"`
+}
+
 // WGStats - wg_stats endpoint-API call.
 type WGStats struct {
-	Code         string `json:"code"`
-	Traffic      string `json:"traffic"`
-	LastActivity string `json:"last-seen"`
-	Endpoints    string `json:"endpoints"`
-	Timestamp    string `json:"timestamp"`
+	Code         string      `json:"code"`
+	Traffic      string      `json:"traffic"`
+	LastActivity string      `json:"last-seen"`
+	Endpoints    string      `json:"endpoints"`
+	Timestamp    string      `json:"timestamp"`
+	Data         WgStatData2 `json:"data,omitempty"`
 }
 
 // WgPeerAdd - peer_add endpoint-API call.

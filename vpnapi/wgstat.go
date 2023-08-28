@@ -88,6 +88,42 @@ func WgStatParseTimestamp(timestamp string) (*WgStatTimestamp, error) {
 	}, nil
 }
 
+func WgStatParseTrafficHandler(traffic string, traffic2 WgStatTrafficMap2) (*WgStatTrafficMap, error) {
+	if traffic2 != nil {
+		return WgStatParseTraffic2(traffic2)
+	}
+
+	return WgStatParseTraffic(traffic)
+}
+
+func WgStatParseTraffic2(traffic WgStatTrafficMap2) (*WgStatTrafficMap, error) {
+	m := NewWgStatTrafficMap()
+
+	for id, data := range traffic {
+		for vpnType, traffic := range data {
+			switch vpnType {
+			case "wireguard":
+				m.Wg[id] = &WgStatTraffic{
+					Rx: traffic.Received,
+					Tx: traffic.Sent,
+				}
+			case "ipsec":
+				m.IPSec[id] = &WgStatTraffic{
+					Rx: traffic.Received,
+					Tx: traffic.Sent,
+				}
+			case "cloak-openvpn":
+				m.Ovc[id] = &WgStatTraffic{
+					Rx: traffic.Received,
+					Tx: traffic.Sent,
+				}
+			}
+		}
+	}
+
+	return m, nil
+}
+
 // WgStatParseTraffic - parse traffic from text.
 func WgStatParseTraffic(traffic string) (*WgStatTrafficMap, error) {
 	m := NewWgStatTrafficMap()
@@ -155,6 +191,38 @@ func WgStatParseTraffic(traffic string) (*WgStatTrafficMap, error) {
 	return m, nil
 }
 
+func WgStatParseLastActivityHandler(lastSeen string, lastSeen2 WgStatLastseenMap2) (*WgStatLastActivityMap, error) {
+	if lastSeen2 != nil {
+		return WgStatParseLastActivity2(lastSeen2)
+	}
+
+	return WgStatParseLastActivity(lastSeen)
+}
+
+func WgStatParseLastActivity2(lastSeen WgStatLastseenMap2) (*WgStatLastActivityMap, error) {
+	m := NewWgStatLastActivityMap()
+
+	for id, data := range lastSeen {
+		for vpnType, timestamp := range data {
+			ts, err := strconv.ParseInt(timestamp, 10, 64)
+			if err != nil {
+				continue
+			}
+
+			switch vpnType {
+			case "wireguard":
+				m.Wg[id] = time.Unix(ts, 0).UTC()
+			case "ipsec":
+				m.IPSec[id] = time.Unix(ts, 0).UTC()
+			case "cloak-openvpn":
+				m.Ovc[id] = time.Unix(ts, 0).UTC()
+			}
+		}
+	}
+
+	return m, nil
+}
+
 // WgStatParseLastActivity - parse last activity time from text.
 func WgStatParseLastActivity(lastSeen string) (*WgStatLastActivityMap, error) {
 	m := NewWgStatLastActivityMap()
@@ -204,11 +272,47 @@ func WgStatParseLastActivity(lastSeen string) (*WgStatLastActivityMap, error) {
 	return m, nil
 }
 
-// WgStatParseEndpoints - parse last seen endpoints from text.
-func WgStatParseEndpoints(lastSeen string) (*WgStatEndpointMap, error) {
+func WgStatParseEndpointsHandler(endpoints string, endpoints2 WgStatEndpointMap2) (*WgStatEndpointMap, error) {
+	if endpoints2 != nil {
+		return WgStatParseEndpoints2(endpoints2)
+	}
+
+	return WgStatParseEndpoints(endpoints)
+}
+
+func WgStatParseEndpoints2(endpoints WgStatEndpointMap2) (*WgStatEndpointMap, error) {
 	m := NewWgStatEndpointMap()
 
-	for _, line := range strings.Split(lastSeen, "\n") {
+	for id, data := range endpoints {
+		for vpnType, prefix := range data {
+			prefix, err := netip.ParsePrefix(prefix)
+			if err != nil {
+				continue
+			}
+
+			if !prefix.IsValid() {
+				continue
+			}
+
+			switch vpnType {
+			case "wireguard":
+				m.Wg[id] = prefix
+			case "ipsec":
+				m.IPSec[id] = prefix
+			case "cloak-openvpn":
+				m.Ovc[id] = prefix
+			}
+		}
+	}
+
+	return m, nil
+}
+
+// WgStatParseEndpoints - parse last seen endpoints from text.
+func WgStatParseEndpoints(endpoints string) (*WgStatEndpointMap, error) {
+	m := NewWgStatEndpointMap()
+
+	for _, line := range strings.Split(endpoints, "\n") {
 		if line == "" {
 			continue
 		}
@@ -261,17 +365,17 @@ func WgStatParse(resp *WGStats) (*WgStatTimestamp, *WgStatTrafficMap, *WgStatLas
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}
 
-	trafficMap, err := WgStatParseTraffic(resp.Traffic)
+	trafficMap, err := WgStatParseTrafficHandler(resp.Traffic, resp.Data.WgStatTrafficMap2)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}
 
-	lastActivityMap, err := WgStatParseLastActivity(resp.LastActivity)
+	lastActivityMap, err := WgStatParseLastActivityHandler(resp.LastActivity, resp.Data.WgStatLastseenMap2)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}
 
-	endpointsMap, err := WgStatParseEndpoints(resp.Endpoints)
+	endpointsMap, err := WgStatParseEndpointsHandler(resp.Endpoints, resp.Data.WgStatEndpointMap2)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}

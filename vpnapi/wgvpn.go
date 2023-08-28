@@ -9,8 +9,8 @@ import (
 )
 
 type WgStatTraffic2 struct {
-	Received uint64 `json:"received"`
-	Sent     uint64 `json:"sent"`
+	Received string `json:"received"`
+	Sent     string `json:"sent"`
 }
 
 type (

@@ -101,21 +101,31 @@ func WgStatParseTraffic2(traffic WgStatTrafficMap2) (*WgStatTrafficMap, error) {
 
 	for id, data := range traffic {
 		for vpnType, traffic := range data {
+			rx, err := strconv.ParseUint(traffic.Received, 10, 64)
+			if err != nil {
+				continue
+			}
+
+			tx, err := strconv.ParseUint(traffic.Sent, 10, 64)
+			if err != nil {
+				continue
+			}
+
 			switch vpnType {
 			case "wireguard":
 				m.Wg[id] = &WgStatTraffic{
-					Rx: traffic.Received,
-					Tx: traffic.Sent,
+					Rx: rx,
+					Tx: tx,
 				}
 			case "ipsec":
 				m.IPSec[id] = &WgStatTraffic{
-					Rx: traffic.Received,
-					Tx: traffic.Sent,
+					Rx: rx,
+					Tx: tx,
 				}
 			case "cloak-openvpn":
 				m.Ovc[id] = &WgStatTraffic{
-					Rx: traffic.Received,
-					Tx: traffic.Sent,
+					Rx: rx,
+					Tx: tx,
 				}
 			}
 		}
@@ -285,6 +295,10 @@ func WgStatParseEndpoints2(endpoints WgStatEndpointMap2) (*WgStatEndpointMap, er
 
 	for id, data := range endpoints {
 		for vpnType, prefix := range data {
+			if prefix == "(none)" {
+				continue
+			}
+
 			prefix, err := netip.ParsePrefix(prefix)
 			if err != nil {
 				continue

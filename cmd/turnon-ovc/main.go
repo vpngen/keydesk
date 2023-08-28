@@ -87,7 +87,7 @@ func parseArgs() (bool, bool, string, string, string, netip.AddrPort, error) {
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
 	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
 	replay := flag.Bool("r", false, "Replay brigade")
-	purge := flag.String("p", "", "Purge IPSec (need brigadeID)")
+	purge := flag.String("p", "", "Purge OpenVPN over Cloak (need brigadeID)")
 
 	flag.Parse()
 

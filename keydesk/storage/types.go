@@ -105,6 +105,7 @@ func (x *StatsCountersStack) Put(counters BrigadeCounters, traffic TrafficCounte
 	stats.NetCounters.TotalTraffic.Inc(traffic.TrafficSummary.Rx, traffic.TrafficSummary.Tx)
 	stats.NetCounters.TotalWgTraffic.Inc(traffic.TrafficWg.Rx, traffic.TrafficWg.Tx)
 	stats.NetCounters.TotalIPSecTraffic.Inc(traffic.TrafficIPSec.Rx, traffic.TrafficIPSec.Tx)
+	stats.NetCounters.TotalOvcTraffic.Inc(traffic.TrafficOvc.Rx, traffic.TrafficOvc.Tx)
 	stats.CountersUpdateTime = counters.CountersUpdateTime
 }
 

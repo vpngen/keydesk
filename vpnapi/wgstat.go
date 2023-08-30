@@ -213,8 +213,8 @@ func WgStatParseLastActivity2(lastSeen WgStatLastseenMap2) (*WgStatLastActivityM
 	m := NewWgStatLastActivityMap()
 
 	for id, data := range lastSeen {
-		for vpnType, timestamp := range data {
-			ts, err := strconv.ParseInt(timestamp, 10, 64)
+		for vpnType, lastSeen := range data {
+			ts, err := strconv.ParseInt(lastSeen.Timestamp, 10, 64)
 			if err != nil {
 				continue
 			}
@@ -294,12 +294,12 @@ func WgStatParseEndpoints2(endpoints WgStatEndpointMap2) (*WgStatEndpointMap, er
 	m := NewWgStatEndpointMap()
 
 	for id, data := range endpoints {
-		for vpnType, prefix := range data {
-			if prefix == "(none)" {
+		for vpnType, endpoint := range data {
+			if endpoint.Subnet == "(none)" {
 				continue
 			}
 
-			prefix, err := netip.ParsePrefix(prefix)
+			prefix, err := netip.ParsePrefix(endpoint.Subnet)
 			if err != nil {
 				continue
 			}

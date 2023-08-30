@@ -34,8 +34,8 @@ type (
 type WgStatData2 struct {
 	WgStatAggregatedData2 `json:"aggregated,omitempty"`
 	WgStatTrafficMap2     `json:"traffic,omitempty"`
-	WgStatLastseenMap2    `json:"lastseen,omitempty"`
-	WgStatEndpointMap2    `json:"endpoint,omitempty"`
+	WgStatLastseenMap2    `json:"last-seen,omitempty"`
+	WgStatEndpointMap2    `json:"endpoints,omitempty"`
 }
 
 // WGStats - wg_stats endpoint-API call.

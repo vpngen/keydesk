@@ -13,12 +13,20 @@ type WgStatTraffic2 struct {
 	Sent     string `json:"sent"`
 }
 
+type WgStatLastseen2 struct {
+	Timestamp string `json:"timestamp"`
+}
+
+type WgStatEndpoint2 struct {
+	Subnet string `json:"subnet"`
+}
+
 type (
 	WgStatTrafficData2    map[string]WgStatTraffic2
 	WgStatTrafficMap2     map[string]WgStatTrafficData2
-	WgStatLastseenData2   map[string]string
+	WgStatLastseenData2   map[string]WgStatLastseen2
 	WgStatLastseenMap2    map[string]WgStatLastseenData2
-	WgStatEndpointData2   map[string]string
+	WgStatEndpointData2   map[string]WgStatEndpoint2
 	WgStatEndpointMap2    map[string]WgStatEndpointData2
 	WgStatAggregatedData2 map[string]int
 )

@@ -76,7 +76,7 @@ func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgener
 		return "", "", nil, fmt.Errorf("assembleConfig: %w", err)
 	}
 
-	return wgconf, kdlib.AssembleWgStyleTunName(user.Name), confJson, nil
+	return wgconf, kdlib.AssembleWgStyleTunName(user.Name) + ".conf", confJson, nil
 }
 
 func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemented, wgPriv, wgPSK []byte, ovcPriv, cloakBypassUID string, ipsecUsername, ipsecPassword string) (string, *models.Newuser, error) {

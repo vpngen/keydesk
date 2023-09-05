@@ -80,6 +80,12 @@ contents:
     mode: 0005
     owner: root
     group: root
+- src: bin/turnon-outline
+  dst: /opt/vgkeydesk/turnon-outline
+  file_info:
+    mode: 0005
+    owner: root
+    group: root
 - src: bin/fetchstats
   dst: /opt/vgkeydesk/fetchstats
   file_info:

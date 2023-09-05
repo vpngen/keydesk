@@ -120,6 +120,11 @@ while [ "$#" -gt 0 ]; do
                 ovc_configs="-ovc $2"
                 shift 2
                 ;;
+        -outline)
+                NEW_STYLE="yes"
+                outline_configs="-outline $2"
+                shift 2
+                ;;
         -ep4)
                 NEW_STYLE="yes"
                 endpoint_ip4="$2"
@@ -263,8 +268,10 @@ if [ -z "$brigade_id" ] \
         printdef "Not enough arguments"
 fi
 
-if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ]; then
+if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ]; then
         wg_configs="-wg native"
+        ovc_configs="-ovc amnezia"
+        outline_configs="-outline access_key"
 fi
 
 if [ -z "${port}" ]; then
@@ -305,7 +312,7 @@ if [ -z "${DEBUG}" ]; then
                 -kd6 "${keydesk_ip6}" \
                 -p "$port" \
                 -dn "$domain" \
-                ${wg_configs} ${ipsec_configs} ${ovc_configs} \
+                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
                 >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
 else
         BRIGADE_SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}")"
@@ -323,7 +330,7 @@ else
                         -id "${brigade_id}" \
                         -d "${DB_DIR}" \
                         -c "${CONF_DIR}" \
-                        ${wg_configs} ${ipsec_configs} ${ovc_configs} \
+                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
                         ${apiaddr} \
                         >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
         elif [ -s "${BRIGADE_SOURCE_DIR}/main.go" ]; then
@@ -340,7 +347,7 @@ else
                         -id "${brigade_id}" \
                         -d "${DB_DIR}" \
                         -c "${CONF_DIR}" \
-                        ${wg_configs} ${ipsec_configs} ${ovc_configs} \
+                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
                         ${apiaddr} \
                         >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
         else 
@@ -357,7 +364,7 @@ wgconf="$(sudo -u "${brigade_id}" -g "${brigade_id}" "${KEYDESK_APP_PATH}" \
         -person "${person_name}" \
         -desc "${person_desc}" \
         -url "${person_url}" \
-        ${wg_configs} ${ipsec_configs} ${ovc_configs} \
+        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs}\
         ${chunked} \
         ${json} \
         )" || (echo "$wgconf"; exit 1)
@@ -374,7 +381,7 @@ else
                         -d "${DB_DIR}" \
                         -c "${CONF_DIR}" \
                         ${apiaddr} \
-                        ${wg_configs} ${ipsec_configs} ${ovc_configs} \
+                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
                         ${chunked} \
                         ${json} \
                         )" || (echo "$wgconf"; exit 1)
@@ -389,7 +396,7 @@ else
                         -d "${DB_DIR}" \
                         -c "${CONF_DIR}" \
                         ${apiaddr} \
-                        ${wg_configs} ${ipsec_configs} ${ovc_configs} \
+                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
                         ${chunked} \
                         ${json} \
                         )" || (echo "$wgconf"; exit 1)

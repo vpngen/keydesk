@@ -26,8 +26,18 @@ type BrigadeIPSecConfig struct {
 	IPSecPSKShufflerEnc string
 }
 
+type BrigadeOutlineConfig struct {
+	OutlinePort uint16
+}
+
 // CreateBrigade - create brigade config.
-func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgConf *BrigadeWgConfig, ovcConf *BrigadeOvcConfig, ipcseConf *BrigadeIPSecConfig) error {
+func (db *BrigadeStorage) CreateBrigade(
+	config *BrigadeConfig,
+	wgConf *BrigadeWgConfig,
+	ovcConf *BrigadeOvcConfig,
+	ipcseConf *BrigadeIPSecConfig,
+	outlineConf *BrigadeOutlineConfig,
+) error {
 	f, data, err := db.openWithoutReading(config.BrigadeID)
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
@@ -54,7 +64,7 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgConf *BrigadeWg
 	data.DNSv6 = config.DNSIPv6
 	data.EndpointIPv4 = config.EndpointIPv4
 	data.EndpointDomain = config.EndpointDomain
-	data.EndpointPort = config.EndPointPort
+	data.EndpointPort = config.EndpointPort
 	data.KeydeskIPv6 = config.KeydeskIPv6
 
 	data.WgPublicKey = wgConf.WgPublicKey
@@ -74,19 +84,24 @@ func (db *BrigadeStorage) CreateBrigade(config *BrigadeConfig, wgConf *BrigadeWg
 		data.IPSecPSKShufflerEnc = ipcseConf.IPSecPSKShufflerEnc
 	}
 
+	if outlineConf != nil {
+		data.OutlinePort = outlineConf.OutlinePort
+	}
+
 	// if we catch a slowdown problems we need organize queue
 	err = vpnapi.WgAdd(
 		db.actualAddrPort,
 		db.calculatedAddrPort,
 		data.WgPrivateRouterEnc,
 		config.EndpointIPv4,
-		config.EndPointPort,
+		config.EndpointPort,
 		config.IPv4CGNAT,
 		config.IPv6ULA,
 		data.CloakFakeDomain,
 		data.OvCACertPemGzipBase64,
 		data.OvCAKeyRouterEnc,
 		data.IPSecPSKRouterEnc,
+		data.OutlinePort,
 	)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)
@@ -140,6 +155,10 @@ func (db *BrigadeStorage) GetVpnConfigs(req *ConfigsImplemented) (*ConfigsImplem
 
 	if data.IPSecPSK != "" && data.IPSecPSKRouterEnc != "" && data.IPSecPSKShufflerEnc != "" {
 		vpnCfgs.NewIPSecConfigs(req.IPSec)
+	}
+
+	if data.OutlinePort > 0 {
+		vpnCfgs.NewOutlineConfigs(req.Outline)
 	}
 
 	return vpnCfgs, nil

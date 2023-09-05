@@ -247,6 +247,17 @@ func init() {
             }
           }
         },
+        "OutlineConfig": {
+          "type": "object",
+          "required": [
+            "AccessKey"
+          ],
+          "properties": {
+            "AccessKey": {
+              "type": "string"
+            }
+          }
+        },
         "UserName": {
           "type": "string"
         },
@@ -614,6 +625,17 @@ func init() {
         }
       }
     },
+    "NewuserOutlineConfig": {
+      "type": "object",
+      "required": [
+        "AccessKey"
+      ],
+      "properties": {
+        "AccessKey": {
+          "type": "string"
+        }
+      }
+    },
     "NewuserWireguardConfig": {
       "type": "object",
       "required": [
@@ -737,6 +759,17 @@ func init() {
               "type": "string"
             },
             "Username": {
+              "type": "string"
+            }
+          }
+        },
+        "OutlineConfig": {
+          "type": "object",
+          "required": [
+            "AccessKey"
+          ],
+          "properties": {
+            "AccessKey": {
               "type": "string"
             }
           }

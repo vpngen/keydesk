@@ -158,7 +158,13 @@ definitions:
             type: string
           Password:
             type: string
-
+      OutlineConfig:
+        type: object
+        required:
+          - AccessKey
+        properties:
+          AccessKey:
+            type: string
   user:
     type: object
     required:

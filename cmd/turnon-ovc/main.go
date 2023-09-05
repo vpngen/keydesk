@@ -26,15 +26,19 @@ var (
 )
 
 func main() {
+	var routerPublicKey, shufflerPublicKey [naclkey.NaclBoxKeyLength]byte
+
 	replay, purge, brigadeID, etcDir, dbDir, addr, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 		os.Exit(1)
 	}
 
-	routerPublicKey, shufflerPublicKey, err := readPubKeys(etcDir)
-	if err != nil {
-		log.Fatalln(err)
+	if !purge {
+		routerPublicKey, shufflerPublicKey, err = readPubKeys(etcDir)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 
 	fmt.Fprintf(os.Stderr, "Brigade: %s\n", brigadeID)
@@ -147,7 +151,7 @@ func parseArgs() (bool, bool, string, string, string, netip.AddrPort, error) {
 func Do(db *storage.BrigadeStorage, replay, purge bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) error {
 	switch purge {
 	case true:
-		if err := removeOVCSupport(db, routerPublicKey, shufflerPublicKey); err != nil {
+		if err := removeOVCSupport(db); err != nil {
 			if errors.Is(err, ErrOvcAlreadyAbsent) {
 				return nil
 			}
@@ -202,7 +206,7 @@ func addOVCSupport(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKe
 	return nil
 }
 
-func removeOVCSupport(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) error {
+func removeOVCSupport(db *storage.BrigadeStorage) error {
 	f, data, err := db.OpenDbToModify()
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)

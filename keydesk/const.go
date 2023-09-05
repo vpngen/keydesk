@@ -37,4 +37,6 @@ const (
 	StandardWireguardPort = 51820
 	LowWireguardPort      = 40000
 	HighWireguardPort     = 60000
+	LowOutlinePort        = 40000
+	HighOutlinePort       = 60000
 )

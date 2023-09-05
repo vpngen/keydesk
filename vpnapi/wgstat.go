@@ -9,6 +9,13 @@ import (
 	"time"
 )
 
+const (
+	wgStatName      = "wireguard"
+	ipsecStatName   = "ipsec"
+	ovcStatName     = "cloak-openvpn"
+	outlineStatName = "outline-ss"
+)
+
 // WgStatTimestamp - VPN stat timestamp.
 type WgStatTimestamp struct {
 	Timestamp int64
@@ -24,25 +31,28 @@ type WgStatTraffic struct {
 // WgStatTrafficMap - VPN stat traffic map, key is User wg_public_key.
 // Dedicated map objects for wg and ipsec.
 type WgStatTrafficMap struct {
-	Wg    map[string]*WgStatTraffic
-	IPSec map[string]*WgStatTraffic
-	Ovc   map[string]*WgStatTraffic
+	Wg      map[string]*WgStatTraffic
+	IPSec   map[string]*WgStatTraffic
+	Ovc     map[string]*WgStatTraffic
+	Outline map[string]*WgStatTraffic
 }
 
 // WgStatLastActivityMap - VPN stat last activity map, key is User wg_public_key.
 // Dedicated map objects for wg and ipsec.
 type WgStatLastActivityMap struct {
-	Wg    map[string]time.Time
-	IPSec map[string]time.Time
-	Ovc   map[string]time.Time
+	Wg      map[string]time.Time
+	IPSec   map[string]time.Time
+	Ovc     map[string]time.Time
+	Outline map[string]time.Time
 }
 
 // WgStatEndpointMap - VPN stat endpoint map, key is User wg_public_key.
 // Dedicated map objects for wg and ipsec.
 type WgStatEndpointMap struct {
-	Wg    map[string]netip.Prefix
-	IPSec map[string]netip.Prefix
-	Ovc   map[string]netip.Prefix
+	Wg      map[string]netip.Prefix
+	IPSec   map[string]netip.Prefix
+	Ovc     map[string]netip.Prefix
+	Outline map[string]netip.Prefix
 }
 
 // ErrInvalidStatFormat - invalid stat format.
@@ -51,27 +61,30 @@ var ErrInvalidStatFormat = errors.New("invalid stat")
 // NewWgStatTrafficMap - create new WgStatTrafficMap.
 func NewWgStatTrafficMap() *WgStatTrafficMap {
 	return &WgStatTrafficMap{
-		Wg:    make(map[string]*WgStatTraffic),
-		IPSec: make(map[string]*WgStatTraffic),
-		Ovc:   make(map[string]*WgStatTraffic),
+		Wg:      make(map[string]*WgStatTraffic),
+		IPSec:   make(map[string]*WgStatTraffic),
+		Ovc:     make(map[string]*WgStatTraffic),
+		Outline: make(map[string]*WgStatTraffic),
 	}
 }
 
 // NewWgStatLastActivityMap - create new WgStatLastActivityMap.
 func NewWgStatLastActivityMap() *WgStatLastActivityMap {
 	return &WgStatLastActivityMap{
-		Wg:    make(map[string]time.Time),
-		IPSec: make(map[string]time.Time),
-		Ovc:   make(map[string]time.Time),
+		Wg:      make(map[string]time.Time),
+		IPSec:   make(map[string]time.Time),
+		Ovc:     make(map[string]time.Time),
+		Outline: make(map[string]time.Time),
 	}
 }
 
 // NewWgStatEndpointMap - create new WgStatEndpointMap.
 func NewWgStatEndpointMap() *WgStatEndpointMap {
 	return &WgStatEndpointMap{
-		Wg:    make(map[string]netip.Prefix),
-		IPSec: make(map[string]netip.Prefix),
-		Ovc:   make(map[string]netip.Prefix),
+		Wg:      make(map[string]netip.Prefix),
+		IPSec:   make(map[string]netip.Prefix),
+		Ovc:     make(map[string]netip.Prefix),
+		Outline: make(map[string]netip.Prefix),
 	}
 }
 
@@ -112,17 +125,17 @@ func WgStatParseTraffic2(traffic WgStatTrafficMap2) (*WgStatTrafficMap, error) {
 			}
 
 			switch vpnType {
-			case "wireguard":
+			case wgStatName:
 				m.Wg[id] = &WgStatTraffic{
 					Rx: rx,
 					Tx: tx,
 				}
-			case "ipsec":
+			case ipsecStatName:
 				m.IPSec[id] = &WgStatTraffic{
 					Rx: rx,
 					Tx: tx,
 				}
-			case "cloak-openvpn":
+			case ovcStatName:
 				m.Ovc[id] = &WgStatTraffic{
 					Rx: rx,
 					Tx: tx,
@@ -220,11 +233,11 @@ func WgStatParseLastActivity2(lastSeen WgStatLastseenMap2) (*WgStatLastActivityM
 			}
 
 			switch vpnType {
-			case "wireguard":
+			case wgStatName:
 				m.Wg[id] = time.Unix(ts, 0).UTC()
-			case "ipsec":
+			case ipsecStatName:
 				m.IPSec[id] = time.Unix(ts, 0).UTC()
-			case "cloak-openvpn":
+			case ovcStatName:
 				m.Ovc[id] = time.Unix(ts, 0).UTC()
 			}
 		}
@@ -309,11 +322,11 @@ func WgStatParseEndpoints2(endpoints WgStatEndpointMap2) (*WgStatEndpointMap, er
 			}
 
 			switch vpnType {
-			case "wireguard":
+			case wgStatName:
 				m.Wg[id] = prefix
-			case "ipsec":
+			case ipsecStatName:
 				m.IPSec[id] = prefix
-			case "cloak-openvpn":
+			case ovcStatName:
 				m.Ovc[id] = prefix
 			}
 		}

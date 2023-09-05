@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/url"
 	"os"
 	"time"
 
@@ -141,9 +142,9 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 	}
 
 	if vpnCfgs.Outline[storage.ConfigOutlineTypeAccesskey] {
-		accessKey := "ss://" + base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(
+		accessKey := "ss://" + base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString(
 			fmt.Appendf([]byte{}, "chacha20-ietf-poly1305:%s@%s:%d", outlineSecret, endpointHostString, user.OutlinePort),
-		)
+		) + "#" + url.QueryEscape(user.Name)
 		newuser.OutlineConfig = &models.NewuserOutlineConfig{
 			AccessKey: &accessKey,
 		}

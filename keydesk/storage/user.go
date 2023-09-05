@@ -111,6 +111,9 @@ func (db *BrigadeStorage) CreateUser(
 
 	if len(vpnCfgs.Outline) > 0 {
 		userconf.OutlinePort = data.OutlinePort
+		if isBrigadier {
+			userconf.OutlinePort += 1
+		}
 	}
 
 	// if we catch a slowdown problems we need organize queue

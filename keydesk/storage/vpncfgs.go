@@ -94,5 +94,5 @@ func (c *ConfigsImplemented) NewOutlineConfigs(req map[string]bool) {
 		return
 	}
 
-	c.IPSec = req
+	c.Outline = req
 }

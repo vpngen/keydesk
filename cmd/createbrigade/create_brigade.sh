@@ -364,7 +364,7 @@ wgconf="$(sudo -u "${brigade_id}" -g "${brigade_id}" "${KEYDESK_APP_PATH}" \
         -person "${person_name}" \
         -desc "${person_desc}" \
         -url "${person_url}" \
-        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs}\
+        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
         ${chunked} \
         ${json} \
         )" || (echo "$wgconf"; exit 1)

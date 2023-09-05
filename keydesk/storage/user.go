@@ -56,8 +56,6 @@ func (db *BrigadeStorage) CreateUser(
 	outlineSecretRouterEnc string,
 	outlineSecretShufflerEnc string,
 ) (*UserConfig, error) {
-	// fmt.Fprintf(os.Stderr, "****************** (db *BrigadeStorage) CreateUser\n")
-
 	f, data, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)

@@ -133,7 +133,7 @@ func (db *BrigadeStorage) DestroyBrigade() error {
 	return nil
 }
 
-// DestroyBrigade - remove brigade.
+// GetVpnConfigs - get vpn configs.
 func (db *BrigadeStorage) GetVpnConfigs(req *ConfigsImplemented) (*ConfigsImplemented, error) {
 	f, data, err := db.openWithReading()
 	if err != nil {

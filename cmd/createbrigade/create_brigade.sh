@@ -270,8 +270,6 @@ fi
 
 if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ]; then
         wg_configs="-wg native"
-        ovc_configs="-ovc amnezia"
-        outline_configs="-outline access_key"
 fi
 
 if [ -z "${port}" ]; then

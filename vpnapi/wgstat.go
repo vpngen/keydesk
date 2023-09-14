@@ -232,6 +232,10 @@ func WgStatParseLastActivity2(lastSeen WgStatLastseenMap2) (*WgStatLastActivityM
 				continue
 			}
 
+			if ts == 0 {
+				continue
+			}
+
 			switch vpnType {
 			case wgStatName:
 				m.Wg[id] = time.Unix(ts, 0).UTC()

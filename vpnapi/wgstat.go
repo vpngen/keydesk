@@ -140,6 +140,11 @@ func WgStatParseTraffic2(traffic WgStatTrafficMap2) (*WgStatTrafficMap, error) {
 					Rx: rx,
 					Tx: tx,
 				}
+			case outlineStatName:
+				m.Outline[id] = &WgStatTraffic{
+					Rx: rx,
+					Tx: tx,
+				}
 			}
 		}
 	}
@@ -243,6 +248,8 @@ func WgStatParseLastActivity2(lastSeen WgStatLastseenMap2) (*WgStatLastActivityM
 				m.IPSec[id] = time.Unix(ts, 0).UTC()
 			case ovcStatName:
 				m.Ovc[id] = time.Unix(ts, 0).UTC()
+			case outlineStatName:
+				m.Outline[id] = time.Unix(ts, 0).UTC()
 			}
 		}
 	}
@@ -332,6 +339,8 @@ func WgStatParseEndpoints2(endpoints WgStatEndpointMap2) (*WgStatEndpointMap, er
 				m.IPSec[id] = prefix
 			case ovcStatName:
 				m.Ovc[id] = prefix
+			case outlineStatName:
+				m.Outline[id] = prefix
 			}
 		}
 	}

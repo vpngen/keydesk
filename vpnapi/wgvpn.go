@@ -40,12 +40,9 @@ type WgStatData2 struct {
 
 // WGStats - wg_stats endpoint-API call.
 type WGStats struct {
-	Code         string      `json:"code"`
-	Traffic      string      `json:"traffic"`
-	LastActivity string      `json:"last-seen"`
-	Endpoints    string      `json:"endpoints"`
-	Timestamp    string      `json:"timestamp"`
-	Data         WgStatData2 `json:"data,omitempty"`
+	Code      string      `json:"code"`
+	Timestamp string      `json:"timestamp"`
+	Data      WgStatData2 `json:"data,omitempty"`
 }
 
 // WgPeerAdd - peer_add endpoint-API call.
@@ -61,6 +58,7 @@ func WgPeerAdd(
 	cloakBypasUID string,
 	ipsecUsername string,
 	ipsecPassword string,
+	outlineSecret string,
 ) ([]byte, error) {
 	query := fmt.Sprintf("peer_add=%s&wg-public-key=%s&wg-psk-key=%s&allowed-ips=%s",
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub)),
@@ -80,6 +78,12 @@ func WgPeerAdd(
 		query += fmt.Sprintf("&l2tp-username=%s&l2tp-password=%s",
 			url.QueryEscape(ipsecUsername),
 			url.QueryEscape(ipsecPassword),
+		)
+	}
+
+	if outlineSecret != "" {
+		query += fmt.Sprintf("&outline-ss-password=%s",
+			url.QueryEscape(outlineSecret),
 		)
 	}
 
@@ -123,6 +127,7 @@ func WgAdd(
 	ovcCACert string,
 	ovcRouterCAKey string,
 	ipsecPSK string,
+	outlinePort uint16,
 ) error {
 	// fmt.Fprintf(os.Stderr, "WgAdd: %d\n", len(wgPriv))
 
@@ -144,6 +149,12 @@ func WgAdd(
 	if ipsecPSK != "" {
 		query += fmt.Sprintf("&l2tp-preshared-key=%s",
 			url.QueryEscape(ipsecPSK),
+		)
+	}
+
+	if outlinePort != 0 {
+		query += fmt.Sprintf("&outline-ss-port=%d",
+			outlinePort,
 		)
 	}
 

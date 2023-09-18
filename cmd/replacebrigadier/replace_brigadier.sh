@@ -47,6 +47,7 @@ apiaddr=""
 wg_configs=""
 ipsec_configs=""
 ovc_configs=""
+outline_configs=""
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -104,6 +105,11 @@ while [ "$#" -gt 0 ]; do
                 ovc_configs="-ovc $2"
                 shift 2
                 ;;
+        -outline)
+                NEW_STYLE="yes"
+                outline_configs="-outline $2"
+                shift 2
+                ;;
         *)
                 if [ -n "$NEW_STYLE" ]; then
                         printdef "Unknown option: $1"
@@ -131,7 +137,7 @@ if [ -z "${brigade_id}" ]; then
         printdef "Brigade ID is required"
 fi
 
-if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ]; then
+if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ]; then
         wg_configs="-wg native"
 fi
 
@@ -145,17 +151,17 @@ fi
 
 if [ -z "${DEBUG}" ]; then
         # shellcheck disable=SC2086
-        output="$(sudo -u "${brigade_id}" -g  "${brigade_id}" "${KEYDESK_PATH}" -r ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs})" || (echo "$output"; exit 1)
+        output="$(sudo -u "${brigade_id}" -g  "${brigade_id}" "${KEYDESK_PATH}" -r ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs})" || (echo "$output"; exit 1)
 else
         CONF_DIR="${CONF_DIR:-${DB_DIR}}"
         EXECUTABLE_DIR="$(realpath "$(dirname "$0")")"
         SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}/../keydesk")"
         if [ -x "${KEYDESK_PATH}" ]; then
                 # shellcheck disable=SC2086
-                output="$("${KEYDESK_PATH}" -r -d "${DB_DIR}" -c "${CONF_DIR}" -id "${brigade_id}" ${apiaddr} ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs})" || (echo "$output"; exit 1)
+                output="$("${KEYDESK_PATH}" -r -d "${DB_DIR}" -c "${CONF_DIR}" -id "${brigade_id}" ${apiaddr} ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs})" || (echo "$output"; exit 1)
         elif [ -s "${SOURCE_DIR}/main.go" ]; then
                 # shellcheck disable=SC2086
-                output="$(go run "${SOURCE_DIR}" -r -d "${DB_DIR}" -c "${CONF_DIR}" -id "${brigade_id}" ${apiaddr} ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs})" || (echo "$output"; exit 1)
+                output="$(go run "${SOURCE_DIR}" -r -d "${DB_DIR}" -c "${CONF_DIR}" -id "${brigade_id}" ${apiaddr} ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs})" || (echo "$output"; exit 1)
         else
                 echo "ERROR: can't find ${KEYDESK_PATH} or ${SOURCE_DIR}/main.go" >&2
                 

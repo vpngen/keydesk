@@ -207,7 +207,8 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 		activeUsers,
 		activeWgUsers,
 		activeIPSecUsers,
-		activeOvcUsers int
+		activeOvcUsers,
+		activeOutlineUsers int
 		trafficMap     *vpnapi.WgStatTrafficMap
 		lastSeenMap    *vpnapi.WgStatLastActivityMap
 		endpointMap    *vpnapi.WgStatEndpointMap
@@ -291,6 +292,26 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersOvc)
 		}
 
+		if traffic, ok := trafficMap.Outline[id]; ok {
+			rx := traffic.Rx
+			tx := traffic.Tx
+
+			if user.Quotas.OSOutlineCounters.Rx <= traffic.Rx {
+				rx = traffic.Rx - user.Quotas.OSOutlineCounters.Rx
+			}
+
+			if user.Quotas.OSOutlineCounters.Tx <= traffic.Tx {
+				tx = traffic.Tx - user.Quotas.OSOutlineCounters.Tx
+			}
+
+			user.Quotas.OSOutlineCounters.Rx = traffic.Rx
+			user.Quotas.OSOutlineCounters.Tx = traffic.Tx
+
+			sum.Inc(rx, tx)
+			totalTraffic.TrafficOutline.Inc(rx, tx)
+			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersOutline)
+		}
+
 		totalTraffic.TrafficSummary.Inc(sum.Rx, sum.Tx)
 		incDateSwitchRelated(now, sum.Rx, sum.Tx, &user.Quotas.CountersTotal)
 
@@ -317,6 +338,9 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 		lastActivityOvc := lastSeenMap.Ovc[id]
 		lastActivityMark(now, lastActivityOvc, &user.Quotas.LastOvcActivity)
 
+		lastActivityOutline := lastSeenMap.Outline[id]
+		lastActivityMark(now, lastActivityOutline, &user.Quotas.LastOutlineActivity)
+
 		lastActivityTotal := user.Quotas.LastActivity.Total
 
 		if lastActivityWg.After(lastActivityTotal) {
@@ -329,6 +353,10 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 
 		if lastActivityOvc.After(lastActivityTotal) {
 			lastActivityTotal = lastActivityOvc
+		}
+
+		if lastActivityOutline.After(lastActivityTotal) {
+			lastActivityTotal = lastActivityOutline
 		}
 
 		lastActivityMark(now, lastActivityTotal, &user.Quotas.LastActivity)
@@ -354,6 +382,10 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 		if user.Quotas.LastOvcActivity.Total.After(userInactiveEdge) {
 			activeOvcUsers++
 		}
+
+		if user.Quotas.LastOutlineActivity.Total.After(userInactiveEdge) {
+			activeOutlineUsers++
+		}
 	}
 
 	data.TotalUsersCount = len(data.Users)
@@ -362,11 +394,13 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 	data.ActiveWgUsersCount = activeWgUsers
 	data.ActiveIPSecUsersCount = activeIPSecUsers
 	data.ActiveOvcUsersCount = activeOvcUsers
+	data.ActiveOutlineUsersCount = activeOutlineUsers
 
 	incDateSwitchRelated(now, totalTraffic.TrafficSummary.Rx, totalTraffic.TrafficSummary.Tx, &data.TotalTraffic)
 	incDateSwitchRelated(now, totalTraffic.TrafficWg.Rx, totalTraffic.TrafficWg.Tx, &data.TotalWgTraffic)
 	incDateSwitchRelated(now, totalTraffic.TrafficIPSec.Rx, totalTraffic.TrafficIPSec.Tx, &data.TotalIPSecTraffic)
 	incDateSwitchRelated(now, totalTraffic.TrafficOvc.Rx, totalTraffic.TrafficOvc.Tx, &data.TotalOvcTraffic)
+	incDateSwitchRelated(now, totalTraffic.TrafficOutline.Rx, totalTraffic.TrafficOutline.Tx, &data.TotalOutlineTraffic)
 
 	if data.Endpoints == nil {
 		data.Endpoints = UsersNetworks{}

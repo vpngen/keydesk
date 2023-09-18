@@ -25,6 +25,9 @@ type Newuser struct {
 	// IP sec l2 t p manual config
 	IPSecL2TPManualConfig *NewuserIPSecL2TPManualConfig `json:"IPSecL2TPManualConfig,omitempty"`
 
+	// outline config
+	OutlineConfig *NewuserOutlineConfig `json:"OutlineConfig,omitempty"`
+
 	// user name
 	// Required: true
 	UserName *string `json:"UserName"`
@@ -42,6 +45,10 @@ func (m *Newuser) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateIPSecL2TPManualConfig(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateOutlineConfig(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -97,6 +104,25 @@ func (m *Newuser) validateIPSecL2TPManualConfig(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *Newuser) validateOutlineConfig(formats strfmt.Registry) error {
+	if swag.IsZero(m.OutlineConfig) { // not required
+		return nil
+	}
+
+	if m.OutlineConfig != nil {
+		if err := m.OutlineConfig.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("OutlineConfig")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("OutlineConfig")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (m *Newuser) validateUserName(formats strfmt.Registry) error {
 
 	if err := validate.Required("UserName", "body", m.UserName); err != nil {
@@ -134,6 +160,10 @@ func (m *Newuser) ContextValidate(ctx context.Context, formats strfmt.Registry) 
 	}
 
 	if err := m.contextValidateIPSecL2TPManualConfig(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateOutlineConfig(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -181,6 +211,27 @@ func (m *Newuser) contextValidateIPSecL2TPManualConfig(ctx context.Context, form
 				return ve.ValidateName("IPSecL2TPManualConfig")
 			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("IPSecL2TPManualConfig")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *Newuser) contextValidateOutlineConfig(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.OutlineConfig != nil {
+
+		if swag.IsZero(m.OutlineConfig) { // not required
+			return nil
+		}
+
+		if err := m.OutlineConfig.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("OutlineConfig")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("OutlineConfig")
 			}
 			return err
 		}
@@ -418,6 +469,62 @@ func (m *NewuserIPSecL2TPManualConfig) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (m *NewuserIPSecL2TPManualConfig) UnmarshalBinary(b []byte) error {
 	var res NewuserIPSecL2TPManualConfig
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// NewuserOutlineConfig newuser outline config
+//
+// swagger:model NewuserOutlineConfig
+type NewuserOutlineConfig struct {
+
+	// access key
+	// Required: true
+	AccessKey *string `json:"AccessKey"`
+}
+
+// Validate validates this newuser outline config
+func (m *NewuserOutlineConfig) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateAccessKey(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *NewuserOutlineConfig) validateAccessKey(formats strfmt.Registry) error {
+
+	if err := validate.Required("OutlineConfig"+"."+"AccessKey", "body", m.AccessKey); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this newuser outline config based on context it is used
+func (m *NewuserOutlineConfig) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *NewuserOutlineConfig) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *NewuserOutlineConfig) UnmarshalBinary(b []byte) error {
+	var res NewuserOutlineConfig
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

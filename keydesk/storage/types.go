@@ -45,30 +45,33 @@ func (x *RxTx) Reset(rx, tx uint64) {
 
 // UserCounters - user counters.
 type UsersCounters struct {
-	TotalUsersCount       int `json:"total_users_count"`
-	ActiveUsersCount      int `json:"active_users_count"`
-	ActiveWgUsersCount    int `json:"active_wg_users_count"`
-	ActiveIPSecUsersCount int `json:"active_ipsec_users_count"`
-	ActiveOvcUsersCount   int `json:"active_ovc_users_count"`
-	ThrottledUsersCount   int `json:"throttled_users_count"`
+	TotalUsersCount         int `json:"total_users_count"`
+	ActiveUsersCount        int `json:"active_users_count"`
+	ActiveWgUsersCount      int `json:"active_wg_users_count"`
+	ActiveIPSecUsersCount   int `json:"active_ipsec_users_count"`
+	ActiveOvcUsersCount     int `json:"active_ovc_users_count"`
+	ActiveOutlineUsersCount int `json:"active_outline_users_count"`
+	ThrottledUsersCount     int `json:"throttled_users_count"`
 }
 
 // NetCounters - net counters.
 type NetCounters struct {
-	TotalTraffic      RxTx `json:"total_traffic"`
-	TotalWgTraffic    RxTx `json:"total_wg_traffic"`
-	TotalIPSecTraffic RxTx `json:"total_ipsec_traffic"`
-	TotalOvcTraffic   RxTx `json:"total_ovc_traffic"`
+	TotalTraffic        RxTx `json:"total_traffic"`
+	TotalWgTraffic      RxTx `json:"total_wg_traffic"`
+	TotalIPSecTraffic   RxTx `json:"total_ipsec_traffic"`
+	TotalOvcTraffic     RxTx `json:"total_ovc_traffic"`
+	TotalOutlineTraffic RxTx `json:"total_outline_traffic"`
 }
 
 // BrigadeCounters - brigade counters.
 type BrigadeCounters struct {
 	UsersCounters
-	TotalTraffic       DateSummaryNetCounters `json:"total_traffic"`
-	TotalWgTraffic     DateSummaryNetCounters `json:"total_wg_traffic"`
-	TotalIPSecTraffic  DateSummaryNetCounters `json:"total_ipsec_traffic"`
-	TotalOvcTraffic    DateSummaryNetCounters `json:"total_ovc_traffic"`
-	CountersUpdateTime time.Time              `json:"counters_update_time"`
+	TotalTraffic        DateSummaryNetCounters `json:"total_traffic"`
+	TotalWgTraffic      DateSummaryNetCounters `json:"total_wg_traffic"`
+	TotalIPSecTraffic   DateSummaryNetCounters `json:"total_ipsec_traffic"`
+	TotalOvcTraffic     DateSummaryNetCounters `json:"total_ovc_traffic"`
+	TotalOutlineTraffic DateSummaryNetCounters `json:"total_outline_traffic"`
+	CountersUpdateTime  time.Time              `json:"counters_update_time"`
 }
 
 type TrafficCountersContainer struct {
@@ -76,6 +79,7 @@ type TrafficCountersContainer struct {
 	TrafficWg      RxTx
 	TrafficIPSec   RxTx
 	TrafficOvc     RxTx
+	TrafficOutline RxTx
 }
 
 type StatsCounters struct {
@@ -106,11 +110,12 @@ func (x *StatsCountersStack) Put(counters BrigadeCounters, traffic TrafficCounte
 	stats.NetCounters.TotalWgTraffic.Inc(traffic.TrafficWg.Rx, traffic.TrafficWg.Tx)
 	stats.NetCounters.TotalIPSecTraffic.Inc(traffic.TrafficIPSec.Rx, traffic.TrafficIPSec.Tx)
 	stats.NetCounters.TotalOvcTraffic.Inc(traffic.TrafficOvc.Rx, traffic.TrafficOvc.Tx)
+	stats.NetCounters.TotalOutlineTraffic.Inc(traffic.TrafficOutline.Rx, traffic.TrafficOutline.Tx)
 	stats.CountersUpdateTime = counters.CountersUpdateTime
 }
 
 // QuotaVesrion - json version.
-const QuotaVesrion = 3
+const QuotaVesrion = 5
 
 // Quota - user quota.
 type Quota struct {
@@ -118,21 +123,24 @@ type Quota struct {
 	OSWgCounters          RxTx                   `json:"os_wg_counters"`
 	OSIPSecCounters       RxTx                   `json:"os_ipsec_counters"`
 	OSOvcCounters         RxTx                   `json:"os_ovc_counters"`
+	OSOutlineCounters     RxTx                   `json:"os_outline_counters"`
 	CountersTotal         DateSummaryNetCounters `json:"counters_total"`
 	CountersWg            DateSummaryNetCounters `json:"counters_wg"`
 	CountersIPSec         DateSummaryNetCounters `json:"counters_ipsec"`
 	CountersOvc           DateSummaryNetCounters `json:"counters_ovc"`
+	CountersOutline       DateSummaryNetCounters `json:"counters_outline"`
 	LimitMonthlyRemaining uint64                 `json:"limit_monthly_remaining"`
 	LimitMonthlyResetOn   time.Time              `json:"limit_monthly_reset_on,omitempty"`
 	LastActivity          LastActivityPoints     `json:"last_activity,omitempty"`
 	LastWgActivity        LastActivityPoints     `json:"last_wg_activity,omitempty"`
 	LastIPSecActivity     LastActivityPoints     `json:"last_ipsec_activity,omitempty"`
 	LastOvcActivity       LastActivityPoints     `json:"last_ovc_activity,omitempty"`
+	LastOutlineActivity   LastActivityPoints     `json:"last_outline_activity,omitempty"`
 	ThrottlingTill        time.Time              `json:"throttling_till,omitempty"`
 }
 
 // UserVersion - json version.
-const UserVersion = 4
+const UserVersion = 5
 
 // User - user structure.
 type User struct {
@@ -153,12 +161,14 @@ type User struct {
 	IPSecUsernameShufflerEnc  string                `json:"ipsec_username_shuffler_enc"`   // IPSec user name for shuffler prepared
 	IPSecPasswordRouterEnc    string                `json:"ipsec_password_router_enc"`     // IPSec password for router prepared
 	IPSecPasswordShufflerEnc  string                `json:"ipsec_password_shuffler_enc"`   // IPSec password for shuffler prepared
+	OutlineSecretRouterEnc    string                `json:"outline_secret_router_enc"`     // Outline secret for router prepared
+	OutlineSecretShufflerEnc  string                `json:"outline_secret_shuffler_enc"`   // Outline secret for shuffler prepared
 	Person                    namesgenerator.Person `json:"person"`
 	Quotas                    Quota                 `json:"quotas"`
 }
 
 // BrigadeVersion - json version.
-const BrigadeVersion = 8
+const BrigadeVersion = 9
 
 // Brigade - brigade.
 type Brigade struct {
@@ -180,6 +190,7 @@ type Brigade struct {
 	EndpointIPv4          netip.Addr    `json:"endpoint_ipv4"`
 	EndpointDomain        string        `json:"endpoint_domain"`
 	EndpointPort          uint16        `json:"endpoint_port"`
+	OutlinePort           uint16        `json:"outline_port"`
 	DNSv4                 netip.Addr    `json:"dns4"`
 	DNSv6                 netip.Addr    `json:"dns6"`
 	KeydeskIPv6           netip.Addr    `json:"keydesk_ipv6"`
@@ -199,7 +210,7 @@ type UserConfig struct {
 	IPv4, IPv6       netip.Addr
 	EndpointIPv4     netip.Addr
 	EndpointDomain   string
-	EndPointPort     uint16
+	EndpointPort     uint16
 	OvCACertPem      string
 	OvClientCertPem  string
 	CloakByPassUID   []byte
@@ -207,6 +218,7 @@ type UserConfig struct {
 	IPSecPSK         string
 	IPSecUserName    string
 	IPSecPassword    string
+	OutlinePort      uint16
 }
 
 // BrigadeConfig - new brigade structure.
@@ -214,7 +226,8 @@ type BrigadeConfig struct {
 	BrigadeID      string
 	EndpointIPv4   netip.Addr
 	EndpointDomain string
-	EndPointPort   uint16
+	EndpointPort   uint16
+	OutlinePort    uint16
 	DNSIPv4        netip.Addr
 	DNSIPv6        netip.Addr
 	IPv4CGNAT      netip.Prefix

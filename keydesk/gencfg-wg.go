@@ -30,7 +30,7 @@ AllowedIPs = 0.0.0.0/0,::/0
 		netip.PrefixFrom(u.IPv4, 32).String()+","+netip.PrefixFrom(u.IPv6, 128).String(),
 		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPriv),
 		u.DNSv4.String()+","+u.DNSv6.String(),
-		endpointHostString, u.EndPointPort,
+		endpointHostString, u.EndpointPort,
 		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.EndpointWgPublic),
 		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPSK),
 	)

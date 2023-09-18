@@ -31,6 +31,7 @@ var (
 	ErrInvalidKeydeskIPv6  = errors.New("invalid keydesk ip6 endpoint")
 	ErrInvalidPort         = errors.New("port < 1024")
 	ErrInvalidDomainName   = errors.New("invalid domain name")
+	ErrOutlineAndWgPort    = errors.New("outline and wg port must be different")
 )
 
 func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.AddrPort, string, string, error) {
@@ -54,6 +55,7 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	keydeskIPv6 := flag.String("kd6", "", "keydeskIPv6")
 	// optional
 	port := flag.Int("p", 0, "port, 0 is random")
+	outlinePort := flag.Int("op", 0, "outline port, 0 is random")
 	domainName := flag.String("dn", "", "domainName")
 	// !!! is the flags below only for debug?
 	brigadeID := flag.String("id", "", "brigadier_id")
@@ -64,6 +66,7 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	wgcCfgs := flag.String("wg", "native,amnezia", "Wireguard configs (native,amnezia)")
 	ovcCfgs := flag.String("ovc", "", "OpenVPN over Cloak configs (amnezia)")
 	ipsecCfgs := flag.String("ipsec", "", "IPSec configs (text,mobileconfig,ps)")
+	outlineCfgs := flag.String("outline", "", "Outline configs (access_key)")
 
 	flag.Parse()
 
@@ -81,13 +84,31 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 		vpnCfgs.AddIPSec(*ipsecCfgs)
 	}
 
-	config.EndPointPort = uint16(*port)
-	if config.EndPointPort == 0 {
-		config.EndPointPort = uint16(rand.Int31n(keydesk.HighWireguardPort-keydesk.LowWireguardPort) + keydesk.LowWireguardPort)
+	if *outlineCfgs != "" {
+		vpnCfgs.AddOutline(*outlineCfgs)
 	}
 
-	if config.EndPointPort <= keydesk.LowLimitPort {
-		return nil, nil, addrPort, "", "", fmt.Errorf("port: %d: %w", config.EndPointPort, ErrInvalidPort)
+	if *port != 0 && *port == *outlinePort {
+		return nil, nil, addrPort, "", "", ErrOutlineAndWgPort
+	}
+
+	config.EndpointPort = uint16(*port)
+	if config.EndpointPort == 0 {
+		config.EndpointPort = uint16(rand.Int31n(keydesk.HighWireguardPort-keydesk.LowWireguardPort) + keydesk.LowWireguardPort)
+	}
+
+	config.OutlinePort = uint16(*outlinePort)
+	if config.OutlinePort == 0 || config.OutlinePort == config.EndpointPort {
+		for {
+			config.OutlinePort = uint16(rand.Int31n(keydesk.HighOutlinePort-keydesk.LowOutlinePort) + keydesk.LowOutlinePort)
+			if config.OutlinePort != config.EndpointPort {
+				break
+			}
+		}
+	}
+
+	if config.EndpointPort <= keydesk.LowLimitPort {
+		return nil, nil, addrPort, "", "", fmt.Errorf("port: %d: %w", config.EndpointPort, ErrInvalidPort)
 	}
 
 	config.EndpointDomain = *domainName

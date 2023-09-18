@@ -258,6 +258,7 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 	wgcCfgs := flag.String("wg", "native,amnezia", "Wireguard configs ("+storage.ConfigsWg+")")
 	ovcCfgs := flag.String("ovc", "", "OpenVPN over Cloak configs ("+storage.ConfigsOvc+")")
 	ipsecCfgs := flag.String("ipsec", "", "IPSec configs ("+storage.ConfigsIPSec+")")
+	outlineCfgs := flag.String("outline", "", "Outline configs ("+storage.ConfigsOutline+")")
 
 	flag.Parse()
 
@@ -273,6 +274,10 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 
 	if *ipsecCfgs != "" {
 		vpnCfgs.AddIPSec(*ipsecCfgs)
+	}
+
+	if *outlineCfgs != "" {
+		vpnCfgs.AddOutline(*outlineCfgs)
 	}
 
 	if *webDir == "" {

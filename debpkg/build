@@ -68,7 +68,7 @@ constract_version () {
 
 }
 
-if [ "x$1" = "xpkg" ]; then
+if [ "$1" = "pkg" ]; then
         set -e
 
         export USER_UID=${USER_UID}
@@ -96,7 +96,7 @@ if [ "x$1" = "xpkg" ]; then
         exit 0
 fi
 
-GOLANG_VER="$(grep -e "^go\s" $(dirname $0)/../go.mod | awk '{print $2}')"
+GOLANG_VER="$(grep -e "^go\s" "$(dirname "$0")"/../go.mod | awk '{print $2}')"
 
 # Get the current branch
 BRANCH=$(git branch --show-current)
@@ -107,11 +107,11 @@ if [ -z "${VERMETADATA}" ]; then
 fi
 
 docker run --rm \
-        -v $(readlink -f $SSH_AUTH_SOCK):/ssh-agent \
+        -v "$(readlink -f "$SSH_AUTH_SOCK")":/ssh-agent \
         -e SSH_AUTH_SOCK=/ssh-agent \
-        -e USER_UID=$(id -u) \
-        -e BRANCH=${BRANCH} \
+        -e USER_UID="$(id -u)" \
+        -e BRANCH="${BRANCH}" \
         -e VERMETADATA="${VERMETADATA}" \
-        -v ${PWD}:"${SHARED_BASE}" \
+        -v "${PWD}":"${SHARED_BASE}" \
         golang:"${GOLANG_VER}" "${SHARED_BASE}/build" pkg
 

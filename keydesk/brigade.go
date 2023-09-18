@@ -41,7 +41,12 @@ func CreateBrigade(db *storage.BrigadeStorage, vpnCfgs *storage.ConfigsImplement
 		}
 	}
 
-	err = db.CreateBrigade(config, wgConf, ovcConf, ipsecConf)
+	var outlineConf *storage.BrigadeOutlineConfig
+	if len(vpnCfgs.Outline) > 0 {
+		outlineConf = &storage.BrigadeOutlineConfig{OutlinePort: config.OutlinePort}
+	}
+
+	err = db.CreateBrigade(config, wgConf, ovcConf, ipsecConf, outlineConf)
 	if err != nil {
 		return fmt.Errorf("put: %w", err)
 	}

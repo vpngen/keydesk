@@ -53,9 +53,9 @@ func (db *BrigadeStorage) CreateUser(
 	ipsecPasswordRouterEnc string,
 	ipsecUsernameShufflerEnc string,
 	ipsecPasswordShufflerEnc string,
+	outlineSecretRouterEnc string,
+	outlineSecretShufflerEnc string,
 ) (*UserConfig, error) {
-	// fmt.Fprintf(os.Stderr, "****************** (db *BrigadeStorage) CreateUser\n")
-
 	f, data, err := db.openWithReading()
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
@@ -85,7 +85,7 @@ func (db *BrigadeStorage) CreateUser(
 		EndpointWgPublic: data.WgPublicKey,
 		EndpointIPv4:     data.EndpointIPv4,
 		EndpointDomain:   data.EndpointDomain,
-		EndPointPort:     data.EndpointPort,
+		EndpointPort:     data.EndpointPort,
 		DNSv4:            data.DNSv4,
 		DNSv6:            data.DNSv6,
 		IPSecPSK:         data.IPSecPSK,
@@ -109,6 +109,10 @@ func (db *BrigadeStorage) CreateUser(
 		userconf.CloakFakeDomain = data.CloakFakeDomain
 	}
 
+	if len(vpnCfgs.Outline) > 0 {
+		userconf.OutlinePort = data.OutlinePort
+	}
+
 	// if we catch a slowdown problems we need organize queue
 	body, err := vpnapi.WgPeerAdd(
 		db.actualAddrPort, db.calculatedAddrPort,
@@ -116,6 +120,7 @@ func (db *BrigadeStorage) CreateUser(
 		userconf.IPv4, userconf.IPv6, kd6,
 		ovcCertRequestGzipBase64, cloakBypassUIDRouterEnc,
 		ipsecUsernameRouterEnc, ipsecPasswordRouterEnc,
+		outlineSecretRouterEnc,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("wg peer add: %w", err)
@@ -152,6 +157,8 @@ func (db *BrigadeStorage) CreateUser(
 		IPSecUsernameShufflerEnc:  ipsecUsernameShufflerEnc,
 		IPSecPasswordRouterEnc:    ipsecPasswordRouterEnc,
 		IPSecPasswordShufflerEnc:  ipsecPasswordShufflerEnc,
+		OutlineSecretRouterEnc:    outlineSecretRouterEnc,
+		OutlineSecretShufflerEnc:  outlineSecretShufflerEnc,
 		Person:                    person,
 		Quotas: Quota{
 			CountersTotal: DateSummaryNetCounters{

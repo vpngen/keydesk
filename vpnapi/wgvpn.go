@@ -40,12 +40,9 @@ type WgStatData2 struct {
 
 // WGStats - wg_stats endpoint-API call.
 type WGStats struct {
-	Code         string      `json:"code"`
-	Traffic      string      `json:"traffic"`
-	LastActivity string      `json:"last-seen"`
-	Endpoints    string      `json:"endpoints"`
-	Timestamp    string      `json:"timestamp"`
-	Data         WgStatData2 `json:"data,omitempty"`
+	Code      string      `json:"code"`
+	Timestamp string      `json:"timestamp"`
+	Data      WgStatData2 `json:"data,omitempty"`
 }
 
 // WgPeerAdd - peer_add endpoint-API call.

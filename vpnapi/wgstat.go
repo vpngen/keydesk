@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/netip"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -101,15 +100,7 @@ func WgStatParseTimestamp(timestamp string) (*WgStatTimestamp, error) {
 	}, nil
 }
 
-func WgStatParseTrafficHandler(traffic string, traffic2 WgStatTrafficMap2) (*WgStatTrafficMap, error) {
-	if traffic2 != nil {
-		return WgStatParseTraffic2(traffic2)
-	}
-
-	return WgStatParseTraffic(traffic)
-}
-
-func WgStatParseTraffic2(traffic WgStatTrafficMap2) (*WgStatTrafficMap, error) {
+func WgStatParseTraffic(traffic WgStatTrafficMap2) (*WgStatTrafficMap, error) {
 	m := NewWgStatTrafficMap()
 
 	for id, data := range traffic {
@@ -152,82 +143,7 @@ func WgStatParseTraffic2(traffic WgStatTrafficMap2) (*WgStatTrafficMap, error) {
 	return m, nil
 }
 
-// WgStatParseTraffic - parse traffic from text.
-func WgStatParseTraffic(traffic string) (*WgStatTrafficMap, error) {
-	m := NewWgStatTrafficMap()
-
-	for _, line := range strings.Split(traffic, "\n") {
-		if line == "" {
-			continue
-		}
-
-		columns := strings.Split(line, "\t")
-		if len(columns) < 3 {
-			return nil, fmt.Errorf("traffic: %w", ErrInvalidStatFormat)
-		}
-
-		rx, err := strconv.ParseUint(columns[1], 10, 64)
-		if err != nil {
-			continue
-		}
-
-		tx, err := strconv.ParseUint(columns[2], 10, 64)
-		if err != nil {
-			continue
-		}
-
-		m.Wg[columns[0]] = &WgStatTraffic{
-			Rx: rx,
-			Tx: tx,
-		}
-
-		if len(columns) >= 5 {
-			rx, err := strconv.ParseUint(columns[3], 10, 64)
-			if err != nil {
-				continue
-			}
-
-			tx, err := strconv.ParseUint(columns[4], 10, 64)
-			if err != nil {
-				continue
-			}
-
-			m.IPSec[columns[0]] = &WgStatTraffic{
-				Rx: rx,
-				Tx: tx,
-			}
-		}
-
-		if len(columns) >= 7 {
-			rx, err := strconv.ParseUint(columns[5], 10, 64)
-			if err != nil {
-				continue
-			}
-
-			tx, err := strconv.ParseUint(columns[6], 10, 64)
-			if err != nil {
-				continue
-			}
-
-			m.Ovc[columns[0]] = &WgStatTraffic{
-				Rx: rx,
-				Tx: tx,
-			}
-		}
-	}
-
-	return m, nil
-}
-
-func WgStatParseLastActivityHandler(lastSeen string, lastSeen2 WgStatLastseenMap2) (*WgStatLastActivityMap, error) {
-	if lastSeen2 != nil {
-		return WgStatParseLastActivity2(lastSeen2)
-	}
-
-	return WgStatParseLastActivity(lastSeen)
-}
-
-func WgStatParseLastActivity2(lastSeen WgStatLastseenMap2) (*WgStatLastActivityMap, error) {
+func WgStatParseLastActivity(lastSeen WgStatLastseenMap2) (*WgStatLastActivityMap, error) {
 	m := NewWgStatLastActivityMap()
 
 	for id, data := range lastSeen {
@@ -257,64 +173,7 @@ func WgStatParseLastActivity2(lastSeen WgStatLastseenMap2) (*WgStatLastActivityM
 	return m, nil
 }
 
-// WgStatParseLastActivity - parse last activity time from text.
-func WgStatParseLastActivity(lastSeen string) (*WgStatLastActivityMap, error) {
-	m := NewWgStatLastActivityMap()
-
-	for _, line := range strings.Split(lastSeen, "\n") {
-		if line == "" {
-			continue
-		}
-
-		columns := strings.Split(line, "\t")
-		if len(columns) < 2 {
-			return nil, fmt.Errorf("last seen: %w", ErrInvalidStatFormat)
-		}
-
-		ts, err := strconv.ParseInt(columns[1], 10, 64)
-		if err != nil {
-			continue
-		}
-
-		if ts != 0 {
-			m.Wg[columns[0]] = time.Unix(ts, 0).UTC()
-		}
-
-		if len(columns) >= 3 {
-			ts, err := strconv.ParseInt(columns[2], 10, 64)
-			if err != nil {
-				continue
-			}
-
-			if ts != 0 {
-				m.IPSec[columns[0]] = time.Unix(ts, 0).UTC()
-			}
-		}
-
-		if len(columns) >= 4 {
-			ts, err := strconv.ParseInt(columns[3], 10, 64)
-			if err != nil {
-				continue
-			}
-
-			if ts != 0 {
-				m.Ovc[columns[0]] = time.Unix(ts, 0).UTC()
-			}
-		}
-	}
-
-	return m, nil
-}
-
-func WgStatParseEndpointsHandler(endpoints string, endpoints2 WgStatEndpointMap2) (*WgStatEndpointMap, error) {
-	if endpoints2 != nil {
-		return WgStatParseEndpoints2(endpoints2)
-	}
-
-	return WgStatParseEndpoints(endpoints)
-}
-
-func WgStatParseEndpoints2(endpoints WgStatEndpointMap2) (*WgStatEndpointMap, error) {
+func WgStatParseEndpoints(endpoints WgStatEndpointMap2) (*WgStatEndpointMap, error) {
 	m := NewWgStatEndpointMap()
 
 	for id, data := range endpoints {
@@ -348,55 +207,6 @@ func WgStatParseEndpoints2(endpoints WgStatEndpointMap2) (*WgStatEndpointMap, er
 	return m, nil
 }
 
-// WgStatParseEndpoints - parse last seen endpoints from text.
-func WgStatParseEndpoints(endpoints string) (*WgStatEndpointMap, error) {
-	m := NewWgStatEndpointMap()
-
-	for _, line := range strings.Split(endpoints, "\n") {
-		if line == "" {
-			continue
-		}
-
-		columns := strings.Split(line, "\t")
-		if len(columns) < 2 {
-			return nil, fmt.Errorf("endpoints: %w", ErrInvalidStatFormat)
-		}
-
-		prefix, err := netip.ParsePrefix(columns[1])
-		if err != nil {
-			continue
-		}
-
-		if prefix.IsValid() {
-			m.Wg[columns[0]] = prefix
-		}
-
-		if len(columns) >= 3 {
-			prefix, err := netip.ParsePrefix(columns[2])
-			if err != nil {
-				continue
-			}
-
-			if prefix.IsValid() {
-				m.IPSec[columns[0]] = prefix
-			}
-		}
-
-		if len(columns) >= 4 {
-			prefix, err := netip.ParsePrefix(columns[2])
-			if err != nil {
-				continue
-			}
-
-			if prefix.IsValid() {
-				m.Ovc[columns[0]] = prefix
-			}
-		}
-	}
-
-	return m, nil
-}
-
 // WgStatParse - parse stats from parsed response.
 // Most of fileds have a text format, so we need to parse them.
 func WgStatParse(resp *WGStats) (*WgStatTimestamp, *WgStatTrafficMap, *WgStatLastActivityMap, *WgStatEndpointMap, error) {
@@ -405,17 +215,17 @@ func WgStatParse(resp *WGStats) (*WgStatTimestamp, *WgStatTrafficMap, *WgStatLas
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}
 
-	trafficMap, err := WgStatParseTrafficHandler(resp.Traffic, resp.Data.WgStatTrafficMap2)
+	trafficMap, err := WgStatParseTraffic(resp.Data.WgStatTrafficMap2)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}
 
-	lastActivityMap, err := WgStatParseLastActivityHandler(resp.LastActivity, resp.Data.WgStatLastseenMap2)
+	lastActivityMap, err := WgStatParseLastActivity(resp.Data.WgStatLastseenMap2)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}
 
-	endpointsMap, err := WgStatParseEndpointsHandler(resp.Endpoints, resp.Data.WgStatEndpointMap2)
+	endpointsMap, err := WgStatParseEndpoints(resp.Data.WgStatEndpointMap2)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}

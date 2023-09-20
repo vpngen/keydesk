@@ -11,6 +11,8 @@ import (
 	"github.com/vpngen/keydesk/vpnapi"
 )
 
+var nullUnixTime = time.Unix(0, 0)
+
 // GetStats - create brigade config.
 func (db *BrigadeStorage) GetStats(rdata bool, statsFilename, statsSpinlock string, endpointsTTL time.Duration) error {
 	data, err := db.getStatsQuota(rdata, endpointsTTL)
@@ -30,6 +32,11 @@ func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
 		points.Update = now
 	}()
 
+	// !!! fix Unix zero time bug.
+	if points.Total.Equal(nullUnixTime) {
+		points.Total = time.Time{}
+	}
+
 	switch {
 	case lastActivity.IsZero():
 		if points.Total.IsZero() {
@@ -37,6 +44,8 @@ func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
 		}
 
 		lastActivity = points.Total
+	case lastActivity.Equal(nullUnixTime):
+		return
 	default:
 		points.Total = lastActivity
 	}
@@ -329,15 +338,31 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 			user.Quotas.LimitMonthlyRemaining = 0
 		}
 
+		// !!! fix Unix zero time bug.
+		if user.Quotas.LastWgActivity.Total.Equal(nullUnixTime) {
+			user.Quotas.LastWgActivity.Total = time.Time{}
+		}
 		lastActivityWg := lastSeenMap.Wg[id]
 		lastActivityMark(now, lastActivityWg, &user.Quotas.LastWgActivity)
 
+		// !!! fix Unix zero time bug.
+		if user.Quotas.LastIPSecActivity.Total.Equal(nullUnixTime) {
+			user.Quotas.LastIPSecActivity.Total = time.Time{}
+		}
 		lastActivityIPSec := lastSeenMap.IPSec[id]
 		lastActivityMark(now, lastActivityIPSec, &user.Quotas.LastIPSecActivity)
 
+		// !!! fix Unix zero time bug.
+		if user.Quotas.LastOvcActivity.Total.Equal(nullUnixTime) {
+			user.Quotas.LastOvcActivity.Total = time.Time{}
+		}
 		lastActivityOvc := lastSeenMap.Ovc[id]
 		lastActivityMark(now, lastActivityOvc, &user.Quotas.LastOvcActivity)
 
+		// !!! fix Unix zero time bug.
+		if user.Quotas.LastOutlineActivity.Total.Equal(nullUnixTime) {
+			user.Quotas.LastOutlineActivity.Total = time.Time{}
+		}
 		lastActivityOutline := lastSeenMap.Outline[id]
 		lastActivityMark(now, lastActivityOutline, &user.Quotas.LastOutlineActivity)
 
@@ -359,6 +384,10 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL
 			lastActivityTotal = lastActivityOutline
 		}
 
+		// !!! fix Unix zero time bug.
+		if user.Quotas.LastActivity.Total.Equal(nullUnixTime) {
+			user.Quotas.LastActivity.Total = time.Time{}
+		}
 		lastActivityMark(now, lastActivityTotal, &user.Quotas.LastActivity)
 
 		if !user.Quotas.ThrottlingTill.IsZero() && user.Quotas.ThrottlingTill.After(now) {

@@ -10,6 +10,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"sync/atomic"
 	"time"
 )
 
@@ -42,7 +43,24 @@ func CalcAPIAddrPort(addr netip.Addr) netip.AddrPort {
 	return netip.AddrPortFrom(netip.AddrFrom16(buf), endpointPort)
 }
 
-func getAPIRequest(actualAddrPort, calculatedAddrPort netip.AddrPort, query string) ([]byte, error) {
+var serial uint32 = 0
+
+func nextSerial() uint32 {
+	for {
+		x := atomic.AddUint32(&serial, 1)
+		if x >= uint32(^uint16(0)) {
+			if atomic.CompareAndSwapUint32(&serial, x, 0) {
+				return 0
+			}
+
+			continue
+		}
+
+		return x
+	}
+}
+
+func getAPIRequest(ident string, actualAddrPort, calculatedAddrPort netip.AddrPort, query string) ([]byte, error) {
 	if !actualAddrPort.Addr().IsValid() || actualAddrPort.Addr().Compare(calculatedAddrPort.Addr()) != 0 || actualAddrPort.Port() != calculatedAddrPort.Port() {
 		fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", calculatedAddrPort)
 	}
@@ -70,7 +88,9 @@ func getAPIRequest(actualAddrPort, calculatedAddrPort netip.AddrPort, query stri
 		return nil, fmt.Errorf("new req: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Request: %s\n", apiURL)
+	num := nextSerial()
+
+	fmt.Fprintf(os.Stderr, "Request (%s | n=%04x): %s\n", ident, num, apiURL)
 
 	c := &http.Client{
 		Transport: &http.Transport{
@@ -89,7 +109,7 @@ func getAPIRequest(actualAddrPort, calculatedAddrPort netip.AddrPort, query stri
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 
-	fmt.Fprintf(os.Stderr, "Response: %s\n", body)
+	fmt.Fprintf(os.Stderr, "Response (%s | n=%04x): %s\n", ident, num, body)
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("resp code: %w", err)

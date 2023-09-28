@@ -100,7 +100,7 @@ func WgStatParseTimestamp(timestamp string) (*WgStatTimestamp, error) {
 	}, nil
 }
 
-func WgStatParseTraffic(traffic WgStatTrafficMap2) (*WgStatTrafficMap, error) {
+func WgStatParseTraffic(traffic WgStatTrafficMapIn) (*WgStatTrafficMap, error) {
 	m := NewWgStatTrafficMap()
 
 	for id, data := range traffic {
@@ -143,7 +143,7 @@ func WgStatParseTraffic(traffic WgStatTrafficMap2) (*WgStatTrafficMap, error) {
 	return m, nil
 }
 
-func WgStatParseLastActivity(lastSeen WgStatLastseenMap2) (*WgStatLastActivityMap, error) {
+func WgStatParseLastActivity(lastSeen WgStatLastseenMapIn) (*WgStatLastActivityMap, error) {
 	m := NewWgStatLastActivityMap()
 
 	for id, data := range lastSeen {
@@ -173,7 +173,7 @@ func WgStatParseLastActivity(lastSeen WgStatLastseenMap2) (*WgStatLastActivityMa
 	return m, nil
 }
 
-func WgStatParseEndpoints(endpoints WgStatEndpointMap2) (*WgStatEndpointMap, error) {
+func WgStatParseEndpoints(endpoints WgStatEndpointMapIn) (*WgStatEndpointMap, error) {
 	m := NewWgStatEndpointMap()
 
 	for id, data := range endpoints {
@@ -209,23 +209,23 @@ func WgStatParseEndpoints(endpoints WgStatEndpointMap2) (*WgStatEndpointMap, err
 
 // WgStatParse - parse stats from parsed response.
 // Most of fileds have a text format, so we need to parse them.
-func WgStatParse(resp *WGStats) (*WgStatTimestamp, *WgStatTrafficMap, *WgStatLastActivityMap, *WgStatEndpointMap, error) {
+func WgStatParse(resp *WGStatsIn) (*WgStatTimestamp, *WgStatTrafficMap, *WgStatLastActivityMap, *WgStatEndpointMap, error) {
 	ts, err := WgStatParseTimestamp(resp.Timestamp)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}
 
-	trafficMap, err := WgStatParseTraffic(resp.Data.WgStatTrafficMap2)
+	trafficMap, err := WgStatParseTraffic(resp.Data.WgStatTrafficMapIn)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}
 
-	lastActivityMap, err := WgStatParseLastActivity(resp.Data.WgStatLastseenMap2)
+	lastActivityMap, err := WgStatParseLastActivity(resp.Data.WgStatLastseenMapIn)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}
 
-	endpointsMap, err := WgStatParseEndpoints(resp.Data.WgStatEndpointMap2)
+	endpointsMap, err := WgStatParseEndpoints(resp.Data.WgStatEndpointMapIn)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("parse: %w", err)
 	}

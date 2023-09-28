@@ -209,7 +209,7 @@ func randomData(data *Brigade, now time.Time) (*vpnapi.WgStatTimestamp, *vpnapi.
 	return ts, trafficMap, lastSeenMap, endpointMap
 }
 
-func mergeStats(data *Brigade, wgStats *vpnapi.WGStats, rdata bool, endpointsTTL, maxUserInactiveDuration time.Duration, monthlyQuotaRemaining int) error {
+func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsTTL, maxUserInactiveDuration time.Duration, monthlyQuotaRemaining int) error {
 	var (
 		totalTraffic TrafficCountersContainer
 		throttledUsers,
@@ -506,7 +506,7 @@ func (db *BrigadeStorage) getStatsQuota(rdata bool, endpointsTTL time.Duration) 
 	defer f.Close()
 
 	// if we catch a slowdown problems we need organize queue
-	wgStats, err := vpnapi.WgStat(db.actualAddrPort, db.calculatedAddrPort, data.WgPublicKey)
+	wgStats, err := vpnapi.WgStat(data.BrigadeID, db.actualAddrPort, db.calculatedAddrPort, data.WgPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("wg stat: %w", err)
 	}

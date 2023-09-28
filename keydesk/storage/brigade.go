@@ -90,6 +90,7 @@ func (db *BrigadeStorage) CreateBrigade(
 
 	// if we catch a slowdown problems we need organize queue
 	err = vpnapi.WgAdd(
+		data.BrigadeID,
 		db.actualAddrPort,
 		db.calculatedAddrPort,
 		data.WgPrivateRouterEnc,
@@ -125,7 +126,7 @@ func (db *BrigadeStorage) DestroyBrigade() error {
 	defer f.Close()
 
 	// if we catch a slowdown problems we need organize queue
-	err = vpnapi.WgDel(db.actualAddrPort, db.calculatedAddrPort, data.WgPrivateRouterEnc)
+	err = vpnapi.WgDel(data.BrigadeID, db.actualAddrPort, db.calculatedAddrPort, data.WgPrivateRouterEnc)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)
 	}

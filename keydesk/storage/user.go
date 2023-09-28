@@ -115,6 +115,7 @@ func (db *BrigadeStorage) CreateUser(
 
 	// if we catch a slowdown problems we need organize queue
 	body, err := vpnapi.WgPeerAdd(
+		data.BrigadeID,
 		db.actualAddrPort, db.calculatedAddrPort,
 		wgPub, data.WgPublicKey, wgRouterPSK,
 		userconf.IPv4, userconf.IPv6, kd6,
@@ -290,7 +291,7 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 	}
 
 	// if we catch a slowdown problems we need organize queue
-	err = vpnapi.WgPeerDel(db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey)
+	err = vpnapi.WgPeerDel(data.BrigadeID, db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey)
 	if err != nil {
 		return fmt.Errorf("peer del: %w", err)
 	}
@@ -316,7 +317,7 @@ func (db *BrigadeStorage) removeBrigadier(data *Brigade) (string, namesgenerator
 			data.Users = append(data.Users[:i], data.Users[i+1:]...)
 
 			// if we catch a slowdown problems we need organize queue
-			err := vpnapi.WgPeerDel(db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey)
+			err := vpnapi.WgPeerDel(data.BrigadeID, db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey)
 			if err != nil {
 				return "", namesgenerator.Person{}, fmt.Errorf("peer del: %w", err)
 			}

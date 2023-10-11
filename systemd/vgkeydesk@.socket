@@ -1,3 +1,8 @@
+[Unit]
+Description=Keydesk socket
+After=network-online.target
+Wants=network-online.target
+
 [Socket]
 # ListenStream = 80
 BindIPv6Only = both
@@ -5,3 +10,4 @@ NoDelay=true
 
 [Install]
 WantedBy = sockets.target
+

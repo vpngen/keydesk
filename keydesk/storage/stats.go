@@ -530,10 +530,11 @@ func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename, statsSpinl
 		StatsCounters: StatsCounters{
 			UsersCounters: data.UsersCounters,
 			NetCounters: NetCounters{
-				TotalTraffic:      data.TotalTraffic.Total,
-				TotalWgTraffic:    data.TotalWgTraffic.Total,
-				TotalIPSecTraffic: data.TotalIPSecTraffic.Total,
-				TotalOvcTraffic:   data.TotalOvcTraffic.Total,
+				TotalTraffic:        data.TotalTraffic.Total,
+				TotalWgTraffic:      data.TotalWgTraffic.Total,
+				TotalIPSecTraffic:   data.TotalIPSecTraffic.Total,
+				TotalOvcTraffic:     data.TotalOvcTraffic.Total,
+				TotalOutlineTraffic: data.TotalOutlineTraffic.Total,
 			},
 			CountersUpdateTime: data.CountersUpdateTime,
 		},

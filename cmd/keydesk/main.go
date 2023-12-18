@@ -133,8 +133,7 @@ func main() {
 		logger.Printf("Resqrict requests by address: %s \n", allowedAddress)
 	}
 
-	idleTimer := time.NewTimer(keydesk.MaxIdlePeriod)
-	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir, idleTimer, allowedAddress, logger)
+	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir, allowedAddress, logger)
 
 	// On signal, gracefully shut down the server and wait 5
 	// seconds for current connections to stop.
@@ -575,7 +574,6 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	pcors bool,
 	webDir string,
-	idleTimer *time.Timer,
 	allowedAddr string,
 	logger *log.Logger,
 ) http.Handler {
@@ -614,28 +612,17 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	switch pcors {
 	case true:
 		return cors.AllowAll().Handler(
-			uiMiddleware(api.Serve(nil), webDir, idleTimer, allowedAddr, logger),
+			uiMiddleware(api.Serve(nil), webDir, allowedAddr, logger),
 		)
 	default:
-		return uiMiddleware(api.Serve(nil), webDir, idleTimer, allowedAddr, logger)
+		return uiMiddleware(api.Serve(nil), webDir, allowedAddr, logger)
 	}
 }
 
-func uiMiddleware(handler http.Handler, dir string, idleTimer *time.Timer, allowedAddr string, logger *log.Logger) http.Handler {
+func uiMiddleware(handler http.Handler, dir string, allowedAddr string, logger *log.Logger) http.Handler {
 	staticFS := http.Dir(dir)
-	mu := sync.Mutex{}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-
-		if !idleTimer.Stop() {
-			<-idleTimer.C
-		}
-
-		idleTimer.Reset(keydesk.MaxIdlePeriod)
-
-		mu.Unlock()
-
 		remoteAddrPort, err := netip.ParseAddrPort(r.RemoteAddr)
 		if err != nil {
 			logger.Printf("Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)

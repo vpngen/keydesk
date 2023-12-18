@@ -1,9 +1,11 @@
 package stat
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"net/netip"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -11,7 +13,7 @@ import (
 	"github.com/vpngen/keydesk/keydesk/storage"
 )
 
-func CollectingData(kill <-chan struct{}, logger *log.Logger, addr netip.AddrPort, rdata bool, brigadeID, dbDir, statsDir string) {
+func CollectingData(kill <-chan struct{}, addr netip.AddrPort, rdata bool, brigadeID, dbDir, statsDir string) {
 	db := &storage.BrigadeStorage{
 		BrigadeID:       brigadeID,
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
@@ -38,15 +40,15 @@ func CollectingData(kill <-chan struct{}, logger *log.Logger, addr netip.AddrPor
 	for {
 		select {
 		case ts := <-timer.C:
-			logger.Printf("%s: Collecting data: %s: %s\n", ts.UTC().Format(time.RFC3339), brigadeID, statsFilename)
+			_, _ = fmt.Fprintf(os.Stdout, "%s: Collecting data: %s: %s\n", ts.UTC().Format(time.RFC3339), brigadeID, statsFilename)
 
 			if err := db.GetStats(rdata, statsFilename, statsSpinlock, keydesk.DefaultEndpointsTTL); err != nil {
-				logger.Printf("Error collecting stats: %s\n", err)
+				_, _ = fmt.Fprintf(os.Stdout, "Error collecting stats: %s\n", err)
 			}
 
 			timer.Reset(DefaultStatisticsFetchingDuration)
 		case <-kill:
-			logger.Println("Shutting down stats...")
+			_, _ = fmt.Fprintln(os.Stdout, "Shutting down stats...")
 			return
 		}
 	}

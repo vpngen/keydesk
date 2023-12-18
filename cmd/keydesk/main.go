@@ -72,8 +72,6 @@ var (
 )
 
 func main() {
-	logger := log.New(os.Stdout, "[keydesk] ", log.LstdFlags|log.Lshortfile)
-
 	chunked, jsonOut, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, certDir, name, person, replace, vpnCfgs, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
@@ -101,15 +99,15 @@ func main() {
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 
-	logger.Printf("Etc: %s\n", etcDir)
-	logger.Printf("DBDir: %s\n", dbDir)
+	_, _ = fmt.Fprintf(os.Stdout, "Etc: %s\n", etcDir)
+	_, _ = fmt.Fprintf(os.Stdout, "DBDir: %s\n", dbDir)
 	switch {
 	case addr.IsValid() && !addr.Addr().IsUnspecified():
-		logger.Printf("Command address:port: %s\n", addr)
+		_, _ = fmt.Fprintf(os.Stdout, "Command address:port: %s\n", addr)
 	case addr.IsValid():
-		logger.Println("Command address:port is COMMON")
+		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is COMMON")
 	default:
-		logger.Println("Command address:port is for DEBUG")
+		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is for DEBUG")
 	}
 
 	// Just create brigadier.
@@ -121,19 +119,19 @@ func main() {
 		return
 	}
 
-	logger.Printf("Cert Dir: %s\n", certDir)
-	logger.Printf("Stat Dir: %s\n", *statsDir)
-	logger.Printf("Web files: %s\n", webDir)
-	logger.Printf("Permessive CORS: %t\n", pcors)
-	logger.Printf("Starting %s keydesk\n", BrigadeID)
+	_, _ = fmt.Fprintf(os.Stdout, "Cert Dir: %s\n", certDir)
+	_, _ = fmt.Fprintf(os.Stdout, "Stat Dir: %s\n", *statsDir)
+	_, _ = fmt.Fprintf(os.Stdout, "Web files: %s\n", webDir)
+	_, _ = fmt.Fprintf(os.Stdout, "Permessive CORS: %t\n", pcors)
+	_, _ = fmt.Fprintf(os.Stdout, "Starting %s keydesk\n", BrigadeID)
 
 	allowedAddress := ""
 	if calculatedAddrPort, ok := db.CalculatedAPIAddress(); ok {
 		allowedAddress = calculatedAddrPort.String()
-		logger.Printf("Resqrict requests by address: %s \n", allowedAddress)
+		_, _ = fmt.Fprintf(os.Stdout, "Resqrict requests by address: %s \n", allowedAddress)
 	}
 
-	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir, allowedAddress, logger)
+	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir, allowedAddress)
 
 	// On signal, gracefully shut down the server and wait 5
 	// seconds for current connections to stop.
@@ -163,13 +161,13 @@ func main() {
 				IdleTimeout: 60 * time.Minute,
 			}
 		default:
-			logger.Printf("Skip TLS: can't open cert/key pair: %s\n", err)
+			_, _ = fmt.Fprintf(os.Stdout, "Skip TLS: can't open cert/key pair: %s\n", err)
 		}
 	}
 
 	go func() {
 		<-quit
-		logger.Println("Quit signal received...")
+		_, _ = fmt.Fprintln(os.Stdout, "Quit signal received...")
 		statDone <- struct{}{}
 
 		wg := sync.WaitGroup{}
@@ -182,16 +180,16 @@ func main() {
 
 			srv.SetKeepAlivesEnabled(false)
 			if err := srv.Shutdown(ctx); err != nil {
-				logger.Printf("Can't gracefully shut down the server: %s\n", err)
+				_, _ = fmt.Fprintf(os.Stdout, "Can't gracefully shut down the server: %s\n", err)
 			}
 		}
 
-		logger.Println("Server is shutting down")
+		_, _ = fmt.Fprintln(os.Stdout, "Server is shutting down")
 		wg.Add(1)
 		go closeFunc(server)
 
 		if serverTLS != nil {
-			logger.Println("Server TLS is shutting down")
+			_, _ = fmt.Fprintln(os.Stdout, "Server TLS is shutting down")
 			wg.Add(1)
 			go closeFunc(serverTLS)
 		}
@@ -201,9 +199,9 @@ func main() {
 		close(done)
 	}()
 
-	logger.Printf("Listen HTTP: %s\n", listeners[0].Addr().String())
+	_, _ = fmt.Fprintf(os.Stdout, "Listen HTTP: %s\n", listeners[0].Addr().String())
 	if serverTLS != nil {
-		logger.Printf("Listen HTTPS: %s\n", listeners[1].Addr().String())
+		_, _ = fmt.Fprintf(os.Stdout, "Listen HTTPS: %s\n", listeners[1].Addr().String())
 	}
 
 	// Start accepting connections.
@@ -222,7 +220,7 @@ func main() {
 		}()
 	}
 
-	go stat.CollectingData(statDone, logger, addr, true, BrigadeID, dbDir, *statsDir) // TODO: is addr the same?
+	go stat.CollectingData(statDone, addr, true, BrigadeID, dbDir, *statsDir) // TODO: is addr the same?
 
 	// Wait for existing connections before exiting.
 	<-done
@@ -575,7 +573,6 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	pcors bool,
 	webDir string,
 	allowedAddr string,
-	logger *log.Logger,
 ) http.Handler {
 	// load embedded swagger file
 	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
@@ -612,20 +609,20 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	switch pcors {
 	case true:
 		return cors.AllowAll().Handler(
-			uiMiddleware(api.Serve(nil), webDir, allowedAddr, logger),
+			uiMiddleware(api.Serve(nil), webDir, allowedAddr),
 		)
 	default:
-		return uiMiddleware(api.Serve(nil), webDir, allowedAddr, logger)
+		return uiMiddleware(api.Serve(nil), webDir, allowedAddr)
 	}
 }
 
-func uiMiddleware(handler http.Handler, dir string, allowedAddr string, logger *log.Logger) http.Handler {
+func uiMiddleware(handler http.Handler, dir string, allowedAddr string) http.Handler {
 	staticFS := http.Dir(dir)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		remoteAddrPort, err := netip.ParseAddrPort(r.RemoteAddr)
 		if err != nil {
-			logger.Printf("Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)
+			_, _ = fmt.Fprintf(os.Stdout, "Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 
 			return
@@ -634,8 +631,8 @@ func uiMiddleware(handler http.Handler, dir string, allowedAddr string, logger *
 		remoteAddr := remoteAddrPort.Addr().String()
 
 		if allowedAddr != "" && remoteAddr != allowedAddr {
-			logger.Printf("Connect From: %s Restricted\n", r.RemoteAddr)
-			logger.Printf("Remote: %s Expected:%s\n", remoteAddr, allowedAddr)
+			_, _ = fmt.Fprintf(os.Stdout, "Connect From: %s Restricted\n", r.RemoteAddr)
+			_, _ = fmt.Fprintf(os.Stdout, "Remote: %s Expected:%s\n", remoteAddr, allowedAddr)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 
 			return
@@ -657,7 +654,7 @@ func uiMiddleware(handler http.Handler, dir string, allowedAddr string, logger *
 			return
 		}
 
-		logger.Printf("Connect From: %s\n", r.RemoteAddr)
+		_, _ = fmt.Fprintf(os.Stdout, "Connect From: %s\n", r.RemoteAddr)
 
 		handler.ServeHTTP(w, r)
 	})

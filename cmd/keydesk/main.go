@@ -109,30 +109,36 @@ func main() {
 		_, _ = fmt.Fprintf(os.Stdout, "Resqrict requests by address: %s \n", allowedAddress)
 	}
 
+	log.Println("a", addr.IsValid(), addr.Addr().IsUnspecified())
+
 	switch {
 	case addr.IsValid() && !addr.Addr().IsUnspecified():
 		_, _ = fmt.Fprintf(os.Stdout, "Command address:port: %s\n", addr)
 	case addr.IsValid():
 		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is COMMON")
-		if len(listeners) == 0 {
-			prev := calculatedAddrPort.Prev().String()
-
-			l, err := net.Listen("tcp", prev+":80")
-			if err != nil {
-				_, _ = fmt.Fprintln(os.Stdout, prev, "listen error:", err)
-				return
-			}
-			listeners = append(listeners, l)
-
-			l, err = net.Listen("tcp", prev+":443")
-			if err != nil {
-				_, _ = fmt.Fprintln(os.Stdout, prev, "listen error:", err)
-				return
-			}
-			listeners = append(listeners, l)
-		}
 	default:
 		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is for DEBUG")
+	}
+
+	if len(listeners) == 0 {
+		prev := calculatedAddrPort.Prev().String()
+		log.Println("prev:", prev)
+		log.Println("prev:", calculatedAddrPort.Prev())
+		log.Println("calculated:", calculatedAddrPort)
+
+		l, err := net.Listen("tcp6", fmt.Sprintf("[%s]:80", prev))
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTP error:", err)
+			os.Exit(1)
+		}
+		listeners = append(listeners, l)
+
+		l, err = net.Listen("tcp6", fmt.Sprintf("[%s]:443", prev))
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTPS error:", err)
+			os.Exit(1)
+		}
+		listeners = append(listeners, l)
 	}
 
 	// Just create brigadier.

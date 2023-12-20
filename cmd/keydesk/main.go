@@ -120,6 +120,15 @@ func main() {
 		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is for DEBUG")
 	}
 
+	// Just create brigadier.
+	if name != "" || replace {
+		if err := createBrigadier(db, chunked, jsonOut, name, person, replace, vpnCfgs, &routerPublicKey, &shufflerPublicKey); err != nil {
+			log.Fatalf("Can't create brigadier: %s\n", err)
+		}
+
+		return
+	}
+
 	if len(listeners) == 0 {
 		prev := calculatedAddrPort.Prev().String()
 		log.Println("prev:", prev)
@@ -139,15 +148,6 @@ func main() {
 			os.Exit(1)
 		}
 		listeners = append(listeners, l)
-	}
-
-	// Just create brigadier.
-	if name != "" || replace {
-		if err := createBrigadier(db, chunked, jsonOut, name, person, replace, vpnCfgs, &routerPublicKey, &shufflerPublicKey); err != nil {
-			log.Fatalf("Can't create brigadier: %s\n", err)
-		}
-
-		return
 	}
 
 	_, _ = fmt.Fprintf(os.Stdout, "Cert Dir: %s\n", certDir)

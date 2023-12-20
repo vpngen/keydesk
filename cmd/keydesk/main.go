@@ -109,7 +109,14 @@ func main() {
 		_, _ = fmt.Fprintf(os.Stdout, "Resqrict requests by address: %s \n", allowedAddress)
 	}
 
-	log.Println("a", addr.IsValid(), addr.Addr().IsUnspecified())
+	// Just create brigadier.
+	if name != "" || replace {
+		if err := createBrigadier(db, chunked, jsonOut, name, person, replace, vpnCfgs, &routerPublicKey, &shufflerPublicKey); err != nil {
+			log.Fatalf("Can't create brigadier: %s\n", err)
+		}
+
+		return
+	}
 
 	switch {
 	case addr.IsValid() && !addr.Addr().IsUnspecified():
@@ -135,15 +142,6 @@ func main() {
 		}
 	default:
 		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is for DEBUG")
-	}
-
-	// Just create brigadier.
-	if name != "" || replace {
-		if err := createBrigadier(db, chunked, jsonOut, name, person, replace, vpnCfgs, &routerPublicKey, &shufflerPublicKey); err != nil {
-			log.Fatalf("Can't create brigadier: %s\n", err)
-		}
-
-		return
 	}
 
 	_, _ = fmt.Fprintf(os.Stdout, "Cert Dir: %s\n", certDir)

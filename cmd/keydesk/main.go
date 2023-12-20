@@ -116,6 +116,23 @@ func main() {
 		_, _ = fmt.Fprintf(os.Stdout, "Command address:port: %s\n", addr)
 	case addr.IsValid():
 		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is COMMON")
+		if len(listeners) == 0 {
+			prev := calculatedAddrPort.Prev().String()
+
+			l, err := net.Listen("tcp6", fmt.Sprintf("[%s]:80", prev))
+			if err != nil {
+				_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTP error:", err)
+				os.Exit(1)
+			}
+			listeners = append(listeners, l)
+
+			l, err = net.Listen("tcp6", fmt.Sprintf("[%s]:443", prev))
+			if err != nil {
+				_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTPS error:", err)
+				os.Exit(1)
+			}
+			listeners = append(listeners, l)
+		}
 	default:
 		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is for DEBUG")
 	}
@@ -127,27 +144,6 @@ func main() {
 		}
 
 		return
-	}
-
-	if len(listeners) == 0 {
-		prev := calculatedAddrPort.Prev().String()
-		log.Println("prev:", prev)
-		log.Println("prev:", calculatedAddrPort.Prev())
-		log.Println("calculated:", calculatedAddrPort)
-
-		l, err := net.Listen("tcp6", fmt.Sprintf("[%s]:80", prev))
-		if err != nil {
-			_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTP error:", err)
-			os.Exit(1)
-		}
-		listeners = append(listeners, l)
-
-		l, err = net.Listen("tcp6", fmt.Sprintf("[%s]:443", prev))
-		if err != nil {
-			_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTPS error:", err)
-			os.Exit(1)
-		}
-		listeners = append(listeners, l)
 	}
 
 	_, _ = fmt.Fprintf(os.Stdout, "Cert Dir: %s\n", certDir)
@@ -224,19 +220,18 @@ func main() {
 		close(done)
 	}()
 
-	_, _ = fmt.Fprintf(os.Stdout, "Listen HTTP: %s\n", listeners[0].Addr().String())
-	if serverTLS != nil {
-		_, _ = fmt.Fprintf(os.Stdout, "Listen HTTPS: %s\n", listeners[1].Addr().String())
+	if len(listeners) > 0 {
+		_, _ = fmt.Fprintf(os.Stdout, "Listen HTTP: %s\n", listeners[0].Addr().String())
+		// Start accepting connections.
+		go func() {
+			if err := server.Serve(listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+				log.Fatalf("Can't serve: %s\n", err)
+			}
+		}()
 	}
 
-	// Start accepting connections.
-	go func() {
-		if err := server.Serve(listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Can't serve: %s\n", err)
-		}
-	}()
-
 	if serverTLS != nil && len(listeners) == 2 {
+		_, _ = fmt.Fprintf(os.Stdout, "Listen HTTPS: %s\n", listeners[1].Addr().String())
 		// Start accepting connections.
 		go func() {
 			if err := serverTLS.ServeTLS(listeners[1], "", ""); err != nil && !goerrors.Is(err, http.ErrServerClosed) {

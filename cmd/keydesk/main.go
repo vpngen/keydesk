@@ -119,27 +119,10 @@ func main() {
 	}
 
 	switch {
-	case addr.IsValid() && !addr.Addr().IsUnspecified():
-		_, _ = fmt.Fprintf(os.Stdout, "Command address:port: %s\n", addr)
-	case addr.IsValid():
+	case addr.IsValid() && addr.Addr().IsUnspecified():
 		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is COMMON")
-		if len(listeners) == 0 {
-			prev := calculatedAddrPort.Prev().String()
-
-			l, err := net.Listen("tcp6", fmt.Sprintf("[%s]:80", prev))
-			if err != nil {
-				_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTP error:", err)
-				os.Exit(1)
-			}
-			listeners = append(listeners, l)
-
-			l, err = net.Listen("tcp6", fmt.Sprintf("[%s]:443", prev))
-			if err != nil {
-				_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTPS error:", err)
-				os.Exit(1)
-			}
-			listeners = append(listeners, l)
-		}
+	case addr.IsValid():
+		_, _ = fmt.Fprintf(os.Stdout, "Command address:port: %s\n", addr)
 	default:
 		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is for DEBUG")
 	}
@@ -149,6 +132,29 @@ func main() {
 	_, _ = fmt.Fprintf(os.Stdout, "Web files: %s\n", webDir)
 	_, _ = fmt.Fprintf(os.Stdout, "Permessive CORS: %t\n", pcors)
 	_, _ = fmt.Fprintf(os.Stdout, "Starting %s keydesk\n", BrigadeID)
+
+	if len(listeners) == 0 && !addr.IsValid() {
+		_, _ = fmt.Fprintln(os.Stdout, "neither listeners nor address:port specified, exiting", err)
+		os.Exit(1)
+	}
+
+	if len(listeners) == 0 {
+		prev := calculatedAddrPort.Prev().String()
+
+		l, err := net.Listen("tcp6", fmt.Sprintf("[%s]:80", prev))
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTP error:", err)
+			os.Exit(1)
+		}
+		listeners = append(listeners, l)
+
+		l, err = net.Listen("tcp6", fmt.Sprintf("[%s]:443", prev))
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTPS error:", err)
+			os.Exit(1)
+		}
+		listeners = append(listeners, l)
+	}
 
 	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir, allowedAddress)
 

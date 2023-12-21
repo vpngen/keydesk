@@ -102,13 +102,6 @@ func main() {
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 
-	allowedAddress := ""
-	calculatedAddrPort, ok := db.CalculatedAPIAddress()
-	if ok {
-		allowedAddress = calculatedAddrPort.String()
-		_, _ = fmt.Fprintf(os.Stdout, "Resqrict requests by address: %s \n", allowedAddress)
-	}
-
 	// Just create brigadier.
 	if name != "" || replace {
 		if err := createBrigadier(db, chunked, jsonOut, name, person, replace, vpnCfgs, &routerPublicKey, &shufflerPublicKey); err != nil {
@@ -133,8 +126,15 @@ func main() {
 	_, _ = fmt.Fprintf(os.Stdout, "Permessive CORS: %t\n", pcors)
 	_, _ = fmt.Fprintf(os.Stdout, "Starting %s keydesk\n", BrigadeID)
 
+	allowedAddress := ""
+	calculatedAddrPort, ok := db.CalculatedAPIAddress()
+	if ok {
+		allowedAddress = calculatedAddrPort.String()
+		_, _ = fmt.Fprintf(os.Stdout, "Resqrict requests by address: %s \n", allowedAddress)
+	}
+
 	if len(listeners) == 0 && !addr.IsValid() {
-		_, _ = fmt.Fprintln(os.Stdout, "neither listeners nor address:port specified, exiting", err)
+		_, _ = fmt.Fprintln(os.Stdout, "neither listeners nor address:port specified, exiting")
 		os.Exit(1)
 	}
 
@@ -406,10 +406,6 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 				return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot retrieve listeners: %w", err)
 			}
 
-			//if len(listeners) != 1 && len(listeners) != 2 {
-			//	return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("unexpected number of socket activation (%d != 1|2)",
-			//		len(listeners))
-			//}
 			return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, "", person, false, nil, nil
 		default:
 			// get listeners from argument

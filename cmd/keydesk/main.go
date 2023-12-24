@@ -84,6 +84,9 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	_, _ = fmt.Fprintf(os.Stdout, "Etc: %s\n", etcDir)
+	_, _ = fmt.Fprintf(os.Stdout, "DBDir: %s\n", dbDir)
+
 	db := &storage.BrigadeStorage{
 		BrigadeID:       BrigadeID,
 		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
@@ -99,13 +102,11 @@ func main() {
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 
-	_, _ = fmt.Fprintf(os.Stdout, "Etc: %s\n", etcDir)
-	_, _ = fmt.Fprintf(os.Stdout, "DBDir: %s\n", dbDir)
 	switch {
-	case addr.IsValid() && !addr.Addr().IsUnspecified():
-		_, _ = fmt.Fprintf(os.Stdout, "Command address:port: %s\n", addr)
-	case addr.IsValid():
+	case addr.IsValid() && addr.Addr().IsUnspecified():
 		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is COMMON")
+	case addr.IsValid():
+		_, _ = fmt.Fprintf(os.Stdout, "Command address:port: %s\n", addr)
 	default:
 		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is for DEBUG")
 	}
@@ -126,9 +127,33 @@ func main() {
 	_, _ = fmt.Fprintf(os.Stdout, "Starting %s keydesk\n", BrigadeID)
 
 	allowedAddress := ""
-	if calculatedAddrPort, ok := db.CalculatedAPIAddress(); ok {
+	calculatedAddrPort, ok := db.CalculatedAPIAddress()
+	if ok {
 		allowedAddress = calculatedAddrPort.String()
 		_, _ = fmt.Fprintf(os.Stdout, "Resqrict requests by address: %s \n", allowedAddress)
+	}
+
+	if len(listeners) == 0 && !addr.IsValid() {
+		_, _ = fmt.Fprintln(os.Stdout, "neither listeners nor address:port specified, exiting")
+		os.Exit(1)
+	}
+
+	if len(listeners) == 0 {
+		prev := calculatedAddrPort.Prev().String()
+
+		l, err := net.Listen("tcp6", fmt.Sprintf("[%s]:80", prev))
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTP error:", err)
+			os.Exit(1)
+		}
+		listeners = append(listeners, l)
+
+		l, err = net.Listen("tcp6", fmt.Sprintf("[%s]:443", prev))
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTPS error:", err)
+			os.Exit(1)
+		}
+		listeners = append(listeners, l)
 	}
 
 	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir, allowedAddress)
@@ -199,19 +224,18 @@ func main() {
 		close(done)
 	}()
 
-	_, _ = fmt.Fprintf(os.Stdout, "Listen HTTP: %s\n", listeners[0].Addr().String())
-	if serverTLS != nil {
-		_, _ = fmt.Fprintf(os.Stdout, "Listen HTTPS: %s\n", listeners[1].Addr().String())
+	if len(listeners) > 0 {
+		_, _ = fmt.Fprintf(os.Stdout, "Listen HTTP: %s\n", listeners[0].Addr().String())
+		// Start accepting connections.
+		go func() {
+			if err := server.Serve(listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+				log.Fatalf("Can't serve: %s\n", err)
+			}
+		}()
 	}
 
-	// Start accepting connections.
-	go func() {
-		if err := server.Serve(listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Can't serve: %s\n", err)
-		}
-	}()
-
 	if serverTLS != nil && len(listeners) == 2 {
+		_, _ = fmt.Fprintf(os.Stdout, "Listen HTTPS: %s\n", listeners[1].Addr().String())
 		// Start accepting connections.
 		go func() {
 			if err := serverTLS.ServeTLS(listeners[1], "", ""); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
@@ -376,16 +400,15 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 
 		switch *listenAddr {
 		case "":
+			// get listeners from activation sockets
 			listeners, err = activation.Listeners()
 			if err != nil {
 				return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot retrieve listeners: %w", err)
 			}
 
-			if len(listeners) != 1 && len(listeners) != 2 {
-				return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("unexpected number of socket activation (%d != 1|2)",
-					len(listeners))
-			}
+			return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, "", person, false, nil, nil
 		default:
+			// get listeners from argument
 			for _, laddr := range strings.Split(*listenAddr, ",") {
 				l, err := net.Listen("tcp", laddr)
 				if err != nil {

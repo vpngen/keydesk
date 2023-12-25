@@ -83,6 +83,51 @@ func (o *PostTokenInternalServerError) WriteResponse(rw http.ResponseWriter, pro
 	rw.WriteHeader(500)
 }
 
+// PostTokenServiceUnavailableCode is the HTTP code returned for type PostTokenServiceUnavailable
+const PostTokenServiceUnavailableCode int = 503
+
+/*
+PostTokenServiceUnavailable Maintenance
+
+swagger:response postTokenServiceUnavailable
+*/
+type PostTokenServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.MaintenanceError `json:"body,omitempty"`
+}
+
+// NewPostTokenServiceUnavailable creates PostTokenServiceUnavailable with default headers values
+func NewPostTokenServiceUnavailable() *PostTokenServiceUnavailable {
+
+	return &PostTokenServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the post token service unavailable response
+func (o *PostTokenServiceUnavailable) WithPayload(payload *models.MaintenanceError) *PostTokenServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post token service unavailable response
+func (o *PostTokenServiceUnavailable) SetPayload(payload *models.MaintenanceError) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PostTokenServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 /*
 PostTokenDefault error
 

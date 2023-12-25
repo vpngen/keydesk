@@ -108,6 +108,51 @@ func (o *PostUserInternalServerError) WriteResponse(rw http.ResponseWriter, prod
 	rw.WriteHeader(500)
 }
 
+// PostUserServiceUnavailableCode is the HTTP code returned for type PostUserServiceUnavailable
+const PostUserServiceUnavailableCode int = 503
+
+/*
+PostUserServiceUnavailable Maintenance
+
+swagger:response postUserServiceUnavailable
+*/
+type PostUserServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.MaintenanceError `json:"body,omitempty"`
+}
+
+// NewPostUserServiceUnavailable creates PostUserServiceUnavailable with default headers values
+func NewPostUserServiceUnavailable() *PostUserServiceUnavailable {
+
+	return &PostUserServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the post user service unavailable response
+func (o *PostUserServiceUnavailable) WithPayload(payload *models.MaintenanceError) *PostUserServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post user service unavailable response
+func (o *PostUserServiceUnavailable) SetPayload(payload *models.MaintenanceError) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PostUserServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 /*
 PostUserDefault error
 

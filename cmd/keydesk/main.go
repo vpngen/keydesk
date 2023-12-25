@@ -244,7 +244,9 @@ func main() {
 		}()
 	}
 
-	go stat.CollectingData(statDone, addr, true, BrigadeID, dbDir, *statsDir) // TODO: is addr the same?
+	_, rdata := os.LookupEnv("VGSTATS_RANDOM_DATA")
+
+	go stat.CollectingData(statDone, addr, rdata, BrigadeID, dbDir, *statsDir) // TODO: is addr the same?
 
 	// Wait for existing connections before exiting.
 	<-done

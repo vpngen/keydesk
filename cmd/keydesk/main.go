@@ -21,7 +21,6 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -643,7 +642,12 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 		return keydesk.GetUsersStats(db, params, principal)
 	})
 
-	handler := maintenanceMiddleware(api.Serve(nil), "/", "./")
+	handler := maintenanceMiddleware(
+		api.Serve(nil),
+		"/.maintenance",
+		filepath.Dir(db.BrigadeFilename)+"/.maintenance", // use carefully, need to be refactored.
+		// TODO: maintenance must be checked at brigade service layer
+	)
 
 	switch pcors {
 	case true:
@@ -701,16 +705,15 @@ func uiMiddleware(handler http.Handler, dir string, allowedAddr string) http.Han
 
 func maintenanceMiddleware(handler http.Handler, paths ...string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for _, prefix := range paths {
-			if ok, till := maintenance.IsMaintenance(path.Join(prefix, ".maintenance")); ok {
-				me := maintenance.NewError(till)
-				w.Header().Set("Retry-After", me.RetryAfter().String())
-				w.WriteHeader(http.StatusServiceUnavailable)
-				if err := json.NewEncoder(w).Encode(me); err != nil {
-					_, _ = fmt.Fprintln(os.Stderr, "encode maintenance error:", err)
-				}
-				return
+		ok, till := maintenance.CheckInPaths(paths...)
+		if ok {
+			me := maintenance.NewError(till)
+			w.Header().Set("Retry-After", me.RetryAfter().String())
+			w.WriteHeader(http.StatusServiceUnavailable)
+			if err := json.NewEncoder(w).Encode(me); err != nil {
+				_, _ = fmt.Fprintln(os.Stderr, "encode maintenance error:", err)
 			}
+			return
 		}
 		handler.ServeHTTP(w, r)
 	})

@@ -11,6 +11,7 @@ import (
 	"math"
 	"net/url"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/google/uuid"
@@ -63,11 +64,8 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 
 // AddBrigadier - create brigadier user.
 func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgenerator.Person, replaceBrigadier bool, reqVpnCfgs *storage.ConfigsImplemented, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, *models.Newuser, error) {
-	if ok, till := maintenance.IsMaintenance("/"); ok {
-		return "", "", nil, maintenance.NewError(till)
-	}
-
-	if ok, till := maintenance.IsMaintenance("./"); ok {
+	// TODO: maintenance must be checked at brigade service layer
+	if ok, till := maintenance.CheckInPaths("/.maintenance", filepath.Dir(db.BrigadeFilename)+"/.maintenance"); ok {
 		return "", "", nil, maintenance.NewError(till)
 	}
 

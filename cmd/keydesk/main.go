@@ -646,7 +646,6 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 		api.Serve(nil),
 		"/.maintenance",
 		filepath.Dir(db.BrigadeFilename)+"/.maintenance", // use carefully, need to be refactored.
-		// TODO: maintenance must be checked at brigade service layer
 	)
 
 	switch pcors {

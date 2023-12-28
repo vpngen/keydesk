@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"github.com/vpngen/keydesk/internal/maintenance"
+	"path/filepath"
 
 	"github.com/vpngen/keydesk/kdlib"
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -16,6 +18,10 @@ import (
 
 // CreateBrigade - create brigadier user.
 func CreateBrigade(db *storage.BrigadeStorage, vpnCfgs *storage.ConfigsImplemented, config *storage.BrigadeConfig, routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) error {
+	if ok, till := maintenance.CheckInPaths("/.maintenance", filepath.Dir(db.BrigadeFilename)+"/.maintenance"); ok {
+		return maintenance.NewError(till)
+	}
+
 	wgConf, err := genEndpointWGKeys(routerPubkey, shufflerPubkey)
 	if err != nil {
 		return fmt.Errorf("wg keys: %w", err)
@@ -56,6 +62,10 @@ func CreateBrigade(db *storage.BrigadeStorage, vpnCfgs *storage.ConfigsImplement
 
 // DestroyBrigade - destroy brigadier user.
 func DestroyBrigade(db *storage.BrigadeStorage) error {
+	if ok, till := maintenance.CheckInPaths("/.maintenance", filepath.Dir(db.BrigadeFilename)+"/.maintenance"); ok {
+		return maintenance.NewError(till)
+	}
+
 	err := db.DestroyBrigade()
 	if err != nil {
 		return fmt.Errorf("remove: %w", err)

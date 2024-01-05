@@ -31,6 +31,13 @@ EOF
         exit 1
 }
 
+if test "$(date '+%s')" -lt "$(cat ".maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat .maintenance)")"
+fi
+if test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
+fi
+
 printdef () {
         msg="$1"
 

@@ -51,6 +51,12 @@ printdef () {
         fatal "400" "Bad request" "${msg}"
 }
 
+if test "$(date '+%s')" -lt "$(cat ".maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat .maintenance)")"
+fi
+if test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
+fi
 
 while [ "$#" -gt 0 ]; do
     case "$1" in

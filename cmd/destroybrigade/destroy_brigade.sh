@@ -6,8 +6,6 @@
 # * Delete system user
 
 # * Remove special brigadier wg-user
-# * Remove schema role
-# * Remove database schema
 
 
 # [ ${FLOCKER} != $0 ] && exec env FLOCKER="$0" flock -e "$0" "$0" $@ ||
@@ -126,42 +124,14 @@ systemd_vgkeydesk_instance="vgkeydesk@${brigade_id}"
 if [ -z "${DEBUG}" ]; then
         {
                 # Stop keydesk systemD services.
-                systemctl -q -f stop "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service" ||:
+                systemctl -q -f stop "${systemd_vgkeydesk_instance}.service" ||:
                 # Disable keydesk systemD srvices.
-                systemctl -q -f disable "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service" ||:
+                systemctl -q -f disable "${systemd_vgkeydesk_instance}.service" ||:
                 # Delete spesial keydesk dir
         } || fatal "500" "Internal server error" "Can't stop or disable ${systemd_vgkeydesk_instance}"
 else
-        echo "DEBUG: systemctl -q -f stop ${systemd_vgkeydesk_instance}.socket ${systemd_vgkeydesk_instance}.service" >&2
-        echo "DEBUG: systemctl -q -f disable ${systemd_vgkeydesk_instance}.socket ${systemd_vgkeydesk_instance}.service" >&2
-fi
-
-systemd_vgkeydesk_conf_dir="/etc/systemd/system/${systemd_vgkeydesk_instance}.socket.d"
-if [ -z "${DEBUG}" ]; then
-        {
-                if [ -d "${systemd_vgkeydesk_conf_dir}" ]; then
-                        if [ -f "${systemd_vgkeydesk_conf_dir}/listen.conf" ]; then
-                                rm -f "${systemd_vgkeydesk_conf_dir}/listen.conf"
-                        fi
-                        rmdir "${systemd_vgkeydesk_conf_dir}"
-                fi
-        } || fatal "500" "Internal server error" "Can't remove ${systemd_vgkeydesk_conf_dir}"
-else
-        echo "DEBUG: rm -f ${systemd_vgkeydesk_conf_dir}/listen.conf" >&2
-        echo "DEBUG: rmdir ${systemd_vgkeydesk_conf_dir}" >&2
-fi
-
-systemd_vgstats_instance="vgstats@${brigade_id}"
-if [ -z "${DEBUG}" ]; then
-        {
-                # Stop stats systemD services.
-                systemctl -q -f stop "${systemd_vgstats_instance}.service" ||:
-                # Disable stats systemD srvices.
-                systemctl -q -f disable "${systemd_vgstats_instance}.service" ||:
-        } || fatal "500" "Internal server error" "Can't stop or disable ${systemd_vgstats_instance}"
-else 
-        echo "DEBUG: systemctl -q -f stop ${systemd_vgstats_instance}.service" >&2
-        echo "DEBUG: systemctl -q -f disable ${systemd_vgstats_instance}.service" >&2
+        echo "DEBUG: systemctl -q -f stop ${systemd_vgkeydesk_instance}.service" >&2
+        echo "DEBUG: systemctl -q -f disable ${systemd_vgkeydesk_instance}.service" >&2
 fi
 
 if [ -z "${DEBUG}" ]; then

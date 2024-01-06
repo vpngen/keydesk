@@ -10,7 +10,6 @@
 # * Create special brigadier wg-user
 
 # * Activate keydesk systemD units
-# * Activate stats systemD units
 
 # * Send brigadier config
 
@@ -414,49 +413,15 @@ fi
 # * Activate keydesk systemD units
 
 systemd_vgkeydesk_instance="vgkeydesk@${brigade_id}"
-# create dir for custom config
-# https://www.freedesktop.org/software/systemd/man/systemd.unit.html
-systemd_vgkeydesk_conf_dir="/etc/systemd/system/${systemd_vgkeydesk_instance}.socket.d"
-
-if [ -z "${DEBUG}" ]; then
-        #shellcheck disable=SC2174
-        mkdir -p "${systemd_vgkeydesk_conf_dir}" -m 0755 >&2 || fatal "500" "Internal server error" "Can't create ${systemd_vgkeydesk_conf_dir}"
-else
-        echo "DEBUG: mkdir -p ${systemd_vgkeydesk_conf_dir} -m 0755" >&2
-fi
-
-# it;s necessary to listen certain IP
-
-# calculated listen IPv6 
-listen_ip6=$(echo "${endpoint_ip4}" | sed 's/\./\n/g' | xargs printf 'fdcc:%02x%02x:%02x%02x::2' | sed 's/:0000/:/g' | sed 's/:00/:/g')
-
 if [ -z "${DEBUG}" ]; then
         {
-                cat << EOF > "${systemd_vgkeydesk_conf_dir}/listen.conf"
-[Socket]
-ListenStream = [${listen_ip6}]:80
-ListenStream = [${listen_ip6}]:443
-EOF
-                systemctl -q enable "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service" >&2
+                systemctl -q enable "${systemd_vgkeydesk_instance}.service" >&2
                 # Start systemD services
-                systemctl -q start "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service" >&2
+                systemctl -q start "${systemd_vgkeydesk_instance}.service" >&2
         } || fatal "500" "Internal server error" "Can't start or enable ${systemd_vgkeydesk_instance}"
 else
-        echo "DEBUG: systemctl -q enable ${systemd_vgkeydesk_instance}.socket ${systemd_vgkeydesk_instance}.service" >&2
-        echo "DEBUG: systemctl -q start ${systemd_vgkeydesk_instance}.socket ${systemd_vgkeydesk_instance}.service" >&2
-fi
-
-# * Activate stats systemD units
-
-systemd_vgstats_instance="vgstats@${brigade_id}"
-if [ -z "${DEBUG}" ]; then
-        {
-                systemctl -q enable "${systemd_vgstats_instance}.service" >&2
-                systemctl -q start "${systemd_vgstats_instance}.service" >&2
-        } || fatal "500" "Internal server error" "Can't start or enable ${systemd_vgstats_instance}"
-else
-        echo "DEBUG: systemctl -q enable ${systemd_vgstats_instance}.service" >&2
-        echo "DEBUG: systemctl -q start ${systemd_vgstats_instance}.service" >&2
+        echo "DEBUG: systemctl -q enable ${systemd_vgkeydesk_instance}.service" >&2
+        echo "DEBUG: systemctl -q start ${systemd_vgkeydesk_instance}.service" >&2
 fi
 
 # Print brigadier config

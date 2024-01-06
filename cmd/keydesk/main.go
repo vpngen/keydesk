@@ -9,6 +9,7 @@ import (
 	goerrors "errors"
 	"flag"
 	"fmt"
+	"github.com/vpngen/keydesk/internal/maintenance"
 	"github.com/vpngen/keydesk/internal/stat"
 	"io"
 	"log"
@@ -43,7 +44,7 @@ import (
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
 
-//go:generate swagger generate server -t ../../gen -f ../../swagger/swagger.yml --exclude-main -A user
+//go:generate go run github.com/go-swagger/go-swagger/cmd/swagger@latest generate server -t ../../gen -f ../../swagger/swagger.yml --exclude-main -A user
 
 // TokenLifeTime - token time to life.
 const TokenLifeTime = 3600
@@ -244,7 +245,9 @@ func main() {
 		}()
 	}
 
-	go stat.CollectingData(statDone, addr, true, BrigadeID, dbDir, *statsDir) // TODO: is addr the same?
+	_, rdata := os.LookupEnv("VGSTATS_RANDOM_DATA")
+
+	go stat.CollectingData(statDone, addr, rdata, BrigadeID, dbDir, *statsDir)
 
 	// Wait for existing connections before exiting.
 	<-done
@@ -542,6 +545,16 @@ func createBrigadier(db *storage.BrigadeStorage,
 		enc.SetIndent(" ", " ")
 
 		if creationErr != nil {
+			me := maintenance.Error{}
+			if goerrors.As(creationErr, &me) {
+				return enc.Encode(keydesk.Answer{
+					Code:    http.StatusServiceUnavailable,
+					Desc:    http.StatusText(http.StatusServiceUnavailable),
+					Status:  keydesk.AnswerStatusError,
+					Message: me.Error(),
+				})
+			}
+
 			err := fmt.Errorf("add brigadier: %w", creationErr)
 
 			answer := &keydesk.Answer{
@@ -629,13 +642,19 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 		return keydesk.GetUsersStats(db, params, principal)
 	})
 
+	handler := maintenanceMiddleware(
+		api.Serve(nil),
+		"/.maintenance",
+		filepath.Dir(db.BrigadeFilename)+"/.maintenance", // use carefully, need to be refactored.
+	)
+
 	switch pcors {
 	case true:
 		return cors.AllowAll().Handler(
-			uiMiddleware(api.Serve(nil), webDir, allowedAddr),
+			uiMiddleware(handler, webDir, allowedAddr),
 		)
 	default:
-		return uiMiddleware(api.Serve(nil), webDir, allowedAddr)
+		return uiMiddleware(handler, webDir, allowedAddr)
 	}
 }
 
@@ -679,6 +698,22 @@ func uiMiddleware(handler http.Handler, dir string, allowedAddr string) http.Han
 
 		_, _ = fmt.Fprintf(os.Stdout, "Connect From: %s\n", r.RemoteAddr)
 
+		handler.ServeHTTP(w, r)
+	})
+}
+
+func maintenanceMiddleware(handler http.Handler, paths ...string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ok, till := maintenance.CheckInPaths(paths...)
+		if ok {
+			me := maintenance.NewError(till)
+			w.Header().Set("Retry-After", me.RetryAfter().String())
+			w.WriteHeader(http.StatusServiceUnavailable)
+			if err := json.NewEncoder(w).Encode(me); err != nil {
+				_, _ = fmt.Fprintln(os.Stderr, "encode maintenance error:", err)
+			}
+			return
+		}
 		handler.ServeHTTP(w, r)
 	})
 }

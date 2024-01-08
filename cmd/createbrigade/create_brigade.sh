@@ -59,13 +59,6 @@ printdef () {
         fatal "400" "Bad request" "$msg"
 }
 
-if test "$(date '+%s')" -lt "$(cat "$HOME/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "$HOME/.maintenance")")"
-fi
-if test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
-fi
-
 while [ "$#" -gt 0 ]; do
     case "$1" in
         -id)
@@ -271,6 +264,13 @@ if [ -z "$brigade_id" ] \
 || [ -z "$endpoint_ip4" ] || [ -z "$ip4_cgnat" ] || [ -z "$ip6_ula" ] || [ -z "$dns_ip4" ] || [ -z "$dns_ip6" ] || [ -z "$keydesk_ip6" ] \
 || [ -z "$brigadier_name" ] || [ -z "$person_name" ] || [ -z "$person_desc" ] || [ -z "$person_url" ]; then
         printdef "Not enough arguments"
+fi
+
+if test "$(date '+%s')" -lt "$(cat "${DB_DIR}/${brigade_id}/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "${DB_DIR}/${brigade_id}/.maintenance")")"
+fi
+if test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
 fi
 
 if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ]; then

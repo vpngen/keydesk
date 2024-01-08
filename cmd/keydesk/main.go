@@ -645,7 +645,7 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	handler := maintenanceMiddleware(
 		api.Serve(nil),
 		"/.maintenance",
-		filepath.Dir(db.BrigadeFilename)+"/.maintenance", // use carefully, need to be refactored.
+		fmt.Sprintf("/home/%s/.maintenance", db.BrigadeID),
 	)
 
 	switch pcors {

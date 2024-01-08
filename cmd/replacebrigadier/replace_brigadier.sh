@@ -31,13 +31,6 @@ EOF
         exit 1
 }
 
-if test "$(date '+%s')" -lt "$(cat ".maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat .maintenance)")"
-fi
-if test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
-fi
-
 printdef () {
         msg="$1"
 
@@ -142,6 +135,13 @@ done
 
 if [ -z "${brigade_id}" ]; then
         printdef "Brigade ID is required"
+fi
+
+if test "$(date '+%s')" -lt "$(cat "${DB_DIR}/${brigade_id}/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "${DB_DIR}/${brigade_id}/.maintenance")")"
+fi
+if test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
 fi
 
 if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ]; then

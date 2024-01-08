@@ -59,8 +59,8 @@ printdef () {
         fatal "400" "Bad request" "$msg"
 }
 
-if test "$(date '+%s')" -lt "$(cat ".maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat .maintenance)")"
+if test "$(date '+%s')" -lt "$(cat "$HOME/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "$HOME/.maintenance")")"
 fi
 if test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
         fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"

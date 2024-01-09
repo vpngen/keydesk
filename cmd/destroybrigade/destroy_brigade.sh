@@ -113,10 +113,10 @@ if [ -z "${brigade_id}" ]; then
         printdef "Brigade ID is required"
 fi
 
-if test "$(date '+%s')" -lt "$(cat "${DB_DIR}/${brigade_id}/.maintenance")"; then
+if test -f "${DB_DIR}/${brigade_id}/.maintenance" && test "$(date '+%s')" -lt "$(cat "${DB_DIR}/${brigade_id}/.maintenance")"; then
         fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "${DB_DIR}/${brigade_id}/.maintenance")")"
 fi
-if test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
+if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
         fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
 fi
 

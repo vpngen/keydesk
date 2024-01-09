@@ -1,0 +1,16 @@
+*~
+*.swp
+*.log
+vendor
+dist
+.new
+.legacy
+bin
+.idea
+.git
+.gitignore
+Dockerfile
+*.md
+*.lock
+*.json
+.*

@@ -85,8 +85,8 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	_, _ = fmt.Fprintf(os.Stdout, "Etc: %s\n", etcDir)
-	_, _ = fmt.Fprintf(os.Stdout, "DBDir: %s\n", dbDir)
+	_, _ = fmt.Fprintf(os.Stderr, "Etc: %s\n", etcDir)
+	_, _ = fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
 
 	db := &storage.BrigadeStorage{
 		BrigadeID:       BrigadeID,
@@ -105,11 +105,11 @@ func main() {
 
 	switch {
 	case addr.IsValid() && addr.Addr().IsUnspecified():
-		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is COMMON")
+		_, _ = fmt.Fprintln(os.Stderr, "Command address:port is COMMON")
 	case addr.IsValid():
-		_, _ = fmt.Fprintf(os.Stdout, "Command address:port: %s\n", addr)
+		_, _ = fmt.Fprintf(os.Stderr, "Command address:port: %s\n", addr)
 	default:
-		_, _ = fmt.Fprintln(os.Stdout, "Command address:port is for DEBUG")
+		_, _ = fmt.Fprintln(os.Stderr, "Command address:port is for DEBUG")
 	}
 
 	// Just create brigadier.
@@ -121,21 +121,21 @@ func main() {
 		return
 	}
 
-	_, _ = fmt.Fprintf(os.Stdout, "Cert Dir: %s\n", certDir)
-	_, _ = fmt.Fprintf(os.Stdout, "Stat Dir: %s\n", *statsDir)
-	_, _ = fmt.Fprintf(os.Stdout, "Web files: %s\n", webDir)
-	_, _ = fmt.Fprintf(os.Stdout, "Permessive CORS: %t\n", pcors)
-	_, _ = fmt.Fprintf(os.Stdout, "Starting %s keydesk\n", BrigadeID)
+	_, _ = fmt.Fprintf(os.Stderr, "Cert Dir: %s\n", certDir)
+	_, _ = fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", *statsDir)
+	_, _ = fmt.Fprintf(os.Stderr, "Web files: %s\n", webDir)
+	_, _ = fmt.Fprintf(os.Stderr, "Permessive CORS: %t\n", pcors)
+	_, _ = fmt.Fprintf(os.Stderr, "Starting %s keydesk\n", BrigadeID)
 
 	allowedAddress := ""
 	calculatedAddrPort, ok := db.CalculatedAPIAddress()
 	if ok {
 		allowedAddress = calculatedAddrPort.String()
-		_, _ = fmt.Fprintf(os.Stdout, "Resqrict requests by address: %s \n", allowedAddress)
+		_, _ = fmt.Fprintf(os.Stderr, "Resqrict requests by address: %s \n", allowedAddress)
 	}
 
 	if len(listeners) == 0 && !addr.IsValid() {
-		_, _ = fmt.Fprintln(os.Stdout, "neither listeners nor address:port specified, exiting")
+		_, _ = fmt.Fprintln(os.Stderr, "neither listeners nor address:port specified, exiting")
 		os.Exit(1)
 	}
 
@@ -144,14 +144,14 @@ func main() {
 
 		l, err := net.Listen("tcp6", fmt.Sprintf("[%s]:80", prev))
 		if err != nil {
-			_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTP error:", err)
+			_, _ = fmt.Fprintln(os.Stderr, prev, "listen HTTP error:", err)
 			os.Exit(1)
 		}
 		listeners = append(listeners, l)
 
 		l, err = net.Listen("tcp6", fmt.Sprintf("[%s]:443", prev))
 		if err != nil {
-			_, _ = fmt.Fprintln(os.Stdout, prev, "listen HTTPS error:", err)
+			_, _ = fmt.Fprintln(os.Stderr, prev, "listen HTTPS error:", err)
 			os.Exit(1)
 		}
 		listeners = append(listeners, l)
@@ -187,13 +187,13 @@ func main() {
 				IdleTimeout: 60 * time.Minute,
 			}
 		default:
-			_, _ = fmt.Fprintf(os.Stdout, "Skip TLS: can't open cert/key pair: %s\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "Skip TLS: can't open cert/key pair: %s\n", err)
 		}
 	}
 
 	go func() {
 		<-quit
-		_, _ = fmt.Fprintln(os.Stdout, "Quit signal received...")
+		_, _ = fmt.Fprintln(os.Stderr, "Quit signal received...")
 		statDone <- struct{}{}
 
 		wg := sync.WaitGroup{}
@@ -206,16 +206,16 @@ func main() {
 
 			srv.SetKeepAlivesEnabled(false)
 			if err := srv.Shutdown(ctx); err != nil {
-				_, _ = fmt.Fprintf(os.Stdout, "Can't gracefully shut down the server: %s\n", err)
+				_, _ = fmt.Fprintf(os.Stderr, "Can't gracefully shut down the server: %s\n", err)
 			}
 		}
 
-		_, _ = fmt.Fprintln(os.Stdout, "Server is shutting down")
+		_, _ = fmt.Fprintln(os.Stderr, "Server is shutting down")
 		wg.Add(1)
 		go closeFunc(server)
 
 		if serverTLS != nil {
-			_, _ = fmt.Fprintln(os.Stdout, "Server TLS is shutting down")
+			_, _ = fmt.Fprintln(os.Stderr, "Server TLS is shutting down")
 			wg.Add(1)
 			go closeFunc(serverTLS)
 		}
@@ -226,7 +226,7 @@ func main() {
 	}()
 
 	if len(listeners) > 0 {
-		_, _ = fmt.Fprintf(os.Stdout, "Listen HTTP: %s\n", listeners[0].Addr().String())
+		_, _ = fmt.Fprintf(os.Stderr, "Listen HTTP: %s\n", listeners[0].Addr().String())
 		// Start accepting connections.
 		go func() {
 			if err := server.Serve(listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
@@ -236,7 +236,7 @@ func main() {
 	}
 
 	if serverTLS != nil && len(listeners) == 2 {
-		_, _ = fmt.Fprintf(os.Stdout, "Listen HTTPS: %s\n", listeners[1].Addr().String())
+		_, _ = fmt.Fprintf(os.Stderr, "Listen HTTPS: %s\n", listeners[1].Addr().String())
 		// Start accepting connections.
 		go func() {
 			if err := serverTLS.ServeTLS(listeners[1], "", ""); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
@@ -536,63 +536,49 @@ func createBrigadier(db *storage.BrigadeStorage,
 		w = os.Stdout
 	}
 
-	wgconf, filename, confJson, creationErr := keydesk.AddBrigadier(db, name, person, replace, vpnCfgs, routerPublicKey, shufflerPublicKey)
+	//TODO: do we have to print wgconf, filename?
+	_, _, confJson, creationErr := keydesk.AddBrigadier(db, name, person, replace, vpnCfgs, routerPublicKey, shufflerPublicKey)
 
-	switch jsonOut {
-	case true:
-		enc := json.NewEncoder(w)
+	enc := json.NewEncoder(w)
 
-		enc.SetIndent(" ", " ")
+	enc.SetIndent(" ", " ")
 
-		if creationErr != nil {
-			me := maintenance.Error{}
-			if goerrors.As(creationErr, &me) {
-				return enc.Encode(keydesk.Answer{
-					Code:    http.StatusServiceUnavailable,
-					Desc:    http.StatusText(http.StatusServiceUnavailable),
-					Status:  keydesk.AnswerStatusError,
-					Message: me.Error(),
-				})
-			}
-
-			err := fmt.Errorf("add brigadier: %w", creationErr)
-
-			answer := &keydesk.Answer{
-				Code:    http.StatusInternalServerError,
-				Desc:    http.StatusText(http.StatusInternalServerError),
+	if creationErr != nil {
+		me := maintenance.Error{}
+		if goerrors.As(creationErr, &me) {
+			return enc.Encode(keydesk.Answer{
+				Code:    http.StatusServiceUnavailable,
+				Desc:    http.StatusText(http.StatusServiceUnavailable),
 				Status:  keydesk.AnswerStatusError,
-				Message: err.Error(),
-			}
-
-			if err := enc.Encode(answer); err != nil {
-				return fmt.Errorf("print json: %w", err)
-			}
-
-			return err
+				Message: me.Error(),
+			})
 		}
 
+		err := fmt.Errorf("add brigadier: %w", creationErr)
+
 		answer := &keydesk.Answer{
-			Code:    http.StatusCreated,
-			Desc:    http.StatusText(http.StatusCreated),
-			Status:  keydesk.AnswerStatusSuccess,
-			Configs: *confJson,
+			Code:    http.StatusInternalServerError,
+			Desc:    http.StatusText(http.StatusInternalServerError),
+			Status:  keydesk.AnswerStatusError,
+			Message: err.Error(),
 		}
 
 		if err := enc.Encode(answer); err != nil {
 			return fmt.Errorf("print json: %w", err)
 		}
-	default:
-		if creationErr != nil {
-			return fmt.Errorf("add brigadier: %w", creationErr)
-		}
 
-		if _, err := fmt.Fprintln(w, filename); err != nil {
-			return fmt.Errorf("print filename: %w", err)
-		}
+		return err
+	}
 
-		if _, err := fmt.Fprintln(w, wgconf); err != nil {
-			return fmt.Errorf("pring wgconf: %w", err)
-		}
+	answer := &keydesk.Answer{
+		Code:    http.StatusCreated,
+		Desc:    http.StatusText(http.StatusCreated),
+		Status:  keydesk.AnswerStatusSuccess,
+		Configs: *confJson,
+	}
+
+	if err := enc.Encode(answer); err != nil {
+		return fmt.Errorf("print json: %w", err)
 	}
 
 	if _, err := fmt.Println(); err != nil {
@@ -664,7 +650,7 @@ func uiMiddleware(handler http.Handler, dir string, allowedAddr string) http.Han
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		remoteAddrPort, err := netip.ParseAddrPort(r.RemoteAddr)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stdout, "Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)
+			_, _ = fmt.Fprintf(os.Stderr, "Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 
 			return
@@ -673,8 +659,8 @@ func uiMiddleware(handler http.Handler, dir string, allowedAddr string) http.Han
 		remoteAddr := remoteAddrPort.Addr().String()
 
 		if allowedAddr != "" && remoteAddr != allowedAddr {
-			_, _ = fmt.Fprintf(os.Stdout, "Connect From: %s Restricted\n", r.RemoteAddr)
-			_, _ = fmt.Fprintf(os.Stdout, "Remote: %s Expected:%s\n", remoteAddr, allowedAddr)
+			_, _ = fmt.Fprintf(os.Stderr, "Connect From: %s Restricted\n", r.RemoteAddr)
+			_, _ = fmt.Fprintf(os.Stderr, "Remote: %s Expected:%s\n", remoteAddr, allowedAddr)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 
 			return
@@ -696,7 +682,7 @@ func uiMiddleware(handler http.Handler, dir string, allowedAddr string) http.Han
 			return
 		}
 
-		_, _ = fmt.Fprintf(os.Stdout, "Connect From: %s\n", r.RemoteAddr)
+		_, _ = fmt.Fprintf(os.Stderr, "Connect From: %s\n", r.RemoteAddr)
 
 		handler.ServeHTTP(w, r)
 	})

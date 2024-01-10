@@ -114,21 +114,6 @@ while [ "$#" -gt 0 ]; do
                 if [ -n "$NEW_STYLE" ]; then
                         printdef "Unknown option: $1"
                 fi
-
-                if [ -z "$1" ]; then 
-                        printdef "Brigade ID is required"
-                fi
-
-                brigade_id="$1"
-                chunked=${2}
-
-                if [ "xchunked" != "x${chunked}" ]; then
-                        chunked=""
-                else
-                        chunked="-ch"
-                fi
-
-                break
                 ;;
     esac
 done

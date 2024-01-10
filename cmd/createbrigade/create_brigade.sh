@@ -55,7 +55,7 @@ printdef () {
         msg="$1"
 
         echo "Usage: $0 -id <brigabe_id_encoded> -ep4 <endpoint IPv4> -int4 <CGNAT IPv4> -int6 <IPv6 ULA> -dns4 <DNS IPv4> -dns6 <DNS IPv6> -kd6 <keydesk IPv6> -name <B1rigadier Name :: base64> -person <Person Name :: base64> -desc <Person Desc :: base64> -url <Person URL :: base64> [-ch] [-j]" >&2
-        
+
         fatal "400" "Bad request" "$msg"
 }
 
@@ -94,7 +94,7 @@ while [ "$#" -gt 0 ]; do
                 CONF_DIR="$2"
                 shift 2
                 ;;
-        -a) 
+        -a)
                 #NEW_STYLE="yes"
                 if [ -z "$DEBUG" ]; then
                         printdef "The '-a' option is only for debug"
@@ -185,7 +185,7 @@ while [ "$#" -gt 0 ]; do
                                 echo "invalid port ${port}" >&2
                                 printdef "Invalid port ${port}"
                         ;;
-                esac     
+                esac
                 ;;
         -dn)
                 NEW_STYLE="yes"
@@ -201,61 +201,6 @@ while [ "$#" -gt 0 ]; do
                 if [ -n "${NEW_STYLE}" ]; then
                         printdef "Unknown option: $1"
                 fi
-
-                if [ -z "${1}" ] || \
-                [ -z "${2}" ] || \
-                [ -z "${3}" ] || \
-                [ -z "${4}" ] || \
-                [ -z "${5}" ] || \
-                [ -z "${6}" ] || \
-                [ -z "${7}" ] || \
-                [ -z "${8}" ] || \
-                [ -z "${9}" ] || \
-                [ -z "${10}" ] || \
-                [ -z "${11}" ]; then 
-                        printdef "Not enough arguments (old style)"
-                fi
-
-                brigade_id=${1}
-                endpoint_ip4=${2}
-                ip4_cgnat=${3}
-                ip6_ula=${4}
-                dns_ip4=${5}
-                dns_ip6=${6}
-                keydesk_ip6=${7}
-                brigadier_name=${8}
-                person_name=${9}
-                person_desc=${10}
-                person_url=${11}
-
-                shift 11
-
-                chunked=""
-                port="0"
-                domain=""
-
-                for i in "$@";
-                do
-                    case $i in
-                        [0-9]*)
-                                if [ "$i" -ge 1024 ] && [ "$i" -le 65535 ]; then
-                                        port="$i"
-                                fi
-                                ;;
-                        *.*)
-                                if printf "%s" "$i" | grep -E '^([a-z0-9_]+(-[a-z0-9_]+)*\.)+[a-z0-9_]+([a-z0-9_-]+)$' > /dev/null; then
-                                        domain="$i"
-                                fi
-                        ;;
-                        *)
-                                if [ "$i" = "chunked" ]; then
-                                        chunked="-ch"
-                                fi
-                        ;;
-                    esac
-                done
-
-                break
                 ;;
     esac
 done
@@ -284,7 +229,7 @@ fi
 # * Check if brigade is exists
 if [ -z "${DEBUG}" ] && [ -s "${DB_DIR}/${brigade_id}/created" ]; then
         echo "Brigade ${brigade_id} already exists" >&2
-        
+
         fatal "409" "Conflict" "Brigade ${brigade_id} already exists"
 fi
 
@@ -295,7 +240,7 @@ if [ -z "${DEBUG}" ]; then
                 install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${DB_DIR}/${brigade_id}" >&2
                 install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 710 -d "${STATS_DIR}/${brigade_id}" >&2
         } || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
-else 
+else
         echo "DEBUG: useradd -p '*' -G ${VGCERT_GROUP} -M -s /usr/sbin/nologin -d ${DB_DIR}/${brigade_id} ${brigade_id}" >&2
         echo "DEBUG: install -o ${brigade_id} -g ${brigade_id} -m 0700 -d ${DB_DIR}/${brigade_id}" >&2
         echo "DEBUG: install -o ${brigade_id} -g ${VGSTATS_GROUP} -m 710 -d ${STATS_DIR}/${brigade_id}" >&2
@@ -353,7 +298,7 @@ else
                         ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
                         ${apiaddr} \
                         >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
-        else 
+        else
                 echo "ERROR: Can't find ${BRIGADE_MAKER_APP_PATH} or ${BRIGADE_SOURCE_DIR}/main.go" >&2
 
                 fatal "500" "Internal server error" "Can't find create createbrigade binary or source code"

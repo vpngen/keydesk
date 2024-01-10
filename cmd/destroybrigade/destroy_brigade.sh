@@ -174,7 +174,7 @@ fi
 
 if [ -z "${DEBUG}" ]; then
         # Remove system user
-        if id "${brigade_id}" >/dev/null 2>&1; then
+        if id "${brigade_id}" >/dev/null; then
                 userdel -rf "${brigade_id}" || fatal "500" "Internal server error" "Can't remove system user" 
         fi
 else 

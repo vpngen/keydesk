@@ -32,5 +32,5 @@ func CreateMessage(s message.Service, m storage.Message) middleware.Responder {
 	if err := s.CreateMessage(m.Text); err != nil {
 		return operations.NewPostUserInternalServerError()
 	}
-	return operations.NewPostMessageOK()
+	return operations.NewPutMessageOK()
 }

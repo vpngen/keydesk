@@ -11,15 +11,15 @@ import (
 	golangswaggerpaths "path"
 )
 
-// PostMessageURL generates an URL for the post message operation
-type PostMessageURL struct {
+// PutMessageURL generates an URL for the put message operation
+type PutMessageURL struct {
 	_basePath string
 }
 
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *PostMessageURL) WithBasePath(bp string) *PostMessageURL {
+func (o *PutMessageURL) WithBasePath(bp string) *PutMessageURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -27,12 +27,12 @@ func (o *PostMessageURL) WithBasePath(bp string) *PostMessageURL {
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *PostMessageURL) SetBasePath(bp string) {
+func (o *PutMessageURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *PostMessageURL) Build() (*url.URL, error) {
+func (o *PutMessageURL) Build() (*url.URL, error) {
 	var _result url.URL
 
 	var _path = "/messages"
@@ -47,7 +47,7 @@ func (o *PostMessageURL) Build() (*url.URL, error) {
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *PostMessageURL) Must(u *url.URL, err error) *url.URL {
+func (o *PutMessageURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -58,17 +58,17 @@ func (o *PostMessageURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *PostMessageURL) String() string {
+func (o *PutMessageURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *PostMessageURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *PutMessageURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on PostMessageURL")
+		return nil, errors.New("scheme is required for a full url on PutMessageURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on PostMessageURL")
+		return nil, errors.New("host is required for a full url on PutMessageURL")
 	}
 
 	base, err := o.Build()
@@ -82,6 +82,6 @@ func (o *PostMessageURL) BuildFull(scheme, host string) (*url.URL, error) {
 }
 
 // StringFull returns the string representation of a complete url
-func (o *PostMessageURL) StringFull(scheme, host string) string {
+func (o *PutMessageURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

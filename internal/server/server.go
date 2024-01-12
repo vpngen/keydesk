@@ -56,7 +56,7 @@ func NewServer(
 	api.GetMessagesHandler = operations.GetMessagesHandlerFunc(func(params operations.GetMessagesParams) middleware.Responder {
 		return keydesk.GetMessages(msgSvc)
 	})
-	api.PostMessageHandler = operations.PostMessageHandlerFunc(func(params operations.PostMessageParams) middleware.Responder {
+	api.PutMessageHandler = operations.PutMessageHandlerFunc(func(params operations.PutMessageParams) middleware.Responder {
 		return keydesk.CreateMessage(msgSvc, storage.Message{Text: *params.Message.Text})
 	})
 

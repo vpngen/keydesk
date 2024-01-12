@@ -42,13 +42,13 @@ func init() {
           }
         }
       },
-      "post": {
-        "description": "Post message, triggered by management. If client is online, send message, else store message.",
+      "put": {
+        "description": "Create a message, triggered by management. If client is online, send message, else store message.",
         "consumes": [
           "application/json"
         ],
-        "summary": "Post message",
-        "operationId": "postMessage",
+        "summary": "Create a message",
+        "operationId": "putMessage",
         "parameters": [
           {
             "description": "The user to create.",
@@ -557,13 +557,13 @@ func init() {
           }
         }
       },
-      "post": {
-        "description": "Post message, triggered by management. If client is online, send message, else store message.",
+      "put": {
+        "description": "Create a message, triggered by management. If client is online, send message, else store message.",
         "consumes": [
           "application/json"
         ],
-        "summary": "Post message",
-        "operationId": "postMessage",
+        "summary": "Create a message",
+        "operationId": "putMessage",
         "parameters": [
           {
             "description": "The user to create.",

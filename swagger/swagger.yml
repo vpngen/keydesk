@@ -133,10 +133,10 @@ paths:
             $ref: '#/definitions/messages'
         '500':
           $ref: '#/definitions/error'
-    post:
-      summary: Post message
-      description: Post message, triggered by management. If client is online, send message, else store message.
-      operationId: postMessage
+    put:
+      summary: Create a message
+      description: Create a message, triggered by management. If client is online, send message, else store message.
+      operationId: putMessage
       consumes:
         - application/json
       parameters:

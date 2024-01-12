@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"github.com/vpngen/keydesk/utils"
 	"os"
 	"testing"
 )
@@ -9,7 +8,7 @@ import (
 var db BrigadeStorage
 
 func TestMain(m *testing.M) {
-	mw := utils.BrigadeTestMiddleware(&db, func(m *testing.M) int { return m.Run() })
+	mw := BrigadeTestMiddleware(&db, func(m *testing.M) int { return m.Run() })
 	os.Exit(mw(m))
 }
 

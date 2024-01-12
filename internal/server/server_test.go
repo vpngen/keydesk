@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 	var db storage.BrigadeStorage
 	mw := func(m *testing.M) int { return m.Run() }
 	mw = serverTestMiddleware(&db, mw)
-	mw = utils.BrigadeTestMiddleware(&db, mw)
+	mw = storage.BrigadeTestMiddleware(&db, mw)
 	mw = clientMiddleware(&kdClient, mw)
 	os.Exit(mw(m))
 }
@@ -53,7 +53,7 @@ func TestMessages(t *testing.T) {
 			t.Errorf("encode message: %s", err)
 		}
 
-		res, err := kdClient.Operations.PostMessage(&operations.PostMessageParams{
+		res, err := kdClient.Operations.PutMessage(&operations.PutMessageParams{
 			Context: ctx,
 			Message: &models.Message{Text: &text},
 		})

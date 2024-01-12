@@ -60,8 +60,8 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 		GetMessagesHandler: GetMessagesHandlerFunc(func(params GetMessagesParams) middleware.Responder {
 			return middleware.NotImplemented("operation GetMessages has not yet been implemented")
 		}),
-		PostMessageHandler: PostMessageHandlerFunc(func(params PostMessageParams) middleware.Responder {
-			return middleware.NotImplemented("operation PostMessage has not yet been implemented")
+		PutMessageHandler: PutMessageHandlerFunc(func(params PutMessageParams) middleware.Responder {
+			return middleware.NotImplemented("operation PutMessage has not yet been implemented")
 		}),
 
 		// Applies when the "Authorization" header is set
@@ -125,8 +125,8 @@ type UserAPI struct {
 	PostUserHandler PostUserHandler
 	// GetMessagesHandler sets the operation handler for the get messages operation
 	GetMessagesHandler GetMessagesHandler
-	// PostMessageHandler sets the operation handler for the post message operation
-	PostMessageHandler PostMessageHandler
+	// PutMessageHandler sets the operation handler for the put message operation
+	PutMessageHandler PutMessageHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -226,8 +226,8 @@ func (o *UserAPI) Validate() error {
 	if o.GetMessagesHandler == nil {
 		unregistered = append(unregistered, "GetMessagesHandler")
 	}
-	if o.PostMessageHandler == nil {
-		unregistered = append(unregistered, "PostMessageHandler")
+	if o.PutMessageHandler == nil {
+		unregistered = append(unregistered, "PutMessageHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -350,10 +350,10 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/messages"] = NewGetMessages(o.context, o.GetMessagesHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/messages"] = NewPostMessage(o.context, o.PostMessageHandler)
+	o.handlers["PUT"]["/messages"] = NewPutMessage(o.context, o.PutMessageHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

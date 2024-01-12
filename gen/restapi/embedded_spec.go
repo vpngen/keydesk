@@ -25,6 +25,50 @@ func init() {
   },
   "basePath": "/",
   "paths": {
+    "/messages": {
+      "get": {
+        "description": "Get messages, triggered by frontend",
+        "summary": "Get messages",
+        "operationId": "getMessages",
+        "responses": {
+          "200": {
+            "description": "List of messages",
+            "schema": {
+              "$ref": "#/definitions/messages"
+            }
+          },
+          "500": {
+            "$ref": "#/definitions/error"
+          }
+        }
+      },
+      "post": {
+        "description": "Post message, triggered by management. If client is online, send message, else store message.",
+        "consumes": [
+          "application/json"
+        ],
+        "summary": "Post message",
+        "operationId": "postMessage",
+        "parameters": [
+          {
+            "description": "The user to create.",
+            "name": "message",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/message"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "$ref": "#/definitions/error"
+          }
+        }
+      }
+    },
     "/token": {
       "post": {
         "produces": [
@@ -246,6 +290,30 @@ func init() {
         "retry_after": {
           "type": "string"
         }
+      }
+    },
+    "message": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "is_read": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/message"
       }
     },
     "newuser": {
@@ -472,6 +540,50 @@ func init() {
   },
   "basePath": "/",
   "paths": {
+    "/messages": {
+      "get": {
+        "description": "Get messages, triggered by frontend",
+        "summary": "Get messages",
+        "operationId": "getMessages",
+        "responses": {
+          "200": {
+            "description": "List of messages",
+            "schema": {
+              "$ref": "#/definitions/messages"
+            }
+          },
+          "500": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "description": "Post message, triggered by management. If client is online, send message, else store message.",
+        "consumes": [
+          "application/json"
+        ],
+        "summary": "Post message",
+        "operationId": "postMessage",
+        "parameters": [
+          {
+            "description": "The user to create.",
+            "name": "message",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/message"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/token": {
       "post": {
         "produces": [
@@ -811,6 +923,30 @@ func init() {
         "retry_after": {
           "type": "string"
         }
+      }
+    },
+    "message": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "is_read": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/message"
       }
     },
     "newuser": {

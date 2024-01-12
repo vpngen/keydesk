@@ -10,7 +10,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/vpngen/keydesk/internal/maintenance"
+	"github.com/vpngen/keydesk/internal/server"
 	"github.com/vpngen/keydesk/internal/stat"
+	"github.com/vpngen/keydesk/keydesk/message"
 	"io"
 	"log"
 	"net"
@@ -29,14 +31,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/coreos/go-systemd/activation"
-	"github.com/go-openapi/errors"
-	"github.com/go-openapi/loads"
-	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/middleware"
 	"github.com/google/uuid"
 	"github.com/rs/cors"
-	"github.com/vpngen/keydesk/gen/restapi"
-	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/vpnapi"
@@ -167,7 +163,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	server := &http.Server{
+	srv := &http.Server{
 		Handler:     handler,
 		IdleTimeout: 60 * time.Minute,
 	}
@@ -212,7 +208,7 @@ func main() {
 
 		_, _ = fmt.Fprintln(os.Stdout, "Server is shutting down")
 		wg.Add(1)
-		go closeFunc(server)
+		go closeFunc(srv)
 
 		if serverTLS != nil {
 			_, _ = fmt.Fprintln(os.Stdout, "Server TLS is shutting down")
@@ -229,7 +225,7 @@ func main() {
 		_, _ = fmt.Fprintf(os.Stdout, "Listen HTTP: %s\n", listeners[0].Addr().String())
 		// Start accepting connections.
 		go func() {
-			if err := server.Serve(listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+			if err := srv.Serve(listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
 				log.Fatalf("Can't serve: %s\n", err)
 			}
 		}()
@@ -603,59 +599,34 @@ func createBrigadier(db *storage.BrigadeStorage,
 }
 
 func initSwaggerAPI(db *storage.BrigadeStorage,
-	brigadeID string,
+	brigadeID string, // TODO: do we still need this?
 	routerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	pcors bool,
 	webDir string,
 	allowedAddr string,
 ) http.Handler {
-	// load embedded swagger file
-	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
-	if err != nil {
-		log.Fatalln(err)
-	}
+	handler := server.NewServer(
+		db,
+		message.New(db),
+		routerPublicKey,
+		shufflerPublicKey,
+		TokenLifeTime,
+	)
 
-	// create new service API
-	api := operations.NewUserAPI(swaggerSpec)
-
-	api.ServeError = errors.ServeError
-
-	api.UseSwaggerUI()
-
-	api.JSONConsumer = runtime.JSONConsumer()
-
-	api.JSONProducer = runtime.JSONProducer()
-
-	api.BearerAuth = keydesk.ValidateBearer(brigadeID)
-	api.PostTokenHandler = operations.PostTokenHandlerFunc(keydesk.CreateToken(brigadeID, TokenLifeTime))
-	api.PostUserHandler = operations.PostUserHandlerFunc(func(params operations.PostUserParams, principal interface{}) middleware.Responder {
-		return keydesk.AddUser(db, params, principal, routerPublicKey, shufflerPublicKey)
-	})
-	api.DeleteUserUserIDHandler = operations.DeleteUserUserIDHandlerFunc(func(params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
-		return keydesk.DelUserUserID(db, params, principal)
-	})
-	api.GetUserHandler = operations.GetUserHandlerFunc(func(params operations.GetUserParams, principal interface{}) middleware.Responder {
-		return keydesk.GetUsers(db, params, principal)
-	})
-	api.GetUsersStatsHandler = operations.GetUsersStatsHandlerFunc(func(params operations.GetUsersStatsParams, principal interface{}) middleware.Responder {
-		return keydesk.GetUsersStats(db, params, principal)
-	})
-
-	handler := maintenanceMiddleware(
-		api.Serve(nil),
+	handler = maintenanceMiddleware(
+		handler,
 		"/.maintenance",
 		filepath.Dir(db.BrigadeFilename)+"/.maintenance",
 	)
 
-	switch pcors {
-	case true:
-		return cors.AllowAll().Handler(
-			uiMiddleware(handler, webDir, allowedAddr),
-		)
-	default:
-		return uiMiddleware(handler, webDir, allowedAddr)
+	handler = uiMiddleware(handler, webDir, allowedAddr)
+
+	if pcors {
+		return cors.AllowAll().Handler(handler)
 	}
+
+	return handler
 }
 
 func uiMiddleware(handler http.Handler, dir string, allowedAddr string) http.Handler {

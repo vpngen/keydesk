@@ -57,6 +57,12 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 		PostUserHandler: PostUserHandlerFunc(func(params PostUserParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation PostUser has not yet been implemented")
 		}),
+		GetMessagesHandler: GetMessagesHandlerFunc(func(params GetMessagesParams) middleware.Responder {
+			return middleware.NotImplemented("operation GetMessages has not yet been implemented")
+		}),
+		PostMessageHandler: PostMessageHandlerFunc(func(params PostMessageParams) middleware.Responder {
+			return middleware.NotImplemented("operation PostMessage has not yet been implemented")
+		}),
 
 		// Applies when the "Authorization" header is set
 		BearerAuth: func(token string) (interface{}, error) {
@@ -117,6 +123,10 @@ type UserAPI struct {
 	PostTokenHandler PostTokenHandler
 	// PostUserHandler sets the operation handler for the post user operation
 	PostUserHandler PostUserHandler
+	// GetMessagesHandler sets the operation handler for the get messages operation
+	GetMessagesHandler GetMessagesHandler
+	// PostMessageHandler sets the operation handler for the post message operation
+	PostMessageHandler PostMessageHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -212,6 +222,12 @@ func (o *UserAPI) Validate() error {
 	}
 	if o.PostUserHandler == nil {
 		unregistered = append(unregistered, "PostUserHandler")
+	}
+	if o.GetMessagesHandler == nil {
+		unregistered = append(unregistered, "GetMessagesHandler")
+	}
+	if o.PostMessageHandler == nil {
+		unregistered = append(unregistered, "PostMessageHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -330,6 +346,14 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/user"] = NewPostUser(o.context, o.PostUserHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/messages"] = NewGetMessages(o.context, o.GetMessagesHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/messages"] = NewPostMessage(o.context, o.PostMessageHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

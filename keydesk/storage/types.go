@@ -199,6 +199,7 @@ type Brigade struct {
 	KeydeskFirstVisit     time.Time     `json:"keydesk_first_visit,omitempty"`
 	Users                 []*User       `json:"users,omitempty"`
 	Endpoints             UsersNetworks `json:"endpoints,omitempty"`
+	Messages              []Message     `json:"messages,omitempty"`
 }
 
 // UserConfig - new user structure.
@@ -258,4 +259,10 @@ type LastActivityPoints struct {
 	PrevMonthly time.Time `json:"prev_monthly"`
 	Weekly      time.Time `json:"weekly"`
 	Daily       time.Time `json:"daily"`
+}
+
+type Message struct {
+	Text   string    `json:"text"`
+	IsRead bool      `json:"is_read"`
+	Time   time.Time `json:"time"`
 }

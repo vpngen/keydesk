@@ -1,4 +1,4 @@
-name: Run Go tests on pull request
+name: Run Go tests on push
 on:
   push:
 jobs:

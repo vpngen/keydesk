@@ -62,22 +62,18 @@ printdef () {
 while [ "$#" -gt 0 ]; do
     case "$1" in
         -id)
-                NEW_STYLE="yes"
                 brigade_id="$2"
                 shift 2
                 ;;
         -ch)
-                NEW_STYLE="yes"
                 chunked="-ch"
                 shift 1
                 ;;
         -j)
-                NEW_STYLE="yes"
                 json="-j"
                 shift 1
                 ;;
         -d)
-                #NEW_STYLE="yes"  -d/-c/-a must be first options
                 if [ -z "$DEBUG" ]; then
                         printdef "The '-d' option is only for debug"
                 fi
@@ -86,7 +82,6 @@ while [ "$#" -gt 0 ]; do
                 shift 2
                 ;;
         -c)
-                #NEW_STYLE="yes"
                 if [ -z "$DEBUG" ]; then
                         printdef "The '-c' option is only for debug"
                 fi
@@ -95,7 +90,6 @@ while [ "$#" -gt 0 ]; do
                 shift 2
                 ;;
         -a)
-                #NEW_STYLE="yes"
                 if [ -z "$DEBUG" ]; then
                         printdef "The '-a' option is only for debug"
                 fi
@@ -104,77 +98,62 @@ while [ "$#" -gt 0 ]; do
                 shift 2
                 ;;
         -wg)
-                NEW_STYLE="yes"
                 wg_configs="-wg $2"
                 shift 2
                 ;;
         -ipsec)
-                NEW_STYLE="yes"
                 ipsec_configs="-ipsec $2"
                 shift 2
                 ;;
         -ovc)
-                NEW_STYLE="yes"
                 ovc_configs="-ovc $2"
                 shift 2
                 ;;
         -outline)
-                NEW_STYLE="yes"
                 outline_configs="-outline $2"
                 shift 2
                 ;;
         -ep4)
-                NEW_STYLE="yes"
                 endpoint_ip4="$2"
                 shift 2
                 ;;
         -int4)
-                NEW_STYLE="yes"
                 ip4_cgnat="$2"
                 shift 2
                 ;;
         -int6)
-                NEW_STYLE="yes"
                 ip6_ula="$2"
                 shift 2
                 ;;
         -dns4)
-                NEW_STYLE="yes"
                 dns_ip4="$2"
                 shift 2
                 ;;
         -dns6)
-                NEW_STYLE="yes"
                 dns_ip6="$2"
                 shift 2
                 ;;
         -kd6)
-                NEW_STYLE="yes"
                 keydesk_ip6="$2"
                 shift 2
                 ;;
         -name)
-                NEW_STYLE="yes"
                 brigadier_name="$2"
                 shift 2
                 ;;
         -person)
-                NEW_STYLE="yes"
                 person_name="$2"
                 shift 2
                 ;;
         -desc)
-                NEW_STYLE="yes"
                 person_desc="$2"
                 shift 2
                 ;;
         -url)
-                NEW_STYLE="yes"
                 person_url="$2"
                 shift 2
                 ;;
         -p)
-                NEW_STYLE="yes"
                 port="$2"
                 shift 2
 
@@ -188,7 +167,6 @@ while [ "$#" -gt 0 ]; do
                 esac
                 ;;
         -dn)
-                NEW_STYLE="yes"
                 domain="$2"
                 shift 2
 
@@ -198,9 +176,7 @@ while [ "$#" -gt 0 ]; do
                 fi
                 ;;
         *)
-                if [ -n "${NEW_STYLE}" ]; then
-                        printdef "Unknown option: $1"
-                fi
+                printdef "Unknown option: $1"
                 ;;
     esac
 done

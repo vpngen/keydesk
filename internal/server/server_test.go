@@ -5,6 +5,9 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	client2 "github.com/go-openapi/runtime/client"
+	"github.com/vpngen/keydesk/gen/client"
+	"github.com/vpngen/keydesk/gen/client/operations"
 	"github.com/vpngen/keydesk/gen/models"
 	"github.com/vpngen/keydesk/keydesk/message"
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -17,30 +20,27 @@ import (
 	"testing"
 )
 
+var kdClient client.KeydeskServer
+
 func TestMain(m *testing.M) {
 	var db storage.BrigadeStorage
 	mw := func(m *testing.M) int { return m.Run() }
 	mw = serverTestMiddleware(&db, mw)
 	mw = utils.BrigadeTestMiddleware(&db, mw)
+	mw = clientMiddleware(&kdClient, mw)
 	os.Exit(mw(m))
 }
 
 func TestMessages(t *testing.T) {
+	ctx := context.Background()
 	t.Run("get empty messages", func(t *testing.T) {
-		resp, err := http.Get("http://127.0.0.1:8000/messages")
+		res, err := kdClient.Operations.GetMessages(&operations.GetMessagesParams{Context: ctx})
 		if err != nil {
 			t.Errorf("get messages: %s", err)
 		}
-		defer resp.Body.Close()
 
-		var messages models.Messages
-
-		if err := json.NewDecoder(resp.Body).Decode(&messages); err != nil {
-			t.Errorf("decode messages: %s", err)
-		}
-
-		if len(messages) != 0 {
-			t.Errorf("expected 0 messages, got %d", len(messages))
+		if len(res.Payload) != 0 {
+			t.Errorf("expected 0 messages, got %d", len(res.Payload))
 		}
 	})
 
@@ -53,39 +53,35 @@ func TestMessages(t *testing.T) {
 			t.Errorf("encode message: %s", err)
 		}
 
-		resp, err := http.Post("http://127.0.0.1:8000/messages", "application/json", buf)
+		res, err := kdClient.Operations.PostMessage(&operations.PostMessageParams{
+			Context: ctx,
+			Message: &models.Message{Text: &text},
+		})
 		if err != nil {
 			t.Errorf("create message: %s", err)
 		}
 
-		if resp.StatusCode != http.StatusOK {
-			t.Errorf("expected status code %d, got %d", http.StatusOK, resp.StatusCode)
+		if res.Code() != http.StatusOK {
+			t.Errorf("expected status code %d, got %d", http.StatusOK, res.Code())
 		}
 	})
 
 	t.Run("get messages", func(t *testing.T) {
-		resp, err := http.Get("http://127.0.0.1:8000/messages")
+		res, err := kdClient.Operations.GetMessages(&operations.GetMessagesParams{Context: ctx})
 		if err != nil {
 			t.Errorf("get messages: %s", err)
 		}
-		defer resp.Body.Close()
 
-		var messages models.Messages
-
-		if err := json.NewDecoder(resp.Body).Decode(&messages); err != nil {
-			t.Errorf("decode messages: %s", err)
+		if len(res.Payload) != 1 {
+			t.Errorf("expected 1 message, got %d", len(res.Payload))
 		}
 
-		if len(messages) != 1 {
-			t.Errorf("expected 1 message, got %d", len(messages))
-		}
-
-		if messages[0].Text == nil {
+		if res.Payload[0].Text == nil {
 			t.Errorf("expected 'test', got nil")
 		}
 
-		if *messages[0].Text != "test" {
-			t.Errorf("expected 'test', got %s", *messages[0].Text)
+		if *res.Payload[0].Text != "test" {
+			t.Errorf("expected 'test', got %s", *res.Payload[0].Text)
 		}
 	})
 }
@@ -112,8 +108,6 @@ func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddlewar
 		}
 
 		ctx := context.Background()
-		//ctx, cancel := context.WithCancel(context.Background())
-		//defer cancel()
 
 		lcfg := &net.ListenConfig{}
 		l, err := lcfg.Listen(ctx, "tcp4", "127.0.0.1:8000")
@@ -133,5 +127,14 @@ func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddlewar
 		}
 
 		return code
+	}
+}
+
+func clientMiddleware(c *client.KeydeskServer, mw utils.TestMainMiddleware) utils.TestMainMiddleware {
+	return func(m *testing.M) int {
+		transport := client2.New("localhost:8000", "/", []string{"http"})
+		*c = *client.Default
+		c.SetTransport(transport)
+		return mw(m)
 	}
 }

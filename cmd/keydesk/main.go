@@ -73,7 +73,7 @@ var (
 )
 
 func main() {
-	chunked, jsonOut, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, certDir, name, person, replace, vpnCfgs, err := parseArgs()
+	chunked, _, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, certDir, name, person, replace, vpnCfgs, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 	}
@@ -114,7 +114,7 @@ func main() {
 
 	// Just create brigadier.
 	if name != "" || replace {
-		if err := createBrigadier(db, chunked, jsonOut, name, person, replace, vpnCfgs, &routerPublicKey, &shufflerPublicKey); err != nil {
+		if err := createBrigadier(db, chunked, name, person, replace, vpnCfgs, &routerPublicKey, &shufflerPublicKey); err != nil {
 			log.Fatalf("Can't create brigadier: %s\n", err)
 		}
 
@@ -518,7 +518,6 @@ func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxK
 
 func createBrigadier(db *storage.BrigadeStorage,
 	chunked bool,
-	jsonOut bool,
 	name string,
 	person namesgenerator.Person,
 	replace bool,

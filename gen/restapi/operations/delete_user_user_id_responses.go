@@ -88,6 +88,51 @@ func (o *DeleteUserUserIDInternalServerError) WriteResponse(rw http.ResponseWrit
 	rw.WriteHeader(500)
 }
 
+// DeleteUserUserIDServiceUnavailableCode is the HTTP code returned for type DeleteUserUserIDServiceUnavailable
+const DeleteUserUserIDServiceUnavailableCode int = 503
+
+/*
+DeleteUserUserIDServiceUnavailable Maintenance
+
+swagger:response deleteUserUserIdServiceUnavailable
+*/
+type DeleteUserUserIDServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.MaintenanceError `json:"body,omitempty"`
+}
+
+// NewDeleteUserUserIDServiceUnavailable creates DeleteUserUserIDServiceUnavailable with default headers values
+func NewDeleteUserUserIDServiceUnavailable() *DeleteUserUserIDServiceUnavailable {
+
+	return &DeleteUserUserIDServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the delete user user Id service unavailable response
+func (o *DeleteUserUserIDServiceUnavailable) WithPayload(payload *models.MaintenanceError) *DeleteUserUserIDServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the delete user user Id service unavailable response
+func (o *DeleteUserUserIDServiceUnavailable) SetPayload(payload *models.MaintenanceError) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeleteUserUserIDServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 /*
 DeleteUserUserIDDefault error
 

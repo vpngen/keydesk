@@ -40,6 +40,12 @@ func init() {
           "500": {
             "description": "Internal server error"
           },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
           "default": {
             "description": "error",
             "schema": {
@@ -75,6 +81,12 @@ func init() {
           "500": {
             "description": "Internal server error"
           },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
           "default": {
             "description": "error",
             "schema": {
@@ -104,6 +116,12 @@ func init() {
           },
           "500": {
             "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
           },
           "default": {
             "description": "error",
@@ -142,6 +160,12 @@ func init() {
           "500": {
             "description": "Internal server error"
           },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
           "default": {
             "description": "error",
             "schema": {
@@ -174,6 +198,12 @@ func init() {
           "500": {
             "description": "Internal server error"
           },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
           "default": {
             "description": "error",
             "schema": {
@@ -195,6 +225,25 @@ func init() {
           "type": "integer"
         },
         "message": {
+          "type": "string"
+        }
+      }
+    },
+    "maintenance_error": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "retry_after"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "retry_after": {
           "type": "string"
         }
       }
@@ -438,6 +487,12 @@ func init() {
           "500": {
             "description": "Internal server error"
           },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
           "default": {
             "description": "error",
             "schema": {
@@ -473,6 +528,12 @@ func init() {
           "500": {
             "description": "Internal server error"
           },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
           "default": {
             "description": "error",
             "schema": {
@@ -502,6 +563,12 @@ func init() {
           },
           "500": {
             "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
           },
           "default": {
             "description": "error",
@@ -540,6 +607,12 @@ func init() {
           "500": {
             "description": "Internal server error"
           },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
           "default": {
             "description": "error",
             "schema": {
@@ -571,6 +644,12 @@ func init() {
           },
           "500": {
             "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
           },
           "default": {
             "description": "error",
@@ -711,6 +790,25 @@ func init() {
           "type": "integer"
         },
         "message": {
+          "type": "string"
+        }
+      }
+    },
+    "maintenance_error": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "retry_after"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "retry_after": {
           "type": "string"
         }
       }

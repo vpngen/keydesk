@@ -124,10 +124,6 @@ contents:
     group: root
 - src: keydesk/systemd/vgkeydesk@.service
   dst: /etc/systemd/system/vgkeydesk@.service
-- src: keydesk/systemd/vgkeydesk@.socket
-  dst: /etc/systemd/system/vgkeydesk@.socket
-- src: keydesk/systemd/vgstats@.service
-  dst: /etc/systemd/system/vgstats@.service
 
 overrides:
   deb:

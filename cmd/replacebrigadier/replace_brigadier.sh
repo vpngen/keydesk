@@ -19,15 +19,20 @@ if [ "root" != "$(whoami)" ]; then
         DEBUG="yes"
 fi
 
-fatal() {
+jsonMessage() {
         cat << EOF | awk -v chunked="${chunked}" 'BEGIN {ORS=""; if (chunked != "") print length($0) "\r\n" $0 "\r\n0\r\n\r\n"; else print $0}'
 {
         "code": $1,
         "desc": "$2"
-        "status": "error",
-        "message": "$3"
+        "status": "$3",
+        "message": "$4"
 }
 EOF
+        exit 1
+}
+
+fatal() {
+        jsonMessage "$1" "$2" "error" "$3"
         exit 1
 }
 
@@ -152,5 +157,5 @@ else
         fi
 fi
 
-# Print brigadier config
-printf "%s" "$output"
+# JSON output brigadier config
+jsonMessage 200 "Brigadier replaces" "success" "$output"

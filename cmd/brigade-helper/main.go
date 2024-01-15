@@ -14,6 +14,10 @@ import (
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
 
+func usage() string {
+	return "Usage: " + os.Args[0] + " [id] [name] [person] [desc] [url] [ep4] [int4] [dns4] [int6] [dns6] [kd6]"
+}
+
 func main() {
 	id := uuid.New()
 	brigadierID := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(id[:])
@@ -47,18 +51,34 @@ func main() {
 	kd6 := getRandomIPv6Network(128).IP
 	kd6[0] = 0xfd
 
-	flags := []string{
-		makeFlag("id", brigadierID),
-		makeFlag("name", brigadierName),
-		makeFlag("person", personName),
-		makeFlag("desc", personDesc),
-		makeFlag("url", personURL),
-		makeFlag("ep4", ep4.String()),
-		makeFlag("int4", int4.String()),
-		makeFlag("dns4", dns4.String()),
-		makeFlag("int6", int6.String()),
-		makeFlag("dns6", dns6.String()),
-		makeFlag("kd6", kd6.String()),
+	data := map[string]string{
+		"id":     brigadierID,
+		"name":   brigadierName,
+		"person": personName,
+		"desc":   personDesc,
+		"url":    personURL,
+		"ep4":    ep4.String(),
+		"int4":   int4.String(),
+		"dns4":   dns4.String(),
+		"int6":   int6.String(),
+		"dns6":   dns6.String(),
+		"kd6":    kd6.String(),
+	}
+
+	var flags []string
+
+	if len(os.Args) == 1 {
+		for k, v := range data {
+			flags = append(flags, makeFlag(k, v))
+		}
+	} else {
+		for _, arg := range os.Args[1:] {
+			v, ok := data[arg]
+			if !ok {
+				log.Fatal("unknown flag:", arg, "\n", usage())
+			}
+			flags = append(flags, makeFlag(arg, v))
+		}
 	}
 
 	if _, err := os.Stdout.WriteString(strings.Join(flags, " ")); err != nil {

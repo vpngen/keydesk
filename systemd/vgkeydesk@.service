@@ -1,6 +1,5 @@
 [Unit]
 Description = VPNGen Keydesk
-Requires=%p@.socket
 
 [Service]
 User=%i

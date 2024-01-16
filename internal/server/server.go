@@ -9,6 +9,7 @@ import (
 	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/message"
+	"github.com/vpngen/keydesk/keydesk/push"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/vpngine/naclkey"
 	"log"
@@ -18,6 +19,7 @@ import (
 func NewServer(
 	db *storage.BrigadeStorage,
 	msgSvc message.Service,
+	pushSvc push.Service,
 	routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	tokenTTL int64,
 ) http.Handler {
@@ -58,6 +60,20 @@ func NewServer(
 	})
 	api.PutMessageHandler = operations.PutMessageHandlerFunc(func(params operations.PutMessageParams) middleware.Responder {
 		return keydesk.CreateMessage(msgSvc, storage.Message{Text: *params.Message.Text})
+	})
+
+	api.PostSubscriptionHandler = operations.PostSubscriptionHandlerFunc(func(params operations.PostSubscriptionParams) middleware.Responder {
+		return keydesk.PostSubscription(pushSvc, storage.PushSubscription{
+			Endpoint: params.Subscription.Endpoint,
+			Keys: storage.Keys{
+				P256DH: params.Subscription.Keys.P256dh,
+				Auth:   params.Subscription.Keys.Auth,
+			},
+		})
+	})
+
+	api.GetSubscriptionHandler = operations.GetSubscriptionHandlerFunc(func(params operations.GetSubscriptionParams) middleware.Responder {
+		return keydesk.GetSubscription(pushSvc)
 	})
 
 	return api.Serve(nil)

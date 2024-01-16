@@ -5,11 +5,13 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"github.com/go-openapi/runtime"
 	client2 "github.com/go-openapi/runtime/client"
 	"github.com/vpngen/keydesk/gen/client"
 	"github.com/vpngen/keydesk/gen/client/operations"
 	"github.com/vpngen/keydesk/gen/models"
 	"github.com/vpngen/keydesk/keydesk/message"
+	"github.com/vpngen/keydesk/keydesk/push"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/utils"
 	"golang.org/x/crypto/nacl/box"
@@ -86,6 +88,70 @@ func TestMessages(t *testing.T) {
 	})
 }
 
+func TestPush(t *testing.T) {
+	ctx := context.Background()
+	t.Run("post subscription", func(t *testing.T) {
+		resp, err := kdClient.Operations.PostSubscription(&operations.PostSubscriptionParams{
+			Subscription: &models.Subscription{
+				Endpoint: "endpoint",
+				Keys: &models.SubscriptionKeys{
+					Auth:   "auth",
+					P256dh: "p256dh",
+				},
+			},
+			Context: ctx,
+		})
+		if err != nil {
+			t.Fatalf("post subscription: %s", err)
+		}
+
+		checkSwaggerResponse(resp, t)
+
+		if resp.Code() != http.StatusOK {
+			t.Errorf("expected status code %d, got %d", http.StatusOK, resp.Code())
+		}
+	})
+
+	t.Run("get subscription", func(t *testing.T) {
+		resp, err := kdClient.Operations.GetSubscription(&operations.GetSubscriptionParams{Context: ctx})
+		if err != nil {
+			t.Fatalf("get subscriptions: %s", err)
+		}
+
+		checkSwaggerResponse(resp, t)
+
+		if resp.Code() != http.StatusOK {
+			t.Errorf("expected status code %d, got %d", http.StatusOK, resp.Code())
+		}
+
+		if resp.Payload.Endpoint != "endpoint" {
+			t.Errorf("expected 'endpoint', got %s", resp.Payload.Endpoint)
+		}
+
+		if resp.Payload.Keys.Auth != "auth" {
+			t.Errorf("expected 'auth', got %s", resp.Payload.Keys.Auth)
+		}
+
+		if resp.Payload.Keys.P256dh != "p256dh" {
+			t.Errorf("expected 'p256dh', got %s", resp.Payload.Keys.P256dh)
+		}
+	})
+}
+
+func checkSwaggerResponse(resp runtime.ClientResponseStatus, t *testing.T) {
+	if !resp.IsSuccess() {
+		t.Error("expected success")
+	}
+
+	if resp.IsServerError() {
+		t.Error("expected not server error")
+	}
+
+	if resp.IsClientError() {
+		t.Error("expected not client error")
+	}
+}
+
 func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddleware) utils.TestMainMiddleware {
 	return func(m *testing.M) int {
 		rpk, _, err := box.GenerateKey(rand.Reader)
@@ -101,6 +167,7 @@ func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddlewar
 			Handler: NewServer(
 				db,
 				message.New(db),
+				push.New(db),
 				rpk,
 				spk,
 				3600,

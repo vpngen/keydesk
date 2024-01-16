@@ -69,6 +69,53 @@ func init() {
         }
       }
     },
+    "/subscription": {
+      "get": {
+        "description": "Get subscription from keydesk server",
+        "summary": "Get subscription",
+        "operationId": "getSubscription",
+        "responses": {
+          "200": {
+            "description": "Subscription object",
+            "schema": {
+              "$ref": "#/definitions/subscription"
+            }
+          },
+          "404": {
+            "description": "Subscription not found"
+          },
+          "500": {
+            "$ref": "#/definitions/error"
+          }
+        }
+      },
+      "post": {
+        "description": "Send subscription from dashboard to keydesk server",
+        "consumes": [
+          "application/json"
+        ],
+        "summary": "Send subscription",
+        "operationId": "postSubscription",
+        "parameters": [
+          {
+            "description": "The subscription to create.",
+            "name": "subscription",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/subscription"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "$ref": "#/definitions/error"
+          }
+        }
+      }
+    },
     "/token": {
       "post": {
         "produces": [
@@ -464,6 +511,25 @@ func init() {
         }
       }
     },
+    "subscription": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "keys": {
+          "type": "object",
+          "properties": {
+            "auth": {
+              "type": "string"
+            },
+            "p256dh": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "token": {
       "type": "object",
       "required": [
@@ -571,6 +637,53 @@ func init() {
             "in": "body",
             "schema": {
               "$ref": "#/definitions/message"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/subscription": {
+      "get": {
+        "description": "Get subscription from keydesk server",
+        "summary": "Get subscription",
+        "operationId": "getSubscription",
+        "responses": {
+          "200": {
+            "description": "Subscription object",
+            "schema": {
+              "$ref": "#/definitions/subscription"
+            }
+          },
+          "404": {
+            "description": "Subscription not found"
+          },
+          "500": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "description": "Send subscription from dashboard to keydesk server",
+        "consumes": [
+          "application/json"
+        ],
+        "summary": "Send subscription",
+        "operationId": "postSubscription",
+        "parameters": [
+          {
+            "description": "The subscription to create.",
+            "name": "subscription",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/subscription"
             }
           }
         ],
@@ -892,6 +1005,17 @@ func init() {
         }
       }
     },
+    "SubscriptionKeys": {
+      "type": "object",
+      "properties": {
+        "auth": {
+          "type": "string"
+        },
+        "p256dh": {
+          "type": "string"
+        }
+      }
+    },
     "error": {
       "type": "object",
       "required": [
@@ -1056,6 +1180,25 @@ func init() {
           "type": "array",
           "items": {
             "$ref": "#/definitions/StatsTotalUsersItems0"
+          }
+        }
+      }
+    },
+    "subscription": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "keys": {
+          "type": "object",
+          "properties": {
+            "auth": {
+              "type": "string"
+            },
+            "p256dh": {
+              "type": "string"
+            }
           }
         }
       }

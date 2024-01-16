@@ -127,11 +127,11 @@ paths:
       description: Get messages, triggered by frontend
       operationId: getMessages
       responses:
-        '200':
+        200:
           description: List of messages
           schema:
             $ref: '#/definitions/messages'
-        '500':
+        500:
           $ref: '#/definitions/error'
     put:
       summary: Create a message
@@ -146,11 +146,41 @@ paths:
           schema:
             $ref: '#/definitions/message'
       responses:
-        '200':
+        200:
           description: OK
-        '500':
+        500:
           $ref: '#/definitions/error'
-
+  /subscription:
+    post:
+      summary: Send subscription
+      description: Send subscription from dashboard to keydesk server
+      operationId: postSubscription
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: subscription
+          description: The subscription to create.
+          schema:
+            $ref: '#/definitions/subscription'
+      responses:
+        200:
+          description: OK
+        500:
+          $ref: '#/definitions/error'
+    get:
+      summary: Get subscription
+      description: Get subscription from keydesk server
+      operationId: getSubscription
+      responses:
+        200:
+          description: Subscription object
+          schema:
+            $ref: '#/definitions/subscription'
+        404:
+          description: Subscription not found
+        500:
+          $ref: '#/definitions/error'
 definitions:
   token:
     type: object
@@ -332,6 +362,18 @@ definitions:
     type: array
     items:
       $ref: '#/definitions/message'
+  subscription:
+    type: object
+    properties:
+      endpoint:
+        type: string
+      keys:
+        type: object
+        properties:
+          p256dh:
+            type: string
+          auth:
+            type: string
 
 securityDefinitions:
   Bearer:

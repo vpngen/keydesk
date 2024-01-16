@@ -60,6 +60,12 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 		GetMessagesHandler: GetMessagesHandlerFunc(func(params GetMessagesParams) middleware.Responder {
 			return middleware.NotImplemented("operation GetMessages has not yet been implemented")
 		}),
+		GetSubscriptionHandler: GetSubscriptionHandlerFunc(func(params GetSubscriptionParams) middleware.Responder {
+			return middleware.NotImplemented("operation GetSubscription has not yet been implemented")
+		}),
+		PostSubscriptionHandler: PostSubscriptionHandlerFunc(func(params PostSubscriptionParams) middleware.Responder {
+			return middleware.NotImplemented("operation PostSubscription has not yet been implemented")
+		}),
 		PutMessageHandler: PutMessageHandlerFunc(func(params PutMessageParams) middleware.Responder {
 			return middleware.NotImplemented("operation PutMessage has not yet been implemented")
 		}),
@@ -125,6 +131,10 @@ type UserAPI struct {
 	PostUserHandler PostUserHandler
 	// GetMessagesHandler sets the operation handler for the get messages operation
 	GetMessagesHandler GetMessagesHandler
+	// GetSubscriptionHandler sets the operation handler for the get subscription operation
+	GetSubscriptionHandler GetSubscriptionHandler
+	// PostSubscriptionHandler sets the operation handler for the post subscription operation
+	PostSubscriptionHandler PostSubscriptionHandler
 	// PutMessageHandler sets the operation handler for the put message operation
 	PutMessageHandler PutMessageHandler
 
@@ -225,6 +235,12 @@ func (o *UserAPI) Validate() error {
 	}
 	if o.GetMessagesHandler == nil {
 		unregistered = append(unregistered, "GetMessagesHandler")
+	}
+	if o.GetSubscriptionHandler == nil {
+		unregistered = append(unregistered, "GetSubscriptionHandler")
+	}
+	if o.PostSubscriptionHandler == nil {
+		unregistered = append(unregistered, "PostSubscriptionHandler")
 	}
 	if o.PutMessageHandler == nil {
 		unregistered = append(unregistered, "PutMessageHandler")
@@ -350,6 +366,14 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/messages"] = NewGetMessages(o.context, o.GetMessagesHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/subscription"] = NewGetSubscription(o.context, o.GetSubscriptionHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/subscription"] = NewPostSubscription(o.context, o.PostSubscriptionHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}

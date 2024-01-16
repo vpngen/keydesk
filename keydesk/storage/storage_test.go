@@ -35,3 +35,32 @@ func TestPopNotifications(t *testing.T) {
 		t.Log(message)
 	}
 }
+
+func TestSaveSubscription(t *testing.T) {
+	if err := db.SaveSubscription(PushSubscription{
+		Endpoint: "test endpoint",
+		Keys: Keys{
+			P256DH: "test p256dh",
+			Auth:   "test auth",
+		},
+	}); err != nil {
+		t.Errorf("save subscription: %s", err)
+	}
+
+	sub, err := db.GetSubscription()
+	if err != nil {
+		t.Errorf("get subscription: %s", err)
+	}
+
+	if sub.Endpoint != "test endpoint" {
+		t.Error("endpoint mismatch")
+	}
+
+	if sub.Keys.P256DH != "test p256dh" {
+		t.Error("p256dh mismatch")
+	}
+
+	if sub.Keys.Auth != "test auth" {
+		t.Error("auth mismatch")
+	}
+}

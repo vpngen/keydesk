@@ -13,6 +13,7 @@ import (
 	"github.com/vpngen/keydesk/internal/server"
 	"github.com/vpngen/keydesk/internal/stat"
 	"github.com/vpngen/keydesk/keydesk/message"
+	"github.com/vpngen/keydesk/keydesk/push"
 	"io"
 	"log"
 	"net"
@@ -610,6 +611,7 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	handler := server.NewServer(
 		db,
 		message.New(db),
+		push.New(db),
 		routerPublicKey,
 		shufflerPublicKey,
 		TokenLifeTime,

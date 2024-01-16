@@ -7,28 +7,28 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/vpngen/keydesk/gen/restapi"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
+	"github.com/vpngen/keydesk/internal/auth"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/message"
 	"github.com/vpngen/keydesk/keydesk/push"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/vpngine/naclkey"
 	"log"
-	"net/http"
 )
 
 func NewServer(
 	db *storage.BrigadeStorage,
 	msgSvc message.Service,
 	pushSvc push.Service,
+	authSvc auth.Service,
 	routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	tokenTTL int64,
-) http.Handler {
+) *operations.UserAPI {
 	// load embedded swagger file
 	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
 	if err != nil {
 		log.Fatalln(err)
 	}
-
 	// create new service API
 	api := operations.NewUserAPI(swaggerSpec)
 
@@ -40,8 +40,8 @@ func NewServer(
 
 	api.JSONProducer = runtime.JSONProducer()
 
-	api.BearerAuth = keydesk.ValidateBearer(db.BrigadeID)
-	api.PostTokenHandler = operations.PostTokenHandlerFunc(keydesk.CreateToken(db.BrigadeID, tokenTTL))
+	api.PostTokenHandler = operations.PostTokenHandlerFunc(keydesk.CreateToken(db.BrigadeID, tokenTTL, []string{"messages:get"})) // TODO: get scopes from request
+
 	api.PostUserHandler = operations.PostUserHandlerFunc(func(params operations.PostUserParams, principal interface{}) middleware.Responder {
 		return keydesk.AddUser(db, params, principal, routerPublicKey, shufflerPublicKey)
 	})
@@ -55,7 +55,7 @@ func NewServer(
 		return keydesk.GetUsersStats(db, params, principal)
 	})
 
-	api.GetMessagesHandler = operations.GetMessagesHandlerFunc(func(params operations.GetMessagesParams) middleware.Responder {
+	api.GetMessagesHandler = operations.GetMessagesHandlerFunc(func(params operations.GetMessagesParams, principal interface{}) middleware.Responder {
 		return keydesk.GetMessages(msgSvc)
 	})
 	api.PutMessageHandler = operations.PutMessageHandlerFunc(func(params operations.PutMessageParams) middleware.Responder {
@@ -76,5 +76,9 @@ func NewServer(
 		return keydesk.GetSubscription(pushSvc)
 	})
 
-	return api.Serve(nil)
+	api.APIKeyAuthenticator = authSvc.APIKeyAuthenticator
+	api.BearerAuth = authSvc.BearerAuth
+	api.APIAuthorizer = runtime.AuthorizerFunc(authSvc.Authorize)
+
+	return api
 }

@@ -9,6 +9,9 @@ import (
 	goerrors "errors"
 	"flag"
 	"fmt"
+	"github.com/go-openapi/runtime/middleware"
+	"github.com/rs/cors"
+	"github.com/vpngen/keydesk/internal/auth"
 	"github.com/vpngen/keydesk/internal/maintenance"
 	"github.com/vpngen/keydesk/internal/server"
 	"github.com/vpngen/keydesk/internal/stat"
@@ -33,7 +36,6 @@ import (
 
 	"github.com/coreos/go-systemd/activation"
 	"github.com/google/uuid"
-	"github.com/rs/cors"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/vpnapi"
@@ -608,86 +610,91 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	webDir string,
 	allowedAddr string,
 ) http.Handler {
-	handler := server.NewServer(
+	api := server.NewServer(
 		db,
 		message.New(db),
 		push.New(db),
+		auth.NewService(db.BrigadeID),
 		routerPublicKey,
 		shufflerPublicKey,
 		TokenLifeTime,
 	)
 
-	handler = maintenanceMiddleware(
-		handler,
-		"/.maintenance",
-		filepath.Dir(db.BrigadeFilename)+"/.maintenance",
-	)
-
-	handler = uiMiddleware(handler, webDir, allowedAddr)
-
-	if pcors {
-		return cors.AllowAll().Handler(handler)
-	}
-
-	return handler
-}
-
-func uiMiddleware(handler http.Handler, dir string, allowedAddr string) http.Handler {
-	staticFS := http.Dir(dir)
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		remoteAddrPort, err := netip.ParseAddrPort(r.RemoteAddr)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stdout, "Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)
-			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-
-			return
+	return api.Serve(func(handler http.Handler) http.Handler {
+		if pcors {
+			handler = cors.AllowAll().Handler(handler)
 		}
 
-		remoteAddr := remoteAddrPort.Addr().String()
+		handler = maintenanceMiddlewareBuilder(
+			"/.maintenance",
+			filepath.Dir(db.BrigadeFilename)+"/.maintenance",
+		)(handler)
 
-		if allowedAddr != "" && remoteAddr != allowedAddr {
-			_, _ = fmt.Fprintf(os.Stdout, "Connect From: %s Restricted\n", r.RemoteAddr)
-			_, _ = fmt.Fprintf(os.Stdout, "Remote: %s Expected:%s\n", remoteAddr, allowedAddr)
-			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		handler = uiMiddlewareBuilder(webDir, allowedAddr)(handler)
 
-			return
-		}
-
-		filename := filepath.Join(dir, r.URL.Path)
-		finfo, err := os.Stat(filename)
-
-		// If the file doesn't exist and it is a directory, try to serve the default index file.
-		if err == nil && finfo.IsDir() {
-			_, err = os.Stat(filepath.Join(filename, DefaultIndexFile))
-		}
-
-		// If the file exists, serve it.
-		if err == nil {
-			w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
-			http.FileServer(staticFS).ServeHTTP(w, r)
-
-			return
-		}
-
-		_, _ = fmt.Fprintf(os.Stdout, "Connect From: %s\n", r.RemoteAddr)
-
-		handler.ServeHTTP(w, r)
+		return handler
 	})
 }
 
-func maintenanceMiddleware(handler http.Handler, paths ...string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ok, till := maintenance.CheckInPaths(paths...)
-		if ok {
-			me := maintenance.NewError(till)
-			w.Header().Set("Retry-After", me.RetryAfter().String())
-			w.WriteHeader(http.StatusServiceUnavailable)
-			if err := json.NewEncoder(w).Encode(me); err != nil {
-				_, _ = fmt.Fprintln(os.Stderr, "encode maintenance error:", err)
+func uiMiddlewareBuilder(dir string, allowedAddr string) middleware.Builder {
+	return func(handler http.Handler) http.Handler {
+		staticFS := http.Dir(dir)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			remoteAddrPort, err := netip.ParseAddrPort(r.RemoteAddr)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stdout, "Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+
+				return
 			}
-			return
-		}
-		handler.ServeHTTP(w, r)
-	})
+
+			remoteAddr := remoteAddrPort.Addr().String()
+
+			if allowedAddr != "" && remoteAddr != allowedAddr {
+				_, _ = fmt.Fprintf(os.Stdout, "Connect From: %s Restricted\n", r.RemoteAddr)
+				_, _ = fmt.Fprintf(os.Stdout, "Remote: %s Expected:%s\n", remoteAddr, allowedAddr)
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+
+				return
+			}
+
+			filename := filepath.Join(dir, r.URL.Path)
+			finfo, err := os.Stat(filename)
+
+			// If the file doesn't exist and it is a directory, try to serve the default index file.
+			if err == nil && finfo.IsDir() {
+				_, err = os.Stat(filepath.Join(filename, DefaultIndexFile))
+			}
+
+			// If the file exists, serve it.
+			if err == nil {
+				w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
+				http.FileServer(staticFS).ServeHTTP(w, r)
+
+				return
+			}
+
+			_, _ = fmt.Fprintf(os.Stdout, "Connect From: %s\n", r.RemoteAddr)
+
+			handler.ServeHTTP(w, r)
+		})
+	}
+}
+
+func maintenanceMiddlewareBuilder(paths ...string) middleware.Builder {
+	return func(handler http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ok, till := maintenance.CheckInPaths(paths...)
+			if ok {
+				me := maintenance.NewError(till)
+				w.Header().Set("Retry-After", me.RetryAfter().String())
+				w.WriteHeader(http.StatusServiceUnavailable)
+				if err := json.NewEncoder(w).Encode(me); err != nil {
+					_, _ = fmt.Fprintln(os.Stderr, "encode maintenance error:", err)
+				}
+				return
+			}
+			handler.ServeHTTP(w, r)
+		})
+	}
 }

@@ -40,7 +40,7 @@ type ClientService interface {
 
 	PostUser(params *PostUserParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostUserCreated, error)
 
-	GetMessages(params *GetMessagesParams, opts ...ClientOption) (*GetMessagesOK, error)
+	GetMessages(params *GetMessagesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetMessagesOK, error)
 
 	GetSubscription(params *GetSubscriptionParams, opts ...ClientOption) (*GetSubscriptionOK, error)
 
@@ -245,7 +245,7 @@ GetMessages gets messages
 
 Get messages, triggered by frontend
 */
-func (a *Client) GetMessages(params *GetMessagesParams, opts ...ClientOption) (*GetMessagesOK, error) {
+func (a *Client) GetMessages(params *GetMessagesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetMessagesOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewGetMessagesParams()
@@ -259,6 +259,7 @@ func (a *Client) GetMessages(params *GetMessagesParams, opts ...ClientOption) (*
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &GetMessagesReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	}

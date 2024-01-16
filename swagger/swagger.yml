@@ -126,6 +126,9 @@ paths:
       summary: Get messages
       description: Get messages, triggered by frontend
       operationId: getMessages
+      security:
+        - Bearer:
+            - messages:get
       responses:
         200:
           description: List of messages

@@ -57,7 +57,7 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 		PostUserHandler: PostUserHandlerFunc(func(params PostUserParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation PostUser has not yet been implemented")
 		}),
-		GetMessagesHandler: GetMessagesHandlerFunc(func(params GetMessagesParams) middleware.Responder {
+		GetMessagesHandler: GetMessagesHandlerFunc(func(params GetMessagesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation GetMessages has not yet been implemented")
 		}),
 		GetSubscriptionHandler: GetSubscriptionHandlerFunc(func(params GetSubscriptionParams) middleware.Responder {

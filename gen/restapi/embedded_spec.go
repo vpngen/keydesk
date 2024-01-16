@@ -27,6 +27,13 @@ func init() {
   "paths": {
     "/messages": {
       "get": {
+        "security": [
+          {
+            "Bearer": [
+              "messages:get"
+            ]
+          }
+        ],
         "description": "Get messages, triggered by frontend",
         "summary": "Get messages",
         "operationId": "getMessages",
@@ -608,6 +615,13 @@ func init() {
   "paths": {
     "/messages": {
       "get": {
+        "security": [
+          {
+            "Bearer": [
+              "messages:get"
+            ]
+          }
+        ],
         "description": "Get messages, triggered by frontend",
         "summary": "Get messages",
         "operationId": "getMessages",

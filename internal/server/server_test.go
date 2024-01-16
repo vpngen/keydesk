@@ -10,6 +10,7 @@ import (
 	"github.com/vpngen/keydesk/gen/client"
 	"github.com/vpngen/keydesk/gen/client/operations"
 	"github.com/vpngen/keydesk/gen/models"
+	"github.com/vpngen/keydesk/internal/auth"
 	"github.com/vpngen/keydesk/keydesk/message"
 	"github.com/vpngen/keydesk/keydesk/push"
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -35,14 +36,29 @@ func TestMain(m *testing.M) {
 
 func TestMessages(t *testing.T) {
 	ctx := context.Background()
-	t.Run("get empty messages", func(t *testing.T) {
-		res, err := kdClient.Operations.GetMessages(&operations.GetMessagesParams{Context: ctx})
+	var token string
+
+	t.Run("get token", func(t *testing.T) {
+		res, err := kdClient.Operations.PostToken(&operations.PostTokenParams{
+			Context: ctx,
+		})
 		if err != nil {
-			t.Errorf("get messages: %s", err)
+			t.Fatalf("get token: %s", err)
+		}
+		if res.Payload.Token == nil {
+			t.Fatalf("expected token, got nil")
+		}
+		token = *res.Payload.Token
+	})
+
+	t.Run("get empty messages", func(t *testing.T) {
+		res, err := kdClient.Operations.GetMessages(&operations.GetMessagesParams{Context: ctx}, client2.BearerToken(token))
+		if err != nil {
+			t.Fatalf("get messages: %s", err)
 		}
 
 		if len(res.Payload) != 0 {
-			t.Errorf("expected 0 messages, got %d", len(res.Payload))
+			t.Fatalf("expected 0 messages, got %d", len(res.Payload))
 		}
 	})
 
@@ -52,7 +68,7 @@ func TestMessages(t *testing.T) {
 		if err := json.NewEncoder(buf).Encode(&models.Message{
 			Text: &text,
 		}); err != nil {
-			t.Errorf("encode message: %s", err)
+			t.Fatalf("encode message: %s", err)
 		}
 
 		res, err := kdClient.Operations.PutMessage(&operations.PutMessageParams{
@@ -60,7 +76,7 @@ func TestMessages(t *testing.T) {
 			Message: &models.Message{Text: &text},
 		})
 		if err != nil {
-			t.Errorf("create message: %s", err)
+			t.Fatalf("create message: %s", err)
 		}
 
 		if res.Code() != http.StatusOK {
@@ -69,9 +85,9 @@ func TestMessages(t *testing.T) {
 	})
 
 	t.Run("get messages", func(t *testing.T) {
-		res, err := kdClient.Operations.GetMessages(&operations.GetMessagesParams{Context: ctx})
+		res, err := kdClient.Operations.GetMessages(&operations.GetMessagesParams{Context: ctx}, client2.BearerToken(token))
 		if err != nil {
-			t.Errorf("get messages: %s", err)
+			t.Fatalf("get messages: %s", err)
 		}
 
 		if len(res.Payload) != 1 {
@@ -163,15 +179,22 @@ func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddlewar
 			log.Fatal(err)
 		}
 
+		api := NewServer(
+			db,
+			message.New(db),
+			push.New(db),
+			auth.NewService(db.BrigadeID),
+			rpk,
+			spk,
+			3600,
+		)
+
+		if err := api.Validate(); err != nil {
+			log.Fatal(err)
+		}
+
 		server := &http.Server{
-			Handler: NewServer(
-				db,
-				message.New(db),
-				push.New(db),
-				rpk,
-				spk,
-				3600,
-			),
+			Handler: api.Serve(nil),
 		}
 
 		ctx := context.Background()

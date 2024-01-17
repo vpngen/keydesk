@@ -9,8 +9,6 @@ import (
 	goerrors "errors"
 	"flag"
 	"fmt"
-	"github.com/vpngen/keydesk/internal/maintenance"
-	"github.com/vpngen/keydesk/internal/stat"
 	"io"
 	"log"
 	"net"
@@ -27,6 +25,9 @@ import (
 	"syscall"
 	"time"
 	"unicode/utf8"
+
+	"github.com/vpngen/keydesk/internal/maintenance"
+	"github.com/vpngen/keydesk/internal/stat"
 
 	"github.com/coreos/go-systemd/activation"
 	"github.com/go-openapi/errors"
@@ -253,10 +254,10 @@ func main() {
 
 func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, string, string, string, string, string, string, namesgenerator.Person, bool, *storage.ConfigsImplemented, error) {
 	var (
-		id                     string
-		etcdir, dbdir, certdir string
-		person                 namesgenerator.Person
-		addrPort               netip.AddrPort
+		id                               string
+		etcdir, dbdir, certdir, statsdir string
+		person                           namesgenerator.Person
+		addrPort                         netip.AddrPort
 	)
 
 	sysUser, err := user.Current()
@@ -340,10 +341,8 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 		}
 	}
 
-	if *statsDir == "" {
-		*statsDir = filepath.Join(storage.DefaultStatsDir, *brigadeID)
-	} else {
-		*statsDir, err = filepath.Abs(*statsDir)
+	if *statsDir != "" {
+		statsdir, err = filepath.Abs(*statsDir)
 		if err != nil {
 			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("statdir dir: %w", err)
 		}
@@ -364,6 +363,10 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 		if *certDir == "" {
 			certdir = DefaultCertDir
 		}
+
+		if *statsDir == "" {
+			statsdir = filepath.Join(storage.DefaultStatsDir, id)
+		}
 	default:
 		id = *brigadeID
 
@@ -382,6 +385,10 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 
 		if *certDir == "" {
 			certdir = cwd
+		}
+
+		if *statsDir == "" {
+			statsdir = cwd
 		}
 	}
 
@@ -404,7 +411,7 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 	}
 
 	if *replaceBrigadier {
-		return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, *statsDir, "", person, *replaceBrigadier, vpnCfgs, nil
+		return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, *replaceBrigadier, vpnCfgs, nil
 	}
 
 	if *brigadierName == "" {
@@ -418,7 +425,7 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 				return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot retrieve listeners: %w", err)
 			}
 
-			return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, *statsDir, "", person, false, nil, nil
+			return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, false, nil, nil
 		default:
 			// get listeners from argument
 			for _, laddr := range strings.Split(*listenAddr, ",") {
@@ -436,7 +443,7 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 			}
 		}
 
-		return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, *statsDir, "", person, false, nil, nil
+		return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, false, nil, nil
 	}
 
 	// brigadierName must be not empty and must be a valid UTF8 string
@@ -506,7 +513,7 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 
 	person.URL = u
 
-	return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, *statsDir, name, person, *replaceBrigadier, vpnCfgs, nil
+	return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, name, person, *replaceBrigadier, vpnCfgs, nil
 }
 
 func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxKeyLength]byte, error) {
@@ -544,7 +551,7 @@ func createBrigadier(db *storage.BrigadeStorage,
 		w = os.Stdout
 	}
 
-	//TODO: do we have to print wgconf, filename?
+	// TODO: do we have to print wgconf, filename?
 	_, _, confJson, creationErr := keydesk.AddBrigadier(db, name, person, replace, vpnCfgs, routerPublicKey, shufflerPublicKey)
 
 	enc := json.NewEncoder(w)

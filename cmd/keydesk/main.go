@@ -73,12 +73,10 @@ var (
 )
 
 func main() {
-	chunked, _, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, certDir, name, person, replace, vpnCfgs, err := parseArgs()
+	chunked, _, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, certDir, statsDir, name, person, replace, vpnCfgs, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 	}
-
-	statsDir := flag.String("s", "", "Dir with brigades statistics. Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
 
 	routerPublicKey, shufflerPublicKey, err := readPubKeys(etcDir)
 	if err != nil {
@@ -122,7 +120,7 @@ func main() {
 	}
 
 	_, _ = fmt.Fprintf(os.Stderr, "Cert Dir: %s\n", certDir)
-	_, _ = fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", *statsDir)
+	_, _ = fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", statsDir)
 	_, _ = fmt.Fprintf(os.Stderr, "Web files: %s\n", webDir)
 	_, _ = fmt.Fprintf(os.Stderr, "Permessive CORS: %t\n", pcors)
 	_, _ = fmt.Fprintf(os.Stderr, "Starting %s keydesk\n", BrigadeID)
@@ -247,13 +245,13 @@ func main() {
 
 	_, rdata := os.LookupEnv("VGSTATS_RANDOM_DATA")
 
-	go stat.CollectingData(statDone, addr, rdata, BrigadeID, dbDir, *statsDir)
+	go stat.CollectingData(db, statDone, rdata, statsDir)
 
 	// Wait for existing connections before exiting.
 	<-done
 }
 
-func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, string, string, string, string, string, namesgenerator.Person, bool, *storage.ConfigsImplemented, error) {
+func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, string, string, string, string, string, string, namesgenerator.Person, bool, *storage.ConfigsImplemented, error) {
 	var (
 		id                     string
 		etcdir, dbdir, certdir string
@@ -263,13 +261,15 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 
 	sysUser, err := user.Current()
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot define user: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot define user: %w", err)
 	}
 
 	webDir := flag.String("w", DefaultWebDir, "Dir for web files.")
 	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
 	certDir := flag.String("e", "", "Dir for TLS certificate and key (for test). Default: "+DefaultCertDir)
+	statsDir := flag.String("s", "", "Dir with brigades statistics. Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
+
 	pcors := flag.Bool("cors", false, "Turn on permessive CORS (for test)")
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
 	listenAddr := flag.String("l", "", "Listen addr:port (http and https separate with commas)")
@@ -311,32 +311,41 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 	}
 
 	if *webDir == "" {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrStaticDirEmpty
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrStaticDirEmpty
 	}
 
 	webdir, err := filepath.Abs(*webDir)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("web dir: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("web dir: %w", err)
 	}
 
 	if *filedbDir != "" {
 		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("dbdir dir: %w", err)
+			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("dbdir dir: %w", err)
 		}
 	}
 
 	if *etcDir != "" {
 		etcdir, err = filepath.Abs(*etcDir)
 		if err != nil {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("etcdir dir: %w", err)
+			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("etcdir dir: %w", err)
 		}
 	}
 
 	if *certDir != "" {
 		certdir, err = filepath.Abs(*certDir)
 		if err != nil {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("statdir dir: %w", err)
+			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("certdir dir: %w", err)
+		}
+	}
+
+	if *statsDir == "" {
+		*statsDir = filepath.Join(storage.DefaultStatsDir, *brigadeID)
+	} else {
+		*statsDir, err = filepath.Abs(*statsDir)
+		if err != nil {
+			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("statdir dir: %w", err)
 		}
 	}
 
@@ -379,23 +388,23 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 	// brigadeID must be base32 decodable.
 	binID, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(id)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("id base32: %s: %w", id, err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("id base32: %s: %w", id, err)
 	}
 
 	_, err = uuid.FromBytes(binID)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("id uuid: %s: %w", id, err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("id uuid: %s: %w", id, err)
 	}
 
 	if *addr != "-" {
 		addrPort, err = netip.ParseAddrPort(*addr)
 		if err != nil {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("api addr: %w", err)
+			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("api addr: %w", err)
 		}
 	}
 
 	if *replaceBrigadier {
-		return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, "", person, *replaceBrigadier, vpnCfgs, nil
+		return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, *statsDir, "", person, *replaceBrigadier, vpnCfgs, nil
 	}
 
 	if *brigadierName == "" {
@@ -406,98 +415,98 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 			// get listeners from activation sockets
 			listeners, err = activation.Listeners()
 			if err != nil {
-				return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot retrieve listeners: %w", err)
+				return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot retrieve listeners: %w", err)
 			}
 
-			return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, "", person, false, nil, nil
+			return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, *statsDir, "", person, false, nil, nil
 		default:
 			// get listeners from argument
 			for _, laddr := range strings.Split(*listenAddr, ",") {
 				l, err := net.Listen("tcp", laddr)
 				if err != nil {
-					return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot listen: %w", err)
+					return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot listen: %w", err)
 				}
 
 				listeners = append(listeners, l)
 			}
 
 			if len(listeners) != 1 && len(listeners) != 2 {
-				return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("unexpected number of litening (%d != 1|2)",
+				return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("unexpected number of litening (%d != 1|2)",
 					len(listeners))
 			}
 		}
 
-		return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, "", person, false, nil, nil
+		return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, *statsDir, "", person, false, nil, nil
 	}
 
 	// brigadierName must be not empty and must be a valid UTF8 string
 	buf, err := base64.StdEncoding.DecodeString(*brigadierName)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("brigadier name: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("brigadier name: %w", err)
 	}
 
 	if !utf8.Valid(buf) {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrInvalidBrigadierName
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrInvalidBrigadierName
 	}
 
 	name := string(buf)
 
 	// personName must be not empty and must be a valid UTF8 string
 	if *personName == "" {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrEmptyPersonName
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrEmptyPersonName
 	}
 
 	buf, err = base64.StdEncoding.DecodeString(*personName)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("person name: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("person name: %w", err)
 	}
 
 	if !utf8.Valid(buf) {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrInvalidPersonName
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrInvalidPersonName
 	}
 
 	person.Name = string(buf)
 
 	// personDesc must be not empty and must be a valid UTF8 string
 	if *personDesc == "" {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrEmptyPersonDesc
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrEmptyPersonDesc
 	}
 
 	buf, err = base64.StdEncoding.DecodeString(*personDesc)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("person desc: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("person desc: %w", err)
 	}
 
 	if !utf8.Valid(buf) {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrInvalidPersonDesc
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrInvalidPersonDesc
 	}
 
 	person.Desc = string(buf)
 
 	// personURL must be not empty and must be a valid UTF8 string
 	if *personURL == "" {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrEmptyPersonURL
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrEmptyPersonURL
 	}
 
 	buf, err = base64.StdEncoding.DecodeString(*personURL)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("person url: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("person url: %w", err)
 	}
 
 	if !utf8.Valid(buf) {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrInvalidPersonURL
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrInvalidPersonURL
 	}
 
 	u := string(buf)
 
 	_, err = url.Parse(u)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("parse person url: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("parse person url: %w", err)
 	}
 
 	person.URL = u
 
-	return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, name, person, *replaceBrigadier, vpnCfgs, nil
+	return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, *statsDir, name, person, *replaceBrigadier, vpnCfgs, nil
 }
 
 func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxKeyLength]byte, error) {

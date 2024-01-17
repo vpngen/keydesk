@@ -34,7 +34,6 @@ func CreateToken(BrigadierID string, TokenLifeTime int64, scopes []string) func(
 				ID:        tc.Jti(),
 			},
 			Scopes: scopes,
-			User:   BrigadierID,
 		})
 
 		// Sign and get the complete encoded token as a string using the secret

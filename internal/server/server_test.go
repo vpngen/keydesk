@@ -183,7 +183,13 @@ func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddlewar
 			db,
 			message.New(db),
 			push.New(db),
-			auth.NewService(db.BrigadeID),
+			auth.Service{
+				Subject: db.BrigadeID,
+				Issuer:  "test",
+				Audience: []string{
+					"test",
+				},
+			},
 			rpk,
 			spk,
 			3600,

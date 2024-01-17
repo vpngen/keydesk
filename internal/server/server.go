@@ -40,7 +40,7 @@ func NewServer(
 
 	api.JSONProducer = runtime.JSONProducer()
 
-	api.PostTokenHandler = operations.PostTokenHandlerFunc(keydesk.CreateToken(db.BrigadeID, tokenTTL, []string{"messages:get"})) // TODO: get scopes from request
+	api.PostTokenHandler = operations.PostTokenHandlerFunc(keydesk.CreateToken(authSvc, tokenTTL, []string{"messages:get"})) // TODO: get scopes from request
 
 	api.PostUserHandler = operations.PostUserHandlerFunc(func(params operations.PostUserParams, principal interface{}) middleware.Responder {
 		return keydesk.AddUser(db, params, principal, routerPublicKey, shufflerPublicKey)

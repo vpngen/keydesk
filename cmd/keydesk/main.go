@@ -157,7 +157,7 @@ func main() {
 		listeners = append(listeners, l)
 	}
 
-	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir, allowedAddress)
+	handler := initSwaggerAPI(db, &routerPublicKey, &shufflerPublicKey, pcors, webDir, allowedAddress)
 
 	// On signal, gracefully shut down the server and wait 5
 	// seconds for current connections to stop.
@@ -602,8 +602,8 @@ func createBrigadier(db *storage.BrigadeStorage,
 	return nil
 }
 
-func initSwaggerAPI(db *storage.BrigadeStorage,
-	brigadeID string, // TODO: do we still need this?
+func initSwaggerAPI(
+	db *storage.BrigadeStorage,
 	routerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	pcors bool,
@@ -613,7 +613,11 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	api := server.NewServer(
 		db,
 		message.New(db),
-		push.New(db),
+		push.New(
+			db,
+			"Lcw1hBkJBH2oSGevZBAp86kr4PDlQ1QxOFH8LkBNs_c",
+			"BI8uqN-GskHtmeqH10szMwNNR29opGc31t8d2QGRPXCwLhoEo9vY6DNYx9X147TKVQEHrAXA3BfKfVuDBE06TbE",
+		),
 		auth.Service{
 			Issuer:   "keydesk",
 			Subject:  db.BrigadeID,

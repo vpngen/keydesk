@@ -69,6 +69,9 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 		PutMessageHandler: PutMessageHandlerFunc(func(params PutMessageParams) middleware.Responder {
 			return middleware.NotImplemented("operation PutMessage has not yet been implemented")
 		}),
+		SendPushHandler: SendPushHandlerFunc(func(params SendPushParams) middleware.Responder {
+			return middleware.NotImplemented("operation SendPush has not yet been implemented")
+		}),
 
 		// Applies when the "Authorization" header is set
 		BearerAuth: func(token string) (interface{}, error) {
@@ -137,6 +140,8 @@ type UserAPI struct {
 	PostSubscriptionHandler PostSubscriptionHandler
 	// PutMessageHandler sets the operation handler for the put message operation
 	PutMessageHandler PutMessageHandler
+	// SendPushHandler sets the operation handler for the send push operation
+	SendPushHandler SendPushHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -244,6 +249,9 @@ func (o *UserAPI) Validate() error {
 	}
 	if o.PutMessageHandler == nil {
 		unregistered = append(unregistered, "PutMessageHandler")
+	}
+	if o.SendPushHandler == nil {
+		unregistered = append(unregistered, "SendPushHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -378,6 +386,10 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
 	o.handlers["PUT"]["/messages"] = NewPutMessage(o.context, o.PutMessageHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/send-push"] = NewSendPush(o.context, o.SendPushHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

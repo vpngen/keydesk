@@ -16,7 +16,7 @@ import (
 
 // Messages messages
 //
-// swagger:model messages
+// swagger:model Messages
 type Messages []*Message
 
 // Validate validates this messages

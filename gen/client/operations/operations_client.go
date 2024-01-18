@@ -48,6 +48,8 @@ type ClientService interface {
 
 	PutMessage(params *PutMessageParams, opts ...ClientOption) (*PutMessageOK, error)
 
+	SendPush(params *SendPushParams, opts ...ClientOption) (*SendPushOK, error)
+
 	SetTransport(transport runtime.ClientTransport)
 }
 
@@ -398,6 +400,46 @@ func (a *Client) PutMessage(params *PutMessageParams, opts ...ClientOption) (*Pu
 	// unexpected success response
 	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
 	msg := fmt.Sprintf("unexpected success response for putMessage: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
+}
+
+/*
+SendPush sends a push notification
+
+Send a push notification
+*/
+func (a *Client) SendPush(params *SendPushParams, opts ...ClientOption) (*SendPushOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewSendPushParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "sendPush",
+		Method:             "POST",
+		PathPattern:        "/send-push",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &SendPushReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*SendPushOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for sendPush: API contract not enforced by server. Client expected to get an error, but got: %T", result)
 	panic(msg)
 }
 

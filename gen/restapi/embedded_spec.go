@@ -41,7 +41,7 @@ func init() {
           "200": {
             "description": "List of messages",
             "schema": {
-              "$ref": "#/definitions/messages"
+              "$ref": "#/definitions/Messages"
             }
           },
           "500": {
@@ -62,7 +62,38 @@ func init() {
             "name": "message",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/message"
+              "$ref": "#/definitions/Message"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "$ref": "#/definitions/error"
+          }
+        }
+      }
+    },
+    "/send-push": {
+      "post": {
+        "description": "Send a push notification",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "Send a push notification",
+        "operationId": "sendPush",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PushRequest"
             }
           }
         ],
@@ -85,7 +116,7 @@ func init() {
           "200": {
             "description": "Subscription object",
             "schema": {
-              "$ref": "#/definitions/subscription"
+              "$ref": "#/definitions/Subscription"
             }
           },
           "404": {
@@ -109,7 +140,7 @@ func init() {
             "name": "subscription",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/subscription"
+              "$ref": "#/definitions/Subscription"
             }
           }
         ],
@@ -313,6 +344,171 @@ func init() {
     }
   },
   "definitions": {
+    "AnyValue": {},
+    "Message": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "is_read": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "Messages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Message"
+      }
+    },
+    "NotificationOptions": {
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "options": {
+          "type": "object",
+          "required": [
+            "body"
+          ],
+          "properties": {
+            "actions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string"
+                  },
+                  "icon": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "badge": {
+              "type": "string"
+            },
+            "body": {
+              "type": "string"
+            },
+            "data": {
+              "$ref": "#/definitions/AnyValue"
+            },
+            "dir": {
+              "type": "string"
+            },
+            "icon": {
+              "type": "string"
+            },
+            "image": {
+              "type": "string"
+            },
+            "lang": {
+              "type": "string"
+            },
+            "renotify": {
+              "type": "boolean"
+            },
+            "requireInteraction": {
+              "type": "boolean"
+            },
+            "silent": {
+              "type": "boolean"
+            },
+            "tag": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "integer"
+            },
+            "vibrate": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "PushOptions": {
+      "type": "object",
+      "properties": {
+        "private_key": {
+          "type": "string"
+        },
+        "public_key": {
+          "type": "string"
+        },
+        "subscriber": {
+          "type": "string"
+        },
+        "topic": {
+          "type": "string"
+        },
+        "urgency": {
+          "type": "string"
+        }
+      }
+    },
+    "PushRequest": {
+      "type": "object",
+      "required": [
+        "notification",
+        "subscription",
+        "options"
+      ],
+      "properties": {
+        "notification": {
+          "$ref": "#/definitions/NotificationOptions"
+        },
+        "options": {
+          "$ref": "#/definitions/PushOptions"
+        },
+        "subscription": {
+          "$ref": "#/definitions/Subscription"
+        }
+      }
+    },
+    "Subscription": {
+      "type": "object",
+      "required": [
+        "endpoint",
+        "keys"
+      ],
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "keys": {
+          "type": "object",
+          "properties": {
+            "auth": {
+              "type": "string"
+            },
+            "p256dh": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "error": {
       "type": "object",
       "required": [
@@ -344,30 +540,6 @@ func init() {
         "retry_after": {
           "type": "string"
         }
-      }
-    },
-    "message": {
-      "type": "object",
-      "required": [
-        "text"
-      ],
-      "properties": {
-        "is_read": {
-          "type": "boolean"
-        },
-        "text": {
-          "type": "string"
-        },
-        "time": {
-          "type": "string",
-          "format": "date-time"
-        }
-      }
-    },
-    "messages": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/message"
       }
     },
     "newuser": {
@@ -518,25 +690,6 @@ func init() {
         }
       }
     },
-    "subscription": {
-      "type": "object",
-      "properties": {
-        "endpoint": {
-          "type": "string"
-        },
-        "keys": {
-          "type": "object",
-          "properties": {
-            "auth": {
-              "type": "string"
-            },
-            "p256dh": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
     "token": {
       "type": "object",
       "required": [
@@ -629,7 +782,7 @@ func init() {
           "200": {
             "description": "List of messages",
             "schema": {
-              "$ref": "#/definitions/messages"
+              "$ref": "#/definitions/Messages"
             }
           },
           "500": {
@@ -650,7 +803,38 @@ func init() {
             "name": "message",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/message"
+              "$ref": "#/definitions/Message"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/send-push": {
+      "post": {
+        "description": "Send a push notification",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "Send a push notification",
+        "operationId": "sendPush",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PushRequest"
             }
           }
         ],
@@ -673,7 +857,7 @@ func init() {
           "200": {
             "description": "Subscription object",
             "schema": {
-              "$ref": "#/definitions/subscription"
+              "$ref": "#/definitions/Subscription"
             }
           },
           "404": {
@@ -697,7 +881,7 @@ func init() {
             "name": "subscription",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/subscription"
+              "$ref": "#/definitions/Subscription"
             }
           }
         ],
@@ -901,6 +1085,31 @@ func init() {
     }
   },
   "definitions": {
+    "AnyValue": {},
+    "Message": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "is_read": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "Messages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Message"
+      }
+    },
     "NewuserAmnzOvcConfig": {
       "type": "object",
       "required": [
@@ -973,6 +1182,182 @@ func init() {
         }
       }
     },
+    "NotificationOptions": {
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "options": {
+          "type": "object",
+          "required": [
+            "body"
+          ],
+          "properties": {
+            "actions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/NotificationOptionsOptionsActionsItems0"
+              }
+            },
+            "badge": {
+              "type": "string"
+            },
+            "body": {
+              "type": "string"
+            },
+            "data": {
+              "$ref": "#/definitions/AnyValue"
+            },
+            "dir": {
+              "type": "string"
+            },
+            "icon": {
+              "type": "string"
+            },
+            "image": {
+              "type": "string"
+            },
+            "lang": {
+              "type": "string"
+            },
+            "renotify": {
+              "type": "boolean"
+            },
+            "requireInteraction": {
+              "type": "boolean"
+            },
+            "silent": {
+              "type": "boolean"
+            },
+            "tag": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "integer"
+            },
+            "vibrate": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "NotificationOptionsOptions": {
+      "type": "object",
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/NotificationOptionsOptionsActionsItems0"
+          }
+        },
+        "badge": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/definitions/AnyValue"
+        },
+        "dir": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "renotify": {
+          "type": "boolean"
+        },
+        "requireInteraction": {
+          "type": "boolean"
+        },
+        "silent": {
+          "type": "boolean"
+        },
+        "tag": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        },
+        "vibrate": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "NotificationOptionsOptionsActionsItems0": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "PushOptions": {
+      "type": "object",
+      "properties": {
+        "private_key": {
+          "type": "string"
+        },
+        "public_key": {
+          "type": "string"
+        },
+        "subscriber": {
+          "type": "string"
+        },
+        "topic": {
+          "type": "string"
+        },
+        "urgency": {
+          "type": "string"
+        }
+      }
+    },
+    "PushRequest": {
+      "type": "object",
+      "required": [
+        "notification",
+        "subscription",
+        "options"
+      ],
+      "properties": {
+        "notification": {
+          "$ref": "#/definitions/NotificationOptions"
+        },
+        "options": {
+          "$ref": "#/definitions/PushOptions"
+        },
+        "subscription": {
+          "$ref": "#/definitions/Subscription"
+        }
+      }
+    },
     "StatsActiveUsersItems0": {
       "type": "object",
       "required": [
@@ -1019,6 +1404,29 @@ func init() {
         }
       }
     },
+    "Subscription": {
+      "type": "object",
+      "required": [
+        "endpoint",
+        "keys"
+      ],
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "keys": {
+          "type": "object",
+          "properties": {
+            "auth": {
+              "type": "string"
+            },
+            "p256dh": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "SubscriptionKeys": {
       "type": "object",
       "properties": {
@@ -1061,30 +1469,6 @@ func init() {
         "retry_after": {
           "type": "string"
         }
-      }
-    },
-    "message": {
-      "type": "object",
-      "required": [
-        "text"
-      ],
-      "properties": {
-        "is_read": {
-          "type": "boolean"
-        },
-        "text": {
-          "type": "string"
-        },
-        "time": {
-          "type": "string",
-          "format": "date-time"
-        }
-      }
-    },
-    "messages": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/message"
       }
     },
     "newuser": {
@@ -1194,25 +1578,6 @@ func init() {
           "type": "array",
           "items": {
             "$ref": "#/definitions/StatsTotalUsersItems0"
-          }
-        }
-      }
-    },
-    "subscription": {
-      "type": "object",
-      "properties": {
-        "endpoint": {
-          "type": "string"
-        },
-        "keys": {
-          "type": "object",
-          "properties": {
-            "auth": {
-              "type": "string"
-            },
-            "p256dh": {
-              "type": "string"
-            }
           }
         }
       }

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/SherClockHolmes/webpush-go"
 	"os"
 	"testing"
 )
@@ -37,10 +38,10 @@ func TestPopNotifications(t *testing.T) {
 }
 
 func TestSaveSubscription(t *testing.T) {
-	if err := db.SaveSubscription(PushSubscription{
+	if err := db.SaveSubscription(webpush.Subscription{
 		Endpoint: "test endpoint",
-		Keys: Keys{
-			P256DH: "test p256dh",
+		Keys: webpush.Keys{
+			P256dh: "test p256dh",
 			Auth:   "test auth",
 		},
 	}); err != nil {
@@ -56,7 +57,7 @@ func TestSaveSubscription(t *testing.T) {
 		t.Error("endpoint mismatch")
 	}
 
-	if sub.Keys.P256DH != "test p256dh" {
+	if sub.Keys.P256dh != "test p256dh" {
 		t.Error("p256dh mismatch")
 	}
 

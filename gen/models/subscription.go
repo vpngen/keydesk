@@ -11,23 +11,30 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // Subscription subscription
 //
-// swagger:model subscription
+// swagger:model Subscription
 type Subscription struct {
 
 	// endpoint
-	Endpoint string `json:"endpoint,omitempty"`
+	// Required: true
+	Endpoint *string `json:"endpoint"`
 
 	// keys
-	Keys *SubscriptionKeys `json:"keys,omitempty"`
+	// Required: true
+	Keys *SubscriptionKeys `json:"keys"`
 }
 
 // Validate validates this subscription
 func (m *Subscription) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateEndpoint(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateKeys(formats); err != nil {
 		res = append(res, err)
@@ -39,9 +46,19 @@ func (m *Subscription) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *Subscription) validateEndpoint(formats strfmt.Registry) error {
+
+	if err := validate.Required("endpoint", "body", m.Endpoint); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *Subscription) validateKeys(formats strfmt.Registry) error {
-	if swag.IsZero(m.Keys) { // not required
-		return nil
+
+	if err := validate.Required("keys", "body", m.Keys); err != nil {
+		return err
 	}
 
 	if m.Keys != nil {
@@ -75,10 +92,6 @@ func (m *Subscription) ContextValidate(ctx context.Context, formats strfmt.Regis
 func (m *Subscription) contextValidateKeys(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Keys != nil {
-
-		if swag.IsZero(m.Keys) { // not required
-			return nil
-		}
 
 		if err := m.Keys.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {

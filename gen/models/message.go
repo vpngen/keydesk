@@ -16,7 +16,7 @@ import (
 
 // Message message
 //
-// swagger:model message
+// swagger:model Message
 type Message struct {
 
 	// is read

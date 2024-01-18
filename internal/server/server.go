@@ -1,10 +1,12 @@
 package server
 
 import (
+	"github.com/SherClockHolmes/webpush-go"
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/swag"
 	"github.com/vpngen/keydesk/gen/restapi"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/internal/auth"
@@ -63,10 +65,10 @@ func NewServer(
 	})
 
 	api.PostSubscriptionHandler = operations.PostSubscriptionHandlerFunc(func(params operations.PostSubscriptionParams) middleware.Responder {
-		return keydesk.PostSubscription(pushSvc, storage.PushSubscription{
-			Endpoint: params.Subscription.Endpoint,
-			Keys: storage.Keys{
-				P256DH: params.Subscription.Keys.P256dh,
+		return keydesk.PostSubscription(pushSvc, webpush.Subscription{
+			Endpoint: swag.StringValue(params.Subscription.Endpoint),
+			Keys: webpush.Keys{
+				P256dh: params.Subscription.Keys.P256dh,
 				Auth:   params.Subscription.Keys.Auth,
 			},
 		})
@@ -75,6 +77,8 @@ func NewServer(
 	api.GetSubscriptionHandler = operations.GetSubscriptionHandlerFunc(func(params operations.GetSubscriptionParams) middleware.Responder {
 		return keydesk.GetSubscription(pushSvc)
 	})
+
+	api.SendPushHandler = operations.SendPushHandlerFunc(pushSvc.SendPushHandler)
 
 	api.APIKeyAuthenticator = authSvc.APIKeyAuthenticator
 	api.BearerAuth = authSvc.BearerAuth

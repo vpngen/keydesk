@@ -2,6 +2,7 @@ package keydesk
 
 import (
 	"errors"
+	"github.com/SherClockHolmes/webpush-go"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/vpngen/keydesk/gen/models"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
@@ -19,15 +20,15 @@ func GetSubscription(s push.Service) middleware.Responder {
 	}
 
 	return operations.NewGetSubscriptionOK().WithPayload(&models.Subscription{
-		Endpoint: n.Endpoint,
+		Endpoint: &n.Endpoint,
 		Keys: &models.SubscriptionKeys{
 			Auth:   n.Keys.Auth,
-			P256dh: n.Keys.P256DH,
+			P256dh: n.Keys.P256dh,
 		},
 	})
 }
 
-func PostSubscription(s push.Service, sub storage.PushSubscription) middleware.Responder {
+func PostSubscription(s push.Service, sub webpush.Subscription) middleware.Responder {
 	if err := s.SaveSubscription(sub); err != nil {
 		return operations.NewPostUserInternalServerError()
 	}

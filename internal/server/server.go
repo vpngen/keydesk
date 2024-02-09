@@ -61,7 +61,7 @@ func NewServer(
 	})
 
 	api.GetMessagesHandler = operations.GetMessagesHandlerFunc(func(params operations.GetMessagesParams, principal interface{}) middleware.Responder {
-		return keydesk.GetMessages(msgSvc)
+		return keydesk.GetMessages(msgSvc, *params.Offset, *params.Limit)
 	})
 	api.PutMessageHandler = operations.PutMessageHandlerFunc(func(params operations.PutMessageParams) middleware.Responder {
 		var ttl time.Duration

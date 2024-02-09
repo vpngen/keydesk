@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewGetMessagesParams creates a new GetMessagesParams object,
@@ -60,6 +61,15 @@ GetMessagesParams contains all the parameters to send to the API endpoint
 	Typically these are written to a http.Request.
 */
 type GetMessagesParams struct {
+
+	// Limit.
+	//
+	// Default: 25
+	Limit *int64
+
+	// Offset.
+	Offset *int64
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -77,7 +87,21 @@ func (o *GetMessagesParams) WithDefaults() *GetMessagesParams {
 //
 // All values with no default are reset to their zero value.
 func (o *GetMessagesParams) SetDefaults() {
-	// no default values defined for this parameter
+	var (
+		limitDefault = int64(25)
+
+		offsetDefault = int64(0)
+	)
+
+	val := GetMessagesParams{
+		Limit:  &limitDefault,
+		Offset: &offsetDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the get messages params
@@ -113,6 +137,28 @@ func (o *GetMessagesParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithLimit adds the limit to the get messages params
+func (o *GetMessagesParams) WithLimit(limit *int64) *GetMessagesParams {
+	o.SetLimit(limit)
+	return o
+}
+
+// SetLimit adds the limit to the get messages params
+func (o *GetMessagesParams) SetLimit(limit *int64) {
+	o.Limit = limit
+}
+
+// WithOffset adds the offset to the get messages params
+func (o *GetMessagesParams) WithOffset(offset *int64) *GetMessagesParams {
+	o.SetOffset(offset)
+	return o
+}
+
+// SetOffset adds the offset to the get messages params
+func (o *GetMessagesParams) SetOffset(offset *int64) {
+	o.Offset = offset
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetMessagesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -120,6 +166,40 @@ func (o *GetMessagesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 		return err
 	}
 	var res []error
+
+	if o.Limit != nil {
+
+		// query param limit
+		var qrLimit int64
+
+		if o.Limit != nil {
+			qrLimit = *o.Limit
+		}
+		qLimit := swag.FormatInt64(qrLimit)
+		if qLimit != "" {
+
+			if err := r.SetQueryParam("limit", qLimit); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Offset != nil {
+
+		// query param offset
+		var qrOffset int64
+
+		if o.Offset != nil {
+			qrOffset = *o.Offset
+		}
+		qOffset := swag.FormatInt64(qrOffset)
+		if qOffset != "" {
+
+			if err := r.SetQueryParam("offset", qOffset); err != nil {
+				return err
+			}
+		}
+	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

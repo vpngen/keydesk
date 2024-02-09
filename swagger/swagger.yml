@@ -129,6 +129,15 @@ paths:
       security:
         - Bearer:
             - messages:get
+      parameters:
+        - in: query
+          name: offset
+          type: integer
+          default: 0
+        - in: query
+          name: limit
+          type: integer
+          default: 25
       responses:
         200:
           description: List of messages
@@ -387,9 +396,14 @@ definitions:
     required:
       - text
   Messages:
-    type: array
-    items:
-      $ref: '#/definitions/Message'
+    type: object
+    properties:
+      messages:
+        type: array
+        items:
+          $ref: '#/definitions/Message'
+      total:
+        type: integer
   Subscription:
     type: object
     properties:

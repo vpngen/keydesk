@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/go-openapi/runtime"
 	client2 "github.com/go-openapi/runtime/client"
@@ -59,8 +60,8 @@ func TestMessages(t *testing.T) {
 			t.Fatalf("get messages: %s", err)
 		}
 
-		if len(res.Payload) != 0 {
-			t.Fatalf("expected 0 messages, got %d", len(res.Payload))
+		if len(res.Payload.Messages) != 0 {
+			t.Fatalf("expected 0 messages, got %d", len(res.Payload.Messages))
 		}
 	})
 
@@ -87,21 +88,70 @@ func TestMessages(t *testing.T) {
 	})
 
 	t.Run("get messages", func(t *testing.T) {
-		res, err := kdClient.Operations.GetMessages(&operations.GetMessagesParams{Context: ctx}, client2.BearerToken(token))
+		res, err := kdClient.Operations.GetMessages(&operations.GetMessagesParams{
+			Context: ctx,
+		}, client2.BearerToken(token))
 		if err != nil {
 			t.Fatalf("get messages: %s", err)
 		}
 
-		if len(res.Payload) != 1 {
-			t.Errorf("expected 1 message, got %d", len(res.Payload))
+		if len(res.Payload.Messages) != 1 {
+			t.Errorf("expected 1 message, got %d", len(res.Payload.Messages))
 		}
 
-		if res.Payload[0].Text == nil {
+		if res.Payload.Messages[0].Text == nil {
 			t.Errorf("expected 'test', got nil")
 		}
 
-		if *res.Payload[0].Text != "test" {
-			t.Errorf("expected 'test', got %s", *res.Payload[0].Text)
+		if *res.Payload.Messages[0].Text != "test" {
+			t.Errorf("expected 'test', got %s", *res.Payload.Messages[0].Text)
+		}
+	})
+
+	t.Run("pagination", func(t *testing.T) {
+		t.Run("create 100 messages", func(t *testing.T) {
+			for i := 0; i < 100; i++ {
+				res, err := kdClient.Operations.PutMessage(&operations.PutMessageParams{
+					Context: ctx,
+					Message: &models.Message{
+						Text: swag.String(fmt.Sprintf("test-%d", i)),
+						TTL:  "5m",
+					},
+				})
+				if err != nil {
+					t.Fatalf("create message: %s", err)
+				}
+				if !res.IsSuccess() {
+					t.Errorf("expected status code %d, got %d", http.StatusOK, res.Code())
+				}
+			}
+		})
+
+		for _, perPage := range []int{10, 25, 50} {
+			for _, page := range []int{1, 2, 5, 10} {
+				t.Run(fmt.Sprintf("limit %d, offset %d", perPage, page), func(t *testing.T) {
+					offset := 1
+					res, err := kdClient.Operations.GetMessages(&operations.GetMessagesParams{
+						Limit:   swag.Int64(int64(perPage)),
+						Offset:  swag.Int64(int64((page-1)*perPage + offset)),
+						Context: ctx,
+					}, client2.BearerToken(token))
+					if err != nil {
+						t.Fatalf("get messages: %s", err)
+					}
+					if len(res.Payload.Messages) > perPage {
+						t.Errorf("expected <= %d messages, got %d", perPage, len(res.Payload.Messages))
+					}
+					for i, m := range res.Payload.Messages {
+						if m.Text == nil {
+							t.Errorf("expected 'test', got nil")
+						}
+						if *m.Text != fmt.Sprintf("test-%d", (page-1)*perPage+i) {
+							t.Errorf("expected 'test-%d', got %s", (page-1)*perPage+i, *m.Text)
+						}
+					}
+				})
+			}
 		}
 	})
 }

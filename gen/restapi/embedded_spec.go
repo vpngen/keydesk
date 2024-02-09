@@ -37,6 +37,20 @@ func init() {
         "description": "Get messages, triggered by frontend",
         "summary": "Get messages",
         "operationId": "getMessages",
+        "parameters": [
+          {
+            "type": "integer",
+            "default": 0,
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "default": 25,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "List of messages",
@@ -370,9 +384,17 @@ func init() {
       }
     },
     "Messages": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Message"
+      "type": "object",
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Message"
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
       }
     },
     "NotificationOptions": {
@@ -784,6 +806,20 @@ func init() {
         "description": "Get messages, triggered by frontend",
         "summary": "Get messages",
         "operationId": "getMessages",
+        "parameters": [
+          {
+            "type": "integer",
+            "default": 0,
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "default": 25,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "List of messages",
@@ -1117,9 +1153,17 @@ func init() {
       }
     },
     "Messages": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Message"
+      "type": "object",
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Message"
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
       }
     },
     "NewuserAmnzOvcConfig": {

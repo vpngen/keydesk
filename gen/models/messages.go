@@ -17,28 +17,21 @@ import (
 // Messages messages
 //
 // swagger:model Messages
-type Messages []*Message
+type Messages struct {
+
+	// messages
+	Messages []*Message `json:"messages"`
+
+	// total
+	Total int64 `json:"total,omitempty"`
+}
 
 // Validate validates this messages
-func (m Messages) Validate(formats strfmt.Registry) error {
+func (m *Messages) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	for i := 0; i < len(m); i++ {
-		if swag.IsZero(m[i]) { // not required
-			continue
-		}
-
-		if m[i] != nil {
-			if err := m[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName(strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
-					return ce.ValidateName(strconv.Itoa(i))
-				}
-				return err
-			}
-		}
-
+	if err := m.validateMessages(formats); err != nil {
+		res = append(res, err)
 	}
 
 	if len(res) > 0 {
@@ -47,23 +40,22 @@ func (m Messages) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validate this messages based on the context it is used
-func (m Messages) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
-	var res []error
+func (m *Messages) validateMessages(formats strfmt.Registry) error {
+	if swag.IsZero(m.Messages) { // not required
+		return nil
+	}
 
-	for i := 0; i < len(m); i++ {
+	for i := 0; i < len(m.Messages); i++ {
+		if swag.IsZero(m.Messages[i]) { // not required
+			continue
+		}
 
-		if m[i] != nil {
-
-			if swag.IsZero(m[i]) { // not required
-				return nil
-			}
-
-			if err := m[i].ContextValidate(ctx, formats); err != nil {
+		if m.Messages[i] != nil {
+			if err := m.Messages[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName(strconv.Itoa(i))
+					return ve.ValidateName("messages" + "." + strconv.Itoa(i))
 				} else if ce, ok := err.(*errors.CompositeError); ok {
-					return ce.ValidateName(strconv.Itoa(i))
+					return ce.ValidateName("messages" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -71,8 +63,62 @@ func (m Messages) ContextValidate(ctx context.Context, formats strfmt.Registry) 
 
 	}
 
+	return nil
+}
+
+// ContextValidate validate this messages based on the context it is used
+func (m *Messages) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateMessages(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Messages) contextValidateMessages(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Messages); i++ {
+
+		if m.Messages[i] != nil {
+
+			if swag.IsZero(m.Messages[i]) { // not required
+				return nil
+			}
+
+			if err := m.Messages[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("messages" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("messages" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *Messages) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *Messages) UnmarshalBinary(b []byte) error {
+	var res Messages
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
 	return nil
 }

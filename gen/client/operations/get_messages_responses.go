@@ -51,7 +51,7 @@ GetMessagesOK describes a response with status code 200, with default header val
 List of messages
 */
 type GetMessagesOK struct {
-	Payload models.Messages
+	Payload *models.Messages
 }
 
 // IsSuccess returns true when this get messages o k response has a 2xx status code
@@ -92,14 +92,16 @@ func (o *GetMessagesOK) String() string {
 	return fmt.Sprintf("[GET /messages][%d] getMessagesOK  %+v", 200, o.Payload)
 }
 
-func (o *GetMessagesOK) GetPayload() models.Messages {
+func (o *GetMessagesOK) GetPayload() *models.Messages {
 	return o.Payload
 }
 
 func (o *GetMessagesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
+	o.Payload = new(models.Messages)
+
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

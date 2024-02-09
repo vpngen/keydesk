@@ -151,8 +151,10 @@ paths:
       responses:
         200:
           description: OK
-        500:
-          $ref: '#/definitions/error'
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
   /subscription:
     post:
       summary: Send subscription
@@ -380,6 +382,8 @@ definitions:
       time:
         type: string
         format: date-time
+      ttl:
+        type: string
     required:
       - text
   Messages:

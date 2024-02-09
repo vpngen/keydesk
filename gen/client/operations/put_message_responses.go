@@ -7,9 +7,12 @@ package operations
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/vpngen/keydesk/gen/models"
 )
 
 // PutMessageReader is a Reader for the PutMessage structure.
@@ -26,14 +29,15 @@ func (o *PutMessageReader) ReadResponse(response runtime.ClientResponse, consume
 			return nil, err
 		}
 		return result, nil
-	case 500:
-		result := NewPutMessageInternalServerError()
+	default:
+		result := NewPutMessageDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
 		return nil, result
-	default:
-		return nil, runtime.NewAPIError("[PUT /messages] putMessage", response, response.Code())
 	}
 }
 
@@ -93,58 +97,74 @@ func (o *PutMessageOK) readResponse(response runtime.ClientResponse, consumer ru
 	return nil
 }
 
-// NewPutMessageInternalServerError creates a PutMessageInternalServerError with default headers values
-func NewPutMessageInternalServerError() *PutMessageInternalServerError {
-	return &PutMessageInternalServerError{}
+// NewPutMessageDefault creates a PutMessageDefault with default headers values
+func NewPutMessageDefault(code int) *PutMessageDefault {
+	return &PutMessageDefault{
+		_statusCode: code,
+	}
 }
 
 /*
-PutMessageInternalServerError describes a response with status code 500, with default header values.
+PutMessageDefault describes a response with status code -1, with default header values.
 
-PutMessageInternalServerError put message internal server error
+error
 */
-type PutMessageInternalServerError struct {
+type PutMessageDefault struct {
+	_statusCode int
+
+	Payload *models.Error
 }
 
-// IsSuccess returns true when this put message internal server error response has a 2xx status code
-func (o *PutMessageInternalServerError) IsSuccess() bool {
-	return false
+// IsSuccess returns true when this put message default response has a 2xx status code
+func (o *PutMessageDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
 }
 
-// IsRedirect returns true when this put message internal server error response has a 3xx status code
-func (o *PutMessageInternalServerError) IsRedirect() bool {
-	return false
+// IsRedirect returns true when this put message default response has a 3xx status code
+func (o *PutMessageDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
 }
 
-// IsClientError returns true when this put message internal server error response has a 4xx status code
-func (o *PutMessageInternalServerError) IsClientError() bool {
-	return false
+// IsClientError returns true when this put message default response has a 4xx status code
+func (o *PutMessageDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
 }
 
-// IsServerError returns true when this put message internal server error response has a 5xx status code
-func (o *PutMessageInternalServerError) IsServerError() bool {
-	return true
+// IsServerError returns true when this put message default response has a 5xx status code
+func (o *PutMessageDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
 }
 
-// IsCode returns true when this put message internal server error response a status code equal to that given
-func (o *PutMessageInternalServerError) IsCode(code int) bool {
-	return code == 500
+// IsCode returns true when this put message default response a status code equal to that given
+func (o *PutMessageDefault) IsCode(code int) bool {
+	return o._statusCode == code
 }
 
-// Code gets the status code for the put message internal server error response
-func (o *PutMessageInternalServerError) Code() int {
-	return 500
+// Code gets the status code for the put message default response
+func (o *PutMessageDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *PutMessageInternalServerError) Error() string {
-	return fmt.Sprintf("[PUT /messages][%d] putMessageInternalServerError ", 500)
+func (o *PutMessageDefault) Error() string {
+	return fmt.Sprintf("[PUT /messages][%d] putMessage default  %+v", o._statusCode, o.Payload)
 }
 
-func (o *PutMessageInternalServerError) String() string {
-	return fmt.Sprintf("[PUT /messages][%d] putMessageInternalServerError ", 500)
+func (o *PutMessageDefault) String() string {
+	return fmt.Sprintf("[PUT /messages][%d] putMessage default  %+v", o._statusCode, o.Payload)
 }
 
-func (o *PutMessageInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *PutMessageDefault) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PutMessageDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

@@ -6,20 +6,17 @@ import (
 )
 
 func (db *BrigadeStorage) GetMessages() ([]Message, error) {
-	f, brigade, err := db.OpenDbToModify()
+	f, brigade, err := db.openWithReading()
 	if err != nil {
-		return nil, fmt.Errorf("open to modify: %w", err)
+		return nil, fmt.Errorf("open to read: %w", err)
 	}
 	defer f.Close()
 
-	n := brigade.Messages
-	brigade.Messages = nil
-
-	if err := f.Commit(brigade); err != nil {
+	if err := f.Commit(); err != nil {
 		return nil, fmt.Errorf("commit: %w", err)
 	}
 
-	return n, nil
+	return brigade.Messages, nil
 }
 
 func (db *BrigadeStorage) CreateMessage(text string) error {

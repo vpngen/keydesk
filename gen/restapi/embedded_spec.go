@@ -70,8 +70,11 @@ func init() {
           "200": {
             "description": "OK"
           },
-          "500": {
-            "$ref": "#/definitions/error"
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           }
         }
       }
@@ -360,6 +363,9 @@ func init() {
         "time": {
           "type": "string",
           "format": "date-time"
+        },
+        "ttl": {
+          "type": "string"
         }
       }
     },
@@ -811,8 +817,11 @@ func init() {
           "200": {
             "description": "OK"
           },
-          "500": {
-            "description": ""
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           }
         }
       }
@@ -1101,6 +1110,9 @@ func init() {
         "time": {
           "type": "string",
           "format": "date-time"
+        },
+        "ttl": {
+          "type": "string"
         }
       }
     },

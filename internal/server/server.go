@@ -7,6 +7,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
+	"github.com/vpngen/keydesk/gen/models"
 	"github.com/vpngen/keydesk/gen/restapi"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/internal/auth"
@@ -16,6 +17,8 @@ import (
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/vpngine/naclkey"
 	"log"
+	"net/http"
+	"time"
 )
 
 func NewServer(
@@ -61,7 +64,17 @@ func NewServer(
 		return keydesk.GetMessages(msgSvc)
 	})
 	api.PutMessageHandler = operations.PutMessageHandlerFunc(func(params operations.PutMessageParams) middleware.Responder {
-		return keydesk.CreateMessage(msgSvc, storage.Message{Text: *params.Message.Text})
+		var ttl time.Duration
+		if params.Message.TTL != "" {
+			ttl, err = time.ParseDuration(params.Message.TTL)
+			if err != nil {
+				return operations.NewPutMessageDefault(http.StatusBadRequest).WithPayload(&models.Error{
+					Code:    http.StatusBadRequest,
+					Message: swag.String(err.Error()),
+				})
+			}
+		}
+		return keydesk.CreateMessage(msgSvc, storage.Message{Text: *params.Message.Text, TTL: ttl})
 	})
 
 	api.PostSubscriptionHandler = operations.PostSubscriptionHandlerFunc(func(params operations.PostSubscriptionParams) middleware.Responder {

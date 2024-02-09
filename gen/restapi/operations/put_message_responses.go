@@ -9,6 +9,8 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+
+	"github.com/vpngen/keydesk/gen/models"
 )
 
 // PutMessageOKCode is the HTTP code returned for type PutMessageOK
@@ -36,27 +38,61 @@ func (o *PutMessageOK) WriteResponse(rw http.ResponseWriter, producer runtime.Pr
 	rw.WriteHeader(200)
 }
 
-// PutMessageInternalServerErrorCode is the HTTP code returned for type PutMessageInternalServerError
-const PutMessageInternalServerErrorCode int = 500
-
 /*
-PutMessageInternalServerError put message internal server error
+PutMessageDefault error
 
-swagger:response putMessageInternalServerError
+swagger:response putMessageDefault
 */
-type PutMessageInternalServerError struct {
+type PutMessageDefault struct {
+	_statusCode int
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
 }
 
-// NewPutMessageInternalServerError creates PutMessageInternalServerError with default headers values
-func NewPutMessageInternalServerError() *PutMessageInternalServerError {
+// NewPutMessageDefault creates PutMessageDefault with default headers values
+func NewPutMessageDefault(code int) *PutMessageDefault {
+	if code <= 0 {
+		code = 500
+	}
 
-	return &PutMessageInternalServerError{}
+	return &PutMessageDefault{
+		_statusCode: code,
+	}
+}
+
+// WithStatusCode adds the status to the put message default response
+func (o *PutMessageDefault) WithStatusCode(code int) *PutMessageDefault {
+	o._statusCode = code
+	return o
+}
+
+// SetStatusCode sets the status to the put message default response
+func (o *PutMessageDefault) SetStatusCode(code int) {
+	o._statusCode = code
+}
+
+// WithPayload adds the payload to the put message default response
+func (o *PutMessageDefault) WithPayload(payload *models.Error) *PutMessageDefault {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the put message default response
+func (o *PutMessageDefault) SetPayload(payload *models.Error) {
+	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *PutMessageInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *PutMessageDefault) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
-	rw.WriteHeader(500)
+	rw.WriteHeader(o._statusCode)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }

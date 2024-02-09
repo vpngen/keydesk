@@ -75,7 +75,7 @@ func TestMessages(t *testing.T) {
 
 		res, err := kdClient.Operations.PutMessage(&operations.PutMessageParams{
 			Context: ctx,
-			Message: &models.Message{Text: &text},
+			Message: &models.Message{Text: &text, TTL: "5m"},
 		})
 		if err != nil {
 			t.Fatalf("create message: %s", err)

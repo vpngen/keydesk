@@ -29,6 +29,9 @@ type Message struct {
 	// time
 	// Format: date-time
 	Time strfmt.DateTime `json:"time,omitempty"`
+
+	// ttl
+	TTL string `json:"ttl,omitempty"`
 }
 
 // Validate validates this message

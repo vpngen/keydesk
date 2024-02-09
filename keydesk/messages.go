@@ -21,6 +21,7 @@ func GetMessages(s message.Service) middleware.Responder {
 			Text:   &v.Text,
 			IsRead: v.IsRead,
 			Time:   strfmt.DateTime(v.Time),
+			TTL:    v.TTL.String(),
 		})
 	}
 
@@ -29,7 +30,7 @@ func GetMessages(s message.Service) middleware.Responder {
 
 func CreateMessage(s message.Service, m storage.Message) middleware.Responder {
 	// TODO: check if brigadier is online and send message without saving
-	if err := s.CreateMessage(m.Text); err != nil {
+	if err := s.CreateMessage(m.Text, m.TTL); err != nil {
 		return operations.NewPostUserInternalServerError()
 	}
 	return operations.NewPutMessageOK()

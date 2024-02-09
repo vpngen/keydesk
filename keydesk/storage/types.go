@@ -264,9 +264,10 @@ type LastActivityPoints struct {
 }
 
 type Message struct {
-	Text   string    `json:"text"`
-	IsRead bool      `json:"is_read"`
-	Time   time.Time `json:"time"`
+	Text   string        `json:"text"`
+	IsRead bool          `json:"is_read"`
+	Time   time.Time     `json:"time"`
+	TTL    time.Duration `json:"ttl,omitempty"`
 }
 
 type Keys struct {

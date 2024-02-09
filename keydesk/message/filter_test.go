@@ -20,49 +20,41 @@ func Test_cleanupMessages(t *testing.T) {
 		name     string
 		messages []storage.Message
 		wantLen  int
-		filter   filterFunc[storage.Message]
 	}{
 		{
 			"no messages",
 			[]storage.Message{},
 			0,
-			stub(),
 		},
 		{
 			"max 100",
 			genMsg(101, time.Second, now),
 			100,
-			firstN(100),
 		},
 		{
 			"last month",
 			genMsg(100, time.Second, now),
 			100,
-			notOlder(24 * time.Hour * 30),
 		},
 		{
 			"last month",
 			genMsg(100, 0, now.Add(-24*time.Hour*31)),
 			0,
-			notOlder(24 * time.Hour * 30),
 		},
 		{
 			"10 no ttl",
 			genMsg(100, 0, now),
 			10,
-			noTTL().and(firstN(10)).or(noTTL().not()),
 		},
 		{
 			"10 no ttl all",
 			append(genMsg(100, 0, now), genMsg(100, time.Second, now)...),
 			100,
-			noTTL().and(firstN(10)).or(noTTL().not()),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := cleanupMessages(tt.messages); len(got) != tt.wantLen {
-				//if got := filter(tt.messages, tt.filter); len(got) != tt.wantLen {
 				t.Errorf("%s: got %d messages, want %d", tt.name, len(got), tt.wantLen)
 			}
 		})

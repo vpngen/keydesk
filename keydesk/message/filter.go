@@ -25,6 +25,15 @@ func (f filterFunc[T]) not() filterFunc[T] {
 	}
 }
 
+func (f filterFunc[T]) ifOrTrue(f2 filterFunc[T]) filterFunc[T] {
+	return func(v T) bool {
+		if f2(v) {
+			return f(v)
+		}
+		return true
+	}
+}
+
 func (f filterFunc[T]) filter(values []T) (ret []T) {
 	for _, v := range values {
 		if f(v) {

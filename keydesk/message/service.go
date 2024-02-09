@@ -27,8 +27,8 @@ func cleanupMessages(messages []storage.Message) []storage.Message {
 	return filter(
 		messages,
 		ttlExpired(),
-		noTTL().and(firstN(10)).or(noTTL().not()),
-		noTTL().and(notOlder(24*time.Hour*30)).or(noTTL().not()),
+		firstN(10).ifOrTrue(noTTL()),
+		notOlder(24*time.Hour*30).ifOrTrue(noTTL()),
 		firstN(100),
 	)
 }

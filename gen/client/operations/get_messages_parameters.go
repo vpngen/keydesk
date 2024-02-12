@@ -70,6 +70,17 @@ type GetMessagesParams struct {
 	// Offset.
 	Offset *int64
 
+	// Priority.
+	Priority *int64
+
+	// PriorityOp.
+	//
+	// Default: "eq"
+	PriorityOp *string
+
+	// Read.
+	Read *bool
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -91,11 +102,14 @@ func (o *GetMessagesParams) SetDefaults() {
 		limitDefault = int64(25)
 
 		offsetDefault = int64(0)
+
+		priorityOpDefault = string("eq")
 	)
 
 	val := GetMessagesParams{
-		Limit:  &limitDefault,
-		Offset: &offsetDefault,
+		Limit:      &limitDefault,
+		Offset:     &offsetDefault,
+		PriorityOp: &priorityOpDefault,
 	}
 
 	val.timeout = o.timeout
@@ -159,6 +173,39 @@ func (o *GetMessagesParams) SetOffset(offset *int64) {
 	o.Offset = offset
 }
 
+// WithPriority adds the priority to the get messages params
+func (o *GetMessagesParams) WithPriority(priority *int64) *GetMessagesParams {
+	o.SetPriority(priority)
+	return o
+}
+
+// SetPriority adds the priority to the get messages params
+func (o *GetMessagesParams) SetPriority(priority *int64) {
+	o.Priority = priority
+}
+
+// WithPriorityOp adds the priorityOp to the get messages params
+func (o *GetMessagesParams) WithPriorityOp(priorityOp *string) *GetMessagesParams {
+	o.SetPriorityOp(priorityOp)
+	return o
+}
+
+// SetPriorityOp adds the priorityOp to the get messages params
+func (o *GetMessagesParams) SetPriorityOp(priorityOp *string) {
+	o.PriorityOp = priorityOp
+}
+
+// WithRead adds the read to the get messages params
+func (o *GetMessagesParams) WithRead(read *bool) *GetMessagesParams {
+	o.SetRead(read)
+	return o
+}
+
+// SetRead adds the read to the get messages params
+func (o *GetMessagesParams) SetRead(read *bool) {
+	o.Read = read
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetMessagesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -196,6 +243,57 @@ func (o *GetMessagesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 		if qOffset != "" {
 
 			if err := r.SetQueryParam("offset", qOffset); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Priority != nil {
+
+		// query param priority
+		var qrPriority int64
+
+		if o.Priority != nil {
+			qrPriority = *o.Priority
+		}
+		qPriority := swag.FormatInt64(qrPriority)
+		if qPriority != "" {
+
+			if err := r.SetQueryParam("priority", qPriority); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.PriorityOp != nil {
+
+		// query param priority-op
+		var qrPriorityOp string
+
+		if o.PriorityOp != nil {
+			qrPriorityOp = *o.PriorityOp
+		}
+		qPriorityOp := qrPriorityOp
+		if qPriorityOp != "" {
+
+			if err := r.SetQueryParam("priority-op", qPriorityOp); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Read != nil {
+
+		// query param read
+		var qrRead bool
+
+		if o.Read != nil {
+			qrRead = *o.Read
+		}
+		qRead := swag.FormatBool(qrRead)
+		if qRead != "" {
+
+			if err := r.SetQueryParam("read", qRead); err != nil {
 				return err
 			}
 		}

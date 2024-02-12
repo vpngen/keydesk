@@ -13,6 +13,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // NewGetMessagesParams creates a new GetMessagesParams object
@@ -24,12 +25,16 @@ func NewGetMessagesParams() GetMessagesParams {
 
 		limitDefault  = int64(25)
 		offsetDefault = int64(0)
+
+		priorityOpDefault = string("eq")
 	)
 
 	return GetMessagesParams{
 		Limit: &limitDefault,
 
 		Offset: &offsetDefault,
+
+		PriorityOp: &priorityOpDefault,
 	}
 }
 
@@ -52,6 +57,19 @@ type GetMessagesParams struct {
 	  Default: 0
 	*/
 	Offset *int64
+	/*
+	  In: query
+	*/
+	Priority *int64
+	/*
+	  In: query
+	  Default: "eq"
+	*/
+	PriorityOp *string
+	/*
+	  In: query
+	*/
+	Read *bool
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -72,6 +90,21 @@ func (o *GetMessagesParams) BindRequest(r *http.Request, route *middleware.Match
 
 	qOffset, qhkOffset, _ := qs.GetOK("offset")
 	if err := o.bindOffset(qOffset, qhkOffset, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qPriority, qhkPriority, _ := qs.GetOK("priority")
+	if err := o.bindPriority(qPriority, qhkPriority, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qPriorityOp, qhkPriorityOp, _ := qs.GetOK("priority-op")
+	if err := o.bindPriorityOp(qPriorityOp, qhkPriorityOp, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qRead, qhkRead, _ := qs.GetOK("read")
+	if err := o.bindRead(qRead, qhkRead, route.Formats); err != nil {
 		res = append(res, err)
 	}
 	if len(res) > 0 {
@@ -124,6 +157,85 @@ func (o *GetMessagesParams) bindOffset(rawData []string, hasKey bool, formats st
 		return errors.InvalidType("offset", "query", "int64", raw)
 	}
 	o.Offset = &value
+
+	return nil
+}
+
+// bindPriority binds and validates parameter Priority from query.
+func (o *GetMessagesParams) bindPriority(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	value, err := swag.ConvertInt64(raw)
+	if err != nil {
+		return errors.InvalidType("priority", "query", "int64", raw)
+	}
+	o.Priority = &value
+
+	return nil
+}
+
+// bindPriorityOp binds and validates parameter PriorityOp from query.
+func (o *GetMessagesParams) bindPriorityOp(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		// Default values have been previously initialized by NewGetMessagesParams()
+		return nil
+	}
+	o.PriorityOp = &raw
+
+	if err := o.validatePriorityOp(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validatePriorityOp carries on validations for parameter PriorityOp
+func (o *GetMessagesParams) validatePriorityOp(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("priority-op", "query", *o.PriorityOp, []interface{}{"eq", "ne", "gt", "lt", "ge", "le"}, true); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// bindRead binds and validates parameter Read from query.
+func (o *GetMessagesParams) bindRead(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("read", "query", "bool", raw)
+	}
+	o.Read = &value
 
 	return nil
 }

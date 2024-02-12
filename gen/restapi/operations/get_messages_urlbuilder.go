@@ -15,8 +15,11 @@ import (
 
 // GetMessagesURL generates an URL for the get messages operation
 type GetMessagesURL struct {
-	Limit  *int64
-	Offset *int64
+	Limit      *int64
+	Offset     *int64
+	Priority   *int64
+	PriorityOp *string
+	Read       *bool
 
 	_basePath string
 	// avoid unkeyed usage
@@ -66,6 +69,30 @@ func (o *GetMessagesURL) Build() (*url.URL, error) {
 	}
 	if offsetQ != "" {
 		qs.Set("offset", offsetQ)
+	}
+
+	var priorityQ string
+	if o.Priority != nil {
+		priorityQ = swag.FormatInt64(*o.Priority)
+	}
+	if priorityQ != "" {
+		qs.Set("priority", priorityQ)
+	}
+
+	var priorityOpQ string
+	if o.PriorityOp != nil {
+		priorityOpQ = *o.PriorityOp
+	}
+	if priorityOpQ != "" {
+		qs.Set("priority-op", priorityOpQ)
+	}
+
+	var readQ string
+	if o.Read != nil {
+		readQ = swag.FormatBool(*o.Read)
+	}
+	if readQ != "" {
+		qs.Set("read", readQ)
 	}
 
 	_result.RawQuery = qs.Encode()

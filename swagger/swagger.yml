@@ -138,6 +138,23 @@ paths:
           name: limit
           type: integer
           default: 25
+        - in: query
+          name: read
+          type: boolean
+        - in: query
+          name: priority
+          type: integer
+        - in: query
+          name: priority-op
+          type: string
+          default: eq
+          enum:
+            - eq
+            - ne
+            - gt
+            - lt
+            - ge
+            - le
       responses:
         200:
           description: List of messages
@@ -388,6 +405,8 @@ definitions:
         type: string
       is_read:
         type: boolean
+      priority:
+        type: integer
       time:
         type: string
         format: date-time

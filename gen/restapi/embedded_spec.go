@@ -49,6 +49,30 @@ func init() {
             "default": 25,
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "boolean",
+            "name": "read",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "name": "priority",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "eq",
+              "ne",
+              "gt",
+              "lt",
+              "ge",
+              "le"
+            ],
+            "type": "string",
+            "default": "eq",
+            "name": "priority-op",
+            "in": "query"
           }
         ],
         "responses": {
@@ -370,6 +394,9 @@ func init() {
       "properties": {
         "is_read": {
           "type": "boolean"
+        },
+        "priority": {
+          "type": "integer"
         },
         "text": {
           "type": "string"
@@ -818,6 +845,30 @@ func init() {
             "default": 25,
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "boolean",
+            "name": "read",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "name": "priority",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "eq",
+              "ne",
+              "gt",
+              "lt",
+              "ge",
+              "le"
+            ],
+            "type": "string",
+            "default": "eq",
+            "name": "priority-op",
+            "in": "query"
           }
         ],
         "responses": {
@@ -1139,6 +1190,9 @@ func init() {
       "properties": {
         "is_read": {
           "type": "boolean"
+        },
+        "priority": {
+          "type": "integer"
         },
         "text": {
           "type": "string"

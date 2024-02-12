@@ -160,6 +160,71 @@ func TestMessages(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("filters", func(t *testing.T) {
+		t.Run("read", func(t *testing.T) {
+			tests := []struct {
+				name    string
+				read    bool
+				wantLen int
+			}{
+				{"true", true, 0},
+				{"false", false, 25},
+			}
+			for _, test := range tests {
+				t.Run(test.name, func(t *testing.T) {
+					res, err := kdClient.Operations.GetMessages(
+						&operations.GetMessagesParams{
+							Read:    swag.Bool(test.read),
+							Context: ctx,
+						},
+						client2.BearerToken(token),
+					)
+					if err != nil {
+						t.Fatalf("get messages: %s", err)
+					}
+					if len(res.Payload.Messages) != test.wantLen {
+						t.Errorf("expected total %d messages, got %d", test.wantLen, len(res.Payload.Messages))
+					}
+				})
+			}
+		})
+
+		t.Run("priority", func(t *testing.T) {
+			tests := []struct {
+				name     string
+				op       string
+				priority int
+				wantLen  int
+			}{
+				{"==0", "eq", 0, 25},
+				{"!=0", "ne", 0, 0},
+				{">0", "gt", 0, 0},
+				{"<0", "lt", 0, 0},
+				{">=0", "ge", 0, 25},
+				{"<=0", "le", 0, 25},
+			}
+
+			for _, test := range tests {
+				t.Run(test.name, func(t *testing.T) {
+					res, err := kdClient.Operations.GetMessages(
+						&operations.GetMessagesParams{
+							Priority:   swag.Int64(int64(test.priority)),
+							PriorityOp: swag.String(test.op),
+							Context:    ctx,
+						},
+						client2.BearerToken(token),
+					)
+					if err != nil {
+						t.Fatalf("get messages: %s", err)
+					}
+					if len(res.Payload.Messages) != test.wantLen {
+						t.Errorf("expected total %d messages, got %d", test.wantLen, len(res.Payload.Messages))
+					}
+				})
+			}
+		})
+	})
 }
 
 func TestPush(t *testing.T) {

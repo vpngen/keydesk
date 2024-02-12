@@ -22,6 +22,9 @@ type Message struct {
 	// is read
 	IsRead bool `json:"is_read,omitempty"`
 
+	// priority
+	Priority int64 `json:"priority,omitempty"`
+
 	// text
 	// Required: true
 	Text *string `json:"text"`

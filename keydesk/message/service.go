@@ -3,6 +3,7 @@ package message
 import (
 	"fmt"
 	"github.com/vpngen/keydesk/keydesk/storage"
+	"github.com/vpngen/keydesk/pkg/filter"
 	"time"
 )
 
@@ -36,17 +37,36 @@ func (s Service) transaction(fn func(brigade *storage.Brigade) error) error {
 	return nil
 }
 
-func (s Service) GetMessages() ([]storage.Message, error) {
+func paginate(messages []storage.Message, offset, limit int64) []storage.Message {
+	if offset >= int64(len(messages)) {
+		return nil
+	}
+	return messages[offset:min(offset+limit, int64(len(messages)))]
+}
+
+func (s Service) GetMessages(offset, limit int64, read *bool, priority *int64, priorityOp string) ([]storage.Message, int, error) {
 	var result []storage.Message
 
 	if err := s.transaction(func(brigade *storage.Brigade) error {
 		result = brigade.Messages
 		return nil
 	}); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return result, nil
+	var filters []filter.Func[storage.Message]
+
+	if read != nil {
+		filters = append(filters, isReadFilter(*read))
+	}
+
+	if priority != nil {
+		filters = append(filters, priorityFilter(priorityOp, int(*priority)))
+	}
+
+	result = filter.Filter(result, filters...)
+
+	return paginate(result, offset, limit), len(result), nil
 }
 
 func (s Service) CreateMessage(text string, ttl time.Duration) error {
@@ -61,11 +81,11 @@ func (s Service) CreateMessage(text string, ttl time.Duration) error {
 }
 
 func cleanupMessages(messages []storage.Message) []storage.Message {
-	return filter(
+	return filter.Filter(
 		messages,
 		ttlExpired(),
-		firstN(10).ifOrTrue(noTTL()),
-		notOlder(24*time.Hour*30).ifOrTrue(noTTL()),
+		firstN(10).IfOrTrue(noTTL()),
+		notOlder(24*time.Hour*30).IfOrTrue(noTTL()),
 		firstN(100),
 	)
 }

@@ -7,12 +7,6 @@ import (
 	"time"
 )
 
-func stub() filterFunc[storage.Message] {
-	return func(message storage.Message) bool {
-		return true
-	}
-
-}
 func Test_cleanupMessages(t *testing.T) {
 	now := time.Now()
 

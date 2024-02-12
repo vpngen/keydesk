@@ -139,9 +139,15 @@ func TestMessages(t *testing.T) {
 					if err != nil {
 						t.Fatalf("get messages: %s", err)
 					}
+
+					if res.Payload.Total != 100 {
+						t.Errorf("expected total %d messages, got %d", 100, res.Payload.Total)
+					}
+
 					if len(res.Payload.Messages) > perPage {
 						t.Errorf("expected <= %d messages, got %d", perPage, len(res.Payload.Messages))
 					}
+
 					for i, m := range res.Payload.Messages {
 						if m.Text == nil {
 							t.Errorf("expected 'test', got nil")

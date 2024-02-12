@@ -6,3 +6,14 @@ dist
 .new
 .legacy
 
+.idea
+bin
+
+brigade.json*
+brigade.lock
+.maintenance
+stats.json*
+stats.lock
+vg-*.json
+
+*.drawio*

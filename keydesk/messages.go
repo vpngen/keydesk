@@ -10,8 +10,14 @@ import (
 	"github.com/vpngen/keydesk/keydesk/storage"
 )
 
-func GetMessages(s message.Service, offset, limit int64, read *bool, priority *int64, priorityOp string) middleware.Responder {
-	messages, total, err := s.GetMessages(offset, limit, read, priority, priorityOp)
+func GetMessages(
+	s message.Service,
+	offset, limit int64,
+	read *bool,
+	priority *int64, priorityOp string,
+	sortTime, sortPriority *string,
+) middleware.Responder {
+	messages, total, err := s.GetMessages(offset, limit, read, priority, priorityOp, sortTime, sortPriority)
 	if err != nil {
 		return operations.NewGetMessagesInternalServerError()
 	}
@@ -35,7 +41,7 @@ func GetMessages(s message.Service, offset, limit int64, read *bool, priority *i
 
 func CreateMessage(s message.Service, m storage.Message) middleware.Responder {
 	// TODO: check if brigadier is online and send message without saving
-	if err := s.CreateMessage(m.Text, m.TTL); err != nil {
+	if err := s.CreateMessage(m.Text, m.TTL, m.Priority); err != nil {
 		return operations.NewPostUserInternalServerError()
 	}
 	return operations.NewPutMessageOK()

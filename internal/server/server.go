@@ -68,6 +68,8 @@ func NewServer(
 			params.Read,
 			params.Priority,
 			*params.PriorityOp,
+			params.SortTime,
+			params.SortPriority,
 		)
 	})
 	api.PutMessageHandler = operations.PutMessageHandlerFunc(func(params operations.PutMessageParams) middleware.Responder {
@@ -81,7 +83,11 @@ func NewServer(
 				})
 			}
 		}
-		return keydesk.CreateMessage(msgSvc, storage.Message{Text: *params.Message.Text, TTL: ttl})
+		return keydesk.CreateMessage(msgSvc, storage.Message{
+			Text:     *params.Message.Text,
+			TTL:      ttl,
+			Priority: int(params.Message.Priority),
+		})
 	})
 
 	api.PostSubscriptionHandler = operations.PostSubscriptionHandlerFunc(func(params operations.PostSubscriptionParams) middleware.Responder {

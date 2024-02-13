@@ -6,7 +6,6 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"github.com/go-openapi/runtime/middleware"
 	"net/http"
 
 	"github.com/go-openapi/runtime"
@@ -37,7 +36,7 @@ func NewGetMessagesOK() *GetMessagesOK {
 }
 
 // WithPayload adds the payload to the get messages o k response
-func (o *GetMessagesOK) WithPayload(payload *models.Messages) middleware.Responder {
+func (o *GetMessagesOK) WithPayload(payload *models.Messages) *GetMessagesOK {
 	o.Payload = payload
 	return o
 }

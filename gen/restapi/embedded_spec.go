@@ -62,6 +62,24 @@ func init() {
           },
           {
             "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string",
+            "name": "sort-priority",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string",
+            "name": "sort-time",
+            "in": "query"
+          },
+          {
+            "enum": [
               "eq",
               "ne",
               "gt",
@@ -854,6 +872,24 @@ func init() {
           {
             "type": "integer",
             "name": "priority",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string",
+            "name": "sort-priority",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string",
+            "name": "sort-time",
             "in": "query"
           },
           {

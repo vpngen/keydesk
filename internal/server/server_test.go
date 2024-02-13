@@ -9,6 +9,7 @@ import (
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/go-openapi/runtime"
 	client2 "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/vpngen/keydesk/gen/client"
 	"github.com/vpngen/keydesk/gen/client/operations"
@@ -24,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 )
 
 var kdClient client.KeydeskServer
@@ -220,6 +222,82 @@ func TestMessages(t *testing.T) {
 					}
 					if len(res.Payload.Messages) != test.wantLen {
 						t.Errorf("expected total %d messages, got %d", test.wantLen, len(res.Payload.Messages))
+					}
+				})
+			}
+		})
+	})
+
+	t.Run("sorting", func(t *testing.T) {
+		t.Run("create messages", func(t *testing.T) {
+			now := time.Now()
+			//now = now.Truncate(time.Minute)
+			for i := 0; i < 25; i++ {
+				_, err := kdClient.Operations.PutMessage(&operations.PutMessageParams{
+					Message: &models.Message{
+						Text:     swag.String(fmt.Sprintf("test-%d", i)),
+						Time:     strfmt.DateTime(now.Add(time.Duration(i) * time.Minute)),
+						Priority: int64(i),
+						TTL:      fmt.Sprintf("%dm", i),
+					},
+					Context: ctx,
+				})
+				if err != nil {
+					t.Fatalf("post message: %s", err)
+				}
+			}
+		})
+
+		t.Run("get messages", func(t *testing.T) {
+			tests := []struct {
+				name         string
+				sortTime     *string
+				sortPriority *string
+			}{
+				{"no sort", nil, nil},
+				{"time asc", swag.String("asc"), nil},
+				{"time desc", swag.String("desc"), nil},
+				{"priority asc", nil, swag.String("asc")},
+				{"priority desc", nil, swag.String("desc")},
+				{"time, priority asc", swag.String("asc"), swag.String("asc")},
+				{"time asc, priority desc", swag.String("asc"), swag.String("desc")},
+				{"time, priority desc", swag.String("desc"), swag.String("desc")},
+				{"time desc, priority asc", swag.String("desc"), swag.String("asc")},
+			}
+			if token == "" {
+				t.Run("get token", func(t *testing.T) {
+					res, err := kdClient.Operations.PostToken(&operations.PostTokenParams{
+						Context: ctx,
+					})
+					if err != nil {
+						t.Fatalf("get token: %s", err)
+					}
+					if res.Payload.Token == nil {
+						t.Fatalf("expected token, got nil")
+					}
+					token = *res.Payload.Token
+				})
+			}
+			for _, test := range tests {
+				t.Run(test.name, func(t *testing.T) {
+					res, err := kdClient.Operations.GetMessages(
+						&operations.GetMessagesParams{
+							SortTime:     test.sortTime,
+							SortPriority: test.sortPriority,
+							Context:      ctx,
+						},
+						client2.BearerToken(token),
+					)
+					if err != nil {
+						t.Fatalf("get messages: %s", err)
+					}
+					if len(res.Payload.Messages) != 25 {
+						t.Errorf("expected total %d messages, got %d", 25, len(res.Payload.Messages))
+					}
+					t.Log()
+					t.Log(test.name)
+					for _, m := range res.Payload.Messages {
+						t.Log(*m.Text, m.Time, m.Priority, m.TTL)
 					}
 				})
 			}

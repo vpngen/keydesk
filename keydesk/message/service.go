@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/filter"
+	"sort"
 	"time"
 )
 
@@ -26,11 +27,11 @@ func (s Service) transaction(fn func(brigade *storage.Brigade) error) error {
 
 	brigade.Messages = cleanupMessages(brigade.Messages)
 
-	if err := fn(brigade); err != nil {
+	if err = fn(brigade); err != nil {
 		return fmt.Errorf("run in transaction: %w", err)
 	}
 
-	if err := f.Commit(brigade); err != nil {
+	if err = f.Commit(brigade); err != nil {
 		return fmt.Errorf("commit: %w", err)
 	}
 
@@ -44,7 +45,23 @@ func paginate(messages []storage.Message, offset, limit int64) []storage.Message
 	return messages[offset:min(offset+limit, int64(len(messages)))]
 }
 
-func (s Service) GetMessages(offset, limit int64, read *bool, priority *int64, priorityOp string) ([]storage.Message, int, error) {
+func messageTimeLess(messages []storage.Message, asc bool) func(i, j int) bool {
+	if asc {
+		return func(i, j int) bool {
+			return messages[i].Time.Before(messages[j].Time)
+		}
+	}
+	return func(i, j int) bool {
+		return messages[i].Time.After(messages[j].Time)
+	}
+}
+
+func (s Service) GetMessages(
+	offset, limit int64,
+	read *bool,
+	priority *int64, priorityOp string,
+	sortTime, sortPriority *string,
+) ([]storage.Message, int, error) {
 	var result []storage.Message
 
 	if err := s.transaction(func(brigade *storage.Brigade) error {
@@ -66,15 +83,71 @@ func (s Service) GetMessages(offset, limit int64, read *bool, priority *int64, p
 
 	result = filter.Filter(result, filters...)
 
+	result, err := sortMessages(result, sortTime, sortPriority)
+	if err != nil {
+		return nil, 0, fmt.Errorf("sort messages: %w", err)
+	}
+
 	return paginate(result, offset, limit), len(result), nil
 }
 
-func (s Service) CreateMessage(text string, ttl time.Duration) error {
+func sortMessages(result []storage.Message, sortTime, sortPriority *string) ([]storage.Message, error) {
+	var sortTimeFn func(i, j int) bool
+	if sortTime != nil {
+		switch *sortTime {
+		case "asc":
+			sortTimeFn = messageTimeLess(result, true)
+		case "desc":
+			sortTimeFn = messageTimeLess(result, false)
+		default:
+			return nil, fmt.Errorf("invalid sort time: %s", *sortTime)
+		}
+	}
+
+	var sortPriorityFn func(i, j int) bool
+	if sortPriority != nil {
+		switch *sortPriority {
+		case "asc":
+			sortPriorityFn = func(i, j int) bool {
+				return result[i].Priority < result[j].Priority
+			}
+		case "desc":
+			sortPriorityFn = func(i, j int) bool {
+				return result[i].Priority > result[j].Priority
+			}
+		default:
+			return nil, fmt.Errorf("invalid sort priority: %s", *sortPriority)
+		}
+	}
+
+	var sortFn func(i, j int) bool
+	if sortTimeFn != nil {
+		sortFn = sortTimeFn
+	}
+	if sortPriorityFn != nil {
+		if sortFn == nil {
+			sortFn = sortPriorityFn
+		} else {
+			sortFn = func(i, j int) bool {
+				return sortPriorityFn(i, j) && sortTimeFn(i, j)
+			}
+		}
+	}
+
+	if sortFn != nil {
+		sort.Slice(result, sortFn)
+	}
+
+	return result, nil
+}
+
+func (s Service) CreateMessage(text string, ttl time.Duration, priority int) error {
 	return s.transaction(func(brigade *storage.Brigade) error {
 		brigade.Messages = append(brigade.Messages, storage.Message{
-			Text: text,
-			Time: time.Now(),
-			TTL:  ttl,
+			Text:     text,
+			Priority: priority,
+			Time:     time.Now(),
+			TTL:      ttl,
 		})
 		return nil
 	})

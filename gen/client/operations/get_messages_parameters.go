@@ -81,6 +81,12 @@ type GetMessagesParams struct {
 	// Read.
 	Read *bool
 
+	// SortPriority.
+	SortPriority *string
+
+	// SortTime.
+	SortTime *string
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -206,6 +212,28 @@ func (o *GetMessagesParams) SetRead(read *bool) {
 	o.Read = read
 }
 
+// WithSortPriority adds the sortPriority to the get messages params
+func (o *GetMessagesParams) WithSortPriority(sortPriority *string) *GetMessagesParams {
+	o.SetSortPriority(sortPriority)
+	return o
+}
+
+// SetSortPriority adds the sortPriority to the get messages params
+func (o *GetMessagesParams) SetSortPriority(sortPriority *string) {
+	o.SortPriority = sortPriority
+}
+
+// WithSortTime adds the sortTime to the get messages params
+func (o *GetMessagesParams) WithSortTime(sortTime *string) *GetMessagesParams {
+	o.SetSortTime(sortTime)
+	return o
+}
+
+// SetSortTime adds the sortTime to the get messages params
+func (o *GetMessagesParams) SetSortTime(sortTime *string) {
+	o.SortTime = sortTime
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetMessagesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -294,6 +322,40 @@ func (o *GetMessagesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 		if qRead != "" {
 
 			if err := r.SetQueryParam("read", qRead); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.SortPriority != nil {
+
+		// query param sort-priority
+		var qrSortPriority string
+
+		if o.SortPriority != nil {
+			qrSortPriority = *o.SortPriority
+		}
+		qSortPriority := qrSortPriority
+		if qSortPriority != "" {
+
+			if err := r.SetQueryParam("sort-priority", qSortPriority); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.SortTime != nil {
+
+		// query param sort-time
+		var qrSortTime string
+
+		if o.SortTime != nil {
+			qrSortTime = *o.SortTime
+		}
+		qSortTime := qrSortTime
+		if qSortTime != "" {
+
+			if err := r.SetQueryParam("sort-time", qSortTime); err != nil {
 				return err
 			}
 		}

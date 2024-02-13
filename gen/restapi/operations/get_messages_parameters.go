@@ -70,6 +70,14 @@ type GetMessagesParams struct {
 	  In: query
 	*/
 	Read *bool
+	/*
+	  In: query
+	*/
+	SortPriority *string
+	/*
+	  In: query
+	*/
+	SortTime *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -105,6 +113,16 @@ func (o *GetMessagesParams) BindRequest(r *http.Request, route *middleware.Match
 
 	qRead, qhkRead, _ := qs.GetOK("read")
 	if err := o.bindRead(qRead, qhkRead, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qSortPriority, qhkSortPriority, _ := qs.GetOK("sort-priority")
+	if err := o.bindSortPriority(qSortPriority, qhkSortPriority, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qSortTime, qhkSortTime, _ := qs.GetOK("sort-time")
+	if err := o.bindSortTime(qSortTime, qhkSortTime, route.Formats); err != nil {
 		res = append(res, err)
 	}
 	if len(res) > 0 {
@@ -236,6 +254,70 @@ func (o *GetMessagesParams) bindRead(rawData []string, hasKey bool, formats strf
 		return errors.InvalidType("read", "query", "bool", raw)
 	}
 	o.Read = &value
+
+	return nil
+}
+
+// bindSortPriority binds and validates parameter SortPriority from query.
+func (o *GetMessagesParams) bindSortPriority(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.SortPriority = &raw
+
+	if err := o.validateSortPriority(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateSortPriority carries on validations for parameter SortPriority
+func (o *GetMessagesParams) validateSortPriority(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("sort-priority", "query", *o.SortPriority, []interface{}{"asc", "desc"}, true); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// bindSortTime binds and validates parameter SortTime from query.
+func (o *GetMessagesParams) bindSortTime(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.SortTime = &raw
+
+	if err := o.validateSortTime(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateSortTime carries on validations for parameter SortTime
+func (o *GetMessagesParams) validateSortTime(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("sort-time", "query", *o.SortTime, []interface{}{"asc", "desc"}, true); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -15,11 +15,13 @@ import (
 
 // GetMessagesURL generates an URL for the get messages operation
 type GetMessagesURL struct {
-	Limit      *int64
-	Offset     *int64
-	Priority   *int64
-	PriorityOp *string
-	Read       *bool
+	Limit        *int64
+	Offset       *int64
+	Priority     *int64
+	PriorityOp   *string
+	Read         *bool
+	SortPriority *string
+	SortTime     *string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -93,6 +95,22 @@ func (o *GetMessagesURL) Build() (*url.URL, error) {
 	}
 	if readQ != "" {
 		qs.Set("read", readQ)
+	}
+
+	var sortPriorityQ string
+	if o.SortPriority != nil {
+		sortPriorityQ = *o.SortPriority
+	}
+	if sortPriorityQ != "" {
+		qs.Set("sort-priority", sortPriorityQ)
+	}
+
+	var sortTimeQ string
+	if o.SortTime != nil {
+		sortTimeQ = *o.SortTime
+	}
+	if sortTimeQ != "" {
+		qs.Set("sort-time", sortTimeQ)
 	}
 
 	_result.RawQuery = qs.Encode()

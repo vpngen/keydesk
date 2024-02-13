@@ -145,6 +145,18 @@ paths:
           name: priority
           type: integer
         - in: query
+          name: sort-priority
+          type: string
+          enum:
+            - asc
+            - desc
+        - in: query
+          name: sort-time
+          type: string
+          enum:
+            - asc
+            - desc
+        - in: query
           name: priority-op
           type: string
           default: eq

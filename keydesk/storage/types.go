@@ -264,11 +264,11 @@ type LastActivityPoints struct {
 }
 
 type Message struct {
-	Text     string        `json:"text"`
-	IsRead   bool          `json:"is_read"`
-	Priority int           `json:"priority"`
-	Time     time.Time     `json:"time"`
-	TTL      time.Duration `json:"ttl,omitempty"`
+	Text      string        `json:"text"`
+	IsRead    bool          `json:"is_read"`
+	Priority  int           `json:"priority"`
+	CreatedAt time.Time     `json:"created_at"`
+	TTL       time.Duration `json:"ttl,omitempty"`
 }
 
 type Keys struct {

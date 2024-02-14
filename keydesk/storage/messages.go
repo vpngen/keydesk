@@ -27,9 +27,9 @@ func (db *BrigadeStorage) CreateMessage(text string) error {
 	defer f.Close()
 
 	brigade.Messages = append(brigade.Messages, Message{
-		Text:   text,
-		IsRead: false,
-		Time:   time.Now(),
+		Text:      text,
+		IsRead:    false,
+		CreatedAt: time.Now(),
 	})
 
 	if err := f.Commit(brigade); err != nil {

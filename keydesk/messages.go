@@ -28,7 +28,7 @@ func GetMessages(
 			Text:     swag.String(v.Text),
 			IsRead:   v.IsRead,
 			Priority: int64(v.Priority),
-			Time:     strfmt.DateTime(v.Time),
+			Time:     strfmt.DateTime(v.CreatedAt),
 			TTL:      v.TTL.String(),
 		})
 	}

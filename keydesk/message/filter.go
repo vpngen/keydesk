@@ -15,13 +15,13 @@ func noTTL() filter.Func[storage.Message] {
 func notOlder(d time.Duration) filter.Func[storage.Message] {
 	t := time.Now().Add(-d)
 	return func(message storage.Message) bool {
-		return message.Time.After(t)
+		return message.CreatedAt.After(t)
 	}
 }
 
 func ttlAfterTime(t time.Time) filter.Func[storage.Message] {
 	return func(message storage.Message) bool {
-		return message.Time.Add(message.TTL).After(t)
+		return message.CreatedAt.Add(message.TTL).After(t)
 	}
 }
 

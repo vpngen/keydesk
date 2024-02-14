@@ -58,9 +58,9 @@ func Test_cleanupMessages(t *testing.T) {
 func genMsg(n int, ttl time.Duration, t time.Time) (messages []storage.Message) {
 	for i := 0; i < n; i++ {
 		messages = append(messages, storage.Message{
-			Text: fmt.Sprintf("test-%d", i),
-			TTL:  ttl,
-			Time: t,
+			Text:      fmt.Sprintf("test-%d", i),
+			TTL:       ttl,
+			CreatedAt: t,
 		})
 	}
 	return

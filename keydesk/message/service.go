@@ -48,11 +48,11 @@ func paginate(messages []storage.Message, offset, limit int64) []storage.Message
 func messageTimeLess(messages []storage.Message, asc bool) func(i, j int) bool {
 	if asc {
 		return func(i, j int) bool {
-			return messages[i].Time.Before(messages[j].Time)
+			return messages[i].CreatedAt.Before(messages[j].CreatedAt)
 		}
 	}
 	return func(i, j int) bool {
-		return messages[i].Time.After(messages[j].Time)
+		return messages[i].CreatedAt.After(messages[j].CreatedAt)
 	}
 }
 
@@ -144,10 +144,10 @@ func sortMessages(result []storage.Message, sortTime, sortPriority *string) ([]s
 func (s Service) CreateMessage(text string, ttl time.Duration, priority int) error {
 	return s.transaction(func(brigade *storage.Brigade) error {
 		brigade.Messages = append(brigade.Messages, storage.Message{
-			Text:     text,
-			Priority: priority,
-			Time:     time.Now(),
-			TTL:      ttl,
+			Text:      text,
+			Priority:  priority,
+			CreatedAt: time.Now(),
+			TTL:       ttl,
 		})
 		return nil
 	})

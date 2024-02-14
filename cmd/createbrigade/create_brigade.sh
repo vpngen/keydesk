@@ -10,7 +10,6 @@
 # * Create special brigadier wg-user
 
 # * Activate keydesk systemD units
-# * Activate stats systemD units
 
 # * Send brigadier config
 
@@ -56,30 +55,25 @@ printdef () {
         msg="$1"
 
         echo "Usage: $0 -id <brigabe_id_encoded> -ep4 <endpoint IPv4> -int4 <CGNAT IPv4> -int6 <IPv6 ULA> -dns4 <DNS IPv4> -dns6 <DNS IPv6> -kd6 <keydesk IPv6> -name <B1rigadier Name :: base64> -person <Person Name :: base64> -desc <Person Desc :: base64> -url <Person URL :: base64> [-ch] [-j]" >&2
-        
+
         fatal "400" "Bad request" "$msg"
 }
-
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
         -id)
-                NEW_STYLE="yes"
                 brigade_id="$2"
                 shift 2
                 ;;
         -ch)
-                NEW_STYLE="yes"
                 chunked="-ch"
                 shift 1
                 ;;
         -j)
-                NEW_STYLE="yes"
                 json="-j"
                 shift 1
                 ;;
         -d)
-                #NEW_STYLE="yes"  -d/-c/-a must be first options
                 if [ -z "$DEBUG" ]; then
                         printdef "The '-d' option is only for debug"
                 fi
@@ -88,7 +82,6 @@ while [ "$#" -gt 0 ]; do
                 shift 2
                 ;;
         -c)
-                #NEW_STYLE="yes"
                 if [ -z "$DEBUG" ]; then
                         printdef "The '-c' option is only for debug"
                 fi
@@ -96,8 +89,7 @@ while [ "$#" -gt 0 ]; do
                 CONF_DIR="$2"
                 shift 2
                 ;;
-        -a) 
-                #NEW_STYLE="yes"
+        -a)
                 if [ -z "$DEBUG" ]; then
                         printdef "The '-a' option is only for debug"
                 fi
@@ -106,77 +98,62 @@ while [ "$#" -gt 0 ]; do
                 shift 2
                 ;;
         -wg)
-                NEW_STYLE="yes"
                 wg_configs="-wg $2"
                 shift 2
                 ;;
         -ipsec)
-                NEW_STYLE="yes"
                 ipsec_configs="-ipsec $2"
                 shift 2
                 ;;
         -ovc)
-                NEW_STYLE="yes"
                 ovc_configs="-ovc $2"
                 shift 2
                 ;;
         -outline)
-                NEW_STYLE="yes"
                 outline_configs="-outline $2"
                 shift 2
                 ;;
         -ep4)
-                NEW_STYLE="yes"
                 endpoint_ip4="$2"
                 shift 2
                 ;;
         -int4)
-                NEW_STYLE="yes"
                 ip4_cgnat="$2"
                 shift 2
                 ;;
         -int6)
-                NEW_STYLE="yes"
                 ip6_ula="$2"
                 shift 2
                 ;;
         -dns4)
-                NEW_STYLE="yes"
                 dns_ip4="$2"
                 shift 2
                 ;;
         -dns6)
-                NEW_STYLE="yes"
                 dns_ip6="$2"
                 shift 2
                 ;;
         -kd6)
-                NEW_STYLE="yes"
                 keydesk_ip6="$2"
                 shift 2
                 ;;
         -name)
-                NEW_STYLE="yes"
                 brigadier_name="$2"
                 shift 2
                 ;;
         -person)
-                NEW_STYLE="yes"
                 person_name="$2"
                 shift 2
                 ;;
         -desc)
-                NEW_STYLE="yes"
                 person_desc="$2"
                 shift 2
                 ;;
         -url)
-                NEW_STYLE="yes"
                 person_url="$2"
                 shift 2
                 ;;
         -p)
-                NEW_STYLE="yes"
                 port="$2"
                 shift 2
 
@@ -187,10 +164,9 @@ while [ "$#" -gt 0 ]; do
                                 echo "invalid port ${port}" >&2
                                 printdef "Invalid port ${port}"
                         ;;
-                esac     
+                esac
                 ;;
         -dn)
-                NEW_STYLE="yes"
                 domain="$2"
                 shift 2
 
@@ -200,64 +176,7 @@ while [ "$#" -gt 0 ]; do
                 fi
                 ;;
         *)
-                if [ -n "${NEW_STYLE}" ]; then
-                        printdef "Unknown option: $1"
-                fi
-
-                if [ -z "${1}" ] || \
-                [ -z "${2}" ] || \
-                [ -z "${3}" ] || \
-                [ -z "${4}" ] || \
-                [ -z "${5}" ] || \
-                [ -z "${6}" ] || \
-                [ -z "${7}" ] || \
-                [ -z "${8}" ] || \
-                [ -z "${9}" ] || \
-                [ -z "${10}" ] || \
-                [ -z "${11}" ]; then 
-                        printdef "Not enough arguments (old style)"
-                fi
-
-                brigade_id=${1}
-                endpoint_ip4=${2}
-                ip4_cgnat=${3}
-                ip6_ula=${4}
-                dns_ip4=${5}
-                dns_ip6=${6}
-                keydesk_ip6=${7}
-                brigadier_name=${8}
-                person_name=${9}
-                person_desc=${10}
-                person_url=${11}
-
-                shift 11
-
-                chunked=""
-                port="0"
-                domain=""
-
-                for i in "$@";
-                do
-                    case $i in
-                        [0-9]*)
-                                if [ "$i" -ge 1024 ] && [ "$i" -le 65535 ]; then
-                                        port="$i"
-                                fi
-                                ;;
-                        *.*)
-                                if printf "%s" "$i" | grep -E '^([a-z0-9_]+(-[a-z0-9_]+)*\.)+[a-z0-9_]+([a-z0-9_-]+)$' > /dev/null; then
-                                        domain="$i"
-                                fi
-                        ;;
-                        *)
-                                if [ "$i" = "chunked" ]; then
-                                        chunked="-ch"
-                                fi
-                        ;;
-                    esac
-                done
-
-                break
+                printdef "Unknown option: $1"
                 ;;
     esac
 done
@@ -266,6 +185,13 @@ if [ -z "$brigade_id" ] \
 || [ -z "$endpoint_ip4" ] || [ -z "$ip4_cgnat" ] || [ -z "$ip6_ula" ] || [ -z "$dns_ip4" ] || [ -z "$dns_ip6" ] || [ -z "$keydesk_ip6" ] \
 || [ -z "$brigadier_name" ] || [ -z "$person_name" ] || [ -z "$person_desc" ] || [ -z "$person_url" ]; then
         printdef "Not enough arguments"
+fi
+
+if test -f "${DB_DIR}/${brigade_id}/.maintenance" && test "$(date '+%s')" -lt "$(cat "${DB_DIR}/${brigade_id}/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "${DB_DIR}/${brigade_id}/.maintenance")")"
+fi
+if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
 fi
 
 if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ]; then
@@ -279,7 +205,7 @@ fi
 # * Check if brigade is exists
 if [ -z "${DEBUG}" ] && [ -s "${DB_DIR}/${brigade_id}/created" ]; then
         echo "Brigade ${brigade_id} already exists" >&2
-        
+
         fatal "409" "Conflict" "Brigade ${brigade_id} already exists"
 fi
 
@@ -290,7 +216,7 @@ if [ -z "${DEBUG}" ]; then
                 install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${DB_DIR}/${brigade_id}" >&2
                 install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 710 -d "${STATS_DIR}/${brigade_id}" >&2
         } || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
-else 
+else
         echo "DEBUG: useradd -p '*' -G ${VGCERT_GROUP} -M -s /usr/sbin/nologin -d ${DB_DIR}/${brigade_id} ${brigade_id}" >&2
         echo "DEBUG: install -o ${brigade_id} -g ${brigade_id} -m 0700 -d ${DB_DIR}/${brigade_id}" >&2
         echo "DEBUG: install -o ${brigade_id} -g ${VGSTATS_GROUP} -m 710 -d ${STATS_DIR}/${brigade_id}" >&2
@@ -348,7 +274,7 @@ else
                         ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
                         ${apiaddr} \
                         >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
-        else 
+        else
                 echo "ERROR: Can't find ${BRIGADE_MAKER_APP_PATH} or ${BRIGADE_SOURCE_DIR}/main.go" >&2
 
                 fatal "500" "Internal server error" "Can't find create createbrigade binary or source code"
@@ -408,49 +334,15 @@ fi
 # * Activate keydesk systemD units
 
 systemd_vgkeydesk_instance="vgkeydesk@${brigade_id}"
-# create dir for custom config
-# https://www.freedesktop.org/software/systemd/man/systemd.unit.html
-systemd_vgkeydesk_conf_dir="/etc/systemd/system/${systemd_vgkeydesk_instance}.socket.d"
-
-if [ -z "${DEBUG}" ]; then
-        #shellcheck disable=SC2174
-        mkdir -p "${systemd_vgkeydesk_conf_dir}" -m 0755 >&2 || fatal "500" "Internal server error" "Can't create ${systemd_vgkeydesk_conf_dir}"
-else
-        echo "DEBUG: mkdir -p ${systemd_vgkeydesk_conf_dir} -m 0755" >&2
-fi
-
-# it;s necessary to listen certain IP
-
-# calculated listen IPv6 
-listen_ip6=$(echo "${endpoint_ip4}" | sed 's/\./\n/g' | xargs printf 'fdcc:%02x%02x:%02x%02x::2' | sed 's/:0000/:/g' | sed 's/:00/:/g')
-
 if [ -z "${DEBUG}" ]; then
         {
-                cat << EOF > "${systemd_vgkeydesk_conf_dir}/listen.conf"
-[Socket]
-ListenStream = [${listen_ip6}]:80
-ListenStream = [${listen_ip6}]:443
-EOF
-                systemctl -q enable "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service" >&2
+                systemctl -q enable "${systemd_vgkeydesk_instance}.service" >&2
                 # Start systemD services
-                systemctl -q start "${systemd_vgkeydesk_instance}.socket" "${systemd_vgkeydesk_instance}.service" >&2
+                systemctl -q start "${systemd_vgkeydesk_instance}.service" >&2
         } || fatal "500" "Internal server error" "Can't start or enable ${systemd_vgkeydesk_instance}"
 else
-        echo "DEBUG: systemctl -q enable ${systemd_vgkeydesk_instance}.socket ${systemd_vgkeydesk_instance}.service" >&2
-        echo "DEBUG: systemctl -q start ${systemd_vgkeydesk_instance}.socket ${systemd_vgkeydesk_instance}.service" >&2
-fi
-
-# * Activate stats systemD units
-
-systemd_vgstats_instance="vgstats@${brigade_id}"
-if [ -z "${DEBUG}" ]; then
-        {
-                systemctl -q enable "${systemd_vgstats_instance}.service" >&2
-                systemctl -q start "${systemd_vgstats_instance}.service" >&2
-        } || fatal "500" "Internal server error" "Can't start or enable ${systemd_vgstats_instance}"
-else
-        echo "DEBUG: systemctl -q enable ${systemd_vgstats_instance}.service" >&2
-        echo "DEBUG: systemctl -q start ${systemd_vgstats_instance}.service" >&2
+        echo "DEBUG: systemctl -q enable ${systemd_vgkeydesk_instance}.service" >&2
+        echo "DEBUG: systemctl -q start ${systemd_vgkeydesk_instance}.service" >&2
 fi
 
 # Print brigadier config

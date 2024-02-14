@@ -26,6 +26,9 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/vpngen/keydesk/internal/maintenance"
+	"github.com/vpngen/keydesk/internal/stat"
+
 	"github.com/coreos/go-systemd/activation"
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
@@ -42,7 +45,7 @@ import (
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
 
-//go:generate swagger generate server -t ../../gen -f ../../swagger/swagger.yml --exclude-main -A user
+//go:generate go run github.com/go-swagger/go-swagger/cmd/swagger@latest generate server -t ../../gen -f ../../swagger/swagger.yml --exclude-main -A user
 
 // TokenLifeTime - token time to life.
 const TokenLifeTime = 3600
@@ -71,7 +74,7 @@ var (
 )
 
 func main() {
-	chunked, jsonOut, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, certDir, name, person, replace, vpnCfgs, err := parseArgs()
+	chunked, _, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, certDir, statsDir, name, person, replace, vpnCfgs, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 	}
@@ -80,6 +83,9 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	_, _ = fmt.Fprintf(os.Stderr, "Etc: %s\n", etcDir)
+	_, _ = fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
 
 	db := &storage.BrigadeStorage{
 		BrigadeID:       BrigadeID,
@@ -96,44 +102,67 @@ func main() {
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Etc: %s\n", etcDir)
-	fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
 	switch {
-	case addr.IsValid() && !addr.Addr().IsUnspecified():
-		fmt.Fprintf(os.Stderr, "Command address:port: %s\n", addr)
+	case addr.IsValid() && addr.Addr().IsUnspecified():
+		_, _ = fmt.Fprintln(os.Stderr, "Command address:port is COMMON")
 	case addr.IsValid():
-		fmt.Fprintln(os.Stderr, "Command address:port is COMMON")
+		_, _ = fmt.Fprintf(os.Stderr, "Command address:port: %s\n", addr)
 	default:
-		fmt.Fprintln(os.Stderr, "Command address:port is for DEBUG")
+		_, _ = fmt.Fprintln(os.Stderr, "Command address:port is for DEBUG")
 	}
 
 	// Just create brigadier.
 	if name != "" || replace {
-		if err := createBrigadier(db, chunked, jsonOut, name, person, replace, vpnCfgs, &routerPublicKey, &shufflerPublicKey); err != nil {
+		if err := createBrigadier(db, chunked, name, person, replace, vpnCfgs, &routerPublicKey, &shufflerPublicKey); err != nil {
 			log.Fatalf("Can't create brigadier: %s\n", err)
 		}
 
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, "Cert Dir: %s\n", certDir)
-	fmt.Fprintf(os.Stderr, "Web files: %s\n", webDir)
-	fmt.Fprintf(os.Stderr, "Permessive CORS: %t\n", pcors)
-	fmt.Fprintf(os.Stderr, "Starting %s keydesk\n", BrigadeID)
+	_, _ = fmt.Fprintf(os.Stderr, "Cert Dir: %s\n", certDir)
+	_, _ = fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", statsDir)
+	_, _ = fmt.Fprintf(os.Stderr, "Web files: %s\n", webDir)
+	_, _ = fmt.Fprintf(os.Stderr, "Permessive CORS: %t\n", pcors)
+	_, _ = fmt.Fprintf(os.Stderr, "Starting %s keydesk\n", BrigadeID)
 
 	allowedAddress := ""
-	if calculatedAddrPort, ok := db.CalculatedAPIAddress(); ok {
+	calculatedAddrPort, ok := db.CalculatedAPIAddress()
+	if ok {
 		allowedAddress = calculatedAddrPort.String()
-		fmt.Fprintf(os.Stderr, "Resqrict requests by address: %s \n", allowedAddress)
+		_, _ = fmt.Fprintf(os.Stderr, "Resqrict requests by address: %s \n", allowedAddress)
 	}
 
-	idleTimer := time.NewTimer(keydesk.MaxIdlePeriod)
-	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir, idleTimer, allowedAddress)
+	if len(listeners) == 0 && !addr.IsValid() {
+		_, _ = fmt.Fprintln(os.Stderr, "neither listeners nor address:port specified, exiting")
+		os.Exit(1)
+	}
+
+	if len(listeners) == 0 {
+		prev := calculatedAddrPort.Prev().String()
+
+		l, err := net.Listen("tcp6", fmt.Sprintf("[%s]:80", prev))
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, prev, "listen HTTP error:", err)
+			os.Exit(1)
+		}
+		listeners = append(listeners, l)
+
+		l, err = net.Listen("tcp6", fmt.Sprintf("[%s]:443", prev))
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, prev, "listen HTTPS error:", err)
+			os.Exit(1)
+		}
+		listeners = append(listeners, l)
+	}
+
+	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir, allowedAddress)
 
 	// On signal, gracefully shut down the server and wait 5
 	// seconds for current connections to stop.
 
 	done := make(chan struct{})
+	statDone := make(chan struct{})
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
@@ -157,17 +186,14 @@ func main() {
 				IdleTimeout: 60 * time.Minute,
 			}
 		default:
-			fmt.Fprintf(os.Stderr, "Skip TLS: can't open cert/key pair: %s\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "Skip TLS: can't open cert/key pair: %s\n", err)
 		}
 	}
 
 	go func() {
-		select {
-		case <-quit:
-			fmt.Fprintln(os.Stderr, "Quit signal received...")
-		case t := <-idleTimer.C:
-			fmt.Fprintln(os.Stderr, "Idle timeout exeeded...", t)
-		}
+		<-quit
+		_, _ = fmt.Fprintln(os.Stderr, "Quit signal received...")
+		statDone <- struct{}{}
 
 		wg := sync.WaitGroup{}
 
@@ -179,16 +205,16 @@ func main() {
 
 			srv.SetKeepAlivesEnabled(false)
 			if err := srv.Shutdown(ctx); err != nil {
-				fmt.Fprintf(os.Stderr, "Can't gracefully shut down the server: %s\n", err)
+				_, _ = fmt.Fprintf(os.Stderr, "Can't gracefully shut down the server: %s\n", err)
 			}
 		}
 
-		fmt.Fprintln(os.Stderr, "Server is shutting down")
+		_, _ = fmt.Fprintln(os.Stderr, "Server is shutting down")
 		wg.Add(1)
 		go closeFunc(server)
 
 		if serverTLS != nil {
-			fmt.Fprintln(os.Stderr, "Server TLS is shutting down")
+			_, _ = fmt.Fprintln(os.Stderr, "Server TLS is shutting down")
 			wg.Add(1)
 			go closeFunc(serverTLS)
 		}
@@ -198,19 +224,18 @@ func main() {
 		close(done)
 	}()
 
-	fmt.Fprintf(os.Stderr, "Listen HTTP: %s\n", listeners[0].Addr().String())
-	if serverTLS != nil {
-		fmt.Fprintf(os.Stderr, "Listen HTTPS: %s\n", listeners[1].Addr().String())
+	if len(listeners) > 0 {
+		_, _ = fmt.Fprintf(os.Stderr, "Listen HTTP: %s\n", listeners[0].Addr().String())
+		// Start accepting connections.
+		go func() {
+			if err := server.Serve(listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+				log.Fatalf("Can't serve: %s\n", err)
+			}
+		}()
 	}
 
-	// Start accepting connections.
-	go func() {
-		if err := server.Serve(listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Can't serve: %s\n", err)
-		}
-	}()
-
 	if serverTLS != nil && len(listeners) == 2 {
+		_, _ = fmt.Fprintf(os.Stderr, "Listen HTTPS: %s\n", listeners[1].Addr().String())
 		// Start accepting connections.
 		go func() {
 			if err := serverTLS.ServeTLS(listeners[1], "", ""); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
@@ -219,27 +244,33 @@ func main() {
 		}()
 	}
 
+	_, rdata := os.LookupEnv("VGSTATS_RANDOM_DATA")
+
+	go stat.CollectingData(db, statDone, rdata, statsDir)
+
 	// Wait for existing connections before exiting.
 	<-done
 }
 
-func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, string, string, string, string, string, namesgenerator.Person, bool, *storage.ConfigsImplemented, error) {
+func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, string, string, string, string, string, string, namesgenerator.Person, bool, *storage.ConfigsImplemented, error) {
 	var (
-		id                     string
-		etcdir, dbdir, certdir string
-		person                 namesgenerator.Person
-		addrPort               netip.AddrPort
+		id                               string
+		etcdir, dbdir, certdir, statsdir string
+		person                           namesgenerator.Person
+		addrPort                         netip.AddrPort
 	)
 
 	sysUser, err := user.Current()
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot define user: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot define user: %w", err)
 	}
 
 	webDir := flag.String("w", DefaultWebDir, "Dir for web files.")
 	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
 	certDir := flag.String("e", "", "Dir for TLS certificate and key (for test). Default: "+DefaultCertDir)
+	statsDir := flag.String("s", "", "Dir with brigades statistics. Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
+
 	pcors := flag.Bool("cors", false, "Turn on permessive CORS (for test)")
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
 	listenAddr := flag.String("l", "", "Listen addr:port (http and https separate with commas)")
@@ -281,32 +312,39 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 	}
 
 	if *webDir == "" {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrStaticDirEmpty
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrStaticDirEmpty
 	}
 
 	webdir, err := filepath.Abs(*webDir)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("web dir: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("web dir: %w", err)
 	}
 
 	if *filedbDir != "" {
 		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("dbdir dir: %w", err)
+			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("dbdir dir: %w", err)
 		}
 	}
 
 	if *etcDir != "" {
 		etcdir, err = filepath.Abs(*etcDir)
 		if err != nil {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("etcdir dir: %w", err)
+			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("etcdir dir: %w", err)
 		}
 	}
 
 	if *certDir != "" {
 		certdir, err = filepath.Abs(*certDir)
 		if err != nil {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("statdir dir: %w", err)
+			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("certdir dir: %w", err)
+		}
+	}
+
+	if *statsDir != "" {
+		statsdir, err = filepath.Abs(*statsDir)
+		if err != nil {
+			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("statdir dir: %w", err)
 		}
 	}
 
@@ -324,6 +362,10 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 
 		if *certDir == "" {
 			certdir = DefaultCertDir
+		}
+
+		if *statsDir == "" {
+			statsdir = filepath.Join(storage.DefaultStatsDir, id)
 		}
 	default:
 		id = *brigadeID
@@ -344,28 +386,32 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 		if *certDir == "" {
 			certdir = cwd
 		}
+
+		if *statsDir == "" {
+			statsdir = cwd
+		}
 	}
 
 	// brigadeID must be base32 decodable.
 	binID, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(id)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("id base32: %s: %w", id, err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("id base32: %s: %w", id, err)
 	}
 
 	_, err = uuid.FromBytes(binID)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("id uuid: %s: %w", id, err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("id uuid: %s: %w", id, err)
 	}
 
 	if *addr != "-" {
 		addrPort, err = netip.ParseAddrPort(*addr)
 		if err != nil {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("api addr: %w", err)
+			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("api addr: %w", err)
 		}
 	}
 
 	if *replaceBrigadier {
-		return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, "", person, *replaceBrigadier, vpnCfgs, nil
+		return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, *replaceBrigadier, vpnCfgs, nil
 	}
 
 	if *brigadierName == "" {
@@ -373,102 +419,101 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 
 		switch *listenAddr {
 		case "":
+			// get listeners from activation sockets
 			listeners, err = activation.Listeners()
 			if err != nil {
-				return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot retrieve listeners: %w", err)
+				return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot retrieve listeners: %w", err)
 			}
 
-			if len(listeners) != 1 && len(listeners) != 2 {
-				return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("unexpected number of socket activation (%d != 1|2)",
-					len(listeners))
-			}
+			return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, false, nil, nil
 		default:
+			// get listeners from argument
 			for _, laddr := range strings.Split(*listenAddr, ",") {
 				l, err := net.Listen("tcp", laddr)
 				if err != nil {
-					return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot listen: %w", err)
+					return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot listen: %w", err)
 				}
 
 				listeners = append(listeners, l)
 			}
 
 			if len(listeners) != 1 && len(listeners) != 2 {
-				return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("unexpected number of litening (%d != 1|2)",
+				return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("unexpected number of litening (%d != 1|2)",
 					len(listeners))
 			}
 		}
 
-		return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, "", person, false, nil, nil
+		return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, false, nil, nil
 	}
 
 	// brigadierName must be not empty and must be a valid UTF8 string
 	buf, err := base64.StdEncoding.DecodeString(*brigadierName)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("brigadier name: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("brigadier name: %w", err)
 	}
 
 	if !utf8.Valid(buf) {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrInvalidBrigadierName
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrInvalidBrigadierName
 	}
 
 	name := string(buf)
 
 	// personName must be not empty and must be a valid UTF8 string
 	if *personName == "" {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrEmptyPersonName
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrEmptyPersonName
 	}
 
 	buf, err = base64.StdEncoding.DecodeString(*personName)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("person name: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("person name: %w", err)
 	}
 
 	if !utf8.Valid(buf) {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrInvalidPersonName
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrInvalidPersonName
 	}
 
 	person.Name = string(buf)
 
 	// personDesc must be not empty and must be a valid UTF8 string
 	if *personDesc == "" {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrEmptyPersonDesc
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrEmptyPersonDesc
 	}
 
 	buf, err = base64.StdEncoding.DecodeString(*personDesc)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("person desc: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("person desc: %w", err)
 	}
 
 	if !utf8.Valid(buf) {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrInvalidPersonDesc
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrInvalidPersonDesc
 	}
 
 	person.Desc = string(buf)
 
 	// personURL must be not empty and must be a valid UTF8 string
 	if *personURL == "" {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrEmptyPersonURL
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrEmptyPersonURL
 	}
 
 	buf, err = base64.StdEncoding.DecodeString(*personURL)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("person url: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("person url: %w", err)
 	}
 
 	if !utf8.Valid(buf) {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, ErrInvalidPersonURL
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrInvalidPersonURL
 	}
 
 	u := string(buf)
 
 	_, err = url.Parse(u)
 	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", person, false, nil, fmt.Errorf("parse person url: %w", err)
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("parse person url: %w", err)
 	}
 
 	person.URL = u
 
-	return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, name, person, *replaceBrigadier, vpnCfgs, nil
+	return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, name, person, *replaceBrigadier, vpnCfgs, nil
 }
 
 func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxKeyLength]byte, error) {
@@ -489,7 +534,6 @@ func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxK
 
 func createBrigadier(db *storage.BrigadeStorage,
 	chunked bool,
-	jsonOut bool,
 	name string,
 	person namesgenerator.Person,
 	replace bool,
@@ -507,53 +551,49 @@ func createBrigadier(db *storage.BrigadeStorage,
 		w = os.Stdout
 	}
 
-	wgconf, filename, confJson, creationErr := keydesk.AddBrigadier(db, name, person, replace, vpnCfgs, routerPublicKey, shufflerPublicKey)
+	// TODO: do we have to print wgconf, filename?
+	_, _, confJson, creationErr := keydesk.AddBrigadier(db, name, person, replace, vpnCfgs, routerPublicKey, shufflerPublicKey)
 
-	switch jsonOut {
-	case true:
-		enc := json.NewEncoder(w)
+	enc := json.NewEncoder(w)
 
-		enc.SetIndent(" ", " ")
+	enc.SetIndent(" ", " ")
 
-		if creationErr != nil {
-			err := fmt.Errorf("add brigadier: %w", creationErr)
-
-			answer := &keydesk.Answer{
-				Code:    http.StatusInternalServerError,
-				Desc:    http.StatusText(http.StatusInternalServerError),
+	if creationErr != nil {
+		me := maintenance.Error{}
+		if goerrors.As(creationErr, &me) {
+			return enc.Encode(keydesk.Answer{
+				Code:    http.StatusServiceUnavailable,
+				Desc:    http.StatusText(http.StatusServiceUnavailable),
 				Status:  keydesk.AnswerStatusError,
-				Message: err.Error(),
-			}
-
-			if err := enc.Encode(answer); err != nil {
-				return fmt.Errorf("print json: %w", err)
-			}
-
-			return err
+				Message: me.Error(),
+			})
 		}
 
+		err := fmt.Errorf("add brigadier: %w", creationErr)
+
 		answer := &keydesk.Answer{
-			Code:    http.StatusCreated,
-			Desc:    http.StatusText(http.StatusCreated),
-			Status:  keydesk.AnswerStatusSuccess,
-			Configs: *confJson,
+			Code:    http.StatusInternalServerError,
+			Desc:    http.StatusText(http.StatusInternalServerError),
+			Status:  keydesk.AnswerStatusError,
+			Message: err.Error(),
 		}
 
 		if err := enc.Encode(answer); err != nil {
 			return fmt.Errorf("print json: %w", err)
 		}
-	default:
-		if creationErr != nil {
-			return fmt.Errorf("add brigadier: %w", creationErr)
-		}
 
-		if _, err := fmt.Fprintln(w, filename); err != nil {
-			return fmt.Errorf("print filename: %w", err)
-		}
+		return err
+	}
 
-		if _, err := fmt.Fprintln(w, wgconf); err != nil {
-			return fmt.Errorf("pring wgconf: %w", err)
-		}
+	answer := &keydesk.Answer{
+		Code:    http.StatusCreated,
+		Desc:    http.StatusText(http.StatusCreated),
+		Status:  keydesk.AnswerStatusSuccess,
+		Configs: *confJson,
+	}
+
+	if err := enc.Encode(answer); err != nil {
+		return fmt.Errorf("print json: %w", err)
 	}
 
 	if _, err := fmt.Println(); err != nil {
@@ -569,7 +609,6 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 	shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	pcors bool,
 	webDir string,
-	idleTimer *time.Timer,
 	allowedAddr string,
 ) http.Handler {
 	// load embedded swagger file
@@ -604,34 +643,29 @@ func initSwaggerAPI(db *storage.BrigadeStorage,
 		return keydesk.GetUsersStats(db, params, principal)
 	})
 
+	handler := maintenanceMiddleware(
+		api.Serve(nil),
+		"/.maintenance",
+		filepath.Dir(db.BrigadeFilename)+"/.maintenance",
+	)
+
 	switch pcors {
 	case true:
 		return cors.AllowAll().Handler(
-			uiMiddleware(api.Serve(nil), webDir, idleTimer, allowedAddr),
+			uiMiddleware(handler, webDir, allowedAddr),
 		)
 	default:
-		return uiMiddleware(api.Serve(nil), webDir, idleTimer, allowedAddr)
+		return uiMiddleware(handler, webDir, allowedAddr)
 	}
 }
 
-func uiMiddleware(handler http.Handler, dir string, idleTimer *time.Timer, allowedAddr string) http.Handler {
+func uiMiddleware(handler http.Handler, dir string, allowedAddr string) http.Handler {
 	staticFS := http.Dir(dir)
-	mu := sync.Mutex{}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-
-		if !idleTimer.Stop() {
-			<-idleTimer.C
-		}
-
-		idleTimer.Reset(keydesk.MaxIdlePeriod)
-
-		mu.Unlock()
-
 		remoteAddrPort, err := netip.ParseAddrPort(r.RemoteAddr)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)
+			_, _ = fmt.Fprintf(os.Stderr, "Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 
 			return
@@ -640,8 +674,8 @@ func uiMiddleware(handler http.Handler, dir string, idleTimer *time.Timer, allow
 		remoteAddr := remoteAddrPort.Addr().String()
 
 		if allowedAddr != "" && remoteAddr != allowedAddr {
-			fmt.Fprintf(os.Stderr, "Connect From: %s Restricted\n", r.RemoteAddr)
-			fmt.Fprintf(os.Stderr, "Remote: %s Expected:%s\n", remoteAddr, allowedAddr)
+			_, _ = fmt.Fprintf(os.Stderr, "Connect From: %s Restricted\n", r.RemoteAddr)
+			_, _ = fmt.Fprintf(os.Stderr, "Remote: %s Expected:%s\n", remoteAddr, allowedAddr)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 
 			return
@@ -663,8 +697,24 @@ func uiMiddleware(handler http.Handler, dir string, idleTimer *time.Timer, allow
 			return
 		}
 
-		fmt.Fprintf(os.Stderr, "Connect From: %s\n", r.RemoteAddr)
+		_, _ = fmt.Fprintf(os.Stderr, "Connect From: %s\n", r.RemoteAddr)
 
+		handler.ServeHTTP(w, r)
+	})
+}
+
+func maintenanceMiddleware(handler http.Handler, paths ...string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ok, till := maintenance.CheckInPaths(paths...)
+		if ok {
+			me := maintenance.NewError(till)
+			w.Header().Set("Retry-After", me.RetryAfter().String())
+			w.WriteHeader(http.StatusServiceUnavailable)
+			if err := json.NewEncoder(w).Encode(me); err != nil {
+				_, _ = fmt.Fprintln(os.Stderr, "encode maintenance error:", err)
+			}
+			return
+		}
 		handler.ServeHTTP(w, r)
 	})
 }

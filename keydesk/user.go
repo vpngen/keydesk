@@ -7,9 +7,11 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/vpngen/keydesk/internal/maintenance"
 	"math"
 	"net/url"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/google/uuid"
@@ -62,6 +64,10 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 
 // AddBrigadier - create brigadier user.
 func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgenerator.Person, replaceBrigadier bool, reqVpnCfgs *storage.ConfigsImplemented, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, *models.Newuser, error) {
+	if ok, till := maintenance.CheckInPaths("/.maintenance", filepath.Dir(db.BrigadeFilename)+"/.maintenance"); ok {
+		return "", "", nil, maintenance.NewError(till)
+	}
+
 	dbVpnCfgs, err := db.GetVpnConfigs(reqVpnCfgs)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("get vpn configs: %w", err)

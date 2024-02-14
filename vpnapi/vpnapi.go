@@ -10,7 +10,6 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
-	"sync/atomic"
 	"time"
 )
 
@@ -43,6 +42,7 @@ func CalcAPIAddrPort(addr netip.Addr) netip.AddrPort {
 	return netip.AddrPortFrom(netip.AddrFrom16(buf), endpointPort)
 }
 
+/*
 var serial uint32 = 0
 
 func nextSerial() uint32 {
@@ -59,11 +59,14 @@ func nextSerial() uint32 {
 		return x
 	}
 }
+*/
 
 func getAPIRequest(ident string, actualAddrPort, calculatedAddrPort netip.AddrPort, query string) ([]byte, error) {
-	if !actualAddrPort.Addr().IsValid() || actualAddrPort.Addr().Compare(calculatedAddrPort.Addr()) != 0 || actualAddrPort.Port() != calculatedAddrPort.Port() {
-		fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", calculatedAddrPort)
-	}
+	/*
+		if !actualAddrPort.Addr().IsValid() || actualAddrPort.Addr().Compare(calculatedAddrPort.Addr()) != 0 || actualAddrPort.Port() != calculatedAddrPort.Port() {
+			fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", calculatedAddrPort)
+		}
+	*/
 
 	if !actualAddrPort.Addr().IsValid() {
 		fmt.Fprintf(os.Stderr, "Test Request: %s\n", &url.URL{
@@ -75,7 +78,7 @@ func getAPIRequest(ident string, actualAddrPort, calculatedAddrPort netip.AddrPo
 		return []byte("{}"), nil
 	}
 
-	fmt.Fprintf(os.Stderr, "API endpoint actual: %s\n", actualAddrPort)
+	// fmt.Fprintf(os.Stderr, "API endpoint actual: %s\n", actualAddrPort)
 
 	apiURL := &url.URL{
 		Scheme:   "http",
@@ -88,9 +91,8 @@ func getAPIRequest(ident string, actualAddrPort, calculatedAddrPort netip.AddrPo
 		return nil, fmt.Errorf("new req: %w", err)
 	}
 
-	num := nextSerial()
-
-	fmt.Fprintf(os.Stderr, "Request (%s | n=%04x): %s\n", ident, num, apiURL)
+	// num := nextSerial()
+	// fmt.Fprintf(os.Stderr, "Request (%s | n=%04x): %s\n", ident, num, apiURL)
 
 	c := &http.Client{
 		Transport: &http.Transport{
@@ -109,7 +111,7 @@ func getAPIRequest(ident string, actualAddrPort, calculatedAddrPort netip.AddrPo
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 
-	fmt.Fprintf(os.Stderr, "Response (%s | n=%04x): %s\n", ident, num, body)
+	// fmt.Fprintf(os.Stderr, "Response (%s | n=%04x): %s\n", ident, num, body)
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("resp code: %w", err)

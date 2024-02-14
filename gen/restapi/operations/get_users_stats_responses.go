@@ -108,6 +108,51 @@ func (o *GetUsersStatsInternalServerError) WriteResponse(rw http.ResponseWriter,
 	rw.WriteHeader(500)
 }
 
+// GetUsersStatsServiceUnavailableCode is the HTTP code returned for type GetUsersStatsServiceUnavailable
+const GetUsersStatsServiceUnavailableCode int = 503
+
+/*
+GetUsersStatsServiceUnavailable Maintenance
+
+swagger:response getUsersStatsServiceUnavailable
+*/
+type GetUsersStatsServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.MaintenanceError `json:"body,omitempty"`
+}
+
+// NewGetUsersStatsServiceUnavailable creates GetUsersStatsServiceUnavailable with default headers values
+func NewGetUsersStatsServiceUnavailable() *GetUsersStatsServiceUnavailable {
+
+	return &GetUsersStatsServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the get users stats service unavailable response
+func (o *GetUsersStatsServiceUnavailable) WithPayload(payload *models.MaintenanceError) *GetUsersStatsServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get users stats service unavailable response
+func (o *GetUsersStatsServiceUnavailable) SetPayload(payload *models.MaintenanceError) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetUsersStatsServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 /*
 GetUsersStatsDefault error
 

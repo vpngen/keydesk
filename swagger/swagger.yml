@@ -14,6 +14,10 @@ paths:
           description: Token created.
           schema:
             $ref: "#/definitions/token"
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
         500:
           description: 'Internal server error'
         default:
@@ -35,6 +39,10 @@ paths:
                   $ref: "#/definitions/user"
         403: 
           description: 'You do not have necessary permissions for the resource'
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
         500:
           description: 'Internal server error'
         default:
@@ -53,6 +61,10 @@ paths:
             $ref: "#/definitions/newuser"
         403: 
           description: 'You do not have necessary permissions for the resource'
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
         500:
           description: 'Internal server error'
         default:
@@ -76,6 +88,10 @@ paths:
           description: User deleted.
         403: 
           description: 'You do not have necessary permissions for the resource'
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
         500:
           description: 'Internal server error'
         default:
@@ -95,6 +111,10 @@ paths:
             $ref: "#/definitions/stats"
         403: 
           description: 'You do not have necessary permissions for the resource'
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
         500:
           description: 'Internal server error'
         default:
@@ -252,6 +272,19 @@ definitions:
       code:
         type: integer
       message:
+        type: string
+  maintenance_error:
+    type: object
+    required:
+      - code
+      - message
+      - retry_after
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+      retry_after:
         type: string
 
 securityDefinitions:

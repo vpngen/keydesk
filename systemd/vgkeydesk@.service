@@ -1,12 +1,19 @@
 [Unit]
 Description = VPNGen Keydesk
-Requires=%p@.socket
 
 [Service]
 User=%i
 Group=%i
+
 WorkingDirectory=/home/%i
+
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
 ExecStart = /opt/vgkeydesk/keydesk
+
+StartLimitIntervalSec=10s
+StartLimitBurst==infinity
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

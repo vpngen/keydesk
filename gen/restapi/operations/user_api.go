@@ -63,6 +63,9 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 		GetSubscriptionHandler: GetSubscriptionHandlerFunc(func(params GetSubscriptionParams) middleware.Responder {
 			return middleware.NotImplemented("operation GetSubscription has not yet been implemented")
 		}),
+		MarkMessageAsReadHandler: MarkMessageAsReadHandlerFunc(func(params MarkMessageAsReadParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation MarkMessageAsRead has not yet been implemented")
+		}),
 		PostSubscriptionHandler: PostSubscriptionHandlerFunc(func(params PostSubscriptionParams) middleware.Responder {
 			return middleware.NotImplemented("operation PostSubscription has not yet been implemented")
 		}),
@@ -136,6 +139,8 @@ type UserAPI struct {
 	GetMessagesHandler GetMessagesHandler
 	// GetSubscriptionHandler sets the operation handler for the get subscription operation
 	GetSubscriptionHandler GetSubscriptionHandler
+	// MarkMessageAsReadHandler sets the operation handler for the mark message as read operation
+	MarkMessageAsReadHandler MarkMessageAsReadHandler
 	// PostSubscriptionHandler sets the operation handler for the post subscription operation
 	PostSubscriptionHandler PostSubscriptionHandler
 	// PutMessageHandler sets the operation handler for the put message operation
@@ -243,6 +248,9 @@ func (o *UserAPI) Validate() error {
 	}
 	if o.GetSubscriptionHandler == nil {
 		unregistered = append(unregistered, "GetSubscriptionHandler")
+	}
+	if o.MarkMessageAsReadHandler == nil {
+		unregistered = append(unregistered, "MarkMessageAsReadHandler")
 	}
 	if o.PostSubscriptionHandler == nil {
 		unregistered = append(unregistered, "PostSubscriptionHandler")
@@ -378,6 +386,10 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/subscription"] = NewGetSubscription(o.context, o.GetSubscriptionHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/messages/{id}/read"] = NewMarkMessageAsRead(o.context, o.MarkMessageAsReadHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

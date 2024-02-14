@@ -303,6 +303,87 @@ func TestMessages(t *testing.T) {
 			}
 		})
 	})
+
+	t.Run("mark as read", func(t *testing.T) {
+		if token == "" {
+			t.Run("get token", func(t *testing.T) {
+				res, err := kdClient.Operations.PostToken(&operations.PostTokenParams{
+					Context: ctx,
+				})
+				if err != nil {
+					t.Fatalf("get token: %s", err)
+				}
+				if res.Payload.Token == nil {
+					t.Fatalf("expected token, got nil")
+				}
+				token = *res.Payload.Token
+			})
+		}
+
+		var id int
+
+		t.Run("get last message", func(t *testing.T) {
+			res, err := kdClient.Operations.GetMessages(
+				&operations.GetMessagesParams{
+					Context: ctx,
+					Offset:  swag.Int64(0),
+					Limit:   swag.Int64(1),
+					Read:    swag.Bool(false),
+				},
+				client2.BearerToken(token),
+			)
+			if err != nil {
+				t.Fatalf("get messages: %s", err)
+			}
+			if len(res.Payload.Messages) != 1 {
+				t.Fatalf("expected total %d messages, got %d", 1, len(res.Payload.Messages))
+			}
+			if res.Payload.Messages[0].IsRead {
+				t.Errorf("expected unread message, got read")
+			}
+			if res.Payload.Messages[0].ID == 0 {
+				t.Errorf("expected message id, got 0")
+			}
+			id = int(res.Payload.Messages[0].ID)
+		})
+
+		t.Run("mark", func(t *testing.T) {
+			res, err := kdClient.Operations.MarkMessageAsRead(
+				&operations.MarkMessageAsReadParams{
+					Context: ctx,
+					ID:      int64(id),
+				},
+				client2.BearerToken(token),
+			)
+			if err != nil {
+				t.Fatalf("mark message as read: %s", err)
+			}
+			if res.Code() != http.StatusOK {
+				t.Errorf("expected status code %d, got %d", http.StatusOK, res.Code())
+			}
+		})
+
+		t.Run("check message is read", func(t *testing.T) {
+			res, err := kdClient.Operations.GetMessages(
+				&operations.GetMessagesParams{
+					Context: ctx,
+					Offset:  swag.Int64(0),
+					Limit:   swag.Int64(1),
+					Read:    swag.Bool(true),
+				},
+				client2.BearerToken(token),
+			)
+			if err != nil {
+				t.Fatalf("get messages: %s", err)
+			}
+			if len(res.Payload.Messages) != 1 {
+				t.Fatalf("expected total %d messages, got %d", 1, len(res.Payload.Messages))
+			}
+			if !res.Payload.Messages[0].IsRead {
+				t.Errorf("expected read message is read, got unread")
+			}
+		})
+	})
 }
 
 func TestPush(t *testing.T) {

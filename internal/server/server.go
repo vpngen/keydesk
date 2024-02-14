@@ -89,6 +89,9 @@ func NewServer(
 			Priority: int(params.Message.Priority),
 		})
 	})
+	api.MarkMessageAsReadHandler = operations.MarkMessageAsReadHandlerFunc(func(params operations.MarkMessageAsReadParams, principal interface{}) middleware.Responder {
+		return keydesk.MarkAsRead(msgSvc, int(params.ID))
+	})
 
 	api.PostSubscriptionHandler = operations.PostSubscriptionHandlerFunc(func(params operations.PostSubscriptionParams) middleware.Responder {
 		return keydesk.PostSubscription(pushSvc, webpush.Subscription{

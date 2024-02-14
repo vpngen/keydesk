@@ -19,6 +19,9 @@ import (
 // swagger:model Message
 type Message struct {
 
+	// id
+	ID int64 `json:"id,omitempty"`
+
 	// is read
 	IsRead bool `json:"is_read,omitempty"`
 

@@ -135,6 +135,37 @@ func init() {
         }
       }
     },
+    "/messages/{id}/read": {
+      "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "description": "Mark message as read",
+        "summary": "Mark message as read",
+        "operationId": "markMessageAsRead",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/send-push": {
       "post": {
         "description": "Send a push notification",
@@ -410,6 +441,9 @@ func init() {
         "text"
       ],
       "properties": {
+        "id": {
+          "type": "integer"
+        },
         "is_read": {
           "type": "boolean"
         },
@@ -949,6 +983,37 @@ func init() {
         }
       }
     },
+    "/messages/{id}/read": {
+      "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "description": "Mark message as read",
+        "summary": "Mark message as read",
+        "operationId": "markMessageAsRead",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/send-push": {
       "post": {
         "description": "Send a push notification",
@@ -1224,6 +1289,9 @@ func init() {
         "text"
       ],
       "properties": {
+        "id": {
+          "type": "integer"
+        },
         "is_read": {
           "type": "boolean"
         },

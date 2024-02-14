@@ -264,6 +264,7 @@ type LastActivityPoints struct {
 }
 
 type Message struct {
+	ID        int           `json:"id"`
 	Text      string        `json:"text"`
 	IsRead    bool          `json:"is_read"`
 	Priority  int           `json:"priority"`

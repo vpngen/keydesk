@@ -1,6 +1,7 @@
 package keydesk
 
 import (
+	"errors"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -8,6 +9,7 @@ import (
 	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/keydesk/message"
 	"github.com/vpngen/keydesk/keydesk/storage"
+	"net/http"
 )
 
 func GetMessages(
@@ -25,6 +27,7 @@ func GetMessages(
 	ret := make([]*models.Message, 0, len(messages))
 	for _, v := range messages {
 		ret = append(ret, &models.Message{
+			ID:       int64(v.ID),
 			Text:     swag.String(v.Text),
 			IsRead:   v.IsRead,
 			Priority: int64(v.Priority),
@@ -45,4 +48,22 @@ func CreateMessage(s message.Service, m storage.Message) middleware.Responder {
 		return operations.NewPostUserInternalServerError()
 	}
 	return operations.NewPutMessageOK()
+}
+
+func MarkAsRead(service message.Service, id int) middleware.Responder {
+	if err := service.MarkAsRead(id); err != nil {
+		switch {
+		case errors.Is(err, message.NotFound):
+			return operations.NewMarkMessageAsReadDefault(http.StatusNotFound).WithPayload(&models.Error{
+				Code:    http.StatusNotFound,
+				Message: swag.String(err.Error()),
+			})
+		default:
+			return operations.NewMarkMessageAsReadDefault(http.StatusInternalServerError).WithPayload(&models.Error{
+				Code:    http.StatusInternalServerError,
+				Message: swag.String(err.Error()),
+			})
+		}
+	}
+	return operations.NewMarkMessageAsReadOK()
 }

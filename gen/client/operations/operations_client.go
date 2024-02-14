@@ -44,6 +44,8 @@ type ClientService interface {
 
 	GetSubscription(params *GetSubscriptionParams, opts ...ClientOption) (*GetSubscriptionOK, error)
 
+	MarkMessageAsRead(params *MarkMessageAsReadParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*MarkMessageAsReadOK, error)
+
 	PostSubscription(params *PostSubscriptionParams, opts ...ClientOption) (*PostSubscriptionOK, error)
 
 	PutMessage(params *PutMessageParams, opts ...ClientOption) (*PutMessageOK, error)
@@ -321,6 +323,46 @@ func (a *Client) GetSubscription(params *GetSubscriptionParams, opts ...ClientOp
 	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
 	msg := fmt.Sprintf("unexpected success response for getSubscription: API contract not enforced by server. Client expected to get an error, but got: %T", result)
 	panic(msg)
+}
+
+/*
+MarkMessageAsRead marks message as read
+
+Mark message as read
+*/
+func (a *Client) MarkMessageAsRead(params *MarkMessageAsReadParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*MarkMessageAsReadOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewMarkMessageAsReadParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "markMessageAsRead",
+		Method:             "POST",
+		PathPattern:        "/messages/{id}/read",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &MarkMessageAsReadReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*MarkMessageAsReadOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*MarkMessageAsReadDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*

@@ -193,6 +193,25 @@ paths:
           description: error
           schema:
             $ref: "#/definitions/error"
+  /messages/{id}/read:
+    post:
+      summary: Mark message as read
+      description: Mark message as read
+      operationId: markMessageAsRead
+      security:
+        - Bearer: [ ]
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+      responses:
+        200:
+          description: OK
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
   /subscription:
     post:
       summary: Send subscription
@@ -413,6 +432,8 @@ definitions:
   Message:
     type: object
     properties:
+      id:
+        type: integer
       text:
         type: string
       is_read:

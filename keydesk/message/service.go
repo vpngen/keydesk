@@ -1,6 +1,7 @@
 package message
 
 import (
+	"errors"
 	"fmt"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/filter"
@@ -144,6 +145,7 @@ func sortMessages(result []storage.Message, sortTime, sortPriority *string) ([]s
 func (s Service) CreateMessage(text string, ttl time.Duration, priority int) error {
 	return s.transaction(func(brigade *storage.Brigade) error {
 		brigade.Messages = append(brigade.Messages, storage.Message{
+			ID:        len(brigade.Messages) + 1,
 			Text:      text,
 			Priority:  priority,
 			CreatedAt: time.Now(),
@@ -161,4 +163,18 @@ func cleanupMessages(messages []storage.Message) []storage.Message {
 		notOlder(24*time.Hour*30).IfOrTrue(noTTL()),
 		firstN(100),
 	)
+}
+
+var NotFound = errors.New("not found")
+
+func (s Service) MarkAsRead(id int) error {
+	return s.transaction(func(brigade *storage.Brigade) error {
+		for i, message := range brigade.Messages {
+			if message.ID == id {
+				brigade.Messages[i].IsRead = true
+				return nil
+			}
+		}
+		return NotFound
+	})
 }

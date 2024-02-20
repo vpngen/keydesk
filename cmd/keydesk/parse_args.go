@@ -22,26 +22,31 @@ import (
 )
 
 type flags struct {
-	webDir           *string
-	etcDir           *string
-	filedbDir        *string
-	certDir          *string
-	statsDir         *string
-	pcors            *bool
-	brigadeID        *string
-	listenAddr       *string
+	webDir    *string
+	etcDir    *string
+	filedbDir *string
+	certDir   *string
+	statsDir  *string
+
+	pcors      *bool
+	brigadeID  *string
+	listenAddr *string
+
 	brigadierName    *string
 	personName       *string
 	personDesc       *string
 	personURL        *string
 	replaceBrigadier *bool
-	addr             *string
-	chunked          *bool
-	jsonOut          *bool
-	wgcCfgs          *string
-	ovcCfgs          *string
-	ipsecCfgs        *string
-	outlineCfgs      *string
+
+	addr *string
+
+	chunked *bool
+	jsonOut *bool
+
+	wgcCfgs     *string
+	ovcCfgs     *string
+	ipsecCfgs   *string
+	outlineCfgs *string
 }
 
 func parseFlags() flags {

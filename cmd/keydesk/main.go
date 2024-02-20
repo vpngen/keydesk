@@ -57,9 +57,6 @@ const (
 	TLSKeyFilename   = "vpn.works.key"
 )
 
-// ErrStaticDirEmpty - no static dir name.
-var ErrStaticDirEmpty = goerrors.New("empty static dirname")
-
 // Args errors.
 var (
 	ErrInvalidBrigadierName = goerrors.New("invalid brigadier name")
@@ -69,6 +66,7 @@ var (
 	ErrInvalidPersonName    = goerrors.New("invalid person name")
 	ErrInvalidPersonDesc    = goerrors.New("invalid person desc")
 	ErrInvalidPersonURL     = goerrors.New("invalid person url")
+	ErrStaticDirEmpty       = goerrors.New("empty static dirname")
 )
 
 func main() {

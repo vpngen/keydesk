@@ -99,119 +99,40 @@ type config struct {
 func parseArgs2(flags flags) (config, error) {
 	var cfg config
 
+	cfg.chunked = *flags.chunked
+	cfg.jsonOut = *flags.jsonOut
+	cfg.enableCORS = *flags.pcors
+
 	sysUser, err := user.Current()
 	if err != nil {
 		return cfg, fmt.Errorf("cannot define user: %w", err)
 	}
 
-	vpnCfgs := storage.NewConfigsImplemented()
-
-	if *flags.wgcCfgs != "" {
-		vpnCfgs.AddWg(*flags.wgcCfgs)
-	}
-
-	if *flags.ovcCfgs != "" {
-		vpnCfgs.AddOvc(*flags.ovcCfgs)
-	}
-
-	if *flags.ipsecCfgs != "" {
-		vpnCfgs.AddIPSec(*flags.ipsecCfgs)
-	}
-
-	if *flags.outlineCfgs != "" {
-		vpnCfgs.AddOutline(*flags.outlineCfgs)
-	}
+	cfg.vpnConfigs = parseVPNConfigs(flags)
 
 	if *flags.webDir == "" {
 		return cfg, ErrStaticDirEmpty
 	}
 
-	cfg.webDir, err = filepath.Abs(*flags.webDir)
+	cfg, err = getAbsDirPaths(cfg, flags)
 	if err != nil {
-		return cfg, fmt.Errorf("web dir: %w", err)
-	}
-
-	if *flags.filedbDir != "" {
-		cfg.dbDir, err = filepath.Abs(*flags.filedbDir)
-		if err != nil {
-			return cfg, fmt.Errorf("dbdir dir: %w", err)
-		}
-	}
-
-	if *flags.etcDir != "" {
-		cfg.etcDir, err = filepath.Abs(*flags.etcDir)
-		if err != nil {
-			return cfg, fmt.Errorf("etcdir dir: %w", err)
-		}
-	}
-
-	if *flags.certDir != "" {
-		cfg.certDir, err = filepath.Abs(*flags.certDir)
-		if err != nil {
-			return cfg, fmt.Errorf("statdir dir: %w", err)
-		}
-	}
-
-	if *flags.statsDir != "" {
-		cfg.statsDir, err = filepath.Abs(*flags.statsDir)
-		if err != nil {
-			return cfg, fmt.Errorf("statdir dir: %w", err)
-		}
+		return cfg, err
 	}
 
 	switch *flags.brigadeID {
 	case "", sysUser.Username:
 		cfg.id = sysUser.Username
-
-		if *flags.filedbDir == "" {
-			cfg.dbDir = filepath.Join(storage.DefaultHomeDir, cfg.id)
-		}
-
-		if *flags.etcDir == "" {
-			cfg.etcDir = keydesk.DefaultEtcDir
-		}
-
-		if *flags.certDir == "" {
-			cfg.certDir = DefaultCertDir
-		}
-
-		if *flags.statsDir == "" {
-			cfg.statsDir = filepath.Join(storage.DefaultStatsDir, cfg.id)
-		}
+		cfg = setDefaultDirs(flags, cfg)
 	default:
 		cfg.id = *flags.brigadeID
-
-		cwd, err := os.Getwd()
-		if err == nil {
-			cwd, _ = filepath.Abs(cwd)
-		}
-
-		if *flags.filedbDir == "" {
-			cfg.dbDir = cwd
-		}
-
-		if *flags.etcDir == "" {
-			cfg.etcDir = cwd
-		}
-
-		if *flags.certDir == "" {
-			cfg.certDir = cwd
-		}
-
-		if *flags.statsDir == "" {
-			cfg.statsDir = cwd
+		cfg, err = setDirsCWD(flags, cfg)
+		if err != nil {
+			return cfg, err
 		}
 	}
 
-	// brigadeID must be base32 decodable.
-	binID, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(cfg.id)
-	if err != nil {
-		return cfg, fmt.Errorf("id base32: %s: %w", cfg.id, err)
-	}
-
-	_, err = uuid.FromBytes(binID)
-	if err != nil {
-		return cfg, fmt.Errorf("id uuid: %s: %w", cfg.id, err)
+	if err = checkBase32EncodedUUID(cfg.id); err != nil {
+		return cfg, err
 	}
 
 	if *flags.addr != "-" {
@@ -221,10 +142,10 @@ func parseArgs2(flags flags) (config, error) {
 		}
 	}
 
-	cfg.chunked = *flags.chunked
-	cfg.jsonOut = *flags.jsonOut
-	cfg.enableCORS = *flags.pcors
-
+	/*
+		TODO
+		do we have to return here?
+	*/
 	if *flags.replaceBrigadier {
 		cfg.replaceBrigadier = true
 		return cfg, nil
@@ -262,65 +183,192 @@ func parseArgs2(flags flags) (config, error) {
 	}
 
 	if *flags.brigadierName != "" {
-		buf, err := base64.StdEncoding.DecodeString(*flags.brigadierName)
+		cfg.brigadierName, err = decodeBas64AndCheck(*flags.brigadierName)
 		if err != nil {
-			return cfg, fmt.Errorf("brigadier name: %w", err)
-		}
-
-		if !utf8.Valid(buf) {
 			return cfg, ErrInvalidBrigadierName
 		}
-
-		cfg.brigadierName = string(buf)
 	}
 
-	if *flags.personName != "" {
-		buf, err := base64.StdEncoding.DecodeString(*flags.personName)
-		if err != nil {
-			return cfg, fmt.Errorf("person name: %w", err)
-		}
+	cfg, err = parsePerson(flags, cfg)
+	if err != nil {
+		return cfg, err
+	}
 
-		if !utf8.Valid(buf) {
+	return cfg, nil
+}
+
+func parseVPNConfigs(flags flags) *storage.ConfigsImplemented {
+	vpnCfgs := storage.NewConfigsImplemented()
+
+	if *flags.wgcCfgs != "" {
+		vpnCfgs.AddWg(*flags.wgcCfgs)
+	}
+
+	if *flags.ovcCfgs != "" {
+		vpnCfgs.AddOvc(*flags.ovcCfgs)
+	}
+
+	if *flags.ipsecCfgs != "" {
+		vpnCfgs.AddIPSec(*flags.ipsecCfgs)
+	}
+
+	if *flags.outlineCfgs != "" {
+		vpnCfgs.AddOutline(*flags.outlineCfgs)
+	}
+
+	return vpnCfgs
+}
+
+func getAbsDirPaths(cfg config, flags flags) (config, error) {
+	var err error
+
+	cfg.webDir, err = filepath.Abs(*flags.webDir)
+	if err != nil {
+		return cfg, fmt.Errorf("web dir: %w", err)
+	}
+
+	if *flags.filedbDir != "" {
+		cfg.dbDir, err = filepath.Abs(*flags.filedbDir)
+		if err != nil {
+			return cfg, fmt.Errorf("db dir: %w", err)
+		}
+	}
+
+	if *flags.etcDir != "" {
+		cfg.etcDir, err = filepath.Abs(*flags.etcDir)
+		if err != nil {
+			return cfg, fmt.Errorf("etc dir: %w", err)
+		}
+	}
+
+	if *flags.certDir != "" {
+		cfg.certDir, err = filepath.Abs(*flags.certDir)
+		if err != nil {
+			return cfg, fmt.Errorf("cert dir: %w", err)
+		}
+	}
+
+	if *flags.statsDir != "" {
+		cfg.statsDir, err = filepath.Abs(*flags.statsDir)
+		if err != nil {
+			return cfg, fmt.Errorf("stat dir: %w", err)
+		}
+	}
+
+	return cfg, nil
+}
+
+func setDefaultDirs(flags flags, cfg config) config {
+	if *flags.filedbDir == "" {
+		cfg.dbDir = filepath.Join(storage.DefaultHomeDir, cfg.id)
+	}
+
+	if *flags.etcDir == "" {
+		cfg.etcDir = keydesk.DefaultEtcDir
+	}
+
+	if *flags.certDir == "" {
+		cfg.certDir = DefaultCertDir
+	}
+
+	if *flags.statsDir == "" {
+		cfg.statsDir = filepath.Join(storage.DefaultStatsDir, cfg.id)
+	}
+
+	return cfg
+}
+
+func setDirsCWD(flags flags, cfg config) (config, error) {
+	cwd, err := os.Getwd()
+	/*
+		TODO
+		do we have to handle this error?
+		if err != nil {
+			return cfg, fmt.Errorf("get cwd: %w", err)
+		}
+		would this break anything?
+	*/
+	if err == nil {
+		cwd, err = filepath.Abs(cwd)
+		if err != nil {
+			return cfg, fmt.Errorf("get abs cwd: %w", err)
+		}
+	}
+
+	if *flags.filedbDir == "" {
+		cfg.dbDir = cwd
+	}
+
+	if *flags.etcDir == "" {
+		cfg.etcDir = cwd
+	}
+
+	if *flags.certDir == "" {
+		cfg.certDir = cwd
+	}
+
+	if *flags.statsDir == "" {
+		cfg.statsDir = cwd
+	}
+
+	return cfg, nil
+}
+
+func checkBase32EncodedUUID(s string) error {
+	binID, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(s)
+	if err != nil {
+		return fmt.Errorf("id base32: %s: %w", s, err)
+	}
+
+	_, err = uuid.FromBytes(binID)
+	if err != nil {
+		return fmt.Errorf("id uuid: %s: %w", s, err)
+	}
+
+	return nil
+}
+
+func decodeBas64AndCheck(s string) (string, error) {
+	buf, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return s, fmt.Errorf("person name: %w", err)
+	}
+
+	if !utf8.Valid(buf) {
+		return s, fmt.Errorf("invalid utf8")
+	}
+
+	return string(buf), nil
+}
+
+func parsePerson(flags flags, cfg config) (config, error) {
+	var err error
+
+	if *flags.personName != "" {
+		cfg.person.Name, err = decodeBas64AndCheck(*flags.personName)
+		if err != nil {
 			return cfg, ErrInvalidPersonName
 		}
-
-		cfg.person.Name = string(buf)
 	}
 
 	if *flags.personDesc != "" {
-		buf, err := base64.StdEncoding.DecodeString(*flags.personDesc)
+		cfg.person.Desc, err = decodeBas64AndCheck(*flags.personDesc)
 		if err != nil {
-			return cfg, fmt.Errorf("person desc: %w", err)
-		}
-
-		if !utf8.Valid(buf) {
 			return cfg, ErrInvalidPersonDesc
 		}
-
-		cfg.person.Desc = string(buf)
 	}
 
 	if *flags.personURL != "" {
-		buf, err := base64.StdEncoding.DecodeString(*flags.personURL)
+		cfg.person.URL, err = decodeBas64AndCheck(*flags.personURL)
 		if err != nil {
-			return cfg, fmt.Errorf("person url: %w", err)
-		}
-
-		if !utf8.Valid(buf) {
 			return cfg, ErrInvalidPersonURL
 		}
 
-		u := string(buf)
-
-		_, err = url.Parse(u)
+		_, err = url.Parse(cfg.person.URL)
 		if err != nil {
 			return cfg, fmt.Errorf("parse person url: %w", err)
 		}
-
-		cfg.person.URL = u
 	}
-
-	cfg.vpnConfigs = vpnCfgs
 
 	return cfg, nil
 }

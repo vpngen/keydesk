@@ -15,6 +15,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestParseArgsComparison(t *testing.T) {
+	// TODO: дописать тест, перебрать аргументы
+
 	// Call the original function
 	chunked, jsonOut, enableCORS, listeners, addrPort, id, etcDir, webDir, dbDir, certDir, statsDir, brigadierName, person, replaceBrigadier, _, err := parseArgs(f)
 

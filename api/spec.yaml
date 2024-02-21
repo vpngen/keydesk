@@ -1,0 +1,4 @@
+package: messages
+generate:
+  embedded-spec: true
+output: ../pkg/gen/messages/embedded-spec.gen.go

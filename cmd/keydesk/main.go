@@ -705,9 +705,9 @@ func uiMiddleware(handler http.Handler, dir string, allowedAddr string) http.Han
 
 func maintenanceMiddleware(handler http.Handler, paths ...string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ok, till := maintenance.CheckInPaths(paths...)
+		ok, till, msg := maintenance.CheckInPaths(paths...)
 		if ok {
-			me := maintenance.NewError(till)
+			me := maintenance.NewError(till, msg)
 			w.Header().Set("Retry-After", me.RetryAfter().String())
 			w.WriteHeader(http.StatusServiceUnavailable)
 			if err := json.NewEncoder(w).Encode(me); err != nil {

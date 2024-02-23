@@ -62,17 +62,14 @@ func NewError(till time.Time, msg string) Error {
 }
 
 func (e Error) MarshalJSON() ([]byte, error) {
-	var msg string
-	if e.msg != "" {
-		msg = e.msg
-	} else {
-		msg = e.Error()
-	}
-	return json.Marshal(map[string]any{
-		"message":     msg,
+	data := map[string]any{
 		"till":        e.till,
 		"retry_after": e.RetryAfter().String(),
-	})
+	}
+	if e.msg != "" {
+		data["msg"] = e.msg
+	}
+	return json.Marshal(data)
 }
 
 func (e Error) RetryAfter() time.Duration {

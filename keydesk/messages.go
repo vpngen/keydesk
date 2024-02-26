@@ -8,7 +8,6 @@ import (
 	"github.com/vpngen/keydesk/gen/models"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/keydesk/message"
-	"github.com/vpngen/keydesk/keydesk/storage"
 	"net/http"
 )
 
@@ -42,13 +41,12 @@ func GetMessages(
 	})
 }
 
-func CreateMessage(s message.Service, m storage.Message) middleware.Responder {
-	// TODO: check if brigadier is online and send message without saving
-	if err := s.CreateMessage(m.Text, m.TTL, m.Priority); err != nil {
-		return operations.NewPostUserInternalServerError()
-	}
-	return operations.NewPutMessageOK()
-}
+//func CreateMessage(s message.Service, m storage.Message) middleware.Responder {
+//	if err := s.CreateMessage(m.Text, m.TTL, m.Priority); err != nil {
+//		return operations.NewPostUserInternalServerError()
+//	}
+//	return operations.NewPutMessageOK()
+//}
 
 func MarkAsRead(service message.Service, id int) middleware.Responder {
 	if err := service.MarkAsRead(id); err != nil {

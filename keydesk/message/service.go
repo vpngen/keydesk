@@ -69,10 +69,10 @@ func messagePriorityLess(messages []storage.Message, asc bool) func(i, j int) bo
 }
 
 func (s Service) GetMessages(
-	offset, limit int,
+	offset, limit int64,
 	read *bool,
-	priority map[string]int,
-	sortParams map[string]bool,
+	priority *int64, priorityOp string,
+	sortTime, sortPriority *string,
 ) ([]storage.Message, int, error) {
 	var result []storage.Message
 
@@ -89,19 +89,62 @@ func (s Service) GetMessages(
 		filters = append(filters, isReadFilter(*read))
 	}
 
-	for op, num := range priority {
-		filters = append(filters, priorityFilter(op, num))
+	if priority != nil {
+		filters = append(filters, priorityFilter(priorityOp, int(*priority)))
 	}
 
 	result = filter.Filter(result, filters...)
+
+	var sortParams map[string]bool
+	if sortTime != nil {
+		sortParams = map[string]bool{"time": *sortTime == "desc"}
+	}
+	if sortPriority != nil {
+		sortParams["priority"] = *sortPriority == "desc"
+	}
 
 	result, err := sortMessagesFactory(result, sortParams)
 	if err != nil {
 		return nil, 0, fmt.Errorf("sort messages: %w", err)
 	}
 
-	return paginate(result, offset, limit), len(result), nil
+	return paginate(result, int(offset), int(limit)), len(result), nil
 }
+
+//func (s Service) GetMessages2(
+//	offset, limit int,
+//	read *bool,
+//	priority map[string]int,
+//	sortParams map[string]bool,
+//) ([]storage.Message, int, error) {
+//	var result []storage.Message
+//
+//	if err := s.transaction(func(brigade *storage.Brigade) error {
+//		result = brigade.Messages
+//		return nil
+//	}); err != nil {
+//		return nil, 0, err
+//	}
+//
+//	var filters []filter.Func[storage.Message]
+//
+//	if read != nil {
+//		filters = append(filters, isReadFilter(*read))
+//	}
+//
+//	for op, num := range priority {
+//		filters = append(filters, priorityFilter(op, num))
+//	}
+//
+//	result = filter.Filter(result, filters...)
+//
+//	result, err := sortMessagesFactory(result, sortParams)
+//	if err != nil {
+//		return nil, 0, fmt.Errorf("sort messages: %w", err)
+//	}
+//
+//	return paginate(result, offset, limit), len(result), nil
+//}
 
 func sortFuncFactory(current, new func(i, j int) bool) func(i, j int) bool {
 	if current == nil {

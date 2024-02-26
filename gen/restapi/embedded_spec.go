@@ -104,35 +104,6 @@ func init() {
             "$ref": "#/definitions/error"
           }
         }
-      },
-      "put": {
-        "description": "Create a message, triggered by management. If client is online, send message, else store message.",
-        "consumes": [
-          "application/json"
-        ],
-        "summary": "Create a message",
-        "operationId": "putMessage",
-        "parameters": [
-          {
-            "description": "The user to create.",
-            "name": "message",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/Message"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "default": {
-            "description": "error",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
       }
     },
     "/messages/{id}/read": {
@@ -950,35 +921,6 @@ func init() {
           },
           "500": {
             "description": ""
-          }
-        }
-      },
-      "put": {
-        "description": "Create a message, triggered by management. If client is online, send message, else store message.",
-        "consumes": [
-          "application/json"
-        ],
-        "summary": "Create a message",
-        "operationId": "putMessage",
-        "parameters": [
-          {
-            "description": "The user to create.",
-            "name": "message",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/Message"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "default": {
-            "description": "error",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
           }
         }
       }

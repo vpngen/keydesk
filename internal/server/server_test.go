@@ -1,15 +1,12 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
-	"encoding/json"
 	"fmt"
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/go-openapi/runtime"
 	client2 "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/vpngen/keydesk/gen/client"
 	"github.com/vpngen/keydesk/gen/client/operations"
@@ -25,7 +22,6 @@ import (
 	"net/http"
 	"os"
 	"testing"
-	"time"
 )
 
 var kdClient client.KeydeskServer
@@ -67,27 +63,27 @@ func TestMessages(t *testing.T) {
 		}
 	})
 
-	t.Run("create message", func(t *testing.T) {
-		buf := new(bytes.Buffer)
-		text := "test"
-		if err := json.NewEncoder(buf).Encode(&models.Message{
-			Text: &text,
-		}); err != nil {
-			t.Fatalf("encode message: %s", err)
-		}
-
-		res, err := kdClient.Operations.PutMessage(&operations.PutMessageParams{
-			Context: ctx,
-			Message: &models.Message{Text: &text, TTL: "5m"},
-		})
-		if err != nil {
-			t.Fatalf("create message: %s", err)
-		}
-
-		if res.Code() != http.StatusOK {
-			t.Errorf("expected status code %d, got %d", http.StatusOK, res.Code())
-		}
-	})
+	//t.Run("create message", func(t *testing.T) {
+	//	buf := new(bytes.Buffer)
+	//	text := "test"
+	//	if err := json.NewEncoder(buf).Encode(&models.Message{
+	//		Text: &text,
+	//	}); err != nil {
+	//		t.Fatalf("encode message: %s", err)
+	//	}
+	//
+	//	res, err := kdClient.Operations.PutMessage(&operations.PutMessageParams{
+	//		Context: ctx,
+	//		Message: &models.Message{Text: &text, TTL: "5m"},
+	//	})
+	//	if err != nil {
+	//		t.Fatalf("create message: %s", err)
+	//	}
+	//
+	//	if res.Code() != http.StatusOK {
+	//		t.Errorf("expected status code %d, got %d", http.StatusOK, res.Code())
+	//	}
+	//})
 
 	t.Run("get messages", func(t *testing.T) {
 		res, err := kdClient.Operations.GetMessages(&operations.GetMessagesParams{
@@ -111,23 +107,23 @@ func TestMessages(t *testing.T) {
 	})
 
 	t.Run("pagination", func(t *testing.T) {
-		t.Run("create 100 messages", func(t *testing.T) {
-			for i := 0; i < 100; i++ {
-				res, err := kdClient.Operations.PutMessage(&operations.PutMessageParams{
-					Context: ctx,
-					Message: &models.Message{
-						Text: swag.String(fmt.Sprintf("test-%d", i)),
-						TTL:  "5m",
-					},
-				})
-				if err != nil {
-					t.Fatalf("create message: %s", err)
-				}
-				if !res.IsSuccess() {
-					t.Errorf("expected status code %d, got %d", http.StatusOK, res.Code())
-				}
-			}
-		})
+		//t.Run("create 100 messages", func(t *testing.T) {
+		//	for i := 0; i < 100; i++ {
+		//		res, err := kdClient.Operations.PutMessage(&operations.PutMessageParams{
+		//			Context: ctx,
+		//			Message: &models.Message{
+		//				Text: swag.String(fmt.Sprintf("test-%d", i)),
+		//				TTL:  "5m",
+		//			},
+		//		})
+		//		if err != nil {
+		//			t.Fatalf("create message: %s", err)
+		//		}
+		//		if !res.IsSuccess() {
+		//			t.Errorf("expected status code %d, got %d", http.StatusOK, res.Code())
+		//		}
+		//	}
+		//})
 
 		for _, perPage := range []int{10, 25, 50} {
 			for _, page := range []int{1, 2, 5, 10} {
@@ -229,24 +225,23 @@ func TestMessages(t *testing.T) {
 	})
 
 	t.Run("sorting", func(t *testing.T) {
-		t.Run("create messages", func(t *testing.T) {
-			now := time.Now()
-			//now = now.Truncate(time.Minute)
-			for i := 0; i < 25; i++ {
-				_, err := kdClient.Operations.PutMessage(&operations.PutMessageParams{
-					Message: &models.Message{
-						Text:     swag.String(fmt.Sprintf("test-%d", i)),
-						Time:     strfmt.DateTime(now.Add(time.Duration(i) * time.Minute)),
-						Priority: int64(i),
-						TTL:      fmt.Sprintf("%dm", i),
-					},
-					Context: ctx,
-				})
-				if err != nil {
-					t.Fatalf("post message: %s", err)
-				}
-			}
-		})
+		//t.Run("create messages", func(t *testing.T) {
+		//	now := time.Now()
+		//	for i := 0; i < 25; i++ {
+		//		_, err := kdClient.Operations.PutMessage(&operations.PutMessageParams{
+		//			Message: &models.Message{
+		//				Text:     swag.String(fmt.Sprintf("test-%d", i)),
+		//				Time:     strfmt.DateTime(now.Add(time.Duration(i) * time.Minute)),
+		//				Priority: int64(i),
+		//				TTL:      fmt.Sprintf("%dm", i),
+		//			},
+		//			Context: ctx,
+		//		})
+		//		if err != nil {
+		//			t.Fatalf("post message: %s", err)
+		//		}
+		//	}
+		//})
 
 		t.Run("get messages", func(t *testing.T) {
 			tests := []struct {

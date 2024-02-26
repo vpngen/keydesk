@@ -69,9 +69,6 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 		PostSubscriptionHandler: PostSubscriptionHandlerFunc(func(params PostSubscriptionParams) middleware.Responder {
 			return middleware.NotImplemented("operation PostSubscription has not yet been implemented")
 		}),
-		PutMessageHandler: PutMessageHandlerFunc(func(params PutMessageParams) middleware.Responder {
-			return middleware.NotImplemented("operation PutMessage has not yet been implemented")
-		}),
 		SendPushHandler: SendPushHandlerFunc(func(params SendPushParams) middleware.Responder {
 			return middleware.NotImplemented("operation SendPush has not yet been implemented")
 		}),
@@ -143,8 +140,6 @@ type UserAPI struct {
 	MarkMessageAsReadHandler MarkMessageAsReadHandler
 	// PostSubscriptionHandler sets the operation handler for the post subscription operation
 	PostSubscriptionHandler PostSubscriptionHandler
-	// PutMessageHandler sets the operation handler for the put message operation
-	PutMessageHandler PutMessageHandler
 	// SendPushHandler sets the operation handler for the send push operation
 	SendPushHandler SendPushHandler
 
@@ -254,9 +249,6 @@ func (o *UserAPI) Validate() error {
 	}
 	if o.PostSubscriptionHandler == nil {
 		unregistered = append(unregistered, "PostSubscriptionHandler")
-	}
-	if o.PutMessageHandler == nil {
-		unregistered = append(unregistered, "PutMessageHandler")
 	}
 	if o.SendPushHandler == nil {
 		unregistered = append(unregistered, "SendPushHandler")
@@ -394,10 +386,6 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/subscription"] = NewPostSubscription(o.context, o.PostSubscriptionHandler)
-	if o.handlers["PUT"] == nil {
-		o.handlers["PUT"] = make(map[string]http.Handler)
-	}
-	o.handlers["PUT"]["/messages"] = NewPutMessage(o.context, o.PutMessageHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

@@ -6,7 +6,7 @@ info:
 #servers:
 #  - url: 'https'
 paths:
-#  /messages:
+  /messages:
 #    get:
 #      summary: Get messages
 #      description: Get messages, triggered by frontend
@@ -30,27 +30,27 @@ paths:
 #            application/json:
 #              schema:
 #                $ref: '#/components/schemas/Error'
-#    post:
-#      summary: Create message
-#      requestBody:
-#        required: true
-#        content:
-#          application/json:
-#            schema:
-#              $ref: '#/components/schemas/CreateMessageRequest'
-#      responses:
-#        200:
-#          description: OK
-#          content:
-#            application/json:
-#              schema:
-#                $ref: '#/components/schemas/Message'
-#        default:
-#          description: error
-#          content:
-#            application/json:
-#              schema:
-#                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMessageRequest'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        default:
+          description: error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /messages/{id}/read:
     post:
       summary: Mark message as read

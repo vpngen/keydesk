@@ -2,7 +2,6 @@ package messages
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-openapi/swag"
 	"github.com/labstack/echo/v4"
 	echomw "github.com/oapi-codegen/echo-middleware"
@@ -29,22 +28,6 @@ func TestMain(m *testing.M) {
 
 func TestMessages(t *testing.T) {
 	ctx := context.Background()
-
-	t.Run("get empty messages", func(t *testing.T) {
-		res, err := client.GetMessagesWithResponse(ctx, nil)
-		if err != nil {
-			t.Fatalf("get messages: %s", err)
-		}
-		if res.StatusCode() != http.StatusOK {
-			t.Fatalf("expected 200, got %d", res.StatusCode())
-		}
-		if res.JSON200 == nil {
-			t.Fatalf("expected non-nil response, got nil")
-		}
-		if len(res.JSON200.Messages) != 0 {
-			t.Fatalf("expected 0 messages, got %d", len(res.JSON200.Messages))
-		}
-	})
 
 	t.Run("create message", func(t *testing.T) {
 		testCases := []struct {
@@ -95,50 +78,6 @@ func TestMessages(t *testing.T) {
 				}
 			})
 		}
-	})
-
-	t.Run("get messages", func(t *testing.T) {
-		t.Run("populate", func(t *testing.T) {
-			for i := 0; i < 50; i++ {
-				_, err := client.PostMessagesWithResponse(ctx, PostMessagesJSONRequestBody{
-					Text:     fmt.Sprint(i + 1),
-					Ttl:      swag.String((time.Duration(i+1) * time.Hour).String()),
-					Priority: swag.Int((i + 1) * 100),
-				})
-				if err != nil {
-					t.Errorf("create message: %s", err)
-				}
-			}
-		})
-
-		pf := PriorityFilter(map[string]int{"ge": 100})
-		t.Run("paging", func(t *testing.T) {
-			for i := 0; i < 5; i++ {
-				res, err := client.GetMessagesWithResponse(ctx, &GetMessagesParams{
-					Offset:   swag.Int(i * 10),
-					Limit:    swag.Int(10),
-					Priority: &pf,
-				})
-				if err != nil {
-					t.Fatalf("get messages: %s", err)
-				}
-				if res.JSON200 == nil {
-					t.Fatalf("expected non-nil response, got nil")
-				}
-				msgs := res.JSON200.Messages
-				if len(msgs) != 10 {
-					t.Errorf("expected 10 messages, got %d", len(msgs))
-				}
-				for j, msg := range msgs {
-					if msg.Priority < 100 {
-						t.Errorf("expected priority > 100, got %d", msg.Priority)
-					}
-					if fmt.Sprint(i*10+j+1) != msg.Text {
-						t.Errorf("expected text %q, got %q", fmt.Sprint(i*10+j+1), msg.Text)
-					}
-				}
-			}
-		})
 	})
 }
 

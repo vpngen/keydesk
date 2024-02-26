@@ -39,11 +39,11 @@ func (s Service) transaction(fn func(brigade *storage.Brigade) error) error {
 	return nil
 }
 
-func paginate(messages []storage.Message, offset, limit int64) []storage.Message {
-	if offset >= int64(len(messages)) {
+func paginate(messages []storage.Message, offset, limit int) []storage.Message {
+	if offset >= len(messages) {
 		return nil
 	}
-	return messages[offset:min(offset+limit, int64(len(messages)))]
+	return messages[offset:min(offset+limit, len(messages))]
 }
 
 func messageTimeLess(messages []storage.Message, asc bool) func(i, j int) bool {
@@ -57,11 +57,22 @@ func messageTimeLess(messages []storage.Message, asc bool) func(i, j int) bool {
 	}
 }
 
+func messagePriorityLess(messages []storage.Message, asc bool) func(i, j int) bool {
+	if asc {
+		return func(i, j int) bool {
+			return messages[i].Priority < messages[j].Priority
+		}
+	}
+	return func(i, j int) bool {
+		return messages[i].Priority > messages[j].Priority
+	}
+}
+
 func (s Service) GetMessages(
-	offset, limit int64,
+	offset, limit int,
 	read *bool,
-	priority *int64, priorityOp string,
-	sortTime, sortPriority *string,
+	priority map[string]int,
+	sortParams map[string]bool,
 ) ([]storage.Message, int, error) {
 	var result []storage.Message
 
@@ -78,13 +89,13 @@ func (s Service) GetMessages(
 		filters = append(filters, isReadFilter(*read))
 	}
 
-	if priority != nil {
-		filters = append(filters, priorityFilter(priorityOp, int(*priority)))
+	for op, num := range priority {
+		filters = append(filters, priorityFilter(op, num))
 	}
 
 	result = filter.Filter(result, filters...)
 
-	result, err := sortMessages(result, sortTime, sortPriority)
+	result, err := sortMessagesFactory(result, sortParams)
 	if err != nil {
 		return nil, 0, fmt.Errorf("sort messages: %w", err)
 	}
@@ -92,67 +103,50 @@ func (s Service) GetMessages(
 	return paginate(result, offset, limit), len(result), nil
 }
 
-func sortMessages(result []storage.Message, sortTime, sortPriority *string) ([]storage.Message, error) {
-	var sortTimeFn func(i, j int) bool
-	if sortTime != nil {
-		switch *sortTime {
-		case "asc":
-			sortTimeFn = messageTimeLess(result, true)
-		case "desc":
-			sortTimeFn = messageTimeLess(result, false)
-		default:
-			return nil, fmt.Errorf("invalid sort time: %s", *sortTime)
-		}
+func sortFuncFactory(current, new func(i, j int) bool) func(i, j int) bool {
+	if current == nil {
+		return new
 	}
-
-	var sortPriorityFn func(i, j int) bool
-	if sortPriority != nil {
-		switch *sortPriority {
-		case "asc":
-			sortPriorityFn = func(i, j int) bool {
-				return result[i].Priority < result[j].Priority
-			}
-		case "desc":
-			sortPriorityFn = func(i, j int) bool {
-				return result[i].Priority > result[j].Priority
-			}
-		default:
-			return nil, fmt.Errorf("invalid sort priority: %s", *sortPriority)
-		}
+	return func(i, j int) bool {
+		return current(i, j) && new(i, j)
 	}
+}
 
+func sortMessagesFactory(result []storage.Message, sortParams map[string]bool) ([]storage.Message, error) {
 	var sortFn func(i, j int) bool
-	if sortTimeFn != nil {
-		sortFn = sortTimeFn
-	}
-	if sortPriorityFn != nil {
-		if sortFn == nil {
-			sortFn = sortPriorityFn
-		} else {
-			sortFn = func(i, j int) bool {
-				return sortPriorityFn(i, j) && sortTimeFn(i, j)
-			}
+	for key, desc := range sortParams {
+		switch key {
+		case "time":
+			sortFn = sortFuncFactory(sortFn, messageTimeLess(result, !desc))
+		case "priority":
+			sortFn = sortFuncFactory(sortFn, messagePriorityLess(result, !desc))
+		default:
+			return nil, fmt.Errorf("invalid sort key: %s", key)
 		}
 	}
-
 	if sortFn != nil {
 		sort.Slice(result, sortFn)
 	}
-
 	return result, nil
 }
 
-func (s Service) CreateMessage(text string, ttl time.Duration, priority int) error {
-	return s.transaction(func(brigade *storage.Brigade) error {
-		brigade.Messages = append(brigade.Messages, storage.Message{
-			ID:        len(brigade.Messages) + 1,
+func (s Service) CreateMessage(text string, ttl time.Duration, priority int) (storage.Message, error) {
+	var msg storage.Message
+	if err := s.transaction(func(brigade *storage.Brigade) error {
+		now := time.Now()
+		msg = storage.Message{
+			ID:        int(now.UnixNano()),
 			Text:      text,
 			Priority:  priority,
-			CreatedAt: time.Now(),
+			CreatedAt: now,
 			TTL:       ttl,
-		})
+		}
+		brigade.Messages = append(brigade.Messages, msg)
 		return nil
-	})
+	}); err != nil {
+		return storage.Message{}, err
+	}
+	return msg, nil
 }
 
 func cleanupMessages(messages []storage.Message) []storage.Message {

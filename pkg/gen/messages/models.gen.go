@@ -7,15 +7,18 @@ import (
 	"time"
 )
 
-const (
-	BearerScopes = "Bearer.Scopes"
-)
-
 // Defines values for SortSide.
 const (
 	Asc  SortSide = "asc"
 	Desc SortSide = "desc"
 )
+
+// CreateMessageRequest defines model for CreateMessageRequest.
+type CreateMessageRequest struct {
+	Priority *int    `json:"priority,omitempty"`
+	Text     string  `json:"text"`
+	Ttl      *string `json:"ttl,omitempty"`
+}
 
 // Error defines model for Error.
 type Error struct {
@@ -25,12 +28,12 @@ type Error struct {
 
 // Message defines model for Message.
 type Message struct {
-	Id       *int       `json:"id,omitempty"`
-	IsRead   *bool      `json:"is_read,omitempty"`
-	Priority *int       `json:"priority,omitempty"`
-	Text     string     `json:"text"`
-	Time     *time.Time `json:"time,omitempty"`
-	Ttl      *string    `json:"ttl,omitempty"`
+	Id       int       `json:"id"`
+	IsRead   bool      `json:"is_read"`
+	Priority int       `json:"priority"`
+	Text     string    `json:"text"`
+	Time     time.Time `json:"time"`
+	Ttl      string    `json:"ttl"`
 }
 
 // PaginatedMessages defines model for PaginatedMessages.
@@ -46,6 +49,9 @@ type SortSide string
 
 // Limit defines model for Limit.
 type Limit = int
+
+// MessageID defines model for MessageID.
+type MessageID = int
 
 // Offset defines model for Offset.
 type Offset = int
@@ -64,6 +70,9 @@ type GetMessagesParams struct {
 	Offset   *Offset         `form:"offset,omitempty" json:"offset,omitempty"`
 	Limit    *Limit          `form:"limit,omitempty" json:"limit,omitempty"`
 	Read     *ReadFilter     `form:"read,omitempty" json:"read,omitempty"`
-	Priority *PriorityFilter `form:"priority,omitempty" json:"priority,omitempty"`
+	Priority *PriorityFilter `json:"priority,omitempty"`
 	Sort     *Sort           `form:"sort,omitempty" json:"sort,omitempty"`
 }
+
+// PostMessagesJSONRequestBody defines body for PostMessages for application/json ContentType.
+type PostMessagesJSONRequestBody = CreateMessageRequest

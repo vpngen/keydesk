@@ -4,6 +4,7 @@
 package messages
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -90,10 +91,54 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 type ClientInterface interface {
 	// GetMessages request
 	GetMessages(ctx context.Context, params *GetMessagesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostMessagesWithBody request with any body
+	PostMessagesWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostMessages(ctx context.Context, body PostMessagesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostMessagesIdRead request
+	PostMessagesIdRead(ctx context.Context, id MessageID, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) GetMessages(ctx context.Context, params *GetMessagesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetMessagesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostMessagesWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostMessagesRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostMessages(ctx context.Context, body PostMessagesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostMessagesRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostMessagesIdRead(ctx context.Context, id MessageID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostMessagesIdReadRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +221,7 @@ func NewGetMessagesRequest(server string, params *GetMessagesParams) (*http.Requ
 
 		if params.Priority != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "priority", runtime.ParamLocationQuery, *params.Priority); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("deepObject", true, "priority", runtime.ParamLocationQuery, *params.Priority); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -210,6 +255,80 @@ func NewGetMessagesRequest(server string, params *GetMessagesParams) (*http.Requ
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostMessagesRequest calls the generic PostMessages builder with application/json body
+func NewPostMessagesRequest(server string, body PostMessagesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostMessagesRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostMessagesRequestWithBody generates requests for PostMessages with any type of body
+func NewPostMessagesRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/messages")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostMessagesIdReadRequest generates requests for PostMessagesIdRead
+func NewPostMessagesIdReadRequest(server string, id MessageID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/messages/%s/read", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -262,6 +381,14 @@ func WithBaseURL(baseURL string) ClientOption {
 type ClientWithResponsesInterface interface {
 	// GetMessagesWithResponse request
 	GetMessagesWithResponse(ctx context.Context, params *GetMessagesParams, reqEditors ...RequestEditorFn) (*GetMessagesResponse, error)
+
+	// PostMessagesWithBodyWithResponse request with any body
+	PostMessagesWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostMessagesResponse, error)
+
+	PostMessagesWithResponse(ctx context.Context, body PostMessagesJSONRequestBody, reqEditors ...RequestEditorFn) (*PostMessagesResponse, error)
+
+	// PostMessagesIdReadWithResponse request
+	PostMessagesIdReadWithResponse(ctx context.Context, id MessageID, reqEditors ...RequestEditorFn) (*PostMessagesIdReadResponse, error)
 }
 
 type GetMessagesResponse struct {
@@ -287,6 +414,51 @@ func (r GetMessagesResponse) StatusCode() int {
 	return 0
 }
 
+type PostMessagesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Message
+	JSONDefault  *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r PostMessagesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostMessagesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostMessagesIdReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSONDefault  *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r PostMessagesIdReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostMessagesIdReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 // GetMessagesWithResponse request returning *GetMessagesResponse
 func (c *ClientWithResponses) GetMessagesWithResponse(ctx context.Context, params *GetMessagesParams, reqEditors ...RequestEditorFn) (*GetMessagesResponse, error) {
 	rsp, err := c.GetMessages(ctx, params, reqEditors...)
@@ -294,6 +466,32 @@ func (c *ClientWithResponses) GetMessagesWithResponse(ctx context.Context, param
 		return nil, err
 	}
 	return ParseGetMessagesResponse(rsp)
+}
+
+// PostMessagesWithBodyWithResponse request with arbitrary body returning *PostMessagesResponse
+func (c *ClientWithResponses) PostMessagesWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostMessagesResponse, error) {
+	rsp, err := c.PostMessagesWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostMessagesResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostMessagesWithResponse(ctx context.Context, body PostMessagesJSONRequestBody, reqEditors ...RequestEditorFn) (*PostMessagesResponse, error) {
+	rsp, err := c.PostMessages(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostMessagesResponse(rsp)
+}
+
+// PostMessagesIdReadWithResponse request returning *PostMessagesIdReadResponse
+func (c *ClientWithResponses) PostMessagesIdReadWithResponse(ctx context.Context, id MessageID, reqEditors ...RequestEditorFn) (*PostMessagesIdReadResponse, error) {
+	rsp, err := c.PostMessagesIdRead(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostMessagesIdReadResponse(rsp)
 }
 
 // ParseGetMessagesResponse parses an HTTP response from a GetMessagesWithResponse call
@@ -317,6 +515,65 @@ func ParseGetMessagesResponse(rsp *http.Response) (*GetMessagesResponse, error) 
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostMessagesResponse parses an HTTP response from a PostMessagesWithResponse call
+func ParsePostMessagesResponse(rsp *http.Response) (*PostMessagesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostMessagesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Message
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostMessagesIdReadResponse parses an HTTP response from a PostMessagesIdReadWithResponse call
+func ParsePostMessagesIdReadResponse(rsp *http.Response) (*PostMessagesIdReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostMessagesIdReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {

@@ -11,9 +11,6 @@ paths:
       summary: Get messages
       description: Get messages, triggered by frontend
       operationId: getMessages
-      security:
-        - Bearer:
-            - messages:get
       parameters:
         - $ref: '#/components/parameters/Offset'
         - $ref: '#/components/parameters/Limit'
@@ -27,6 +24,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaginatedMessages'
+        default:
+          description: error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMessageRequest'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        default:
+          description: error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /messages/{id}/read:
+    post:
+      summary: Mark message as read
+      parameters:
+        - $ref: '#/components/parameters/MessageID'
+      responses:
+        200:
+          description: OK
         default:
           description: error
           content:
@@ -52,7 +84,12 @@ components:
         ttl:
           type: string
       required:
+        - id
         - text
+        - is_read
+        - priority
+        - time
+        - ttl
     Messages:
       type: object
       properties:
@@ -89,6 +126,17 @@ components:
       required:
         - messages
         - total
+    CreateMessageRequest:
+      type: object
+      properties:
+        text:
+          type: string
+        ttl:
+          type: string
+        priority:
+          type: integer
+      required:
+        - text
     Error:
       type: object
       properties:
@@ -131,8 +179,15 @@ components:
         type: object
         additionalProperties:
           type: integer
+      style: deepObject
+      explode: true
     ReadFilter:
       name: read
       in: query
       schema:
         type: boolean
+    MessageID:
+      name: id
+      in: path
+      schema:
+        type: integer

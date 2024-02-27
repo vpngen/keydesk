@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	goerrors "errors"
+	"flag"
 	"fmt"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/rs/cors"
@@ -69,7 +70,7 @@ var (
 )
 
 func main() {
-	chunked, _, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, certDir, statsDir, name, person, replace, vpnCfgs, err := parseArgs(parseFlags())
+	chunked, _, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, certDir, statsDir, name, person, replace, vpnCfgs, err := parseArgs(parseFlags(flag.CommandLine, os.Args[1:]))
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 	}

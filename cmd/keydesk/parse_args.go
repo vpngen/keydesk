@@ -49,36 +49,37 @@ type flags struct {
 	outlineCfgs *string
 }
 
-func parseFlags() flags {
+func parseFlags(flagSet *flag.FlagSet, args []string) flags {
 	var f flags
 
-	f.webDir = flag.String("w", DefaultWebDir, "Dir for web files.")
-	f.etcDir = flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
-	f.filedbDir = flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
-	f.certDir = flag.String("e", "", "Dir for TLS certificate and key (for test). Default: "+DefaultCertDir)
-	f.statsDir = flag.String("s", "", "Dir with brigades statistics. Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
+	f.webDir = flagSet.String("w", DefaultWebDir, "Dir for web files.")
+	f.etcDir = flagSet.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
+	f.filedbDir = flagSet.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
+	f.certDir = flagSet.String("e", "", "Dir for TLS certificate and key (for test). Default: "+DefaultCertDir)
+	f.statsDir = flagSet.String("s", "", "Dir with brigades statistics. Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
 
-	f.pcors = flag.Bool("cors", false, "Turn on permessive CORS (for test)")
-	f.brigadeID = flag.String("id", "", "BrigadeID (for test)")
-	f.listenAddr = flag.String("l", "", "Listen addr:port (http and https separate with commas)")
+	f.pcors = flagSet.Bool("cors", false, "Turn on permessive CORS (for test)")
+	f.brigadeID = flagSet.String("id", "", "BrigadeID (for test)")
+	f.listenAddr = flagSet.String("l", "", "Listen addr:port (http and https separate with commas)")
 
-	f.brigadierName = flag.String("name", "", "brigadierName :: base64")
-	f.personName = flag.String("person", "", "personName :: base64")
-	f.personDesc = flag.String("desc", "", "personDesc :: base64")
-	f.personURL = flag.String("url", "", "personURL :: base64")
-	f.replaceBrigadier = flag.Bool("r", false, "Replace brigadier config")
+	f.brigadierName = flagSet.String("name", "", "brigadierName :: base64")
+	f.personName = flagSet.String("person", "", "personName :: base64")
+	f.personDesc = flagSet.String("desc", "", "personDesc :: base64")
+	f.personURL = flagSet.String("url", "", "personURL :: base64")
+	f.replaceBrigadier = flagSet.Bool("r", false, "Replace brigadier config")
 
-	f.addr = flag.String("a", vpnapi.TemplatedAddrPort, "API endpoint address:port")
+	f.addr = flagSet.String("a", vpnapi.TemplatedAddrPort, "API endpoint address:port")
 
-	f.chunked = flag.Bool("ch", false, "chunked output")
-	f.jsonOut = flag.Bool("j", false, "json output")
+	f.chunked = flagSet.Bool("ch", false, "chunked output")
+	f.jsonOut = flagSet.Bool("j", false, "json output")
 
-	f.wgcCfgs = flag.String("wg", "native,amnezia", "Wireguard configs ("+storage.ConfigsWg+")")
-	f.ovcCfgs = flag.String("ovc", "", "OpenVPN over Cloak configs ("+storage.ConfigsOvc+")")
-	f.ipsecCfgs = flag.String("ipsec", "", "IPSec configs ("+storage.ConfigsIPSec+")")
-	f.outlineCfgs = flag.String("outline", "", "Outline configs ("+storage.ConfigsOutline+")")
+	f.wgcCfgs = flagSet.String("wg", "native,amnezia", "Wireguard configs ("+storage.ConfigsWg+")")
+	f.ovcCfgs = flagSet.String("ovc", "", "OpenVPN over Cloak configs ("+storage.ConfigsOvc+")")
+	f.ipsecCfgs = flagSet.String("ipsec", "", "IPSec configs ("+storage.ConfigsIPSec+")")
+	f.outlineCfgs = flagSet.String("outline", "", "Outline configs ("+storage.ConfigsOutline+")")
 
-	flag.Parse()
+	// ignore errors, see original flag.Parse() func
+	_ = flagSet.Parse(args)
 
 	return f
 }
@@ -102,11 +103,11 @@ type config struct {
 }
 
 func parseArgs2(flags flags) (config, error) {
-	var cfg config
-
-	cfg.chunked = *flags.chunked
-	cfg.jsonOut = *flags.jsonOut
-	cfg.enableCORS = *flags.pcors
+	cfg := config{
+		chunked:    *flags.chunked,
+		jsonOut:    *flags.jsonOut,
+		enableCORS: *flags.pcors,
+	}
 
 	sysUser, err := user.Current()
 	if err != nil {

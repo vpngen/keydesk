@@ -159,9 +159,11 @@ func testParseArgs(f flags, t *testing.T) {
 	// Call the new function
 	newConfig, newErr := parseArgs2(f)
 
-	// Compare errors
-	if !errors.Is(err, newErr) && err != nil && newErr != nil && err.Error() != newErr.Error() {
-		t.Fatalf("error mismatch, original: %s, new: %s", err, newErr)
+	if err != nil && newErr != nil {
+		if err.Error() != newErr.Error() {
+			t.Fatalf("error mismatch, original: %s, new: %s", err, newErr)
+		}
+		return
 	}
 
 	// Compare configurations

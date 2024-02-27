@@ -103,7 +103,11 @@ type config struct {
 }
 
 func parseArgs2(flags flags) (config, error) {
-	var cfg config
+	cfg := config{
+		chunked:    *flags.chunked,
+		jsonOut:    *flags.jsonOut,
+		enableCORS: *flags.pcors,
+	}
 
 	sysUser, err := user.Current()
 	if err != nil {
@@ -195,10 +199,6 @@ func parseArgs2(flags flags) (config, error) {
 	if err != nil {
 		return cfg, err
 	}
-
-	cfg.chunked = *flags.chunked
-	cfg.jsonOut = *flags.jsonOut
-	cfg.enableCORS = *flags.pcors
 
 	return cfg, nil
 }

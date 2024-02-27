@@ -94,7 +94,7 @@ func TestMessages(t *testing.T) {
 		}
 
 		if len(res.Payload.Messages) != 1 {
-			t.Errorf("expected 1 message, got %d", len(res.Payload.Messages))
+			t.Fatalf("expected 1 message, got %d", len(res.Payload.Messages))
 		}
 
 		if res.Payload.Messages[0].Text == nil {

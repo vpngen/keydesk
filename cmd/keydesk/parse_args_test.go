@@ -41,11 +41,11 @@ func TestParseArgsManual(t *testing.T) {
 		if !listenersEqual(listeners, newConfig.listeners) {
 			t.Error("listeners mismatch")
 		}
-		if addrPort != newConfig.addrPort {
-			t.Errorf("addrPort mismatch, original: %s, new: %s", addrPort, newConfig.addrPort)
+		if addrPort != newConfig.addr {
+			t.Errorf("addr mismatch, original: %s, new: %s", addrPort, newConfig.addr)
 		}
-		if id != newConfig.id {
-			t.Errorf("id mismatch, original: %s, new: %s", id, newConfig.id)
+		if id != newConfig.brigadeID {
+			t.Errorf("brigadeID mismatch, original: %s, new: %s", id, newConfig.brigadeID)
 		}
 		if etcDir != newConfig.etcDir {
 			t.Errorf("etcDir mismatch, original: %s, new: %s", etcDir, newConfig.etcDir)
@@ -179,11 +179,11 @@ func testParseArgs(f flags, t *testing.T) {
 	if !listenersEqual(listeners, newConfig.listeners) {
 		t.Error("listeners mismatch")
 	}
-	if addrPort != newConfig.addrPort {
-		t.Fatalf("addrPort mismatch, original: %s, new: %s", addrPort, newConfig.addrPort)
+	if addrPort != newConfig.addr {
+		t.Fatalf("addr mismatch, original: %s, new: %s", addrPort, newConfig.addr)
 	}
-	if id != newConfig.id {
-		t.Fatalf("id mismatch, original: %s, new: %s", id, newConfig.id)
+	if id != newConfig.brigadeID {
+		t.Fatalf("brigadeID mismatch, original: %s, new: %s", id, newConfig.brigadeID)
 	}
 	if etcDir != newConfig.etcDir {
 		t.Fatalf("etcDir mismatch, original: %s, new: %s", etcDir, newConfig.etcDir)

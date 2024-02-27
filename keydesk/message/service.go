@@ -95,7 +95,7 @@ func (s Service) GetMessages(
 
 	result = filter.Filter(result, filters...)
 
-	var sortParams map[string]bool
+	sortParams := make(map[string]bool)
 	if sortTime != nil {
 		sortParams = map[string]bool{"time": *sortTime == "desc"}
 	}

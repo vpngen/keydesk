@@ -8,15 +8,19 @@ import (
 	"flag"
 	"fmt"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/labstack/echo/v4"
+	echomw "github.com/labstack/echo/v4/middleware"
 	"github.com/rs/cors"
 	"github.com/vpngen/keydesk/internal/auth"
 	"github.com/vpngen/keydesk/internal/maintenance"
+	msgsrv "github.com/vpngen/keydesk/internal/messages/server"
+	msgsvc "github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/internal/server"
 	"github.com/vpngen/keydesk/internal/stat"
 	"github.com/vpngen/keydesk/keydesk"
-	"github.com/vpngen/keydesk/keydesk/message"
 	"github.com/vpngen/keydesk/keydesk/push"
 	"github.com/vpngen/keydesk/keydesk/storage"
+	msgapi "github.com/vpngen/keydesk/pkg/gen/messages"
 	"github.com/vpngen/vpngine/naclkey"
 	"github.com/vpngen/wordsgens/namesgenerator"
 	"io"
@@ -243,6 +247,22 @@ func main() {
 
 	go stat.CollectingData(db, statDone, rdata, cfg.statsDir)
 
+	if cfg.messageAPISocket != nil {
+		go func() {
+			echoSrv := echo.New()
+			echoSrv.HideBanner = true
+			echoSrv.Listener = cfg.messageAPISocket
+			echoSrv.Use(echomw.Logger(), echomw.Recover())
+			msgapi.RegisterHandlers(
+				echoSrv,
+				msgapi.NewStrictHandler(msgsrv.NewServer(db, msgsvc.New(db)), nil),
+			)
+			if err := echoSrv.Start(""); err != nil {
+				log.Fatalf("message server: %s", err)
+			}
+		}()
+	}
+
 	// Wait for existing connections before exiting.
 	<-done
 }
@@ -344,7 +364,7 @@ func initSwaggerAPI(
 ) http.Handler {
 	api := server.NewServer(
 		db,
-		message.New(db),
+		msgsvc.New(db),
 		push.New(
 			db,
 			"Lcw1hBkJBH2oSGevZBAp86kr4PDlQ1QxOFH8LkBNs_c",

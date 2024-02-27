@@ -7,12 +7,12 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/vpngen/keydesk/gen/models"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
-	"github.com/vpngen/keydesk/keydesk/message"
+	"github.com/vpngen/keydesk/internal/messages/service"
 	"net/http"
 )
 
 func GetMessages(
-	s message.Service,
+	s service.Service,
 	offset, limit int64,
 	read *bool,
 	priority *int64, priorityOp string,
@@ -48,10 +48,10 @@ func GetMessages(
 //	return operations.NewPutMessageOK()
 //}
 
-func MarkAsRead(service message.Service, id int) middleware.Responder {
-	if err := service.MarkAsRead(id); err != nil {
+func MarkAsRead(svc service.Service, id int) middleware.Responder {
+	if err := svc.MarkAsRead(id); err != nil {
 		switch {
-		case errors.Is(err, message.NotFound):
+		case errors.Is(err, service.NotFound):
 			return operations.NewMarkMessageAsReadDefault(http.StatusNotFound).WithPayload(&models.Error{
 				Code:    http.StatusNotFound,
 				Message: swag.String(err.Error()),

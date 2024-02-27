@@ -12,7 +12,7 @@ import (
 	"github.com/vpngen/keydesk/gen/client/operations"
 	"github.com/vpngen/keydesk/gen/models"
 	"github.com/vpngen/keydesk/internal/auth"
-	"github.com/vpngen/keydesk/keydesk/message"
+	"github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/keydesk/push"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/utils"
@@ -493,7 +493,7 @@ func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddlewar
 
 		api := NewServer(
 			db,
-			message.New(db),
+			service.New(db),
 			push.New(db, "", ""),
 			auth.Service{
 				Subject: db.BrigadeID,

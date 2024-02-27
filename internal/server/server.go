@@ -10,8 +10,8 @@ import (
 	"github.com/vpngen/keydesk/gen/restapi"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/internal/auth"
+	"github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/keydesk"
-	"github.com/vpngen/keydesk/keydesk/message"
 	"github.com/vpngen/keydesk/keydesk/push"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/vpngine/naclkey"
@@ -20,7 +20,7 @@ import (
 
 func NewServer(
 	db *storage.BrigadeStorage,
-	msgSvc message.Service,
+	msgSvc service.Service,
 	pushSvc push.Service,
 	authSvc auth.Service,
 	routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte,

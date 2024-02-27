@@ -11,6 +11,7 @@ import (
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/vpnapi"
 	"github.com/vpngen/wordsgens/namesgenerator"
+	"log"
 	"net"
 	"net/netip"
 	"net/url"
@@ -47,7 +48,11 @@ type flags struct {
 	ovcCfgs     *string
 	ipsecCfgs   *string
 	outlineCfgs *string
+
+	messageAPI *string
 }
+
+const defaultMsgSocketDir = "/var/lib/dcapi"
 
 func parseFlags(flagSet *flag.FlagSet, args []string) flags {
 	var f flags
@@ -78,6 +83,8 @@ func parseFlags(flagSet *flag.FlagSet, args []string) flags {
 	f.ipsecCfgs = flagSet.String("ipsec", "", "IPSec configs ("+storage.ConfigsIPSec+")")
 	f.outlineCfgs = flagSet.String("outline", "", "Outline configs ("+storage.ConfigsOutline+")")
 
+	f.messageAPI = flagSet.String("m", "", fmt.Sprintf("Message API unix socket path. Default: %s/<BrigadeID>.sock '-' to disable", defaultMsgSocketDir))
+
 	// ignore errors, see original flag.Parse() func
 	_ = flagSet.Parse(args)
 
@@ -100,6 +107,7 @@ type config struct {
 	person           namesgenerator.Person
 	replaceBrigadier bool
 	vpnConfigs       *storage.ConfigsImplemented
+	messageAPISocket net.Listener
 }
 
 func parseArgs2(flags flags) (config, error) {
@@ -109,22 +117,26 @@ func parseArgs2(flags flags) (config, error) {
 		enableCORS: *flags.pcors,
 	}
 
+	log.Println("getting user")
 	sysUser, err := user.Current()
 	if err != nil {
 		return cfg, fmt.Errorf("cannot define user: %w", err)
 	}
 
+	log.Println("parsing VPN configs")
 	cfg.vpnConfigs = parseVPNConfigs(flags)
 
 	if *flags.webDir == "" {
 		return cfg, ErrStaticDirEmpty
 	}
 
+	log.Println("getting dirs")
 	cfg, err = getAbsDirPaths(cfg, flags)
 	if err != nil {
 		return cfg, err
 	}
 
+	log.Println("getting brigadeID")
 	switch *flags.brigadeID {
 	case "", sysUser.Username:
 		cfg.brigadeID = sysUser.Username
@@ -141,6 +153,7 @@ func parseArgs2(flags flags) (config, error) {
 		return cfg, err
 	}
 
+	log.Println("getting addr")
 	if *flags.addr != "-" {
 		cfg.addr, err = netip.ParseAddrPort(*flags.addr)
 		if err != nil {
@@ -148,15 +161,18 @@ func parseArgs2(flags flags) (config, error) {
 		}
 	}
 
-	/*
-		TODO
-		do we have to return here?
-	*/
 	if *flags.replaceBrigadier {
 		cfg.replaceBrigadier = true
 		return cfg, nil
 	}
 
+	log.Println("getting message API socket")
+	cfg, err = parseMessageAPISocket(flags, cfg)
+	if err != nil {
+		return cfg, err
+	}
+
+	log.Println("getting listeners")
 	if *flags.brigadierName == "" {
 		switch *flags.listenAddr {
 		case "":
@@ -197,6 +213,36 @@ func parseArgs2(flags flags) (config, error) {
 	if err != nil {
 		return cfg, err
 	}
+
+	return cfg, nil
+}
+
+func parseMessageAPISocket(f flags, cfg config) (config, error) {
+	var path string
+
+	switch *f.messageAPI {
+	case "-":
+		return cfg, nil
+	case "":
+		path = defaultMsgSocketDir + "/" + cfg.brigadeID + ".sock"
+	default:
+		path = *f.messageAPI
+	}
+
+	log.Println("Message API socket path:", path)
+	// delete socket if exists
+	if info, err := os.Stat(path); err == nil && !info.IsDir() {
+		if err := os.Remove(path); err != nil {
+			return cfg, fmt.Errorf("cannot remove socket: %w", err)
+		}
+	}
+
+	l, err := net.Listen("unix", path)
+	if err != nil {
+		return cfg, fmt.Errorf("cannot listen: %w", err)
+	}
+
+	cfg.messageAPISocket = l
 
 	return cfg, nil
 }

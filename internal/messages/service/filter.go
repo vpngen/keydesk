@@ -1,4 +1,4 @@
-package message
+package service
 
 import (
 	"github.com/vpngen/keydesk/keydesk/storage"

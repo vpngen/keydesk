@@ -60,17 +60,8 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 		GetMessagesHandler: GetMessagesHandlerFunc(func(params GetMessagesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation GetMessages has not yet been implemented")
 		}),
-		GetSubscriptionHandler: GetSubscriptionHandlerFunc(func(params GetSubscriptionParams) middleware.Responder {
-			return middleware.NotImplemented("operation GetSubscription has not yet been implemented")
-		}),
 		MarkMessageAsReadHandler: MarkMessageAsReadHandlerFunc(func(params MarkMessageAsReadParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation MarkMessageAsRead has not yet been implemented")
-		}),
-		PostSubscriptionHandler: PostSubscriptionHandlerFunc(func(params PostSubscriptionParams) middleware.Responder {
-			return middleware.NotImplemented("operation PostSubscription has not yet been implemented")
-		}),
-		SendPushHandler: SendPushHandlerFunc(func(params SendPushParams) middleware.Responder {
-			return middleware.NotImplemented("operation SendPush has not yet been implemented")
 		}),
 
 		// Applies when the "Authorization" header is set
@@ -134,14 +125,8 @@ type UserAPI struct {
 	PostUserHandler PostUserHandler
 	// GetMessagesHandler sets the operation handler for the get messages operation
 	GetMessagesHandler GetMessagesHandler
-	// GetSubscriptionHandler sets the operation handler for the get subscription operation
-	GetSubscriptionHandler GetSubscriptionHandler
 	// MarkMessageAsReadHandler sets the operation handler for the mark message as read operation
 	MarkMessageAsReadHandler MarkMessageAsReadHandler
-	// PostSubscriptionHandler sets the operation handler for the post subscription operation
-	PostSubscriptionHandler PostSubscriptionHandler
-	// SendPushHandler sets the operation handler for the send push operation
-	SendPushHandler SendPushHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -241,17 +226,8 @@ func (o *UserAPI) Validate() error {
 	if o.GetMessagesHandler == nil {
 		unregistered = append(unregistered, "GetMessagesHandler")
 	}
-	if o.GetSubscriptionHandler == nil {
-		unregistered = append(unregistered, "GetSubscriptionHandler")
-	}
 	if o.MarkMessageAsReadHandler == nil {
 		unregistered = append(unregistered, "MarkMessageAsReadHandler")
-	}
-	if o.PostSubscriptionHandler == nil {
-		unregistered = append(unregistered, "PostSubscriptionHandler")
-	}
-	if o.SendPushHandler == nil {
-		unregistered = append(unregistered, "SendPushHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -374,22 +350,10 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/messages"] = NewGetMessages(o.context, o.GetMessagesHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/subscription"] = NewGetSubscription(o.context, o.GetSubscriptionHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/messages/{id}/read"] = NewMarkMessageAsRead(o.context, o.MarkMessageAsReadHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/subscription"] = NewPostSubscription(o.context, o.PostSubscriptionHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/send-push"] = NewSendPush(o.context, o.SendPushHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

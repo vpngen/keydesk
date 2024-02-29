@@ -1,4 +1,4 @@
 package: messages
 generate:
   client: true
-output: ../pkg/gen/messages/client.gen.go
+output: ../gen/messages/client.gen.go

@@ -1,19 +1,17 @@
 package server
 
 import (
-	"github.com/SherClockHolmes/webpush-go"
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/go-openapi/swag"
 	"github.com/vpngen/keydesk/gen/restapi"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
-	"github.com/vpngen/keydesk/internal/auth"
+	"github.com/vpngen/keydesk/internal/auth/go-swagger"
 	"github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/keydesk"
-	"github.com/vpngen/keydesk/keydesk/push"
 	"github.com/vpngen/keydesk/keydesk/storage"
+	"github.com/vpngen/keydesk/pkg/jwt"
 	"github.com/vpngen/vpngine/naclkey"
 	"log"
 )
@@ -21,8 +19,8 @@ import (
 func NewServer(
 	db *storage.BrigadeStorage,
 	msgSvc service.Service,
-	pushSvc push.Service,
-	authSvc auth.Service,
+	issuer jwt.Issuer,
+	goSwaggerAuth go_swagger.Service,
 	routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	tokenTTL int64,
 ) *operations.UserAPI {
@@ -42,7 +40,7 @@ func NewServer(
 
 	api.JSONProducer = runtime.JSONProducer()
 
-	api.PostTokenHandler = operations.PostTokenHandlerFunc(keydesk.CreateToken(authSvc, tokenTTL, []string{"messages:get"})) // TODO: get scopes from request
+	api.PostTokenHandler = operations.PostTokenHandlerFunc(keydesk.CreateToken(issuer, tokenTTL))
 
 	api.PostUserHandler = operations.PostUserHandlerFunc(func(params operations.PostUserParams, principal interface{}) middleware.Responder {
 		return keydesk.AddUser(db, params, principal, routerPublicKey, shufflerPublicKey)
@@ -73,25 +71,23 @@ func NewServer(
 		return keydesk.MarkAsRead(msgSvc, int(params.ID))
 	})
 
-	api.PostSubscriptionHandler = operations.PostSubscriptionHandlerFunc(func(params operations.PostSubscriptionParams) middleware.Responder {
-		return keydesk.PostSubscription(pushSvc, webpush.Subscription{
-			Endpoint: swag.StringValue(params.Subscription.Endpoint),
-			Keys: webpush.Keys{
-				P256dh: params.Subscription.Keys.P256dh,
-				Auth:   params.Subscription.Keys.Auth,
-			},
-		})
-	})
+	//api.PostSubscriptionHandler = operations.PostSubscriptionHandlerFunc(func(params operations.PostSubscriptionParams) middleware.Responder {
+	//	return keydesk.PostSubscription(pushSvc, webpush.Subscription{
+	//		Endpoint: swag.StringValue(params.Subscription.Endpoint),
+	//		Keys: webpush.Keys{
+	//			P256dh: params.Subscription.Keys.P256dh,
+	//			Auth:   params.Subscription.Keys.Auth,
+	//		},
+	//	})
+	//})
+	//api.GetSubscriptionHandler = operations.GetSubscriptionHandlerFunc(func(params operations.GetSubscriptionParams) middleware.Responder {
+	//	return keydesk.GetSubscription(pushSvc)
+	//})
+	//api.SendPushHandler = operations.SendPushHandlerFunc(pushSvc.SendPushHandler)
 
-	api.GetSubscriptionHandler = operations.GetSubscriptionHandlerFunc(func(params operations.GetSubscriptionParams) middleware.Responder {
-		return keydesk.GetSubscription(pushSvc)
-	})
-
-	api.SendPushHandler = operations.SendPushHandlerFunc(pushSvc.SendPushHandler)
-
-	api.APIKeyAuthenticator = authSvc.APIKeyAuthenticator
-	api.BearerAuth = authSvc.BearerAuth
-	api.APIAuthorizer = runtime.AuthorizerFunc(authSvc.Authorize)
+	api.APIKeyAuthenticator = goSwaggerAuth.APIKeyAuthenticator
+	api.BearerAuth = goSwaggerAuth.BearerAuth
+	api.APIAuthorizer = runtime.AuthorizerFunc(goSwaggerAuth.Authorize)
 
 	return api
 }

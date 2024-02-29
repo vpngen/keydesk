@@ -80,24 +80,9 @@ func configureAPI(api *operations.UserAPI) http.Handler {
 			return middleware.NotImplemented("operation operations.GetMessages has not yet been implemented")
 		})
 	}
-	if api.GetSubscriptionHandler == nil {
-		api.GetSubscriptionHandler = operations.GetSubscriptionHandlerFunc(func(params operations.GetSubscriptionParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetSubscription has not yet been implemented")
-		})
-	}
 	if api.MarkMessageAsReadHandler == nil {
 		api.MarkMessageAsReadHandler = operations.MarkMessageAsReadHandlerFunc(func(params operations.MarkMessageAsReadParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation operations.MarkMessageAsRead has not yet been implemented")
-		})
-	}
-	if api.PostSubscriptionHandler == nil {
-		api.PostSubscriptionHandler = operations.PostSubscriptionHandlerFunc(func(params operations.PostSubscriptionParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.PostSubscription has not yet been implemented")
-		})
-	}
-	if api.SendPushHandler == nil {
-		api.SendPushHandler = operations.SendPushHandlerFunc(func(params operations.SendPushParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.SendPush has not yet been implemented")
 		})
 	}
 

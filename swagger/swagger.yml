@@ -127,8 +127,7 @@ paths:
       description: Get messages, triggered by frontend
       operationId: getMessages
       security:
-        - Bearer:
-            - messages:get
+        - Bearer: [ ]
       parameters:
         - in: query
           name: offset
@@ -193,57 +192,6 @@ paths:
           description: error
           schema:
             $ref: "#/definitions/error"
-  /subscription:
-    post:
-      summary: Send subscription
-      description: Send subscription from dashboard to keydesk server
-      operationId: postSubscription
-      consumes:
-        - application/json
-      parameters:
-        - in: body
-          name: subscription
-          description: The subscription to create.
-          schema:
-            $ref: '#/definitions/Subscription'
-      responses:
-        200:
-          description: OK
-        500:
-          $ref: '#/definitions/error'
-    get:
-      summary: Get subscription
-      description: Get subscription from keydesk server
-      operationId: getSubscription
-      responses:
-        200:
-          description: Subscription object
-          schema:
-            $ref: '#/definitions/Subscription'
-        404:
-          description: Subscription not found
-        500:
-          $ref: '#/definitions/error'
-  /send-push:
-    post:
-      summary: Send a push notification
-      description: Send a push notification
-      operationId: sendPush
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/PushRequest'
-      responses:
-        200:
-          description: OK
-        500:
-          $ref: '#/definitions/error'
 
 definitions:
   token:

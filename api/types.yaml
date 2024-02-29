@@ -1,4 +1,4 @@
 package: messages
 generate:
   models: true
-output: ../pkg/gen/messages/models.gen.go
+output: ../gen/messages/models.gen.go

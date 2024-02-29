@@ -8,19 +8,18 @@ import (
 	"flag"
 	"fmt"
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/labstack/echo/v4"
-	echomw "github.com/labstack/echo/v4/middleware"
+	jwt2 "github.com/golang-jwt/jwt/v5"
 	"github.com/rs/cors"
-	"github.com/vpngen/keydesk/internal/auth"
+	goSwaggerAuth "github.com/vpngen/keydesk/internal/auth/go-swagger"
 	"github.com/vpngen/keydesk/internal/maintenance"
 	msgsrv "github.com/vpngen/keydesk/internal/messages/server"
 	msgsvc "github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/internal/server"
 	"github.com/vpngen/keydesk/internal/stat"
 	"github.com/vpngen/keydesk/keydesk"
-	"github.com/vpngen/keydesk/keydesk/push"
 	"github.com/vpngen/keydesk/keydesk/storage"
-	msgapi "github.com/vpngen/keydesk/pkg/gen/messages"
+	"github.com/vpngen/keydesk/pkg/jwt"
+	"github.com/vpngen/keydesk/utils"
 	"github.com/vpngen/vpngine/naclkey"
 	"github.com/vpngen/wordsgens/namesgenerator"
 	"io"
@@ -40,9 +39,6 @@ import (
 //go:generate go run github.com/go-swagger/go-swagger/cmd/swagger@latest generate server -t ../../gen -f ../../swagger/swagger.yml --exclude-main -A user
 //go:generate go run github.com/go-swagger/go-swagger/cmd/swagger@latest generate client -t ../../gen -f ../../swagger/swagger.yml
 
-// TokenLifeTime - token time to life.
-const TokenLifeTime = 3600
-
 // Default web config.
 const (
 	DefaultWebDir    = "/var/www"
@@ -50,6 +46,7 @@ const (
 	DefaultCertDir   = "/etc/vgcert"
 	TLSCertFilename  = "vpn.works.crt"
 	TLSKeyFilename   = "vpn.works.key"
+	TokenLifeTime    = 3600
 )
 
 // Args errors.
@@ -155,7 +152,27 @@ func main() {
 		cfg.listeners = append(cfg.listeners, l)
 	}
 
-	handler := initSwaggerAPI(db, &routerPublicKey, &shufflerPublicKey, cfg.enableCORS, cfg.webDir, allowedAddress)
+	jwtOpts := jwt.Options{
+		Issuer:        "keydesk",
+		Subject:       db.BrigadeID,
+		Audience:      []string{"keydesk"},
+		SigningMethod: jwt2.SigningMethodHS256,
+	}
+	jwtKey, err := utils.GenHMACKey()
+	if err != nil {
+		log.Fatalf("JWT key error: %s\n", err)
+	}
+
+	handler := initSwaggerAPI(
+		db,
+		&routerPublicKey,
+		&shufflerPublicKey,
+		cfg.enableCORS,
+		cfg.webDir,
+		allowedAddress,
+		jwt.NewIssuer(jwtKey, jwtOpts),
+		jwt.NewAuthorizer(jwtKey, jwtOpts),
+	)
 
 	// On signal, gracefully shut down the server and wait 5
 	// seconds for current connections to stop.
@@ -249,16 +266,31 @@ func main() {
 
 	if cfg.messageAPISocket != nil {
 		go func() {
-			echoSrv := echo.New()
-			echoSrv.HideBanner = true
+			pubFile, err := os.ReadFile(cfg.etcDir + "/jwt-pub.b64")
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "read jwt public key: %s\n", err)
+				os.Exit(1)
+			}
+
+			ecPub, err := utils.DecodePublicKey(string(pubFile))
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "decode jwt public key: %s\n", err)
+				os.Exit(1)
+			}
+
+			echoSrv, err := msgsrv.SetupServer(db, jwt.NewAuthorizer(ecPub, jwt.Options{
+				Issuer:        "dc-mgmt",
+				Audience:      []string{"keydesk"},
+				SigningMethod: jwt2.SigningMethodES256,
+			}))
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "message server: %s\n", err)
+				os.Exit(1)
+			}
 			echoSrv.Listener = cfg.messageAPISocket
-			echoSrv.Use(echomw.Logger(), echomw.Recover())
-			msgapi.RegisterHandlers(
-				echoSrv,
-				msgapi.NewStrictHandler(msgsrv.NewServer(db, msgsvc.New(db)), nil),
-			)
 			if err := echoSrv.Start(""); err != nil {
-				log.Fatalf("message server: %s", err)
+				_, _ = fmt.Fprintf(os.Stderr, "message server: %s\n", err)
+				os.Exit(1)
 			}
 		}()
 	}
@@ -361,20 +393,14 @@ func initSwaggerAPI(
 	pcors bool,
 	webDir string,
 	allowedAddr string,
+	issuer jwt.Issuer,
+	authorizer jwt.Authorizer,
 ) http.Handler {
 	api := server.NewServer(
 		db,
 		msgsvc.New(db),
-		push.New(
-			db,
-			"Lcw1hBkJBH2oSGevZBAp86kr4PDlQ1QxOFH8LkBNs_c",
-			"BI8uqN-GskHtmeqH10szMwNNR29opGc31t8d2QGRPXCwLhoEo9vY6DNYx9X147TKVQEHrAXA3BfKfVuDBE06TbE",
-		),
-		auth.Service{
-			Issuer:   "keydesk",
-			Subject:  db.BrigadeID,
-			Audience: []string{"keydesk"},
-		},
+		issuer,
+		goSwaggerAuth.NewService(authorizer),
 		routerPublicKey,
 		shufflerPublicKey,
 		TokenLifeTime,
@@ -384,15 +410,8 @@ func initSwaggerAPI(
 		if pcors {
 			handler = cors.AllowAll().Handler(handler)
 		}
-
-		handler = maintenanceMiddlewareBuilder(
-			"/.maintenance",
-			filepath.Dir(db.BrigadeFilename)+"/.maintenance",
-		)(handler)
-
-		handler = uiMiddlewareBuilder(webDir, allowedAddr)(handler)
-
-		return handler
+		handler = maintenanceMiddlewareBuilder("/.maintenance", filepath.Dir(db.BrigadeFilename)+"/.maintenance")(handler)
+		return uiMiddlewareBuilder(webDir, allowedAddr)(handler)
 	})
 }
 

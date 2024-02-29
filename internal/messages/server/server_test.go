@@ -5,9 +5,9 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/labstack/echo/v4"
 	echomw "github.com/oapi-codegen/echo-middleware"
+	messages2 "github.com/vpngen/keydesk/gen/messages"
 	"github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/keydesk/storage"
-	"github.com/vpngen/keydesk/pkg/gen/messages"
 	"github.com/vpngen/keydesk/utils"
 	"log"
 	"net/http"
@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-var client *messages.ClientWithResponses
+var client *messages2.ClientWithResponses
 
 func TestMain(m *testing.M) {
 	var db storage.BrigadeStorage
@@ -44,7 +44,7 @@ func TestMessages(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				res, err := client.PostMessagesWithResponse(ctx, messages.PostMessagesJSONRequestBody{
+				res, err := client.PostMessagesWithResponse(ctx, messages2.PostMessagesJSONRequestBody{
 					Priority: &tc.priority,
 					Text:     tc.text,
 					Ttl:      swag.String(tc.ttl.String()),
@@ -85,7 +85,7 @@ func TestMessages(t *testing.T) {
 func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddleware) utils.TestMainMiddleware {
 	return func(m *testing.M) int {
 		srv := echo.New()
-		messages.RegisterHandlers(srv, messages.NewStrictHandler(Server{
+		messages2.RegisterHandlers(srv, messages2.NewStrictHandler(Server{
 			db:     db,
 			msgSvc: service.New(db),
 		}, nil))
@@ -94,7 +94,7 @@ func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddlewar
 		}()
 		ctx := context.Background()
 
-		swagger, err := messages.GetSwagger()
+		swagger, err := messages2.GetSwagger()
 		if err != nil {
 			log.Fatalf("Error loading swagger spec\n: %s", err)
 		}
@@ -111,7 +111,7 @@ func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddlewar
 
 func clientMiddleware(mw utils.TestMainMiddleware) utils.TestMainMiddleware {
 	return func(m *testing.M) int {
-		c, err := messages.NewClientWithResponses("http://localhost:8000")
+		c, err := messages2.NewClientWithResponses("http://localhost:8000")
 		if err != nil {
 			log.Fatal(err)
 		}

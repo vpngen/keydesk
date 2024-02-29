@@ -29,9 +29,7 @@ func init() {
       "get": {
         "security": [
           {
-            "Bearer": [
-              "messages:get"
-            ]
+            "Bearer": []
           }
         ],
         "description": "Get messages, triggered by frontend",
@@ -133,84 +131,6 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
-          }
-        }
-      }
-    },
-    "/send-push": {
-      "post": {
-        "description": "Send a push notification",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "summary": "Send a push notification",
-        "operationId": "sendPush",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/PushRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "500": {
-            "$ref": "#/definitions/error"
-          }
-        }
-      }
-    },
-    "/subscription": {
-      "get": {
-        "description": "Get subscription from keydesk server",
-        "summary": "Get subscription",
-        "operationId": "getSubscription",
-        "responses": {
-          "200": {
-            "description": "Subscription object",
-            "schema": {
-              "$ref": "#/definitions/Subscription"
-            }
-          },
-          "404": {
-            "description": "Subscription not found"
-          },
-          "500": {
-            "$ref": "#/definitions/error"
-          }
-        }
-      },
-      "post": {
-        "description": "Send subscription from dashboard to keydesk server",
-        "consumes": [
-          "application/json"
-        ],
-        "summary": "Send subscription",
-        "operationId": "postSubscription",
-        "parameters": [
-          {
-            "description": "The subscription to create.",
-            "name": "subscription",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/Subscription"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "500": {
-            "$ref": "#/definitions/error"
           }
         }
       }
@@ -848,9 +768,7 @@ func init() {
       "get": {
         "security": [
           {
-            "Bearer": [
-              "messages:get"
-            ]
+            "Bearer": []
           }
         ],
         "description": "Get messages, triggered by frontend",
@@ -952,84 +870,6 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
-          }
-        }
-      }
-    },
-    "/send-push": {
-      "post": {
-        "description": "Send a push notification",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "summary": "Send a push notification",
-        "operationId": "sendPush",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/PushRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "500": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/subscription": {
-      "get": {
-        "description": "Get subscription from keydesk server",
-        "summary": "Get subscription",
-        "operationId": "getSubscription",
-        "responses": {
-          "200": {
-            "description": "Subscription object",
-            "schema": {
-              "$ref": "#/definitions/Subscription"
-            }
-          },
-          "404": {
-            "description": "Subscription not found"
-          },
-          "500": {
-            "description": ""
-          }
-        }
-      },
-      "post": {
-        "description": "Send subscription from dashboard to keydesk server",
-        "consumes": [
-          "application/json"
-        ],
-        "summary": "Send subscription",
-        "operationId": "postSubscription",
-        "parameters": [
-          {
-            "description": "The subscription to create.",
-            "name": "subscription",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/Subscription"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "500": {
-            "description": ""
           }
         }
       }

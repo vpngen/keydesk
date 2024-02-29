@@ -2,35 +2,20 @@ package keydesk
 
 import (
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/vpngen/keydesk/gen/models"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
-	"github.com/vpngen/keydesk/internal/auth"
-	"github.com/vpngen/keydesk/keydesk/token"
+	jwt2 "github.com/vpngen/keydesk/pkg/jwt"
+	"time"
 )
 
 // CreateToken - create JWT.
-func CreateToken(authSvc auth.Service, TokenLifeTime int64, scopes []string) func(operations.PostTokenParams) middleware.Responder {
+func CreateToken(issuer jwt2.Issuer, ttlSeconds int64) func(operations.PostTokenParams) middleware.Responder {
 	return func(params operations.PostTokenParams) middleware.Responder {
-		tc, err := token.New(int(TokenLifeTime))
+		claims := issuer.CreateToken(time.Duration(ttlSeconds) * time.Second)
+		token, err := issuer.Sign(claims)
 		if err != nil {
 			return operations.NewPostTokenInternalServerError()
 		}
-
-		// Create a new jwtoken object, specifying signing method and the claims
-		// you would like it to contain.
-		jwtoken := jwt.NewWithClaims(jwt.SigningMethodHS256, authSvc.NewClaims(
-			scopes,
-			tc.Exp(),
-			tc.Jti(),
-		))
-
-		// Sign and get the complete encoded token as a string using the secret
-		tokenString, err := jwtoken.SignedString(tc.Secret())
-		if err != nil {
-			return operations.NewPostTokenInternalServerError()
-		}
-
-		return operations.NewPostTokenCreated().WithPayload(&models.Token{Token: &tokenString})
+		return operations.NewPostTokenCreated().WithPayload(&models.Token{Token: &token})
 	}
 }

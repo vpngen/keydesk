@@ -4,9 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/labstack/echo/v4"
+	echomw "github.com/labstack/echo/v4/middleware"
+	echomiddleware "github.com/oapi-codegen/echo-middleware"
+	messages2 "github.com/vpngen/keydesk/gen/messages"
+	jwt2 "github.com/vpngen/keydesk/internal/auth/swagger3"
 	"github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/keydesk/storage"
-	"github.com/vpngen/keydesk/pkg/gen/messages"
+	"github.com/vpngen/keydesk/pkg/jwt"
 	"net/http"
 	"time"
 )
@@ -16,15 +22,39 @@ type Server struct {
 	msgSvc service.Service
 }
 
-var _ messages.StrictServerInterface = (*Server)(nil)
+var _ messages2.StrictServerInterface = (*Server)(nil)
+
+func SetupServer(db *storage.BrigadeStorage, authorizer jwt.Authorizer) (*echo.Echo, error) {
+	swagger, err := messages2.GetSwagger()
+	if err != nil {
+		return nil, fmt.Errorf("get swagger: %s", err.Error())
+	}
+
+	swagger.Servers = nil
+
+	validator := echomiddleware.OapiRequestValidatorWithOptions(
+		swagger,
+		&echomiddleware.Options{
+			Options: openapi3filter.Options{
+				AuthenticationFunc: jwt2.AuthFuncFactory(authorizer),
+			},
+		})
+
+	e := echo.New()
+	e.HideBanner = true
+	e.Use(echomw.Recover(), echomw.Logger(), validator)
+	messages2.RegisterHandlers(e, messages2.NewStrictHandler(NewServer(db, service.New(db)), nil))
+
+	return e, nil
+}
 
 func NewServer(db *storage.BrigadeStorage, msgSvc service.Service) Server {
 	return Server{db: db, msgSvc: msgSvc}
 }
 
-func postMessagesError(code int, message string) (messages.PostMessagesResponseObject, error) {
-	return messages.PostMessagesdefaultJSONResponse{
-		Body: messages.Error{
+func postMessagesError(code int, message string) (messages2.PostMessagesResponseObject, error) {
+	return messages2.PostMessagesdefaultJSONResponse{
+		Body: messages2.Error{
 			Code:    code,
 			Message: message,
 		},
@@ -32,7 +62,7 @@ func postMessagesError(code int, message string) (messages.PostMessagesResponseO
 	}, nil
 }
 
-func (s Server) PostMessages(_ context.Context, request messages.PostMessagesRequestObject) (messages.PostMessagesResponseObject, error) {
+func (s Server) PostMessages(_ context.Context, request messages2.PostMessagesRequestObject) (messages2.PostMessagesResponseObject, error) {
 	var (
 		ttl      time.Duration
 		priority int
@@ -51,7 +81,7 @@ func (s Server) PostMessages(_ context.Context, request messages.PostMessagesReq
 	if err != nil {
 		return postMessagesError(http.StatusInternalServerError, fmt.Sprintf("create message: %s", err.Error()))
 	}
-	return messages.PostMessages200JSONResponse(messages.Message{
+	return messages2.PostMessages200JSONResponse(messages2.Message{
 		Id:       msg.ID,
 		IsRead:   msg.IsRead,
 		Priority: msg.Priority,
@@ -61,9 +91,9 @@ func (s Server) PostMessages(_ context.Context, request messages.PostMessagesReq
 	}), nil
 }
 
-func markAsReadError(code int, message string) (messages.PostMessagesIdReadResponseObject, error) {
-	return messages.PostMessagesIdReaddefaultJSONResponse{
-		Body: messages.Error{
+func markAsReadError(code int, message string) (messages2.PostMessagesIdReadResponseObject, error) {
+	return messages2.PostMessagesIdReaddefaultJSONResponse{
+		Body: messages2.Error{
 			Code:    code,
 			Message: message,
 		},
@@ -71,7 +101,7 @@ func markAsReadError(code int, message string) (messages.PostMessagesIdReadRespo
 	}, nil
 }
 
-func (s Server) PostMessagesIdRead(_ context.Context, request messages.PostMessagesIdReadRequestObject) (messages.PostMessagesIdReadResponseObject, error) {
+func (s Server) PostMessagesIdRead(_ context.Context, request messages2.PostMessagesIdReadRequestObject) (messages2.PostMessagesIdReadResponseObject, error) {
 	if err := s.msgSvc.MarkAsRead(request.Id); err != nil {
 		switch {
 		case errors.Is(err, service.NotFound):
@@ -80,7 +110,7 @@ func (s Server) PostMessagesIdRead(_ context.Context, request messages.PostMessa
 			return markAsReadError(http.StatusInternalServerError, err.Error())
 		}
 	}
-	return messages.PostMessagesIdRead200Response{}, nil
+	return messages2.PostMessagesIdRead200Response{}, nil
 }
 
 //func getSortParams(sort *Sort) (map[string]bool, error) {

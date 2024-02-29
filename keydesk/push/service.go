@@ -4,11 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/SherClockHolmes/webpush-go"
-	"github.com/go-openapi/runtime/middleware"
-	"github.com/go-openapi/swag"
-	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/keydesk/storage"
-	"log"
 	"net/http"
 )
 
@@ -82,69 +78,69 @@ func (s Service) Push(notification NotificationOptions, sub webpush.Subscription
 	return nil
 }
 
-func (s Service) SendPushHandler(params operations.SendPushParams) middleware.Responder {
-	n := params.Body.Notification
-	nOpts := n.Options
-	opts := params.Body.Options
-
-	var (
-		vapidPub, vapidPriv string
-	)
-
-	if opts != nil && opts.PublicKey != "" && opts.PrivateKey != "" {
-		vapidPriv = opts.PrivateKey
-		vapidPub = opts.PublicKey
-	} else {
-		vapidPriv = s.vapidPriv
-		vapidPub = s.vapidPub
-	}
-
-	var actions []Action
-	for _, action := range nOpts.Actions {
-		actions = append(actions, Action{
-			Action: action.Action,
-			Icon:   action.Icon,
-			Title:  action.Title,
-		})
-	}
-
-	if err := s.Push(
-		NotificationOptions{
-			Title: swag.StringValue(n.Title),
-			Options: Options{
-				Body:               swag.StringValue(nOpts.Body),
-				Actions:            actions,
-				Badge:              nOpts.Badge,
-				Data:               nOpts.Data,
-				Dir:                nOpts.Dir,
-				Icon:               nOpts.Icon,
-				Image:              nOpts.Image,
-				Lang:               nOpts.Lang,
-				Renotify:           nOpts.Renotify,
-				RequireInteraction: nOpts.RequireInteraction,
-				Silent:             nOpts.Silent,
-				Tag:                nOpts.Tag,
-				Timestamp:          nOpts.Timestamp,
-				Vibrate:            nOpts.Vibrate,
-			},
-		},
-		webpush.Subscription{
-			Endpoint: swag.StringValue(params.Body.Subscription.Endpoint),
-			Keys: webpush.Keys{
-				P256dh: params.Body.Subscription.Keys.P256dh,
-				Auth:   params.Body.Subscription.Keys.Auth,
-			},
-		},
-		webpush.Options{
-			Subscriber:      opts.Subscriber,
-			Topic:           opts.Topic,
-			Urgency:         webpush.Urgency(opts.Urgency),
-			VAPIDPrivateKey: vapidPriv,
-			VAPIDPublicKey:  vapidPub,
-		}); err != nil {
-		log.Printf("send push: %s\n", err)
-		return operations.NewSendPushInternalServerError()
-	}
-
-	return operations.NewSendPushOK()
-}
+//func (s Service) SendPushHandler(params operations.SendPushParams) middleware.Responder {
+//	n := params.Body.Notification
+//	nOpts := n.Options
+//	opts := params.Body.Options
+//
+//	var (
+//		vapidPub, vapidPriv string
+//	)
+//
+//	if opts != nil && opts.PublicKey != "" && opts.PrivateKey != "" {
+//		vapidPriv = opts.PrivateKey
+//		vapidPub = opts.PublicKey
+//	} else {
+//		vapidPriv = s.vapidPriv
+//		vapidPub = s.vapidPub
+//	}
+//
+//	var actions []Action
+//	for _, action := range nOpts.Actions {
+//		actions = append(actions, Action{
+//			Action: action.Action,
+//			Icon:   action.Icon,
+//			Title:  action.Title,
+//		})
+//	}
+//
+//	if err := s.Push(
+//		NotificationOptions{
+//			Title: swag.StringValue(n.Title),
+//			Options: Options{
+//				Body:               swag.StringValue(nOpts.Body),
+//				Actions:            actions,
+//				Badge:              nOpts.Badge,
+//				Data:               nOpts.Data,
+//				Dir:                nOpts.Dir,
+//				Icon:               nOpts.Icon,
+//				Image:              nOpts.Image,
+//				Lang:               nOpts.Lang,
+//				Renotify:           nOpts.Renotify,
+//				RequireInteraction: nOpts.RequireInteraction,
+//				Silent:             nOpts.Silent,
+//				Tag:                nOpts.Tag,
+//				Timestamp:          nOpts.Timestamp,
+//				Vibrate:            nOpts.Vibrate,
+//			},
+//		},
+//		webpush.Subscription{
+//			Endpoint: swag.StringValue(params.Body.Subscription.Endpoint),
+//			Keys: webpush.Keys{
+//				P256dh: params.Body.Subscription.Keys.P256dh,
+//				Auth:   params.Body.Subscription.Keys.Auth,
+//			},
+//		},
+//		webpush.Options{
+//			Subscriber:      opts.Subscriber,
+//			Topic:           opts.Topic,
+//			Urgency:         webpush.Urgency(opts.Urgency),
+//			VAPIDPrivateKey: vapidPriv,
+//			VAPIDPublicKey:  vapidPub,
+//		}); err != nil {
+//		log.Printf("send push: %s\n", err)
+//		return operations.NewSendPushInternalServerError()
+//	}
+//
+//	return operations.NewSendPushOK()
+//}

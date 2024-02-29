@@ -42,13 +42,7 @@ type ClientService interface {
 
 	GetMessages(params *GetMessagesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetMessagesOK, error)
 
-	GetSubscription(params *GetSubscriptionParams, opts ...ClientOption) (*GetSubscriptionOK, error)
-
 	MarkMessageAsRead(params *MarkMessageAsReadParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*MarkMessageAsReadOK, error)
-
-	PostSubscription(params *PostSubscriptionParams, opts ...ClientOption) (*PostSubscriptionOK, error)
-
-	SendPush(params *SendPushParams, opts ...ClientOption) (*SendPushOK, error)
 
 	SetTransport(transport runtime.ClientTransport)
 }
@@ -284,46 +278,6 @@ func (a *Client) GetMessages(params *GetMessagesParams, authInfo runtime.ClientA
 }
 
 /*
-GetSubscription gets subscription
-
-Get subscription from keydesk server
-*/
-func (a *Client) GetSubscription(params *GetSubscriptionParams, opts ...ClientOption) (*GetSubscriptionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetSubscriptionParams()
-	}
-	op := &runtime.ClientOperation{
-		ID:                 "getSubscription",
-		Method:             "GET",
-		PathPattern:        "/subscription",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetSubscriptionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	}
-	for _, opt := range opts {
-		opt(op)
-	}
-
-	result, err := a.transport.Submit(op)
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*GetSubscriptionOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for getSubscription: API contract not enforced by server. Client expected to get an error, but got: %T", result)
-	panic(msg)
-}
-
-/*
 MarkMessageAsRead marks message as read
 
 Mark message as read
@@ -361,86 +315,6 @@ func (a *Client) MarkMessageAsRead(params *MarkMessageAsReadParams, authInfo run
 	// unexpected success response
 	unexpectedSuccess := result.(*MarkMessageAsReadDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
-PostSubscription sends subscription
-
-Send subscription from dashboard to keydesk server
-*/
-func (a *Client) PostSubscription(params *PostSubscriptionParams, opts ...ClientOption) (*PostSubscriptionOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewPostSubscriptionParams()
-	}
-	op := &runtime.ClientOperation{
-		ID:                 "postSubscription",
-		Method:             "POST",
-		PathPattern:        "/subscription",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &PostSubscriptionReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	}
-	for _, opt := range opts {
-		opt(op)
-	}
-
-	result, err := a.transport.Submit(op)
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*PostSubscriptionOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for postSubscription: API contract not enforced by server. Client expected to get an error, but got: %T", result)
-	panic(msg)
-}
-
-/*
-SendPush sends a push notification
-
-Send a push notification
-*/
-func (a *Client) SendPush(params *SendPushParams, opts ...ClientOption) (*SendPushOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSendPushParams()
-	}
-	op := &runtime.ClientOperation{
-		ID:                 "sendPush",
-		Method:             "POST",
-		PathPattern:        "/send-push",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SendPushReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	}
-	for _, opt := range opts {
-		opt(op)
-	}
-
-	result, err := a.transport.Submit(op)
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*SendPushOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for sendPush: API contract not enforced by server. Client expected to get an error, but got: %T", result)
-	panic(msg)
 }
 
 // SetTransport changes the transport on the client

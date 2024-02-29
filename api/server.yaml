@@ -2,4 +2,4 @@ package: messages
 generate:
   echo-server: true
   strict-server: true
-output: ../pkg/gen/messages/server.gen.go
+output: ../gen/messages/server.gen.go

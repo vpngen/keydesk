@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"github.com/coreos/go-systemd/activation"
 	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -174,29 +173,18 @@ func parseArgs2(flags flags) (config, error) {
 
 	log.Println("getting listeners")
 	if *flags.brigadierName == "" {
-		switch *flags.listenAddr {
-		case "":
-			// get listeners from activation sockets
-			cfg.listeners, err = activation.Listeners()
+		// get listeners from argument
+		for _, laddr := range strings.Split(*flags.listenAddr, ",") {
+			l, err := net.Listen("tcp", laddr)
 			if err != nil {
-				return cfg, fmt.Errorf("cannot retrieve listeners: %w", err)
+				return cfg, fmt.Errorf("cannot listen: %w", err)
 			}
 
-			return cfg, nil
-		default:
-			// get listeners from argument
-			for _, laddr := range strings.Split(*flags.listenAddr, ",") {
-				l, err := net.Listen("tcp", laddr)
-				if err != nil {
-					return cfg, fmt.Errorf("cannot listen: %w", err)
-				}
+			cfg.listeners = append(cfg.listeners, l)
+		}
 
-				cfg.listeners = append(cfg.listeners, l)
-			}
-
-			if len(cfg.listeners) != 1 && len(cfg.listeners) != 2 {
-				return cfg, fmt.Errorf("unexpected number of litening (%d != 1|2)", len(cfg.listeners))
-			}
+		if len(cfg.listeners) != 1 && len(cfg.listeners) != 2 {
+			return cfg, fmt.Errorf("unexpected number of litening (%d != 1|2)", len(cfg.listeners))
 		}
 
 		return cfg, nil
@@ -559,31 +547,19 @@ func parseArgs(flags flags) (bool, bool, bool, []net.Listener, netip.AddrPort, s
 
 	if *flags.brigadierName == "" {
 		var listeners []net.Listener
-
-		switch *flags.listenAddr {
-		case "":
-			// get listeners from activation sockets
-			listeners, err = activation.Listeners()
+		// get listeners from argument
+		for _, laddr := range strings.Split(*flags.listenAddr, ",") {
+			l, err := net.Listen("tcp", laddr)
 			if err != nil {
-				return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot retrieve listeners: %w", err)
+				return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot listen: %w", err)
 			}
 
-			return *flags.chunked, *flags.jsonOut, *flags.pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, false, nil, nil
-		default:
-			// get listeners from argument
-			for _, laddr := range strings.Split(*flags.listenAddr, ",") {
-				l, err := net.Listen("tcp", laddr)
-				if err != nil {
-					return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot listen: %w", err)
-				}
+			listeners = append(listeners, l)
+		}
 
-				listeners = append(listeners, l)
-			}
-
-			if len(listeners) != 1 && len(listeners) != 2 {
-				return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("unexpected number of litening (%d != 1|2)",
-					len(listeners))
-			}
+		if len(listeners) != 1 && len(listeners) != 2 {
+			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("unexpected number of litening (%d != 1|2)",
+				len(listeners))
 		}
 
 		return *flags.chunked, *flags.jsonOut, *flags.pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, false, nil, nil

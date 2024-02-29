@@ -8,7 +8,6 @@ require (
 	github.com/SherClockHolmes/webpush-go v1.3.0
 	github.com/alexsergivan/transliterator v1.0.0
 	github.com/btcsuite/btcd/btcutil v1.1.5
-	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/getkin/kin-openapi v0.123.0
 	github.com/go-openapi/errors v0.21.0
 	github.com/go-openapi/loads v0.21.5

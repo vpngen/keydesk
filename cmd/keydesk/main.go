@@ -19,6 +19,7 @@ import (
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/jwt"
+	"github.com/vpngen/keydesk/pkg/runner"
 	"github.com/vpngen/keydesk/utils"
 	"github.com/vpngen/vpngine/naclkey"
 	"github.com/vpngen/wordsgens/namesgenerator"
@@ -31,7 +32,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -65,8 +65,6 @@ func errQuit(msg string, err error) {
 	_, _ = fmt.Fprintf(os.Stderr, "%s: %s\n", msg, err)
 	os.Exit(1)
 }
-
-// TODO: make convenient runner
 
 func main() {
 	cfg, err := parseArgs2(parseFlags(flag.CommandLine, os.Args[1:]))
@@ -181,11 +179,7 @@ func main() {
 	// On signal, gracefully shut down the server and wait 5
 	// seconds for current connections to stop.
 
-	done := make(chan struct{})
 	statDone := make(chan struct{})
-	quit := make(chan os.Signal, 1)
-	quitMsg := make(chan os.Signal)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	srv := &http.Server{
 		Handler:     handler,
@@ -211,66 +205,51 @@ func main() {
 		}
 	}
 
-	// graceful shutdown
-	go func() {
-		sig := <-quit
-		quitMsg <- sig
-
-		_, _ = fmt.Fprintln(os.Stderr, "Quit signal received...")
-		statDone <- struct{}{}
-
-		wg := sync.WaitGroup{}
-
-		closeFunc := func(srv *http.Server) {
-			defer wg.Done()
-
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-
-			srv.SetKeepAlivesEnabled(false)
-			if err := srv.Shutdown(ctx); err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "Can't gracefully shut down the server: %s\n", err)
-			}
-		}
-
-		_, _ = fmt.Fprintln(os.Stderr, "Server is shutting down")
-		wg.Add(1)
-		go closeFunc(srv)
-
-		if serverTLS != nil {
-			_, _ = fmt.Fprintln(os.Stderr, "Server TLS is shutting down")
-			wg.Add(1)
-			go closeFunc(serverTLS)
-		}
-
-		wg.Wait()
-
-		done <- struct{}{}
-	}()
+	baseCtx := context.Background()
+	r := runner.New(baseCtx)
 
 	if len(cfg.listeners) > 0 {
-		_, _ = fmt.Fprintf(os.Stderr, "Listen HTTP: %s\n", cfg.listeners[0].Addr().String())
-		// Start accepting connections.
-		go func() {
-			if err := srv.Serve(cfg.listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
-				errQuit("serve HTTP", err)
-			}
-		}()
+		r.AddTask("keydesk http", runner.Task{
+			Func: func(ctx context.Context) error {
+				_, _ = fmt.Fprintf(os.Stderr, "Listen HTTP: %s\n", cfg.listeners[0].Addr().String())
+				if err := srv.Serve(cfg.listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+					return err
+				}
+				return nil
+			},
+			Shutdown: func(ctx context.Context) error {
+				return srv.Shutdown(ctx)
+			},
+		})
 	}
 
 	if serverTLS != nil && len(cfg.listeners) == 2 {
-		_, _ = fmt.Fprintf(os.Stderr, "Listen HTTPS: %s\n", cfg.listeners[1].Addr().String())
-		// Start accepting connections.
-		go func() {
-			if err := serverTLS.ServeTLS(cfg.listeners[1], "", ""); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
-				errQuit("serve HTTPS", err)
-			}
-		}()
+		r.AddTask("keydesk https", runner.Task{
+			Func: func(ctx context.Context) error {
+				_, _ = fmt.Fprintf(os.Stderr, "Listen HTTPS: %s\n", cfg.listeners[1].Addr().String())
+				if err := serverTLS.ServeTLS(cfg.listeners[1], "", ""); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+					return err
+				}
+				return nil
+			},
+			Shutdown: func(ctx context.Context) error {
+				return serverTLS.Shutdown(ctx)
+			},
+		})
 	}
 
 	_, rdata := os.LookupEnv("VGSTATS_RANDOM_DATA")
 
-	go stat.CollectingData(db, statDone, rdata, cfg.statsDir)
+	r.AddTask("stat", runner.Task{
+		Func: func(ctx context.Context) error {
+			stat.CollectingData(db, statDone, rdata, cfg.statsDir)
+			return nil
+		},
+		Shutdown: func(ctx context.Context) error {
+			statDone <- struct{}{}
+			return nil
+		},
+	})
 
 	if cfg.messageAPISocket != nil {
 		echoSrv, err := app.SetupServer(db, cfg.etcDir)
@@ -278,24 +257,30 @@ func main() {
 			errQuit("message server", err)
 		}
 		echoSrv.Listener = cfg.messageAPISocket
-		go func() {
-			if err := echoSrv.Start(""); err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "message server: %s\n", err)
-			}
-		}()
-		go func() {
-			<-quitMsg
-			_, _ = fmt.Fprintln(os.Stderr, "Shutting down messages")
-			if err = echoSrv.Shutdown(context.TODO()); err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "message server shutdown: %s\n", err)
-			}
-			done <- struct{}{}
-		}()
+
+		r.AddTask("messages", runner.Task{
+			Func: func(ctx context.Context) error {
+				if err := echoSrv.Start(""); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+					return err
+				}
+				return nil
+			},
+			Shutdown: func(ctx context.Context) error {
+				if err = echoSrv.Shutdown(ctx); err != nil {
+					return err
+				}
+				return nil
+			},
+		})
 	}
 
-	// Wait for existing connections before exiting.
-	<-done
-	<-done
+	r.Run()
+	sigCh := make(chan os.Signal)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+	if err = r.Stop(); err != nil {
+		errQuit("runner", err)
+	}
 }
 
 func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxKeyLength]byte, error) {

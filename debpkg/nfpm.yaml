@@ -38,12 +38,6 @@ contents:
     mode: 0005
     owner: root
     group: root
-- src: bin/stats
-  dst: /opt/vgkeydesk/stats
-  file_info:
-    mode: 0005
-    owner: root
-    group: root
 - src: bin/createbrigade
   dst: /opt/vgkeydesk/createbrigade
   file_info:

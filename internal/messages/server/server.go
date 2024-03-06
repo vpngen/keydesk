@@ -4,15 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/getkin/kin-openapi/openapi3filter"
-	"github.com/labstack/echo/v4"
-	echomw "github.com/labstack/echo/v4/middleware"
-	echomiddleware "github.com/oapi-codegen/echo-middleware"
 	messages2 "github.com/vpngen/keydesk/gen/messages"
-	jwt2 "github.com/vpngen/keydesk/internal/auth/swagger3"
 	"github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/keydesk/storage"
-	"github.com/vpngen/keydesk/pkg/jwt"
 	"net/http"
 	"time"
 )
@@ -23,34 +17,6 @@ type Server struct {
 }
 
 var _ messages2.StrictServerInterface = (*Server)(nil)
-
-func SetupServer(db *storage.BrigadeStorage, authorizer jwt.Authorizer) (*echo.Echo, error) {
-	swagger, err := messages2.GetSwagger()
-	if err != nil {
-		return nil, fmt.Errorf("get swagger: %s", err.Error())
-	}
-
-	swagger.Servers = nil
-
-	validator := echomiddleware.OapiRequestValidatorWithOptions(
-		swagger,
-		&echomiddleware.Options{
-			Options: openapi3filter.Options{
-				AuthenticationFunc: jwt2.AuthFuncFactory(authorizer),
-			},
-		})
-
-	e := echo.New()
-	e.HideBanner = true
-	logger := echomw.LoggerWithConfig(echomw.LoggerConfig{
-		Format:           "${time_custom}\t${method}\t${uri}\t${status}\n",
-		CustomTimeFormat: "2006-01-02 15:04:05 -07:00",
-	})
-	e.Use(echomw.Recover(), logger, validator)
-	messages2.RegisterHandlers(e, messages2.NewStrictHandler(NewServer(db, service.New(db)), nil))
-
-	return e, nil
-}
 
 func NewServer(db *storage.BrigadeStorage, msgSvc service.Service) Server {
 	return Server{db: db, msgSvc: msgSvc}

@@ -12,7 +12,7 @@ import (
 	"github.com/rs/cors"
 	goSwaggerAuth "github.com/vpngen/keydesk/internal/auth/go-swagger"
 	"github.com/vpngen/keydesk/internal/maintenance"
-	msgsrv "github.com/vpngen/keydesk/internal/messages/server"
+	"github.com/vpngen/keydesk/internal/messages/app"
 	msgsvc "github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/internal/server"
 	"github.com/vpngen/keydesk/internal/stat"
@@ -61,10 +61,17 @@ var (
 	ErrStaticDirEmpty       = goerrors.New("empty static dirname")
 )
 
+func errQuit(msg string, err error) {
+	_, _ = fmt.Fprintf(os.Stderr, "%s: %s\n", msg, err)
+	os.Exit(1)
+}
+
+// TODO: make convenient runner
+
 func main() {
 	cfg, err := parseArgs2(parseFlags(flag.CommandLine, os.Args[1:]))
 	if err != nil {
-		log.Fatalf("Can't init: %s\n", err)
+		errQuit("Can't init", err)
 	}
 
 	routerPublicKey, shufflerPublicKey, err := readPubKeys(cfg.etcDir)
@@ -87,7 +94,7 @@ func main() {
 		},
 	}
 	if err := db.SelfCheckAndInit(); err != nil {
-		log.Fatalf("Storage initialization: %s\n", err)
+		errQuit("Storage initialization", err)
 	}
 
 	switch {
@@ -111,7 +118,7 @@ func main() {
 			&routerPublicKey,
 			&shufflerPublicKey,
 		); err != nil {
-			log.Fatalf("Can't create brigadier: %s\n", err)
+			errQuit("Can't create brigadier", err)
 		}
 		return
 	}
@@ -130,8 +137,7 @@ func main() {
 	}
 
 	if len(cfg.listeners) == 0 && !cfg.addr.IsValid() {
-		_, _ = fmt.Fprintln(os.Stderr, "neither listeners nor address:port specified, exiting")
-		os.Exit(1)
+		errQuit("neither listeners nor address:port specified", nil)
 	}
 
 	if len(cfg.listeners) == 0 {
@@ -139,15 +145,13 @@ func main() {
 
 		l, err := net.Listen("tcp6", fmt.Sprintf("[%s]:80", prev))
 		if err != nil {
-			_, _ = fmt.Fprintln(os.Stderr, prev, "listen HTTP error:", err)
-			os.Exit(1)
+			errQuit("listen HTTP", err)
 		}
 		cfg.listeners = append(cfg.listeners, l)
 
 		l, err = net.Listen("tcp6", fmt.Sprintf("[%s]:443", prev))
 		if err != nil {
-			_, _ = fmt.Fprintln(os.Stderr, prev, "listen HTTPS error:", err)
-			os.Exit(1)
+			errQuit("listen HTTPS", err)
 		}
 		cfg.listeners = append(cfg.listeners, l)
 	}
@@ -160,7 +164,7 @@ func main() {
 	}
 	jwtKey, err := utils.GenHMACKey()
 	if err != nil {
-		log.Fatalf("JWT key error: %s\n", err)
+		errQuit("JWT key error", err)
 	}
 
 	handler := initSwaggerAPI(
@@ -180,6 +184,7 @@ func main() {
 	done := make(chan struct{})
 	statDone := make(chan struct{})
 	quit := make(chan os.Signal, 1)
+	quitMsg := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	srv := &http.Server{
@@ -206,8 +211,11 @@ func main() {
 		}
 	}
 
+	// graceful shutdown
 	go func() {
-		<-quit
+		sig := <-quit
+		quitMsg <- sig
+
 		_, _ = fmt.Fprintln(os.Stderr, "Quit signal received...")
 		statDone <- struct{}{}
 
@@ -237,7 +245,7 @@ func main() {
 
 		wg.Wait()
 
-		close(done)
+		done <- struct{}{}
 	}()
 
 	if len(cfg.listeners) > 0 {
@@ -245,7 +253,7 @@ func main() {
 		// Start accepting connections.
 		go func() {
 			if err := srv.Serve(cfg.listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
-				log.Fatalf("Can't serve: %s\n", err)
+				errQuit("serve HTTP", err)
 			}
 		}()
 	}
@@ -255,7 +263,7 @@ func main() {
 		// Start accepting connections.
 		go func() {
 			if err := serverTLS.ServeTLS(cfg.listeners[1], "", ""); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
-				log.Fatalf("Can't serve TLS: %s\n", err)
+				errQuit("serve HTTPS", err)
 			}
 		}()
 	}
@@ -265,37 +273,28 @@ func main() {
 	go stat.CollectingData(db, statDone, rdata, cfg.statsDir)
 
 	if cfg.messageAPISocket != nil {
+		echoSrv, err := app.SetupServer(db, cfg.etcDir)
+		if err != nil {
+			errQuit("message server", err)
+		}
+		echoSrv.Listener = cfg.messageAPISocket
 		go func() {
-			pubFile, err := os.ReadFile(cfg.etcDir + "/jwt-pub.b64")
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "read jwt public key: %s\n", err)
-				os.Exit(1)
-			}
-
-			ecPub, err := utils.DecodePublicKey(string(pubFile))
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "decode jwt public key: %s\n", err)
-				os.Exit(1)
-			}
-
-			echoSrv, err := msgsrv.SetupServer(db, jwt.NewAuthorizer(ecPub, jwt.Options{
-				Issuer:        "dc-mgmt",
-				Audience:      []string{"keydesk"},
-				SigningMethod: jwt2.SigningMethodES256,
-			}))
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "message server: %s\n", err)
-				os.Exit(1)
-			}
-			echoSrv.Listener = cfg.messageAPISocket
 			if err := echoSrv.Start(""); err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "message server: %s\n", err)
-				os.Exit(1)
 			}
+		}()
+		go func() {
+			<-quitMsg
+			_, _ = fmt.Fprintln(os.Stderr, "Shutting down messages")
+			if err = echoSrv.Shutdown(context.TODO()); err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "message server shutdown: %s\n", err)
+			}
+			done <- struct{}{}
 		}()
 	}
 
 	// Wait for existing connections before exiting.
+	<-done
 	<-done
 }
 

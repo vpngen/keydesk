@@ -5,7 +5,6 @@ set -e
 export CGO_ENABLED=0
 
 go build -C keydesk/cmd/keydesk -o ../../../bin/keydesk
-go build -C keydesk/cmd/stats -o ../../../bin/stats
 go build -C keydesk/cmd/createbrigade -o ../../../bin/createbrigade
 go build -C keydesk/cmd/replay -o ../../../bin/replay
 go build -C keydesk/cmd/reset -o ../../../bin/reset

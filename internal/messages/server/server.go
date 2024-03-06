@@ -42,7 +42,11 @@ func SetupServer(db *storage.BrigadeStorage, authorizer jwt.Authorizer) (*echo.E
 
 	e := echo.New()
 	e.HideBanner = true
-	e.Use(echomw.Recover(), echomw.Logger(), validator)
+	logger := echomw.LoggerWithConfig(echomw.LoggerConfig{
+		Format:           "${time_custom}\t${method}\t${uri}\t${status}\n",
+		CustomTimeFormat: "2006-01-02 15:04:05 -07:00",
+	})
+	e.Use(echomw.Recover(), logger, validator)
 	messages2.RegisterHandlers(e, messages2.NewStrictHandler(NewServer(db, service.New(db)), nil))
 
 	return e, nil

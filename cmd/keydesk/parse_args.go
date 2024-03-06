@@ -10,7 +10,6 @@ import (
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/vpnapi"
 	"github.com/vpngen/wordsgens/namesgenerator"
-	"log"
 	"net"
 	"net/netip"
 	"net/url"
@@ -116,26 +115,22 @@ func parseArgs2(flags flags) (config, error) {
 		enableCORS: *flags.pcors,
 	}
 
-	log.Println("getting user")
 	sysUser, err := user.Current()
 	if err != nil {
 		return cfg, fmt.Errorf("cannot define user: %w", err)
 	}
 
-	log.Println("parsing VPN configs")
 	cfg.vpnConfigs = parseVPNConfigs(flags)
 
 	if *flags.webDir == "" {
 		return cfg, ErrStaticDirEmpty
 	}
 
-	log.Println("getting dirs")
 	cfg, err = getAbsDirPaths(cfg, flags)
 	if err != nil {
 		return cfg, err
 	}
 
-	log.Println("getting brigadeID")
 	switch *flags.brigadeID {
 	case "", sysUser.Username:
 		cfg.brigadeID = sysUser.Username
@@ -152,7 +147,6 @@ func parseArgs2(flags flags) (config, error) {
 		return cfg, err
 	}
 
-	log.Println("getting addr")
 	if *flags.addr != "-" {
 		cfg.addr, err = netip.ParseAddrPort(*flags.addr)
 		if err != nil {
@@ -165,13 +159,11 @@ func parseArgs2(flags flags) (config, error) {
 		return cfg, nil
 	}
 
-	log.Println("getting message API socket")
 	cfg, err = parseMessageAPISocket(flags, cfg)
 	if err != nil {
 		return cfg, err
 	}
 
-	log.Println("getting listeners")
 	if *flags.brigadierName == "" {
 		// get listeners from argument
 		for _, laddr := range strings.Split(*flags.listenAddr, ",") {
@@ -217,7 +209,6 @@ func parseMessageAPISocket(f flags, cfg config) (config, error) {
 		path = *f.messageAPI
 	}
 
-	log.Println("Message API socket path:", path)
 	// delete socket if exists
 	if info, err := os.Stat(path); err == nil && !info.IsDir() {
 		if err := os.Remove(path); err != nil {

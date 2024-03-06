@@ -81,7 +81,7 @@ func parseFlags(flagSet *flag.FlagSet, args []string) flags {
 	f.ipsecCfgs = flagSet.String("ipsec", "", "IPSec configs ("+storage.ConfigsIPSec+")")
 	f.outlineCfgs = flagSet.String("outline", "", "Outline configs ("+storage.ConfigsOutline+")")
 
-	f.messageAPI = flagSet.String("m", "", fmt.Sprintf("Message API unix socket path. Default: %s/<BrigadeID>.sock '-' to disable", defaultMsgSocketDir))
+	f.messageAPI = flagSet.String("m", "", fmt.Sprintf("Message API unix socket path. Default: %s/<BrigadeID>/messages.sock '-' to disable", defaultMsgSocketDir))
 
 	// ignore errors, see original flag.Parse() func
 	_ = flagSet.Parse(args)

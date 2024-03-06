@@ -15,10 +15,13 @@ import (
 	"github.com/vpngen/keydesk/pkg/jwt"
 	"github.com/vpngen/keydesk/utils"
 	"os"
+	"path/filepath"
 )
 
+const jwtPubFileName = "jwt-pub-msg.b64"
+
 func SetupServer(db *storage.BrigadeStorage, etcDir string) (*echo.Echo, error) {
-	pubFile, err := os.ReadFile(etcDir + "/jwt-pub.b64")
+	pubFile, err := os.ReadFile(filepath.Join(etcDir, jwtPubFileName))
 	if err != nil {
 		return nil, fmt.Errorf("read jwt public key: %w", err)
 	}

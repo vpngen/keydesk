@@ -30,9 +30,10 @@ cleanInstall() {
 upgrade() {
     	printf "\033[32m Pre Install of an upgrade\033[0m\n"
     	# Step 3(upgrade), do what you need
-        systemctl stop --all 'vgkeydesk@*.socket' ||:
         
-         if [ -f /etc/systemd/system/vgkeydesk@.socket ]; then
+        systemctl daemon-reload ||:
+
+        if [ -f /etc/systemd/system/vgkeydesk@.socket ]; then
                 systemctl stop --all 'vgkeydesk@*.socket' ||:
                 rm -f /etc/systemd/system/vgkeydesk@.socket
 

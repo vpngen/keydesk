@@ -3,6 +3,6 @@ package stat
 import "time"
 
 const (
-	DefaultStatisticsFetchingDuration = 60 * time.Second
-	DefaultJitterValue                = 10 // sec
+	DefaultStatisticsFetchingDuration = 3600 * time.Second // 1h
+	DefaultJitterValue                = 10                 // sec
 )

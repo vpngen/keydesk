@@ -536,6 +536,11 @@ func parseArgs(flags flags) (bool, bool, bool, []net.Listener, netip.AddrPort, s
 		return *flags.chunked, *flags.jsonOut, *flags.pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, *flags.replaceBrigadier, vpnCfgs, nil
 	}
 
+	_, err = parseMessageAPISocket(flags, config{brigadeID: id})
+	if err != nil {
+		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, err
+	}
+
 	if *flags.brigadierName == "" {
 		var listeners []net.Listener
 		// get listeners from argument

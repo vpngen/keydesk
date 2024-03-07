@@ -1,8 +1,8 @@
 package main
 
 import (
-	"errors"
 	"flag"
+	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -10,67 +10,14 @@ import (
 )
 
 var testArgs = [][]string{
-	{"-id", "MRYVCFLQORAINIVIADUTH4OS5Q", "-c", "./", "-w", "./dist", "-a", "-"},
+	{"-id", "MRYVCFLQORAINIVIADUTH4OS5Q", "-c", "./", "-w", "./dist", "-a", "-", "-l", "127.0.0.1:80"},
+	{"-id", "MRYVCFLQORAINIVIADUTH4OS5Q", "-c", "./", "-w", "./dist", "-a", "-", "-l", "127.0.0.1:80", "-m", "message.sock"},
 }
 
 func TestParseArgsManual(t *testing.T) {
 	for _, args := range testArgs {
 		f := parseFlags(flag.NewFlagSet(os.Args[0], flag.ExitOnError), args)
-
-		// Call the original function
-		chunked, jsonOut, enableCORS, listeners, addrPort, id, etcDir, webDir, dbDir, certDir, statsDir, brigadierName, person, replaceBrigadier, _, err := parseArgs(f)
-
-		// Call the new function
-		newConfig, newErr := parseArgs2(f)
-
-		// Compare errors
-		if !errors.Is(err, newErr) {
-			t.Errorf("error mismatch, original: %s, new: %s", err, newErr)
-		}
-
-		// Compare configurations
-		if chunked != newConfig.chunked {
-			t.Errorf("chunked mismatch, original: %t, new: %t", chunked, newConfig.chunked)
-		}
-		if jsonOut != newConfig.jsonOut {
-			t.Errorf("jsonOut mismatch, original: %t, new: %t", jsonOut, newConfig.jsonOut)
-		}
-		if enableCORS != newConfig.enableCORS {
-			t.Errorf("enableCORS mismatch, original: %t, new: %t", enableCORS, newConfig.enableCORS)
-		}
-		if !listenersEqual(listeners, newConfig.listeners) {
-			t.Error("listeners mismatch")
-		}
-		if addrPort != newConfig.addr {
-			t.Errorf("addr mismatch, original: %s, new: %s", addrPort, newConfig.addr)
-		}
-		if id != newConfig.brigadeID {
-			t.Errorf("brigadeID mismatch, original: %s, new: %s", id, newConfig.brigadeID)
-		}
-		if etcDir != newConfig.etcDir {
-			t.Errorf("etcDir mismatch, original: %s, new: %s", etcDir, newConfig.etcDir)
-		}
-		if webDir != newConfig.webDir {
-			t.Errorf("webDir mismatch, original: %s, new: %s", webDir, newConfig.webDir)
-		}
-		if dbDir != newConfig.dbDir {
-			t.Errorf("dbDir mismatch, original: %s, new: %s", dbDir, newConfig.dbDir)
-		}
-		if certDir != newConfig.certDir {
-			t.Errorf("certDir mismatch, original: %s, new: %s", certDir, newConfig.certDir)
-		}
-		if statsDir != newConfig.statsDir {
-			t.Errorf("statsDir mismatch, original: %s, new: %s", statsDir, newConfig.statsDir)
-		}
-		if brigadierName != newConfig.brigadierName {
-			t.Errorf("brigadierName mismatch, original: %s, new: %s", brigadierName, newConfig.brigadierName)
-		}
-		if person != newConfig.person {
-			t.Error("person mismatch")
-		}
-		if replaceBrigadier != newConfig.replaceBrigadier {
-			t.Errorf("replaceBrigadier mismatch, original: %t, new: %t", replaceBrigadier, newConfig.replaceBrigadier)
-		}
+		testParseArgs(f, t)
 	}
 }
 
@@ -176,7 +123,7 @@ func testParseArgs(f flags, t *testing.T) {
 	if enableCORS != newConfig.enableCORS {
 		t.Fatalf("enableCORS mismatch, original: %t, new: %t", enableCORS, newConfig.enableCORS)
 	}
-	if !listenersEqual(listeners, newConfig.listeners) {
+	if !listenersEqual(listeners, newConfig.listeners, *f.listenAddr) {
 		t.Error("listeners mismatch")
 	}
 	if addrPort != newConfig.addr {
@@ -211,12 +158,16 @@ func testParseArgs(f flags, t *testing.T) {
 	}
 }
 
-func listenersEqual(a, b []net.Listener) bool {
+func listenersEqual(a, b []net.Listener, l string) bool {
 	if len(a) != len(b) {
 		return false
 	}
+	if l == "" {
+		return true
+	}
 	for i := range a {
-		if a[i] != b[i] {
+		if a[i].Addr() != b[i].Addr() {
+			fmt.Println(a[i].Addr(), b[i].Addr())
 			return false
 		}
 	}

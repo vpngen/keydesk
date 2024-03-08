@@ -134,9 +134,9 @@ func main() {
 		_, _ = fmt.Fprintf(os.Stderr, "Resqrict requests by address: %s \n", allowedAddress)
 	}
 
-	if len(cfg.listeners) == 0 && !cfg.addr.IsValid() {
-		errQuit("neither listeners nor address:port specified", nil)
-	}
+	//if len(cfg.listeners) == 0 && !cfg.addr.IsValid() {
+	//	errQuit("neither listeners nor address:port specified", nil)
+	//}
 
 	if len(cfg.listeners) == 0 {
 		prev := calculatedAddrPort.Prev().String()
@@ -390,13 +390,13 @@ func initSwaggerAPI(
 		TokenLifeTime,
 	)
 
-	return api.Serve(func(handler http.Handler) http.Handler {
-		if pcors {
-			handler = cors.AllowAll().Handler(handler)
-		}
-		handler = maintenanceMiddlewareBuilder("/.maintenance", filepath.Dir(db.BrigadeFilename)+"/.maintenance")(handler)
-		return uiMiddlewareBuilder(webDir, allowedAddr)(handler)
-	})
+	handler := api.Serve(nil)
+	handler = maintenanceMiddlewareBuilder("/.maintenance", filepath.Dir(db.BrigadeFilename)+"/.maintenance")(handler)
+	handler = uiMiddlewareBuilder(webDir, allowedAddr)(handler)
+	if pcors {
+		return cors.AllowAll().Handler(handler)
+	}
+	return handler
 }
 
 func uiMiddlewareBuilder(dir string, allowedAddr string) middleware.Builder {

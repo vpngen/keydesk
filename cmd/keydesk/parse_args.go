@@ -167,6 +167,9 @@ func parseArgs2(flags flags) (config, error) {
 	if *flags.brigadierName == "" {
 		// get listeners from argument
 		for _, laddr := range strings.Split(*flags.listenAddr, ",") {
+			if laddr == "" {
+				continue
+			}
 			l, err := net.Listen("tcp", laddr)
 			if err != nil {
 				return cfg, fmt.Errorf("cannot listen: %w", err)
@@ -175,9 +178,9 @@ func parseArgs2(flags flags) (config, error) {
 			cfg.listeners = append(cfg.listeners, l)
 		}
 
-		if len(cfg.listeners) != 1 && len(cfg.listeners) != 2 {
-			return cfg, fmt.Errorf("unexpected number of litening (%d != 1|2)", len(cfg.listeners))
-		}
+		//if len(cfg.listeners) != 1 && len(cfg.listeners) != 2 {
+		//	return cfg, fmt.Errorf("unexpected number of litening (%d != 1|2)", len(cfg.listeners))
+		//}
 
 		return cfg, nil
 	}
@@ -545,6 +548,9 @@ func parseArgs(flags flags) (bool, bool, bool, []net.Listener, netip.AddrPort, s
 		var listeners []net.Listener
 		// get listeners from argument
 		for _, laddr := range strings.Split(*flags.listenAddr, ",") {
+			if laddr == "" {
+				continue
+			}
 			l, err := net.Listen("tcp", laddr)
 			if err != nil {
 				return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot listen: %w", err)
@@ -553,10 +559,10 @@ func parseArgs(flags flags) (bool, bool, bool, []net.Listener, netip.AddrPort, s
 			listeners = append(listeners, l)
 		}
 
-		if len(listeners) != 1 && len(listeners) != 2 {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("unexpected number of litening (%d != 1|2)",
-				len(listeners))
-		}
+		//if len(listeners) != 1 && len(listeners) != 2 {
+		//	return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("unexpected number of litening (%d != 1|2)",
+		//		len(listeners))
+		//}
 
 		return *flags.chunked, *flags.jsonOut, *flags.pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, false, nil, nil
 	}

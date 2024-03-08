@@ -12,6 +12,7 @@ import (
 var testArgs = [][]string{
 	{"-id", "MRYVCFLQORAINIVIADUTH4OS5Q", "-c", "./", "-w", "./dist", "-a", "-", "-l", "127.0.0.1:80"},
 	{"-id", "MRYVCFLQORAINIVIADUTH4OS5Q", "-c", "./", "-w", "./dist", "-a", "-", "-l", "127.0.0.1:80", "-m", "message.sock"},
+	{"-id", "MRYVCFLQORAINIVIADUTH4OS5Q", "-c", "./", "-w", "./dist", "-a", "-", "-m", "message.sock"},
 }
 
 func TestParseArgsManual(t *testing.T) {
@@ -123,7 +124,7 @@ func testParseArgs(f flags, t *testing.T) {
 	if enableCORS != newConfig.enableCORS {
 		t.Fatalf("enableCORS mismatch, original: %t, new: %t", enableCORS, newConfig.enableCORS)
 	}
-	if !listenersEqual(listeners, newConfig.listeners, *f.listenAddr) {
+	if !listenersEqual(listeners, newConfig.listeners) {
 		t.Error("listeners mismatch")
 	}
 	if addrPort != newConfig.addr {
@@ -158,12 +159,9 @@ func testParseArgs(f flags, t *testing.T) {
 	}
 }
 
-func listenersEqual(a, b []net.Listener, l string) bool {
+func listenersEqual(a, b []net.Listener) bool {
 	if len(a) != len(b) {
 		return false
-	}
-	if l == "" {
-		return true
 	}
 	for i := range a {
 		if a[i].Addr() != b[i].Addr() {

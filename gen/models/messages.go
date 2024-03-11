@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // Messages messages
@@ -20,10 +21,12 @@ import (
 type Messages struct {
 
 	// messages
+	// Required: true
 	Messages []*Message `json:"messages"`
 
 	// total
-	Total int64 `json:"total,omitempty"`
+	// Required: true
+	Total *int64 `json:"total"`
 }
 
 // Validate validates this messages
@@ -34,6 +37,10 @@ func (m *Messages) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateTotal(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -41,8 +48,9 @@ func (m *Messages) Validate(formats strfmt.Registry) error {
 }
 
 func (m *Messages) validateMessages(formats strfmt.Registry) error {
-	if swag.IsZero(m.Messages) { // not required
-		return nil
+
+	if err := validate.Required("messages", "body", m.Messages); err != nil {
+		return err
 	}
 
 	for i := 0; i < len(m.Messages); i++ {
@@ -61,6 +69,15 @@ func (m *Messages) validateMessages(formats strfmt.Registry) error {
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *Messages) validateTotal(formats strfmt.Registry) error {
+
+	if err := validate.Required("total", "body", m.Total); err != nil {
+		return err
 	}
 
 	return nil

@@ -385,6 +385,9 @@ definitions:
           $ref: '#/definitions/Message'
       total:
         type: integer
+    required:
+      - messages
+      - total
 #  Subscription:
 #    type: object
 #    properties:

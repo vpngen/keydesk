@@ -37,7 +37,7 @@ func GetMessages(
 
 	return operations.NewGetMessagesOK().WithPayload(&models.Messages{
 		Messages: ret,
-		Total:    int64(total),
+		Total:    swag.Int64(int64(total)),
 	})
 }
 

@@ -30,21 +30,20 @@ cleanInstall() {
 upgrade() {
     	printf "\033[32m Pre Install of an upgrade\033[0m\n"
     	# Step 3(upgrade), do what you need
-        systemctl stop --all 'vgkeydesk@*.socket' ||:
         
-        if [ -f /etc/systemd/system/vgstats@.service ]; then
-                systemctl stop --all 'vgstats@*.service' ||:
-                systemctl disable --all 'vgstats@*.service' ||:
-                rm -f /etc/systemd/system/vgstats@.service
-        fi
+        systemctl daemon-reload ||:
 
         if [ -f /etc/systemd/system/vgkeydesk@.socket ]; then
                 systemctl stop --all 'vgkeydesk@*.socket' ||:
-                systemctl disable --all 'vgkeydesk@*.socket' ||:
                 rm -f /etc/systemd/system/vgkeydesk@.socket
 
                 find /etc/systemd/system/ -path "/etc/systemd/system/vgkeydesk@*.socket.d/*" -type f -name "listen.conf" -delete
                 find /etc/systemd/system/ -path "/etc/systemd/system/vgkeydesk@*.socket.d" -type d -empty -delete
+        fi
+        
+        if [ -f /etc/systemd/system/vgstats@.service ]; then
+                systemctl stop --all 'vgstats@*.service' ||:
+                rm -f /etc/systemd/system/vgstats@.service
         fi
 
         printf "\033[32m Reload the service unit from disk\033[0m\n"

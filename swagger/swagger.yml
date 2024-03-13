@@ -23,21 +23,21 @@ paths:
         default:
           description: error
           schema:
-              $ref: "#/definitions/error"
+            $ref: "#/definitions/error"
   /user:
     get:
       security:
-        - Bearer: []
+        - Bearer: [ ]
       produces:
         - application/json
       responses:
         200:
           description: A list of users.
           schema:
-              type: array
-              items:
-                  $ref: "#/definitions/user"
-        403: 
+            type: array
+            items:
+              $ref: "#/definitions/user"
+        403:
           description: 'You do not have necessary permissions for the resource'
         503:
           description: 'Maintenance'
@@ -48,10 +48,10 @@ paths:
         default:
           description: error
           schema:
-              $ref: "#/definitions/error"
+            $ref: "#/definitions/error"
     post:
       security:
-        - Bearer: []
+        - Bearer: [ ]
       produces:
         - application/json
       responses:
@@ -59,7 +59,7 @@ paths:
           description: New user created.
           schema:
             $ref: "#/definitions/newuser"
-        403: 
+        403:
           description: 'You do not have necessary permissions for the resource'
         503:
           description: 'Maintenance'
@@ -70,12 +70,12 @@ paths:
         default:
           description: error
           schema:
-              $ref: "#/definitions/error"
+            $ref: "#/definitions/error"
 
   /user/{UserID}:
     delete:
       security:
-        - Bearer: []
+        - Bearer: [ ]
       produces:
         - application/json
       parameters:
@@ -86,7 +86,7 @@ paths:
       responses:
         204:
           description: User deleted.
-        403: 
+        403:
           description: 'You do not have necessary permissions for the resource'
         503:
           description: 'Maintenance'
@@ -97,11 +97,11 @@ paths:
         default:
           description: error
           schema:
-              $ref: "#/definitions/error"
+            $ref: "#/definitions/error"
   /users/stats:
     get:
       security:
-        - Bearer: []
+        - Bearer: [ ]
       produces:
         - application/json
       responses:
@@ -109,7 +109,7 @@ paths:
           description: A list of stats.
           schema:
             $ref: "#/definitions/stats"
-        403: 
+        403:
           description: 'You do not have necessary permissions for the resource'
         503:
           description: 'Maintenance'
@@ -120,7 +120,79 @@ paths:
         default:
           description: error
           schema:
-              $ref: "#/definitions/error"
+            $ref: "#/definitions/error"
+  /messages:
+    get:
+      summary: Get messages
+      description: Get messages, triggered by frontend
+      operationId: getMessages
+      security:
+        - Bearer: [ ]
+      parameters:
+        - in: query
+          name: offset
+          type: integer
+          default: 0
+        - in: query
+          name: limit
+          type: integer
+          default: 25
+        - in: query
+          name: read
+          type: boolean
+        - in: query
+          name: priority
+          type: integer
+        - in: query
+          name: sort-priority
+          type: string
+          enum:
+            - asc
+            - desc
+        - in: query
+          name: sort-time
+          type: string
+          enum:
+            - asc
+            - desc
+        - in: query
+          name: priority-op
+          type: string
+          default: eq
+          enum:
+            - eq
+            - ne
+            - gt
+            - lt
+            - ge
+            - le
+      responses:
+        200:
+          description: List of messages
+          schema:
+            $ref: '#/definitions/Messages'
+        500:
+          $ref: '#/definitions/error'
+  /messages/{id}/read:
+    post:
+      summary: Mark message as read
+      description: Mark message as read
+      operationId: markMessageAsRead
+      security:
+        - Bearer: [ ]
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+      responses:
+        200:
+          description: OK
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+
 definitions:
   token:
     type: object
@@ -148,7 +220,7 @@ definitions:
           FileName:
             type: string
           FileContent:
-            type: string      
+            type: string
       AmnzOvcConfig:
         type: object
         required:
@@ -235,7 +307,7 @@ definitions:
             - Month
             - Value
           properties:
-            Month: 
+            Month:
               type: integer
             Value:
               type: integer
@@ -247,7 +319,7 @@ definitions:
             - Month
             - Value
           properties:
-            Month: 
+            Month:
               type: integer
             Value:
               type: integer
@@ -259,7 +331,7 @@ definitions:
             - Month
             - Value
           properties:
-            Month: 
+            Month:
               type: integer
             Value:
               type: number
@@ -286,6 +358,129 @@ definitions:
         type: string
       retry_after:
         type: string
+  Message:
+    type: object
+    properties:
+      id:
+        type: integer
+      text:
+        type: string
+      is_read:
+        type: boolean
+      priority:
+        type: integer
+      time:
+        type: string
+        format: date-time
+      ttl:
+        type: string
+    required:
+      - text
+  Messages:
+    type: object
+    properties:
+      messages:
+        type: array
+        items:
+          $ref: '#/definitions/Message'
+      total:
+        type: integer
+    required:
+      - messages
+      - total
+#  Subscription:
+#    type: object
+#    properties:
+#      endpoint:
+#        type: string
+#      keys:
+#        type: object
+#        properties:
+#          p256dh:
+#            type: string
+#          auth:
+#            type: string
+#    required:
+#      - endpoint
+#      - keys
+#  PushOptions:
+#    type: object
+#    properties:
+#      subscriber:
+#        type: string
+#      topic:
+#        type: string
+#      urgency:
+#        type: string
+#      public_key:
+#        type: string
+#      private_key:
+#        type: string
+#  NotificationOptions:
+#    type: object
+#    properties:
+#      title:
+#        type: string
+#      options:
+#        type: object
+#        properties:
+#          body:
+#            type: string
+#          actions:
+#            type: array
+#            items:
+#              type: object
+#              properties:
+#                action:
+#                  type: string
+#                icon:
+#                  type: string
+#                title:
+#                  type: string
+#          badge:
+#            type: string
+#          data:
+#            $ref: '#/definitions/AnyValue'
+#          dir:
+#            type: string
+#          icon:
+#            type: string
+#          image:
+#            type: string
+#          lang:
+#            type: string
+#          renotify:
+#            type: boolean
+#          requireInteraction:
+#            type: boolean
+#          silent:
+#            type: boolean
+#          tag:
+#            type: string
+#          timestamp:
+#            type: integer
+#          vibrate:
+#            type: array
+#            items:
+#              type: integer
+#        required:
+#          - body
+#    required:
+#      - title
+#  PushRequest:
+#    type: object
+#    properties:
+#      notification:
+#        $ref: '#/definitions/NotificationOptions'
+#      subscription:
+#        $ref: '#/definitions/Subscription'
+#      options:
+#        $ref: '#/definitions/PushOptions'
+#    required:
+#      - notification
+#      - subscription
+#      - options
+#  AnyValue: { }
 
 securityDefinitions:
   Bearer:

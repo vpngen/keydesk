@@ -6,3 +6,15 @@ dist
 .new
 .legacy
 
+.idea
+.DS_Store
+bin
+
+brigade.json*
+brigade.lock
+.maintenance
+stats.json*
+stats.lock
+vg-*.json
+
+*.drawio*

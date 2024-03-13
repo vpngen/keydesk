@@ -1,61 +1,50 @@
 package maintenance
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 )
 
 // IsMaintenance Reads .maintenance file. If file contains timestamp, till is timestamp.
 // If file is empty or timestamp is invalid or zero, till is file modtime + 10800 sec.
 // Returns (true, till) if till is later than now.
-func IsMaintenance(path string) (bool, time.Time) {
+func IsMaintenance(path string) (bool, time.Time, string) {
 	file, err := os.Open(path)
 	if err != nil {
 		// can't open file, it's not maintenance
 		_, _ = fmt.Fprintln(os.Stderr, "read maintenance file error:", err)
-		return false, time.Time{}
+		return false, time.Time{}, ""
 	}
 	defer file.Close()
 
-	// read timestamp
-	data, err := io.ReadAll(file)
+	till, msg, err := readMaintenance(bufio.NewScanner(file))
 	if err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, "read maintenance timestamp error:", err)
-		return false, time.Time{}
+		_, _ = fmt.Fprintln(os.Stderr, "read maintenance error:", err)
+		return false, time.Time{}, ""
 	}
 
-	var till time.Time // time till which we're in maintenance
-
-	// read timestamp
-	timestamp, err := strconv.Atoi(strings.TrimSpace(string(data)))
-	if err != nil || timestamp == 0 {
-		// timestamp is 0 or invalid, maintenance is till modtime + 10800 sec
+	if till.IsZero() {
 		stat, err := file.Stat()
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, "read maintenance file stat error:", err)
-			return false, time.Time{}
+			return false, time.Time{}, ""
 		}
 		till = stat.ModTime().Add(10800 * time.Second)
-	} else {
-		// otherwise, till is timestamp
-		till = time.Unix(int64(timestamp), 0)
 	}
 
-	// check if we're in maintenance now
-	return time.Now().Before(till), till
+	return till.After(time.Now()), till, msg
 }
 
 // CheckInPaths checks if any of the paths is in maintenance and returns the max time if multiple found
-func CheckInPaths(paths ...string) (isMaintenance bool, till time.Time) {
+func CheckInPaths(paths ...string) (isMaintenance bool, till time.Time, msg string) {
 	for _, path := range paths {
-		if ok, t := IsMaintenance(path); ok && t.After(till) {
+		if ok, t, m := IsMaintenance(path); ok && t.After(till) {
 			isMaintenance = true
 			till = t
+			msg = m
 		}
 	}
 	return
@@ -64,19 +53,23 @@ func CheckInPaths(paths ...string) (isMaintenance bool, till time.Time) {
 type Error struct {
 	now, till  time.Time
 	retryAfter time.Duration
+	msg        string
 }
 
-func NewError(till time.Time) Error {
+func NewError(till time.Time, msg string) Error {
 	now := time.Now()
-	return Error{now: now, till: till, retryAfter: till.Sub(now)}
+	return Error{now: now, till: till, retryAfter: till.Sub(now), msg: msg}
 }
 
 func (e Error) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]any{
-		"message":     e.Error(),
+	data := map[string]any{
 		"till":        e.till,
 		"retry_after": e.RetryAfter().String(),
-	})
+	}
+	if e.msg != "" {
+		data["msg"] = e.msg
+	}
+	return json.Marshal(data)
 }
 
 func (e Error) RetryAfter() time.Duration {

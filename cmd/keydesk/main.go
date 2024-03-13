@@ -40,7 +40,6 @@ import (
 	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
-	"github.com/vpngen/keydesk/vpnapi"
 	"github.com/vpngen/vpngine/naclkey"
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
@@ -59,9 +58,6 @@ const (
 	TLSKeyFilename   = "vpn.works.key"
 )
 
-// ErrStaticDirEmpty - no static dir name.
-var ErrStaticDirEmpty = goerrors.New("empty static dirname")
-
 // Args errors.
 var (
 	ErrInvalidBrigadierName = goerrors.New("invalid brigadier name")
@@ -71,10 +67,11 @@ var (
 	ErrInvalidPersonName    = goerrors.New("invalid person name")
 	ErrInvalidPersonDesc    = goerrors.New("invalid person desc")
 	ErrInvalidPersonURL     = goerrors.New("invalid person url")
+	ErrStaticDirEmpty       = goerrors.New("empty static dirname")
 )
 
 func main() {
-	chunked, _, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, certDir, statsDir, name, person, replace, vpnCfgs, err := parseArgs()
+	chunked, _, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, certDir, statsDir, name, person, replace, vpnCfgs, err := parseArgs(parseFlags(flag.CommandLine, os.Args[1:]))
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 	}
@@ -252,7 +249,7 @@ func main() {
 	<-done
 }
 
-func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, string, string, string, string, string, string, namesgenerator.Person, bool, *storage.ConfigsImplemented, error) {
+func parseArgs(flags flags) (bool, bool, bool, []net.Listener, netip.AddrPort, string, string, string, string, string, string, string, namesgenerator.Person, bool, *storage.ConfigsImplemented, error) {
 	var (
 		id                               string
 		etcdir, dbdir, certdir, statsdir string
@@ -265,129 +262,101 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot define user: %w", err)
 	}
 
-	webDir := flag.String("w", DefaultWebDir, "Dir for web files.")
-	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
-	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
-	certDir := flag.String("e", "", "Dir for TLS certificate and key (for test). Default: "+DefaultCertDir)
-	statsDir := flag.String("s", "", "Dir with brigades statistics. Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
-
-	pcors := flag.Bool("cors", false, "Turn on permessive CORS (for test)")
-	brigadeID := flag.String("id", "", "BrigadeID (for test)")
-	listenAddr := flag.String("l", "", "Listen addr:port (http and https separate with commas)")
-
-	brigadierName := flag.String("name", "", "brigadierName :: base64")
-	personName := flag.String("person", "", "personName :: base64")
-	personDesc := flag.String("desc", "", "personDesc :: base64")
-	personURL := flag.String("url", "", "personURL :: base64")
-	replaceBrigadier := flag.Bool("r", false, "Replace brigadier config")
-
-	addr := flag.String("a", vpnapi.TemplatedAddrPort, "API endpoint address:port")
-
-	chunked := flag.Bool("ch", false, "chunked output")
-	jsonOut := flag.Bool("j", false, "json output")
-
-	wgcCfgs := flag.String("wg", "native,amnezia", "Wireguard configs ("+storage.ConfigsWg+")")
-	ovcCfgs := flag.String("ovc", "", "OpenVPN over Cloak configs ("+storage.ConfigsOvc+")")
-	ipsecCfgs := flag.String("ipsec", "", "IPSec configs ("+storage.ConfigsIPSec+")")
-	outlineCfgs := flag.String("outline", "", "Outline configs ("+storage.ConfigsOutline+")")
-
-	flag.Parse()
-
 	vpnCfgs := storage.NewConfigsImplemented()
 
-	if *wgcCfgs != "" {
-		vpnCfgs.AddWg(*wgcCfgs)
+	if *flags.wgcCfgs != "" {
+		vpnCfgs.AddWg(*flags.wgcCfgs)
 	}
 
-	if *ovcCfgs != "" {
-		vpnCfgs.AddOvc(*ovcCfgs)
+	if *flags.ovcCfgs != "" {
+		vpnCfgs.AddOvc(*flags.ovcCfgs)
 	}
 
-	if *ipsecCfgs != "" {
-		vpnCfgs.AddIPSec(*ipsecCfgs)
+	if *flags.ipsecCfgs != "" {
+		vpnCfgs.AddIPSec(*flags.ipsecCfgs)
 	}
 
-	if *outlineCfgs != "" {
-		vpnCfgs.AddOutline(*outlineCfgs)
+	if *flags.outlineCfgs != "" {
+		vpnCfgs.AddOutline(*flags.outlineCfgs)
 	}
 
-	if *webDir == "" {
+	if *flags.webDir == "" {
 		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrStaticDirEmpty
 	}
 
-	webdir, err := filepath.Abs(*webDir)
+	webdir, err := filepath.Abs(*flags.webDir)
 	if err != nil {
 		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("web dir: %w", err)
 	}
 
-	if *filedbDir != "" {
-		dbdir, err = filepath.Abs(*filedbDir)
+	if *flags.filedbDir != "" {
+		dbdir, err = filepath.Abs(*flags.filedbDir)
 		if err != nil {
 			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("dbdir dir: %w", err)
 		}
 	}
 
-	if *etcDir != "" {
-		etcdir, err = filepath.Abs(*etcDir)
+	if *flags.etcDir != "" {
+		etcdir, err = filepath.Abs(*flags.etcDir)
 		if err != nil {
 			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("etcdir dir: %w", err)
 		}
 	}
 
-	if *certDir != "" {
-		certdir, err = filepath.Abs(*certDir)
+	if *flags.certDir != "" {
+		certdir, err = filepath.Abs(*flags.certDir)
 		if err != nil {
 			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("certdir dir: %w", err)
 		}
 	}
 
-	if *statsDir != "" {
-		statsdir, err = filepath.Abs(*statsDir)
+	if *flags.statsDir != "" {
+		statsdir, err = filepath.Abs(*flags.statsDir)
 		if err != nil {
 			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("statdir dir: %w", err)
 		}
 	}
 
-	switch *brigadeID {
+	switch *flags.brigadeID {
 	case "", sysUser.Username:
 		id = sysUser.Username
 
-		if *filedbDir == "" {
+		if *flags.filedbDir == "" {
 			dbdir = filepath.Join(storage.DefaultHomeDir, id)
 		}
 
-		if *etcDir == "" {
+		if *flags.etcDir == "" {
 			etcdir = keydesk.DefaultEtcDir
 		}
 
-		if *certDir == "" {
+		if *flags.certDir == "" {
 			certdir = DefaultCertDir
 		}
 
-		if *statsDir == "" {
+		if *flags.statsDir == "" {
 			statsdir = filepath.Join(storage.DefaultStatsDir, id)
 		}
 	default:
-		id = *brigadeID
+		id = *flags.brigadeID
 
 		cwd, err := os.Getwd()
 		if err == nil {
 			cwd, _ = filepath.Abs(cwd)
 		}
 
-		if *filedbDir == "" {
+		if *flags.filedbDir == "" {
 			dbdir = cwd
 		}
 
-		if *etcDir == "" {
+		if *flags.etcDir == "" {
 			etcdir = cwd
 		}
 
-		if *certDir == "" {
+		if *flags.certDir == "" {
 			certdir = cwd
 		}
 
-		if *statsDir == "" {
+		if *flags.statsDir == "" {
 			statsdir = cwd
 		}
 	}
@@ -403,21 +372,21 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("id uuid: %s: %w", id, err)
 	}
 
-	if *addr != "-" {
-		addrPort, err = netip.ParseAddrPort(*addr)
+	if *flags.addr != "-" {
+		addrPort, err = netip.ParseAddrPort(*flags.addr)
 		if err != nil {
 			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("api addr: %w", err)
 		}
 	}
 
-	if *replaceBrigadier {
-		return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, *replaceBrigadier, vpnCfgs, nil
+	if *flags.replaceBrigadier {
+		return *flags.chunked, *flags.jsonOut, *flags.pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, *flags.replaceBrigadier, vpnCfgs, nil
 	}
 
-	if *brigadierName == "" {
+	if *flags.brigadierName == "" {
 		var listeners []net.Listener
 
-		switch *listenAddr {
+		switch *flags.listenAddr {
 		case "":
 			// get listeners from activation sockets
 			listeners, err = activation.Listeners()
@@ -425,10 +394,10 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 				return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot retrieve listeners: %w", err)
 			}
 
-			return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, false, nil, nil
+			return *flags.chunked, *flags.jsonOut, *flags.pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, false, nil, nil
 		default:
 			// get listeners from argument
-			for _, laddr := range strings.Split(*listenAddr, ",") {
+			for _, laddr := range strings.Split(*flags.listenAddr, ",") {
 				l, err := net.Listen("tcp", laddr)
 				if err != nil {
 					return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot listen: %w", err)
@@ -443,11 +412,11 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 			}
 		}
 
-		return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, false, nil, nil
+		return *flags.chunked, *flags.jsonOut, *flags.pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, false, nil, nil
 	}
 
 	// brigadierName must be not empty and must be a valid UTF8 string
-	buf, err := base64.StdEncoding.DecodeString(*brigadierName)
+	buf, err := base64.StdEncoding.DecodeString(*flags.brigadierName)
 	if err != nil {
 		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("brigadier name: %w", err)
 	}
@@ -459,11 +428,11 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 	name := string(buf)
 
 	// personName must be not empty and must be a valid UTF8 string
-	if *personName == "" {
+	if *flags.personName == "" {
 		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrEmptyPersonName
 	}
 
-	buf, err = base64.StdEncoding.DecodeString(*personName)
+	buf, err = base64.StdEncoding.DecodeString(*flags.personName)
 	if err != nil {
 		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("person name: %w", err)
 	}
@@ -475,11 +444,11 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 	person.Name = string(buf)
 
 	// personDesc must be not empty and must be a valid UTF8 string
-	if *personDesc == "" {
+	if *flags.personDesc == "" {
 		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrEmptyPersonDesc
 	}
 
-	buf, err = base64.StdEncoding.DecodeString(*personDesc)
+	buf, err = base64.StdEncoding.DecodeString(*flags.personDesc)
 	if err != nil {
 		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("person desc: %w", err)
 	}
@@ -491,11 +460,11 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 	person.Desc = string(buf)
 
 	// personURL must be not empty and must be a valid UTF8 string
-	if *personURL == "" {
+	if *flags.personURL == "" {
 		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrEmptyPersonURL
 	}
 
-	buf, err = base64.StdEncoding.DecodeString(*personURL)
+	buf, err = base64.StdEncoding.DecodeString(*flags.personURL)
 	if err != nil {
 		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("person url: %w", err)
 	}
@@ -513,7 +482,7 @@ func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, stri
 
 	person.URL = u
 
-	return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, name, person, *replaceBrigadier, vpnCfgs, nil
+	return *flags.chunked, *flags.jsonOut, *flags.pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, name, person, *flags.replaceBrigadier, vpnCfgs, nil
 }
 
 func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxKeyLength]byte, error) {

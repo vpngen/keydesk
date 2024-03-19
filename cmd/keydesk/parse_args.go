@@ -159,12 +159,12 @@ func parseArgs2(flags flags) (config, error) {
 		return cfg, nil
 	}
 
-	cfg, err = parseMessageAPISocket(flags, cfg)
-	if err != nil {
-		return cfg, err
-	}
-
 	if *flags.brigadierName == "" {
+		cfg, err = parseMessageAPISocket(flags, cfg)
+		if err != nil {
+			return cfg, err
+		}
+
 		// get listeners from argument
 		for _, laddr := range strings.Split(*flags.listenAddr, ",") {
 			if laddr == "" {

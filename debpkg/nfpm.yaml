@@ -13,6 +13,7 @@ depends:
 - vgkeydesk-web
 - vgkeydesk-shuffler-key
 - vgkeydesk-router
+- vgkeydesk-messages-access
 
 maintainer: "Ingmund Ollson <ingmund@proton.me>"
 description: VPNGen keydesk backend

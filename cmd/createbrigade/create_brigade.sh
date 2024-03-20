@@ -28,11 +28,13 @@ set -e
 
 DB_DIR="/home"
 STATS_DIR="/var/lib/vgstats"
+ROUTER_SOCKETS_DIR="/var/lib/dcapi"
 BRIGADE_MAKER_APP_PATH="/opt/vgkeydesk/createbrigade"
 KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
 
 VGCERT_GROUP="vgcert"
 VGSTATS_GROUP="vgstats"
+VGROUTER_GROUP="vgrouter"
 
 MODE_BRIGADE="brigade"
 MODE_SHUFFLER="shuffler"
@@ -233,17 +235,24 @@ if [ -z "${DEBUG}" ] && [ -s "${DB_DIR}/${brigade_id}/created" ]; then
         fatal "409" "Conflict" "Brigade ${brigade_id} already exists"
 fi
 
+if  [ -z "${DEBUG}" ] && [ ! -d "${ROUTER_SOCKETS_DIR}" ]; then
+        install -o root -g "${VGROUTER_GROUP}" -m 0711 -d "${ROUTER_SOCKETS_DIR}" >&2
+fi
+
 # * Create system user
 if [ -z "${DEBUG}" ]; then
         {
                 useradd -p '*' -G "${VGCERT_GROUP}" -M -s /usr/sbin/nologin -d "${DB_DIR}/${brigade_id}" "${brigade_id}" >&2
                 install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${DB_DIR}/${brigade_id}" >&2
-                install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 710 -d "${STATS_DIR}/${brigade_id}" >&2
+                install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 0710 -d "${STATS_DIR}/${brigade_id}" >&2
+                install -o "${brigade_id}" -g "${VGROUTER_GROUP}" -m 2710 -d "${ROUTER_SOCKETS_DIR}/${brigade_id}" >&2
+        
         } || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
 else
         echo "DEBUG: useradd -p '*' -G ${VGCERT_GROUP} -M -s /usr/sbin/nologin -d ${DB_DIR}/${brigade_id} ${brigade_id}" >&2
         echo "DEBUG: install -o ${brigade_id} -g ${brigade_id} -m 0700 -d ${DB_DIR}/${brigade_id}" >&2
-        echo "DEBUG: install -o ${brigade_id} -g ${VGSTATS_GROUP} -m 710 -d ${STATS_DIR}/${brigade_id}" >&2
+        echo "DEBUG: install -o ${brigade_id} -g ${VGSTATS_GROUP} -m 0710 -d ${STATS_DIR}/${brigade_id}" >&2
+        echo "DEBUG: install -o ${brigade_id} -g ${VGROUTER_GROUP} -m 2710 -d ${ROUTER_SOCKETS_DIR}/${brigade_id}" >&2
 fi
 
 EXECUTABLE_DIR="$(realpath "$(dirname "$0")")"

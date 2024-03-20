@@ -5,11 +5,6 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/vpngen/keydesk/keydesk"
-	"github.com/vpngen/keydesk/keydesk/storage"
-	"github.com/vpngen/keydesk/vpnapi"
-	"github.com/vpngen/wordsgens/namesgenerator"
 	"net"
 	"net/netip"
 	"net/url"
@@ -18,6 +13,12 @@ import (
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/google/uuid"
+	"github.com/vpngen/keydesk/keydesk"
+	"github.com/vpngen/keydesk/keydesk/storage"
+	"github.com/vpngen/keydesk/vpnapi"
+	"github.com/vpngen/wordsgens/namesgenerator"
 )
 
 type flags struct {
@@ -232,6 +233,10 @@ func parseMessageAPISocket(f flags, cfg config) (config, error) {
 	l, err := net.Listen("unix", path)
 	if err != nil {
 		return cfg, fmt.Errorf("cannot listen: %w", err)
+	}
+
+	if err := os.Chmod(path, 0o660); err != nil {
+		return cfg, fmt.Errorf("cannot chmod socket: %w", err)
 	}
 
 	cfg.messageAPISocket = l

@@ -12,6 +12,7 @@ depends:
 - cert-vpn-works
 - vgkeydesk-web
 - vgkeydesk-shuffler-key
+- vgkeydesk-router
 
 maintainer: "Ingmund Ollson <ingmund@proton.me>"
 description: VPNGen keydesk backend

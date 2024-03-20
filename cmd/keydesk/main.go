@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	goerrors "errors"
+	stderrors "errors"
 	"flag"
 	"fmt"
 	"io"
@@ -20,17 +20,18 @@ import (
 	"time"
 
 	"github.com/go-openapi/runtime/middleware"
-	jwt2 "github.com/golang-jwt/jwt/v5"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/cors"
 	goSwaggerAuth "github.com/vpngen/keydesk/internal/auth/go-swagger"
 	"github.com/vpngen/keydesk/internal/maintenance"
-	"github.com/vpngen/keydesk/internal/messages/app"
+	msgapp "github.com/vpngen/keydesk/internal/messages/app"
 	msgsvc "github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/internal/server"
+	shflrapp "github.com/vpngen/keydesk/internal/shuffler/app"
 	"github.com/vpngen/keydesk/internal/stat"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
-	"github.com/vpngen/keydesk/pkg/jwt"
+	jwtsvc "github.com/vpngen/keydesk/pkg/jwt"
 	"github.com/vpngen/keydesk/pkg/runner"
 	"github.com/vpngen/keydesk/utils"
 	"github.com/vpngen/vpngine/naclkey"
@@ -52,14 +53,14 @@ const (
 
 // Args errors.
 var (
-	ErrInvalidBrigadierName = goerrors.New("invalid brigadier name")
-	ErrEmptyPersonName      = goerrors.New("empty person name")
-	ErrEmptyPersonDesc      = goerrors.New("empty person desc")
-	ErrEmptyPersonURL       = goerrors.New("empty person url")
-	ErrInvalidPersonName    = goerrors.New("invalid person name")
-	ErrInvalidPersonDesc    = goerrors.New("invalid person desc")
-	ErrInvalidPersonURL     = goerrors.New("invalid person url")
-	ErrStaticDirEmpty       = goerrors.New("empty static dirname")
+	ErrInvalidBrigadierName = stderrors.New("invalid brigadier name")
+	ErrEmptyPersonName      = stderrors.New("empty person name")
+	ErrEmptyPersonDesc      = stderrors.New("empty person desc")
+	ErrEmptyPersonURL       = stderrors.New("empty person url")
+	ErrInvalidPersonName    = stderrors.New("invalid person name")
+	ErrInvalidPersonDesc    = stderrors.New("invalid person desc")
+	ErrInvalidPersonURL     = stderrors.New("invalid person url")
+	ErrStaticDirEmpty       = stderrors.New("empty static dirname")
 )
 
 func errQuit(msg string, err error) {
@@ -155,11 +156,11 @@ func main() {
 		cfg.listeners = append(cfg.listeners, l)
 	}
 
-	jwtOpts := jwt.Options{
+	jwtOpts := jwtsvc.Options{
 		Issuer:        "keydesk",
 		Subject:       db.BrigadeID,
 		Audience:      []string{"keydesk"},
-		SigningMethod: jwt2.SigningMethodHS256,
+		SigningMethod: jwt.SigningMethodHS256,
 	}
 	jwtKey, err := utils.GenHMACKey()
 	if err != nil {
@@ -173,8 +174,8 @@ func main() {
 		cfg.enableCORS,
 		cfg.webDir,
 		allowedAddress,
-		jwt.NewIssuer(jwtKey, jwtOpts),
-		jwt.NewAuthorizer(jwtKey, jwtOpts),
+		jwtsvc.NewIssuer(jwtKey, jwtOpts),
+		jwtsvc.NewAuthorizer(jwtKey, jwtOpts),
 	)
 
 	// On signal, gracefully shut down the server and wait 5
@@ -213,7 +214,7 @@ func main() {
 		r.AddTask("keydesk http", runner.Task{
 			Func: func(ctx context.Context) error {
 				_, _ = fmt.Fprintf(os.Stderr, "Listen HTTP: %s\n", cfg.listeners[0].Addr().String())
-				if err := srv.Serve(cfg.listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+				if err := srv.Serve(cfg.listeners[0]); err != nil && !stderrors.Is(err, http.ErrServerClosed) {
 					return err
 				}
 				return nil
@@ -228,7 +229,7 @@ func main() {
 		r.AddTask("keydesk https", runner.Task{
 			Func: func(ctx context.Context) error {
 				_, _ = fmt.Fprintf(os.Stderr, "Listen HTTPS: %s\n", cfg.listeners[1].Addr().String())
-				if err := serverTLS.ServeTLS(cfg.listeners[1], "", ""); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+				if err := serverTLS.ServeTLS(cfg.listeners[1], "", ""); err != nil && !stderrors.Is(err, http.ErrServerClosed) {
 					return err
 				}
 				return nil
@@ -252,8 +253,16 @@ func main() {
 		},
 	})
 
-	if cfg.messageAPISocket != nil {
-		echoSrv, err := app.SetupServer(db, cfg.jwtPublicKeyFile)
+	raw, brigade, err := db.OpenDbToModify()
+	if err != nil {
+		errQuit("open db", err)
+	}
+	if err = raw.Close(); err != nil {
+		errQuit("close db", err)
+	}
+
+	if brigade.Mode == storage.ModeBrigade && cfg.messageAPISocket != nil {
+		echoSrv, err := msgapp.SetupServer(db, cfg.jwtPublicKeyFile)
 		if err != nil {
 			errQuit("message server", err)
 		}
@@ -261,7 +270,29 @@ func main() {
 
 		r.AddTask("messages", runner.Task{
 			Func: func(ctx context.Context) error {
-				if err := echoSrv.Start(""); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+				if err := echoSrv.Start(""); err != nil && !stderrors.Is(err, http.ErrServerClosed) {
+					return err
+				}
+				return nil
+			},
+			Shutdown: func(ctx context.Context) error {
+				if err = echoSrv.Shutdown(ctx); err != nil {
+					return err
+				}
+				return nil
+			},
+		})
+	}
+
+	if brigade.Mode == storage.ModeShuffler && cfg.shufflerAPISocket != nil {
+		echoSrv, err := shflrapp.SetupServer(db, cfg.jwtPublicKeyFile)
+		if err != nil {
+			errQuit("shuffler server", err)
+		}
+		echoSrv.Listener = cfg.shufflerAPISocket
+		r.AddTask("shuffler", runner.Task{
+			Func: func(ctx context.Context) error {
+				if err = echoSrv.Start(""); err != nil && !stderrors.Is(err, http.ErrServerClosed) {
 					return err
 				}
 				return nil
@@ -328,7 +359,7 @@ func createBrigadier(db *storage.BrigadeStorage,
 
 	if creationErr != nil {
 		me := maintenance.Error{}
-		if goerrors.As(creationErr, &me) {
+		if stderrors.As(creationErr, &me) {
 			return enc.Encode(keydesk.Answer{
 				Code:    http.StatusServiceUnavailable,
 				Desc:    http.StatusText(http.StatusServiceUnavailable),
@@ -378,8 +409,8 @@ func initSwaggerAPI(
 	pcors bool,
 	webDir string,
 	allowedAddr string,
-	issuer jwt.Issuer,
-	authorizer jwt.Authorizer,
+	issuer jwtsvc.Issuer,
+	authorizer jwtsvc.Authorizer,
 ) http.Handler {
 	api := server.NewServer(
 		db,

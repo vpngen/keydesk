@@ -5,11 +5,6 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/vpngen/keydesk/keydesk"
-	"github.com/vpngen/keydesk/keydesk/storage"
-	"github.com/vpngen/keydesk/vpnapi"
-	"github.com/vpngen/wordsgens/namesgenerator"
 	"net"
 	"net/netip"
 	"net/url"
@@ -18,6 +13,12 @@ import (
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/google/uuid"
+	"github.com/vpngen/keydesk/keydesk"
+	"github.com/vpngen/keydesk/keydesk/storage"
+	"github.com/vpngen/keydesk/vpnapi"
+	"github.com/vpngen/wordsgens/namesgenerator"
 )
 
 type flags struct {
@@ -47,10 +48,14 @@ type flags struct {
 	ipsecCfgs   *string
 	outlineCfgs *string
 
-	messageAPI *string
+	messageAPI       *string
+	jwtPublicKeyFile *string
 }
 
-const defaultMsgSocketDir = "/var/lib/dcapi"
+const (
+	defaultMsgSocketDir = "/var/lib/dcapi"
+	jwtPubFileName      = "jwt-pub-msg.pem"
+)
 
 func parseFlags(flagSet *flag.FlagSet, args []string) flags {
 	var f flags
@@ -82,6 +87,7 @@ func parseFlags(flagSet *flag.FlagSet, args []string) flags {
 	f.outlineCfgs = flagSet.String("outline", "", "Outline configs ("+storage.ConfigsOutline+")")
 
 	f.messageAPI = flagSet.String("m", "", fmt.Sprintf("Message API unix socket path. Default: %s/<BrigadeID>/messages.sock '-' to disable", defaultMsgSocketDir))
+	f.jwtPublicKeyFile = flagSet.String("jwtpub", "", fmt.Sprintf("Path to JWT public key file. Default: %s/%s", keydesk.DefaultEtcDir, jwtPubFileName))
 
 	// ignore errors, see original flag.Parse() func
 	_ = flagSet.Parse(args)
@@ -106,6 +112,7 @@ type config struct {
 	replaceBrigadier bool
 	vpnConfigs       *storage.ConfigsImplemented
 	messageAPISocket net.Listener
+	jwtPublicKeyFile string
 }
 
 func parseArgs2(flags flags) (config, error) {
@@ -162,6 +169,10 @@ func parseArgs2(flags flags) (config, error) {
 	cfg, err = parseMessageAPISocket(flags, cfg)
 	if err != nil {
 		return cfg, err
+	}
+
+	if *flags.jwtPublicKeyFile == "" {
+		cfg.jwtPublicKeyFile = filepath.Join(cfg.etcDir, jwtPubFileName)
 	}
 
 	if *flags.brigadierName == "" {
@@ -222,6 +233,10 @@ func parseMessageAPISocket(f flags, cfg config) (config, error) {
 	l, err := net.Listen("unix", path)
 	if err != nil {
 		return cfg, fmt.Errorf("cannot listen: %w", err)
+	}
+
+	if err := os.Chmod(path, 0o660); err != nil {
+		return cfg, fmt.Errorf("cannot chmod socket: %w", err)
 	}
 
 	cfg.messageAPISocket = l

@@ -20,6 +20,7 @@ touch "${spinlock}" 2>/dev/null
 set -e
 
 STATS_DIR="/var/lib/vgstats"
+ROUTER_SOCKETS_DIR="/var/lib/dcapi"
 REMOVER_PATH="/opt/vgkeydesk/destroybrigade"
 
 if [ "root" != "$(whoami)" ]; then
@@ -147,10 +148,19 @@ if [ -z "${DEBUG}" ]; then
                                 rmdir "${STATS_DIR}/${brigade_id}"
                         fi
                 fi
+
+                if [ -d "${ROUTER_SOCKETS_DIR}/${brigade_id}" ]; then
+                        if [ -n "${brigade_id}" ] && [ "${ROUTER_SOCKETS_DIR}/${brigade_id}" != "/" ]; then
+                                rm -f "${ROUTER_SOCKETS_DIR}/${brigade_id}"/*
+                                rmdir "${ROUTER_SOCKETS_DIR}/${brigade_id}"
+                        fi
+                fi
         } || fatal "500" "Internal server error" "Can't remove ${STATS_DIR}/${brigade_id}"
 else
         echo "DEBUG: rm -f ${STATS_DIR}/${brigade_id}/*" >&2
         echo "DEBUG: rmdir ${STATS_DIR}/${brigade_id}" >&2
+        echo "DEBUG: rm -f ${ROUTER_SOCKETS_DIR}/${brigade_id}/*" >&2
+        echo "DEBUG: rmdir ${ROUTER_SOCKETS_DIR}/${brigade_id}" >&2
 fi
 
 if [ -z "${DEBUG}" ]; then

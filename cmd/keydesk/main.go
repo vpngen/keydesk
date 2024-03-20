@@ -7,6 +7,18 @@ import (
 	goerrors "errors"
 	"flag"
 	"fmt"
+	"io"
+	"log"
+	"net"
+	"net/http"
+	"net/http/httputil"
+	"net/netip"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"syscall"
+	"time"
+
 	"github.com/go-openapi/runtime/middleware"
 	jwt2 "github.com/golang-jwt/jwt/v5"
 	"github.com/rs/cors"
@@ -23,17 +35,6 @@ import (
 	"github.com/vpngen/keydesk/utils"
 	"github.com/vpngen/vpngine/naclkey"
 	"github.com/vpngen/wordsgens/namesgenerator"
-	"io"
-	"log"
-	"net"
-	"net/http"
-	"net/http/httputil"
-	"net/netip"
-	"os"
-	"os/signal"
-	"path/filepath"
-	"syscall"
-	"time"
 )
 
 //go:generate go run github.com/go-swagger/go-swagger/cmd/swagger@latest generate server -t ../../gen -f ../../swagger/swagger.yml --exclude-main -A user
@@ -252,7 +253,7 @@ func main() {
 	})
 
 	if cfg.messageAPISocket != nil {
-		echoSrv, err := app.SetupServer(db, cfg.etcDir)
+		echoSrv, err := app.SetupServer(db, cfg.jwtPublicKeyFile)
 		if err != nil {
 			errQuit("message server", err)
 		}
@@ -275,7 +276,7 @@ func main() {
 	}
 
 	r.Run()
-	sigCh := make(chan os.Signal)
+	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
 	if err = r.Stop(); err != nil {

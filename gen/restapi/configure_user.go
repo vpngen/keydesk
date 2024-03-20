@@ -75,6 +75,16 @@ func configureAPI(api *operations.UserAPI) http.Handler {
 			return middleware.NotImplemented("operation operations.PostUser has not yet been implemented")
 		})
 	}
+	if api.GetMessagesHandler == nil {
+		api.GetMessagesHandler = operations.GetMessagesHandlerFunc(func(params operations.GetMessagesParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operations.GetMessages has not yet been implemented")
+		})
+	}
+	if api.MarkMessageAsReadHandler == nil {
+		api.MarkMessageAsReadHandler = operations.MarkMessageAsReadHandlerFunc(func(params operations.MarkMessageAsReadParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operations.MarkMessageAsRead has not yet been implemented")
+		})
+	}
 
 	api.PreServerShutdown = func() {}
 

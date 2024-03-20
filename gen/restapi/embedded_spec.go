@@ -25,6 +25,116 @@ func init() {
   },
   "basePath": "/",
   "paths": {
+    "/messages": {
+      "get": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "description": "Get messages, triggered by frontend",
+        "summary": "Get messages",
+        "operationId": "getMessages",
+        "parameters": [
+          {
+            "type": "integer",
+            "default": 0,
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "default": 25,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "name": "read",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "name": "priority",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string",
+            "name": "sort-priority",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string",
+            "name": "sort-time",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "eq",
+              "ne",
+              "gt",
+              "lt",
+              "ge",
+              "le"
+            ],
+            "type": "string",
+            "default": "eq",
+            "name": "priority-op",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of messages",
+            "schema": {
+              "$ref": "#/definitions/Messages"
+            }
+          },
+          "500": {
+            "$ref": "#/definitions/error"
+          }
+        }
+      }
+    },
+    "/messages/{id}/read": {
+      "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "description": "Mark message as read",
+        "summary": "Mark message as read",
+        "operationId": "markMessageAsRead",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/token": {
       "post": {
         "produces": [
@@ -215,6 +325,51 @@ func init() {
     }
   },
   "definitions": {
+    "Message": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "is_read": {
+          "type": "boolean"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "text": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ttl": {
+          "type": "string"
+        }
+      }
+    },
+    "Messages": {
+      "type": "object",
+      "required": [
+        "messages",
+        "total"
+      ],
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Message"
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
+      }
+    },
     "error": {
       "type": "object",
       "required": [
@@ -472,6 +627,116 @@ func init() {
   },
   "basePath": "/",
   "paths": {
+    "/messages": {
+      "get": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "description": "Get messages, triggered by frontend",
+        "summary": "Get messages",
+        "operationId": "getMessages",
+        "parameters": [
+          {
+            "type": "integer",
+            "default": 0,
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "default": 25,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "name": "read",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "name": "priority",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string",
+            "name": "sort-priority",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string",
+            "name": "sort-time",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "eq",
+              "ne",
+              "gt",
+              "lt",
+              "ge",
+              "le"
+            ],
+            "type": "string",
+            "default": "eq",
+            "name": "priority-op",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of messages",
+            "schema": {
+              "$ref": "#/definitions/Messages"
+            }
+          },
+          "500": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/messages/{id}/read": {
+      "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "description": "Mark message as read",
+        "summary": "Mark message as read",
+        "operationId": "markMessageAsRead",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/token": {
       "post": {
         "produces": [
@@ -662,6 +927,51 @@ func init() {
     }
   },
   "definitions": {
+    "Message": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "is_read": {
+          "type": "boolean"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "text": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ttl": {
+          "type": "string"
+        }
+      }
+    },
+    "Messages": {
+      "type": "object",
+      "required": [
+        "messages",
+        "total"
+      ],
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Message"
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
+      }
+    },
     "NewuserAmnzOvcConfig": {
       "type": "object",
       "required": [

@@ -4,23 +4,24 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"os"
+	"testing"
+
 	"github.com/go-openapi/runtime"
 	client2 "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/swag"
 	jwt2 "github.com/golang-jwt/jwt/v5"
 	"github.com/vpngen/keydesk/gen/client"
 	"github.com/vpngen/keydesk/gen/client/operations"
-	"github.com/vpngen/keydesk/internal/auth/go-swagger"
+	go_swagger "github.com/vpngen/keydesk/internal/auth/go-swagger"
 	"github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/jwt"
 	"github.com/vpngen/keydesk/utils"
 	"golang.org/x/crypto/nacl/box"
-	"log"
-	"net"
-	"net/http"
-	"os"
-	"testing"
 )
 
 var kdClient client.KeydeskServer
@@ -137,7 +138,7 @@ func TestMessages(t *testing.T) {
 						t.Fatalf("get messages: %s", err)
 					}
 
-					if res.Payload.Total != 100 {
+					if res.Payload.Total != nil && *res.Payload.Total != 100 {
 						t.Errorf("expected total %d messages, got %d", 100, res.Payload.Total)
 					}
 

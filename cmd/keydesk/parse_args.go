@@ -47,10 +47,14 @@ type flags struct {
 	ipsecCfgs   *string
 	outlineCfgs *string
 
-	messageAPI *string
+	messageAPI       *string
+	jwtPublicKeyFile *string
 }
 
-const defaultMsgSocketDir = "/var/lib/dcapi"
+const (
+	defaultMsgSocketDir = "/var/lib/dcapi"
+	jwtPubFileName      = "jwt-pub-msg.pem"
+)
 
 func parseFlags(flagSet *flag.FlagSet, args []string) flags {
 	var f flags
@@ -82,6 +86,7 @@ func parseFlags(flagSet *flag.FlagSet, args []string) flags {
 	f.outlineCfgs = flagSet.String("outline", "", "Outline configs ("+storage.ConfigsOutline+")")
 
 	f.messageAPI = flagSet.String("m", "", fmt.Sprintf("Message API unix socket path. Default: %s/<BrigadeID>/messages.sock '-' to disable", defaultMsgSocketDir))
+	f.jwtPublicKeyFile = flagSet.String("jwtpub", "", fmt.Sprintf("Path to JWT public key file. Default: %s/%s", keydesk.DefaultEtcDir, jwtPubFileName))
 
 	// ignore errors, see original flag.Parse() func
 	_ = flagSet.Parse(args)
@@ -106,6 +111,7 @@ type config struct {
 	replaceBrigadier bool
 	vpnConfigs       *storage.ConfigsImplemented
 	messageAPISocket net.Listener
+	jwtPublicKeyFile string
 }
 
 func parseArgs2(flags flags) (config, error) {
@@ -162,6 +168,10 @@ func parseArgs2(flags flags) (config, error) {
 	cfg, err = parseMessageAPISocket(flags, cfg)
 	if err != nil {
 		return cfg, err
+	}
+
+	if *flags.jwtPublicKeyFile == "" {
+		cfg.jwtPublicKeyFile = filepath.Join(cfg.etcDir, jwtPubFileName)
 	}
 
 	if *flags.brigadierName == "" {

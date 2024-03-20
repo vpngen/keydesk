@@ -252,7 +252,7 @@ func main() {
 	})
 
 	if cfg.messageAPISocket != nil {
-		echoSrv, err := app.SetupServer(db, cfg.etcDir)
+		echoSrv, err := app.SetupServer(db, cfg.jwtPublicKeyFile)
 		if err != nil {
 			errQuit("message server", err)
 		}

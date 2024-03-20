@@ -34,6 +34,10 @@ KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
 VGCERT_GROUP="vgcert"
 VGSTATS_GROUP="vgstats"
 
+MODE_BRIGADE="brigade"
+MODE_SHUFFLER="shuffler"
+DEFAULT_MAXUSERS=255
+
 if [ "root" != "$(whoami)" ]; then
         echo "DEBUG EXECUTION" >&2
         DEBUG="yes"
@@ -190,14 +194,14 @@ while [ "$#" -gt 0 ]; do
 done
 
 if [ -z "$mode" ]; then
-        mode="brigade"
+        mode=$MODE_BRIGADE
 fi
 
 if [ -z "$maxusers" ]; then
-        maxusers=255
+        maxusers=$DEFAULT_MAXUSERS
 fi
 
-if [ "${mode}" != "shuffler" ] && [ "${mode}" != "brigade" ]; then
+if [ "${mode}" != $MODE_SHUFFLER ] && [ "${mode}" != $MODE_BRIGADE ]; then
         printdef "Unknown mode: ${mode}"
 fi
 
@@ -307,7 +311,7 @@ else
         fi
 fi
 
-if [ "${mode}" = "brigade" ]; then
+if [ "${mode}" = $MODE_BRIGADE ]; then
         if [ -z "${DEBUG}" ]; then
                 # shellcheck disable=SC2086
                 wgconf="$(sudo -u "${brigade_id}" -g "${brigade_id}" "${KEYDESK_APP_PATH}" \
@@ -373,7 +377,7 @@ else
         echo "DEBUG: systemctl -q start ${systemd_vgkeydesk_instance}.service" >&2
 fi
 
-if [ "${mode}" = "brigade" ]; then
+if [ "${mode}" = $MODE_BRIGADE ]; then
         # Print brigadier config
         printf "%s" "${wgconf}"
 fi

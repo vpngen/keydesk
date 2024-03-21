@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+const (
+	JWTAuthScopes = "JWTAuth.Scopes"
+)
+
 // CreateMessageRequest defines model for CreateMessageRequest.
 type CreateMessageRequest struct {
 	Priority *int    `json:"priority,omitempty"`
@@ -29,9 +33,6 @@ type Message struct {
 	Time     time.Time `json:"time"`
 	Ttl      string    `json:"ttl"`
 }
-
-// MessageID defines model for MessageID.
-type MessageID = int
 
 // PostMessagesJSONRequestBody defines body for PostMessages for application/json ContentType.
 type PostMessagesJSONRequestBody = CreateMessageRequest

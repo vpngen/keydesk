@@ -10,7 +10,6 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/oapi-codegen/runtime"
 	strictecho "github.com/oapi-codegen/runtime/strictmiddleware/echo"
 )
 
@@ -19,9 +18,6 @@ type ServerInterface interface {
 	// Create message
 	// (POST /messages)
 	PostMessages(ctx echo.Context) error
-	// Mark message as read
-	// (POST /messages/{id}/read)
-	PostMessagesIdRead(ctx echo.Context, id MessageID) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -33,24 +29,10 @@ type ServerInterfaceWrapper struct {
 func (w *ServerInterfaceWrapper) PostMessages(ctx echo.Context) error {
 	var err error
 
+	ctx.Set(JWTAuthScopes, []string{"messages:create"})
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostMessages(ctx)
-	return err
-}
-
-// PostMessagesIdRead converts echo context to params.
-func (w *ServerInterfaceWrapper) PostMessagesIdRead(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "id" -------------
-	var id MessageID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: false})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.PostMessagesIdRead(ctx, id)
 	return err
 }
 
@@ -83,7 +65,6 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.POST(baseURL+"/messages", wrapper.PostMessages)
-	router.POST(baseURL+"/messages/:id/read", wrapper.PostMessagesIdRead)
 
 }
 
@@ -116,42 +97,11 @@ func (response PostMessagesdefaultJSONResponse) VisitPostMessagesResponse(w http
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
-type PostMessagesIdReadRequestObject struct {
-	Id MessageID `json:"id,omitempty"`
-}
-
-type PostMessagesIdReadResponseObject interface {
-	VisitPostMessagesIdReadResponse(w http.ResponseWriter) error
-}
-
-type PostMessagesIdRead200Response struct {
-}
-
-func (response PostMessagesIdRead200Response) VisitPostMessagesIdReadResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type PostMessagesIdReaddefaultJSONResponse struct {
-	Body       Error
-	StatusCode int
-}
-
-func (response PostMessagesIdReaddefaultJSONResponse) VisitPostMessagesIdReadResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body)
-}
-
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Create message
 	// (POST /messages)
 	PostMessages(ctx context.Context, request PostMessagesRequestObject) (PostMessagesResponseObject, error)
-	// Mark message as read
-	// (POST /messages/{id}/read)
-	PostMessagesIdRead(ctx context.Context, request PostMessagesIdReadRequestObject) (PostMessagesIdReadResponseObject, error)
 }
 
 type StrictHandlerFunc = strictecho.StrictEchoHandlerFunc
@@ -189,31 +139,6 @@ func (sh *strictHandler) PostMessages(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(PostMessagesResponseObject); ok {
 		return validResponse.VisitPostMessagesResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
-// PostMessagesIdRead operation middleware
-func (sh *strictHandler) PostMessagesIdRead(ctx echo.Context, id MessageID) error {
-	var request PostMessagesIdReadRequestObject
-
-	request.Id = id
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PostMessagesIdRead(ctx.Request().Context(), request.(PostMessagesIdReadRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostMessagesIdRead")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(PostMessagesIdReadResponseObject); ok {
-		return validResponse.VisitPostMessagesIdReadResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

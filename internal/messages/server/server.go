@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	messages2 "github.com/vpngen/keydesk/gen/messages"
 	"github.com/vpngen/keydesk/internal/messages/service"
@@ -61,27 +60,27 @@ func (s Server) PostMessages(_ context.Context, request messages2.PostMessagesRe
 	}), nil
 }
 
-func markAsReadError(code int, message string) (messages2.PostMessagesIdReadResponseObject, error) {
-	return messages2.PostMessagesIdReaddefaultJSONResponse{
-		Body: messages2.Error{
-			Code:    code,
-			Message: message,
-		},
-		StatusCode: code,
-	}, nil
-}
-
-func (s Server) PostMessagesIdRead(_ context.Context, request messages2.PostMessagesIdReadRequestObject) (messages2.PostMessagesIdReadResponseObject, error) {
-	if err := s.msgSvc.MarkAsRead(request.Id); err != nil {
-		switch {
-		case errors.Is(err, service.NotFound):
-			return markAsReadError(http.StatusNotFound, err.Error())
-		default:
-			return markAsReadError(http.StatusInternalServerError, err.Error())
-		}
-	}
-	return messages2.PostMessagesIdRead200Response{}, nil
-}
+//func markAsReadError(code int, message string) (messages2.PostMessagesIdReadResponseObject, error) {
+//	return messages2.PostMessagesIdReaddefaultJSONResponse{
+//		Body: messages2.Error{
+//			Code:    code,
+//			Message: message,
+//		},
+//		StatusCode: code,
+//	}, nil
+//}
+//
+//func (s Server) PostMessagesIdRead(_ context.Context, request messages2.PostMessagesIdReadRequestObject) (messages2.PostMessagesIdReadResponseObject, error) {
+//	if err := s.msgSvc.MarkAsRead(request.Id); err != nil {
+//		switch {
+//		case errors.Is(err, service.NotFound):
+//			return markAsReadError(http.StatusNotFound, err.Error())
+//		default:
+//			return markAsReadError(http.StatusInternalServerError, err.Error())
+//		}
+//	}
+//	return messages2.PostMessagesIdRead200Response{}, nil
+//}
 
 //func getSortParams(sort *Sort) (map[string]bool, error) {
 //	if sort == nil {

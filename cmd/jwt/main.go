@@ -17,7 +17,7 @@ func errQuit(msg string, err error) {
 }
 
 func main() {
-	keyFile := flag.String("k", "jwtkey.pem", "key file")
+	keyFile := flag.String("key", "jwtkey.pem", "key file")
 	iss := flag.String("iss", "keydesk", "issuer")
 	sub := flag.String("sub", "keydesk", "subject")
 	aud := flag.String("aud", "keydesk", "audience, comma separated")

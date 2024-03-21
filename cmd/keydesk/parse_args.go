@@ -53,8 +53,9 @@ type flags struct {
 }
 
 const (
-	defaultMsgSocketDir = "/var/lib/dcapi"
-	jwtPubFileName      = "jwt-pub-msg.pem"
+	defaultMsgSocketDir    = "/var/lib/dcapi"
+	jwtPubFileName         = "jwt-pub-msg.pem"
+	messagesSocketFilename = "messages.sock"
 )
 
 func parseFlags(flagSet *flag.FlagSet, args []string) flags {
@@ -218,7 +219,7 @@ func parseMessageAPISocket(f flags, cfg config) (config, error) {
 	case "-":
 		return cfg, nil
 	case "":
-		path = defaultMsgSocketDir + "/" + cfg.brigadeID + ".sock"
+		path = filepath.Join(defaultMsgSocketDir, cfg.brigadeID, messagesSocketFilename)
 	default:
 		path = *f.messageAPI
 	}

@@ -14,7 +14,14 @@ import (
 )
 
 // CreateBrigade - create brigadier user.
-func CreateBrigade(db *storage.BrigadeStorage, vpnCfgs *storage.ConfigsImplemented, config *storage.BrigadeConfig, routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) error {
+func CreateBrigade(
+	db *storage.BrigadeStorage,
+	vpnCfgs *storage.ConfigsImplemented,
+	config *storage.BrigadeConfig,
+	routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte,
+	mode storage.Mode,
+	maxUsers uint,
+) error {
 	wgConf, err := genEndpointWGKeys(routerPubkey, shufflerPubkey)
 	if err != nil {
 		return fmt.Errorf("wg keys: %w", err)
@@ -45,7 +52,7 @@ func CreateBrigade(db *storage.BrigadeStorage, vpnCfgs *storage.ConfigsImplement
 		outlineConf = &storage.BrigadeOutlineConfig{OutlinePort: config.OutlinePort}
 	}
 
-	err = db.CreateBrigade(config, wgConf, ovcConf, ipsecConf, outlineConf)
+	err = db.CreateBrigade(config, wgConf, ovcConf, ipsecConf, outlineConf, mode, maxUsers)
 	if err != nil {
 		return fmt.Errorf("put: %w", err)
 	}

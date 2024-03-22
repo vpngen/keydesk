@@ -1,0 +1,143 @@
+openapi: 3.0.3
+info:
+  title: Shuffler message API
+  description: Shuffler message API
+  version: 1.0.0
+paths:
+  /configs:
+    post:
+      summary: Create new VPN config
+      description: Default config type is outline. Default domain is domain of keydesk.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  $ref: '#/components/schemas/ConfigType'
+                domain:
+                  type: string
+                  description: Domain for connection, if omitted default domain is domain of keydesk
+      responses:
+        201:
+          description: New VPN config, unique ID is returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  type:
+                    $ref: '#/components/schemas/ConfigType'
+                  config:
+                    $ref: '#/components/schemas/VPNConfig'
+                  free_slots:
+                    type: integer
+                    description: Number of free VPN slots after creation
+                required:
+                  - type
+                  - config
+        412:
+          description: No free VPN slots
+        default:
+          description: error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /configs/slots:
+    get:
+      summary: Get free VPN slots
+      responses:
+        200:
+          description: Free VPN slots
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotsInfo'
+        default:
+          description: error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    ConfigType:
+      type: string
+      description: VPN type
+      enum:
+        - outline
+        - amnzovc
+        - wireguard
+        - ipsec
+    OutlineConfig:
+      properties:
+        access_key:
+          type: string
+      required:
+        - access_key
+    AmneziaOVCConfig:
+      properties:
+        tunnel_name:
+          type: string
+        file_name:
+          type: string
+        file_content:
+          type: string
+      required:
+        - tunnel_name
+        - file_name
+        - file_content
+    IPSecL2TPConfig:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        server:
+          type: string
+        psk:
+          type: string
+      required:
+        - username
+        - password
+        - server
+        - psk
+    WireGuardConfig:
+      properties:
+        tunnel_name:
+          type: string
+        file_name:
+          type: string
+        file_content:
+          type: string
+      required:
+        - tunnel_name
+        - file_name
+        - file_content
+    VPNConfig:
+      oneOf:
+        - $ref: '#/components/schemas/OutlineConfig'
+        - $ref: '#/components/schemas/AmneziaOVCConfig'
+        - $ref: '#/components/schemas/WireGuardConfig'
+        - $ref: '#/components/schemas/IPSecL2TPConfig'
+    SlotsInfo:
+      type: object
+      properties:
+        free_slots:
+          type: integer
+        total_slots:
+          type: integer
+    Error:
+      type: string
+  securitySchemes:
+    JWTAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

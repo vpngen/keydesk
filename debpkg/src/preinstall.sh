@@ -2,13 +2,9 @@
 
 vgcert_group="vgcert"
 vgstats_user="vgstats"
+vgrouter_group="vgrouter"
 
-cleanInstall() {
-	printf "\033[32m Pre Install of an clean install\033[0m\n"
-	# Step 3 (clean install), enable the service in the proper way for this platform
-
-        set -e
-
+makeusers() {
 	if getent group "${vgcert_group}" >/dev/null 2>&1; then
  		echo "group ${vgcert_group} already exists"
 	else
@@ -25,13 +21,29 @@ cleanInstall() {
                 fi
         fi
 
+	if getent group "${vgrouter_group}" >/dev/null 2>&1; then
+ 		echo "group ${vgrouter_group} already exists"
+	else
+		groupadd "${vgrouter_group}"
+	fi
+}
+
+cleanInstall() {
+	printf "\033[32m Pre Install of an clean install\033[0m\n"
+	# Step 3 (clean install), enable the service in the proper way for this platform
+
+        set -e
+
+        makeusers
 }
 
 upgrade() {
     	printf "\033[32m Pre Install of an upgrade\033[0m\n"
     	# Step 3(upgrade), do what you need
         
-        systemctl daemon-reload ||:
+        set -e
+
+        makeusers
 
         if [ -f /etc/systemd/system/vgkeydesk@.socket ]; then
                 systemctl stop --all 'vgkeydesk@*.socket' ||:

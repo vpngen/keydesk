@@ -202,7 +202,7 @@ func cleanupMessages(messages []storage.Message) []storage.Message {
 	)
 }
 
-var NotFound = errors.New("not found")
+var ErrNotFound = errors.New("not found")
 
 func (s Service) MarkAsRead(id int) error {
 	return s.transaction(func(brigade *storage.Brigade) error {
@@ -212,6 +212,6 @@ func (s Service) MarkAsRead(id int) error {
 				return nil
 			}
 		}
-		return NotFound
+		return ErrNotFound
 	})
 }

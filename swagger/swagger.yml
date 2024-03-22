@@ -124,7 +124,7 @@ paths:
   /messages:
     get:
       summary: Get messages
-      description: Get messages, triggered by frontend
+      description: Get messages, used by frontend. JWT token is required.
       operationId: getMessages
       security:
         - Bearer: [ ]
@@ -176,7 +176,7 @@ paths:
   /messages/{id}/read:
     post:
       summary: Mark message as read
-      description: Mark message as read
+      description: Used by frontend. JWT token is required.
       operationId: markMessageAsRead
       security:
         - Bearer: [ ]

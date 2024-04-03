@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/SherClockHolmes/webpush-go"
 	"net/netip"
 	"time"
 
@@ -174,31 +175,33 @@ const BrigadeVersion = 9
 type Brigade struct {
 	BrigadeCounters
 	StatsCountersStack    `json:"counters_stack"`
-	Ver                   int           `json:"version"`
-	BrigadeID             string        `json:"brigade_id"`
-	CreatedAt             time.Time     `json:"created_at"`
-	WgPublicKey           []byte        `json:"wg_public_key"`
-	WgPrivateRouterEnc    []byte        `json:"wg_private_router_enc"`
-	WgPrivateShufflerEnc  []byte        `json:"wg_private_shuffler_enc"`
-	CloakFakeDomain       string        `json:"cloak_faek_domain"`           // Cloak fake domain
-	OvCAKeyRouterEnc      string        `json:"openvpn_ca_key_router_enc"`   // OpenVPN CA key PEM PKSC8 for router prepared
-	OvCAKeyShufflerEnc    string        `json:"openvpn_ca_key_shuffler_enc"` // OpenVPN CA key PEM PKSC8 for shuffler prepared
-	OvCACertPemGzipBase64 string        `json:"openvpn_ca_cert"`             // OpenVPN CA cert PEM encoded
-	IPSecPSK              string        `json:"ipsec_psk"`                   // IPSec PSK
-	IPSecPSKRouterEnc     string        `json:"ipsec_psk_router_enc"`        // IPSec PSK for router prepared
-	IPSecPSKShufflerEnc   string        `json:"ipsec_psk_shuffler_enc"`      // IPSec PSK for shuffler prepared
-	EndpointIPv4          netip.Addr    `json:"endpoint_ipv4"`
-	EndpointDomain        string        `json:"endpoint_domain"`
-	EndpointPort          uint16        `json:"endpoint_port"`
-	OutlinePort           uint16        `json:"outline_port"`
-	DNSv4                 netip.Addr    `json:"dns4"`
-	DNSv6                 netip.Addr    `json:"dns6"`
-	KeydeskIPv6           netip.Addr    `json:"keydesk_ipv6"`
-	IPv4CGNAT             netip.Prefix  `json:"ipv4_cgnat"`
-	IPv6ULA               netip.Prefix  `json:"ipv6_ula"`
-	KeydeskFirstVisit     time.Time     `json:"keydesk_first_visit,omitempty"`
-	Users                 []*User       `json:"users,omitempty"`
-	Endpoints             UsersNetworks `json:"endpoints,omitempty"`
+	Ver                   int                  `json:"version"`
+	BrigadeID             string               `json:"brigade_id"`
+	CreatedAt             time.Time            `json:"created_at"`
+	WgPublicKey           []byte               `json:"wg_public_key"`
+	WgPrivateRouterEnc    []byte               `json:"wg_private_router_enc"`
+	WgPrivateShufflerEnc  []byte               `json:"wg_private_shuffler_enc"`
+	CloakFakeDomain       string               `json:"cloak_faek_domain"`           // Cloak fake domain
+	OvCAKeyRouterEnc      string               `json:"openvpn_ca_key_router_enc"`   // OpenVPN CA key PEM PKSC8 for router prepared
+	OvCAKeyShufflerEnc    string               `json:"openvpn_ca_key_shuffler_enc"` // OpenVPN CA key PEM PKSC8 for shuffler prepared
+	OvCACertPemGzipBase64 string               `json:"openvpn_ca_cert"`             // OpenVPN CA cert PEM encoded
+	IPSecPSK              string               `json:"ipsec_psk"`                   // IPSec PSK
+	IPSecPSKRouterEnc     string               `json:"ipsec_psk_router_enc"`        // IPSec PSK for router prepared
+	IPSecPSKShufflerEnc   string               `json:"ipsec_psk_shuffler_enc"`      // IPSec PSK for shuffler prepared
+	EndpointIPv4          netip.Addr           `json:"endpoint_ipv4"`
+	EndpointDomain        string               `json:"endpoint_domain"`
+	EndpointPort          uint16               `json:"endpoint_port"`
+	OutlinePort           uint16               `json:"outline_port"`
+	DNSv4                 netip.Addr           `json:"dns4"`
+	DNSv6                 netip.Addr           `json:"dns6"`
+	KeydeskIPv6           netip.Addr           `json:"keydesk_ipv6"`
+	IPv4CGNAT             netip.Prefix         `json:"ipv4_cgnat"`
+	IPv6ULA               netip.Prefix         `json:"ipv6_ula"`
+	KeydeskFirstVisit     time.Time            `json:"keydesk_first_visit,omitempty"`
+	Users                 []*User              `json:"users,omitempty"`
+	Endpoints             UsersNetworks        `json:"endpoints,omitempty"`
+	Messages              []Message            `json:"messages,omitempty"`
+	Subscription          webpush.Subscription `json:"subscription"`
 }
 
 // UserConfig - new user structure.
@@ -258,4 +261,18 @@ type LastActivityPoints struct {
 	PrevMonthly time.Time `json:"prev_monthly"`
 	Weekly      time.Time `json:"weekly"`
 	Daily       time.Time `json:"daily"`
+}
+
+type Message struct {
+	ID        int           `json:"id"`
+	Text      string        `json:"text"`
+	IsRead    bool          `json:"is_read"`
+	Priority  int           `json:"priority"`
+	CreatedAt time.Time     `json:"created_at"`
+	TTL       time.Duration `json:"ttl,omitempty"`
+}
+
+type Keys struct {
+	P256DH string `json:"p256dh"`
+	Auth   string `json:"auth"`
 }

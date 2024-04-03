@@ -23,15 +23,15 @@ func CollectingData(db *storage.BrigadeStorage, kill <-chan struct{}, rdata bool
 	for {
 		select {
 		case ts := <-timer.C:
-			_, _ = fmt.Fprintf(os.Stdout, "%s: Collecting data: %s: %s\n", ts.UTC().Format(time.RFC3339), db.BrigadeID, statsFilename)
+			_, _ = fmt.Fprintf(os.Stderr, "%s: Collecting data: %s: %s\n", ts.UTC().Format(time.RFC3339), db.BrigadeID, statsFilename)
 
 			if err := db.GetStats(rdata, statsFilename, statsSpinlock, keydesk.DefaultEndpointsTTL); err != nil {
-				_, _ = fmt.Fprintf(os.Stdout, "Error collecting stats: %s\n", err)
+				_, _ = fmt.Fprintf(os.Stderr, "Error collecting stats: %s\n", err)
 			}
 
 			timer.Reset(DefaultStatisticsFetchingDuration)
 		case <-kill:
-			_, _ = fmt.Fprintln(os.Stdout, "Shutting down stats...")
+			_, _ = fmt.Fprintln(os.Stderr, "Shutting down stats...")
 			return
 		}
 	}

@@ -12,6 +12,8 @@ depends:
 - cert-vpn-works
 - vgkeydesk-web
 - vgkeydesk-shuffler-key
+- vgkeydesk-router
+- vgkeydesk-messages-access
 
 maintainer: "Ingmund Ollson <ingmund@proton.me>"
 description: VPNGen keydesk backend
@@ -34,12 +36,6 @@ contents:
     group: root
 - src: bin/keydesk
   dst: /opt/vgkeydesk/keydesk
-  file_info:
-    mode: 0005
-    owner: root
-    group: root
-- src: bin/stats
-  dst: /opt/vgkeydesk/stats
   file_info:
     mode: 0005
     owner: root

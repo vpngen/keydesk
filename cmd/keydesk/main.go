@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"encoding/base32"
-	"encoding/base64"
 	"encoding/json"
 	goerrors "errors"
 	"flag"
@@ -15,40 +13,32 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/netip"
-	"net/url"
 	"os"
 	"os/signal"
-	"os/user"
 	"path/filepath"
-	"strings"
-	"sync"
 	"syscall"
 	"time"
-	"unicode/utf8"
 
-	"github.com/vpngen/keydesk/internal/maintenance"
-	"github.com/vpngen/keydesk/internal/stat"
-
-	"github.com/coreos/go-systemd/activation"
-	"github.com/go-openapi/errors"
-	"github.com/go-openapi/loads"
-	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/google/uuid"
+	jwt2 "github.com/golang-jwt/jwt/v5"
 	"github.com/rs/cors"
-	"github.com/vpngen/keydesk/gen/restapi"
-	"github.com/vpngen/keydesk/gen/restapi/operations"
+	goSwaggerAuth "github.com/vpngen/keydesk/internal/auth/go-swagger"
+	"github.com/vpngen/keydesk/internal/maintenance"
+	"github.com/vpngen/keydesk/internal/messages/app"
+	msgsvc "github.com/vpngen/keydesk/internal/messages/service"
+	"github.com/vpngen/keydesk/internal/server"
+	"github.com/vpngen/keydesk/internal/stat"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
-	"github.com/vpngen/keydesk/vpnapi"
+	"github.com/vpngen/keydesk/pkg/jwt"
+	"github.com/vpngen/keydesk/pkg/runner"
+	"github.com/vpngen/keydesk/utils"
 	"github.com/vpngen/vpngine/naclkey"
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
 
 //go:generate go run github.com/go-swagger/go-swagger/cmd/swagger@latest generate server -t ../../gen -f ../../swagger/swagger.yml --exclude-main -A user
-
-// TokenLifeTime - token time to life.
-const TokenLifeTime = 3600
+//go:generate go run github.com/go-swagger/go-swagger/cmd/swagger@latest generate client -t ../../gen -f ../../swagger/swagger.yml
 
 // Default web config.
 const (
@@ -57,10 +47,8 @@ const (
 	DefaultCertDir   = "/etc/vgcert"
 	TLSCertFilename  = "vpn.works.crt"
 	TLSKeyFilename   = "vpn.works.key"
+	TokenLifeTime    = 3600
 )
-
-// ErrStaticDirEmpty - no static dir name.
-var ErrStaticDirEmpty = goerrors.New("empty static dirname")
 
 // Args errors.
 var (
@@ -71,27 +59,33 @@ var (
 	ErrInvalidPersonName    = goerrors.New("invalid person name")
 	ErrInvalidPersonDesc    = goerrors.New("invalid person desc")
 	ErrInvalidPersonURL     = goerrors.New("invalid person url")
+	ErrStaticDirEmpty       = goerrors.New("empty static dirname")
 )
 
+func errQuit(msg string, err error) {
+	_, _ = fmt.Fprintf(os.Stderr, "%s: %s\n", msg, err)
+	os.Exit(1)
+}
+
 func main() {
-	chunked, _, pcors, listeners, addr, BrigadeID, etcDir, webDir, dbDir, certDir, statsDir, name, person, replace, vpnCfgs, err := parseArgs()
+	cfg, err := parseArgs2(parseFlags(flag.CommandLine, os.Args[1:]))
 	if err != nil {
-		log.Fatalf("Can't init: %s\n", err)
+		errQuit("Can't init", err)
 	}
 
-	routerPublicKey, shufflerPublicKey, err := readPubKeys(etcDir)
+	routerPublicKey, shufflerPublicKey, err := readPubKeys(cfg.etcDir)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	_, _ = fmt.Fprintf(os.Stderr, "Etc: %s\n", etcDir)
-	_, _ = fmt.Fprintf(os.Stderr, "DBDir: %s\n", dbDir)
+	_, _ = fmt.Fprintf(os.Stderr, "Etc: %s\n", cfg.etcDir)
+	_, _ = fmt.Fprintf(os.Stderr, "DBDir: %s\n", cfg.dbDir)
 
 	db := &storage.BrigadeStorage{
-		BrigadeID:       BrigadeID,
-		BrigadeFilename: filepath.Join(dbDir, storage.BrigadeFilename),
-		BrigadeSpinlock: filepath.Join(dbDir, storage.BrigadeSpinlockFilename),
-		APIAddrPort:     addr,
+		BrigadeID:       cfg.brigadeID,
+		BrigadeFilename: filepath.Join(cfg.dbDir, storage.BrigadeFilename),
+		BrigadeSpinlock: filepath.Join(cfg.dbDir, storage.BrigadeSpinlockFilename),
+		APIAddrPort:     cfg.addr,
 		BrigadeStorageOpts: storage.BrigadeStorageOpts{
 			MaxUsers:               keydesk.MaxUsers,
 			MonthlyQuotaRemaining:  keydesk.MonthlyQuotaRemaining,
@@ -99,32 +93,40 @@ func main() {
 		},
 	}
 	if err := db.SelfCheckAndInit(); err != nil {
-		log.Fatalf("Storage initialization: %s\n", err)
+		errQuit("Storage initialization", err)
 	}
 
 	switch {
-	case addr.IsValid() && addr.Addr().IsUnspecified():
+	case cfg.addr.IsValid() && cfg.addr.Addr().IsUnspecified():
 		_, _ = fmt.Fprintln(os.Stderr, "Command address:port is COMMON")
-	case addr.IsValid():
-		_, _ = fmt.Fprintf(os.Stderr, "Command address:port: %s\n", addr)
+	case cfg.addr.IsValid():
+		_, _ = fmt.Fprintf(os.Stderr, "Command address:port: %s\n", cfg.addr)
 	default:
 		_, _ = fmt.Fprintln(os.Stderr, "Command address:port is for DEBUG")
 	}
 
 	// Just create brigadier.
-	if name != "" || replace {
-		if err := createBrigadier(db, chunked, name, person, replace, vpnCfgs, &routerPublicKey, &shufflerPublicKey); err != nil {
-			log.Fatalf("Can't create brigadier: %s\n", err)
+	if cfg.brigadierName != "" || cfg.replaceBrigadier {
+		if err := createBrigadier(
+			db,
+			cfg.chunked,
+			cfg.brigadierName,
+			cfg.person,
+			cfg.replaceBrigadier,
+			cfg.vpnConfigs,
+			&routerPublicKey,
+			&shufflerPublicKey,
+		); err != nil {
+			errQuit("Can't create brigadier", err)
 		}
-
 		return
 	}
 
-	_, _ = fmt.Fprintf(os.Stderr, "Cert Dir: %s\n", certDir)
-	_, _ = fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", statsDir)
-	_, _ = fmt.Fprintf(os.Stderr, "Web files: %s\n", webDir)
-	_, _ = fmt.Fprintf(os.Stderr, "Permessive CORS: %t\n", pcors)
-	_, _ = fmt.Fprintf(os.Stderr, "Starting %s keydesk\n", BrigadeID)
+	_, _ = fmt.Fprintf(os.Stderr, "Cert Dir: %s\n", cfg.certDir)
+	_, _ = fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", cfg.statsDir)
+	_, _ = fmt.Fprintf(os.Stderr, "Web files: %s\n", cfg.webDir)
+	_, _ = fmt.Fprintf(os.Stderr, "Permessive CORS: %t\n", cfg.enableCORS)
+	_, _ = fmt.Fprintf(os.Stderr, "Starting %s keydesk\n", cfg.brigadeID)
 
 	allowedAddress := ""
 	calculatedAddrPort, ok := db.CalculatedAPIAddress()
@@ -133,51 +135,65 @@ func main() {
 		_, _ = fmt.Fprintf(os.Stderr, "Resqrict requests by address: %s \n", allowedAddress)
 	}
 
-	if len(listeners) == 0 && !addr.IsValid() {
-		_, _ = fmt.Fprintln(os.Stderr, "neither listeners nor address:port specified, exiting")
-		os.Exit(1)
-	}
+	//if len(cfg.listeners) == 0 && !cfg.addr.IsValid() {
+	//	errQuit("neither listeners nor address:port specified", nil)
+	//}
 
-	if len(listeners) == 0 {
+	if len(cfg.listeners) == 0 {
 		prev := calculatedAddrPort.Prev().String()
 
 		l, err := net.Listen("tcp6", fmt.Sprintf("[%s]:80", prev))
 		if err != nil {
-			_, _ = fmt.Fprintln(os.Stderr, prev, "listen HTTP error:", err)
-			os.Exit(1)
+			errQuit("listen HTTP", err)
 		}
-		listeners = append(listeners, l)
+		cfg.listeners = append(cfg.listeners, l)
 
 		l, err = net.Listen("tcp6", fmt.Sprintf("[%s]:443", prev))
 		if err != nil {
-			_, _ = fmt.Fprintln(os.Stderr, prev, "listen HTTPS error:", err)
-			os.Exit(1)
+			errQuit("listen HTTPS", err)
 		}
-		listeners = append(listeners, l)
+		cfg.listeners = append(cfg.listeners, l)
 	}
 
-	handler := initSwaggerAPI(db, BrigadeID, &routerPublicKey, &shufflerPublicKey, pcors, webDir, allowedAddress)
+	jwtOpts := jwt.Options{
+		Issuer:        "keydesk",
+		Subject:       db.BrigadeID,
+		Audience:      []string{"keydesk"},
+		SigningMethod: jwt2.SigningMethodHS256,
+	}
+	jwtKey, err := utils.GenHMACKey()
+	if err != nil {
+		errQuit("JWT key error", err)
+	}
+
+	handler := initSwaggerAPI(
+		db,
+		&routerPublicKey,
+		&shufflerPublicKey,
+		cfg.enableCORS,
+		cfg.webDir,
+		allowedAddress,
+		jwt.NewIssuer(jwtKey, jwtOpts),
+		jwt.NewAuthorizer(jwtKey, jwtOpts),
+	)
 
 	// On signal, gracefully shut down the server and wait 5
 	// seconds for current connections to stop.
 
-	done := make(chan struct{})
 	statDone := make(chan struct{})
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	server := &http.Server{
+	srv := &http.Server{
 		Handler:     handler,
 		IdleTimeout: 60 * time.Minute,
 	}
 
 	var serverTLS *http.Server
 
-	if len(listeners) == 2 {
+	if len(cfg.listeners) == 2 {
 		// openssl req -x509 -nodes -days 10000 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -subj '/CN=vpn.works/O=VPNGen/C=LT/ST=Vilniaus Apskritis/L=Vilnius' -keyout vpn.works.key -out vpn.works.crt
 		switch cert, err := tls.LoadX509KeyPair(
-			filepath.Join(certDir, TLSCertFilename),
-			filepath.Join(certDir, TLSKeyFilename),
+			filepath.Join(cfg.certDir, TLSCertFilename),
+			filepath.Join(cfg.certDir, TLSKeyFilename),
 		); err {
 		case nil:
 			serverTLS = &http.Server{
@@ -190,330 +206,82 @@ func main() {
 		}
 	}
 
-	go func() {
-		<-quit
-		_, _ = fmt.Fprintln(os.Stderr, "Quit signal received...")
-		statDone <- struct{}{}
+	baseCtx := context.Background()
+	r := runner.New(baseCtx)
 
-		wg := sync.WaitGroup{}
-
-		closeFunc := func(srv *http.Server) {
-			defer wg.Done()
-
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-
-			srv.SetKeepAlivesEnabled(false)
-			if err := srv.Shutdown(ctx); err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "Can't gracefully shut down the server: %s\n", err)
-			}
-		}
-
-		_, _ = fmt.Fprintln(os.Stderr, "Server is shutting down")
-		wg.Add(1)
-		go closeFunc(server)
-
-		if serverTLS != nil {
-			_, _ = fmt.Fprintln(os.Stderr, "Server TLS is shutting down")
-			wg.Add(1)
-			go closeFunc(serverTLS)
-		}
-
-		wg.Wait()
-
-		close(done)
-	}()
-
-	if len(listeners) > 0 {
-		_, _ = fmt.Fprintf(os.Stderr, "Listen HTTP: %s\n", listeners[0].Addr().String())
-		// Start accepting connections.
-		go func() {
-			if err := server.Serve(listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
-				log.Fatalf("Can't serve: %s\n", err)
-			}
-		}()
+	if len(cfg.listeners) > 0 {
+		r.AddTask("keydesk http", runner.Task{
+			Func: func(ctx context.Context) error {
+				_, _ = fmt.Fprintf(os.Stderr, "Listen HTTP: %s\n", cfg.listeners[0].Addr().String())
+				if err := srv.Serve(cfg.listeners[0]); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+					return err
+				}
+				return nil
+			},
+			Shutdown: func(ctx context.Context) error {
+				return srv.Shutdown(ctx)
+			},
+		})
 	}
 
-	if serverTLS != nil && len(listeners) == 2 {
-		_, _ = fmt.Fprintf(os.Stderr, "Listen HTTPS: %s\n", listeners[1].Addr().String())
-		// Start accepting connections.
-		go func() {
-			if err := serverTLS.ServeTLS(listeners[1], "", ""); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
-				log.Fatalf("Can't serve TLS: %s\n", err)
-			}
-		}()
+	if serverTLS != nil && len(cfg.listeners) == 2 {
+		r.AddTask("keydesk https", runner.Task{
+			Func: func(ctx context.Context) error {
+				_, _ = fmt.Fprintf(os.Stderr, "Listen HTTPS: %s\n", cfg.listeners[1].Addr().String())
+				if err := serverTLS.ServeTLS(cfg.listeners[1], "", ""); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+					return err
+				}
+				return nil
+			},
+			Shutdown: func(ctx context.Context) error {
+				return serverTLS.Shutdown(ctx)
+			},
+		})
 	}
 
 	_, rdata := os.LookupEnv("VGSTATS_RANDOM_DATA")
 
-	go stat.CollectingData(db, statDone, rdata, statsDir)
+	r.AddTask("stat", runner.Task{
+		Func: func(ctx context.Context) error {
+			stat.CollectingData(db, statDone, rdata, cfg.statsDir)
+			return nil
+		},
+		Shutdown: func(ctx context.Context) error {
+			statDone <- struct{}{}
+			return nil
+		},
+	})
 
-	// Wait for existing connections before exiting.
-	<-done
-}
-
-func parseArgs() (bool, bool, bool, []net.Listener, netip.AddrPort, string, string, string, string, string, string, string, namesgenerator.Person, bool, *storage.ConfigsImplemented, error) {
-	var (
-		id                               string
-		etcdir, dbdir, certdir, statsdir string
-		person                           namesgenerator.Person
-		addrPort                         netip.AddrPort
-	)
-
-	sysUser, err := user.Current()
-	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot define user: %w", err)
-	}
-
-	webDir := flag.String("w", DefaultWebDir, "Dir for web files.")
-	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
-	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
-	certDir := flag.String("e", "", "Dir for TLS certificate and key (for test). Default: "+DefaultCertDir)
-	statsDir := flag.String("s", "", "Dir with brigades statistics. Default: "+storage.DefaultStatsDir+"/<BrigadeID>")
-
-	pcors := flag.Bool("cors", false, "Turn on permessive CORS (for test)")
-	brigadeID := flag.String("id", "", "BrigadeID (for test)")
-	listenAddr := flag.String("l", "", "Listen addr:port (http and https separate with commas)")
-
-	brigadierName := flag.String("name", "", "brigadierName :: base64")
-	personName := flag.String("person", "", "personName :: base64")
-	personDesc := flag.String("desc", "", "personDesc :: base64")
-	personURL := flag.String("url", "", "personURL :: base64")
-	replaceBrigadier := flag.Bool("r", false, "Replace brigadier config")
-
-	addr := flag.String("a", vpnapi.TemplatedAddrPort, "API endpoint address:port")
-
-	chunked := flag.Bool("ch", false, "chunked output")
-	jsonOut := flag.Bool("j", false, "json output")
-
-	wgcCfgs := flag.String("wg", "native,amnezia", "Wireguard configs ("+storage.ConfigsWg+")")
-	ovcCfgs := flag.String("ovc", "", "OpenVPN over Cloak configs ("+storage.ConfigsOvc+")")
-	ipsecCfgs := flag.String("ipsec", "", "IPSec configs ("+storage.ConfigsIPSec+")")
-	outlineCfgs := flag.String("outline", "", "Outline configs ("+storage.ConfigsOutline+")")
-
-	flag.Parse()
-
-	vpnCfgs := storage.NewConfigsImplemented()
-
-	if *wgcCfgs != "" {
-		vpnCfgs.AddWg(*wgcCfgs)
-	}
-
-	if *ovcCfgs != "" {
-		vpnCfgs.AddOvc(*ovcCfgs)
-	}
-
-	if *ipsecCfgs != "" {
-		vpnCfgs.AddIPSec(*ipsecCfgs)
-	}
-
-	if *outlineCfgs != "" {
-		vpnCfgs.AddOutline(*outlineCfgs)
-	}
-
-	if *webDir == "" {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrStaticDirEmpty
-	}
-
-	webdir, err := filepath.Abs(*webDir)
-	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("web dir: %w", err)
-	}
-
-	if *filedbDir != "" {
-		dbdir, err = filepath.Abs(*filedbDir)
+	if cfg.messageAPISocket != nil {
+		echoSrv, err := app.SetupServer(db, cfg.jwtPublicKeyFile)
 		if err != nil {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("dbdir dir: %w", err)
+			errQuit("message server", err)
 		}
-	}
+		echoSrv.Listener = cfg.messageAPISocket
 
-	if *etcDir != "" {
-		etcdir, err = filepath.Abs(*etcDir)
-		if err != nil {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("etcdir dir: %w", err)
-		}
-	}
-
-	if *certDir != "" {
-		certdir, err = filepath.Abs(*certDir)
-		if err != nil {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("certdir dir: %w", err)
-		}
-	}
-
-	if *statsDir != "" {
-		statsdir, err = filepath.Abs(*statsDir)
-		if err != nil {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("statdir dir: %w", err)
-		}
-	}
-
-	switch *brigadeID {
-	case "", sysUser.Username:
-		id = sysUser.Username
-
-		if *filedbDir == "" {
-			dbdir = filepath.Join(storage.DefaultHomeDir, id)
-		}
-
-		if *etcDir == "" {
-			etcdir = keydesk.DefaultEtcDir
-		}
-
-		if *certDir == "" {
-			certdir = DefaultCertDir
-		}
-
-		if *statsDir == "" {
-			statsdir = filepath.Join(storage.DefaultStatsDir, id)
-		}
-	default:
-		id = *brigadeID
-
-		cwd, err := os.Getwd()
-		if err == nil {
-			cwd, _ = filepath.Abs(cwd)
-		}
-
-		if *filedbDir == "" {
-			dbdir = cwd
-		}
-
-		if *etcDir == "" {
-			etcdir = cwd
-		}
-
-		if *certDir == "" {
-			certdir = cwd
-		}
-
-		if *statsDir == "" {
-			statsdir = cwd
-		}
-	}
-
-	// brigadeID must be base32 decodable.
-	binID, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(id)
-	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("id base32: %s: %w", id, err)
-	}
-
-	_, err = uuid.FromBytes(binID)
-	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("id uuid: %s: %w", id, err)
-	}
-
-	if *addr != "-" {
-		addrPort, err = netip.ParseAddrPort(*addr)
-		if err != nil {
-			return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("api addr: %w", err)
-		}
-	}
-
-	if *replaceBrigadier {
-		return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, *replaceBrigadier, vpnCfgs, nil
-	}
-
-	if *brigadierName == "" {
-		var listeners []net.Listener
-
-		switch *listenAddr {
-		case "":
-			// get listeners from activation sockets
-			listeners, err = activation.Listeners()
-			if err != nil {
-				return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot retrieve listeners: %w", err)
-			}
-
-			return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, false, nil, nil
-		default:
-			// get listeners from argument
-			for _, laddr := range strings.Split(*listenAddr, ",") {
-				l, err := net.Listen("tcp", laddr)
-				if err != nil {
-					return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("cannot listen: %w", err)
+		r.AddTask("messages", runner.Task{
+			Func: func(ctx context.Context) error {
+				if err := echoSrv.Start(""); err != nil && !goerrors.Is(err, http.ErrServerClosed) {
+					return err
 				}
-
-				listeners = append(listeners, l)
-			}
-
-			if len(listeners) != 1 && len(listeners) != 2 {
-				return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("unexpected number of litening (%d != 1|2)",
-					len(listeners))
-			}
-		}
-
-		return *chunked, *jsonOut, *pcors, listeners, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, "", person, false, nil, nil
+				return nil
+			},
+			Shutdown: func(ctx context.Context) error {
+				if err = echoSrv.Shutdown(ctx); err != nil {
+					return err
+				}
+				return nil
+			},
+		})
 	}
 
-	// brigadierName must be not empty and must be a valid UTF8 string
-	buf, err := base64.StdEncoding.DecodeString(*brigadierName)
-	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("brigadier name: %w", err)
+	r.Run()
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+	if err = r.Stop(); err != nil {
+		errQuit("runner", err)
 	}
-
-	if !utf8.Valid(buf) {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrInvalidBrigadierName
-	}
-
-	name := string(buf)
-
-	// personName must be not empty and must be a valid UTF8 string
-	if *personName == "" {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrEmptyPersonName
-	}
-
-	buf, err = base64.StdEncoding.DecodeString(*personName)
-	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("person name: %w", err)
-	}
-
-	if !utf8.Valid(buf) {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrInvalidPersonName
-	}
-
-	person.Name = string(buf)
-
-	// personDesc must be not empty and must be a valid UTF8 string
-	if *personDesc == "" {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrEmptyPersonDesc
-	}
-
-	buf, err = base64.StdEncoding.DecodeString(*personDesc)
-	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("person desc: %w", err)
-	}
-
-	if !utf8.Valid(buf) {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrInvalidPersonDesc
-	}
-
-	person.Desc = string(buf)
-
-	// personURL must be not empty and must be a valid UTF8 string
-	if *personURL == "" {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrEmptyPersonURL
-	}
-
-	buf, err = base64.StdEncoding.DecodeString(*personURL)
-	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("person url: %w", err)
-	}
-
-	if !utf8.Valid(buf) {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, ErrInvalidPersonURL
-	}
-
-	u := string(buf)
-
-	_, err = url.Parse(u)
-	if err != nil {
-		return false, false, false, nil, addrPort, "", "", "", "", "", "", "", person, false, nil, fmt.Errorf("parse person url: %w", err)
-	}
-
-	person.URL = u
-
-	return *chunked, *jsonOut, *pcors, nil, addrPort, id, etcdir, webdir, dbdir, certdir, statsdir, name, person, *replaceBrigadier, vpnCfgs, nil
 }
 
 func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxKeyLength]byte, error) {
@@ -603,118 +371,94 @@ func createBrigadier(db *storage.BrigadeStorage,
 	return nil
 }
 
-func initSwaggerAPI(db *storage.BrigadeStorage,
-	brigadeID string,
+func initSwaggerAPI(
+	db *storage.BrigadeStorage,
 	routerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	pcors bool,
 	webDir string,
 	allowedAddr string,
+	issuer jwt.Issuer,
+	authorizer jwt.Authorizer,
 ) http.Handler {
-	// load embedded swagger file
-	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	// create new service API
-	api := operations.NewUserAPI(swaggerSpec)
-
-	api.ServeError = errors.ServeError
-
-	api.UseSwaggerUI()
-
-	api.JSONConsumer = runtime.JSONConsumer()
-
-	api.JSONProducer = runtime.JSONProducer()
-
-	api.BearerAuth = keydesk.ValidateBearer(brigadeID)
-	api.PostTokenHandler = operations.PostTokenHandlerFunc(keydesk.CreateToken(brigadeID, TokenLifeTime))
-	api.PostUserHandler = operations.PostUserHandlerFunc(func(params operations.PostUserParams, principal interface{}) middleware.Responder {
-		return keydesk.AddUser(db, params, principal, routerPublicKey, shufflerPublicKey)
-	})
-	api.DeleteUserUserIDHandler = operations.DeleteUserUserIDHandlerFunc(func(params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
-		return keydesk.DelUserUserID(db, params, principal)
-	})
-	api.GetUserHandler = operations.GetUserHandlerFunc(func(params operations.GetUserParams, principal interface{}) middleware.Responder {
-		return keydesk.GetUsers(db, params, principal)
-	})
-	api.GetUsersStatsHandler = operations.GetUsersStatsHandlerFunc(func(params operations.GetUsersStatsParams, principal interface{}) middleware.Responder {
-		return keydesk.GetUsersStats(db, params, principal)
-	})
-
-	handler := maintenanceMiddleware(
-		api.Serve(nil),
-		"/.maintenance",
-		filepath.Dir(db.BrigadeFilename)+"/.maintenance",
+	api := server.NewServer(
+		db,
+		msgsvc.New(db),
+		issuer,
+		goSwaggerAuth.NewService(authorizer),
+		routerPublicKey,
+		shufflerPublicKey,
+		TokenLifeTime,
 	)
 
-	switch pcors {
-	case true:
-		return cors.AllowAll().Handler(
-			uiMiddleware(handler, webDir, allowedAddr),
-		)
-	default:
-		return uiMiddleware(handler, webDir, allowedAddr)
+	handler := api.Serve(nil)
+	handler = maintenanceMiddlewareBuilder("/.maintenance", filepath.Dir(db.BrigadeFilename)+"/.maintenance")(handler)
+	handler = uiMiddlewareBuilder(webDir, allowedAddr)(handler)
+	if pcors {
+		return cors.AllowAll().Handler(handler)
+	}
+	return handler
+}
+
+func uiMiddlewareBuilder(dir string, allowedAddr string) middleware.Builder {
+	return func(handler http.Handler) http.Handler {
+		staticFS := http.Dir(dir)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			remoteAddrPort, err := netip.ParseAddrPort(r.RemoteAddr)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stdout, "Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+
+				return
+			}
+
+			remoteAddr := remoteAddrPort.Addr().String()
+
+			if allowedAddr != "" && remoteAddr != allowedAddr {
+				_, _ = fmt.Fprintf(os.Stdout, "Connect From: %s Restricted\n", r.RemoteAddr)
+				_, _ = fmt.Fprintf(os.Stdout, "Remote: %s Expected:%s\n", remoteAddr, allowedAddr)
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+
+				return
+			}
+
+			filename := filepath.Join(dir, r.URL.Path)
+			finfo, err := os.Stat(filename)
+
+			// If the file doesn't exist and it is a directory, try to serve the default index file.
+			if err == nil && finfo.IsDir() {
+				_, err = os.Stat(filepath.Join(filename, DefaultIndexFile))
+			}
+
+			// If the file exists, serve it.
+			if err == nil {
+				w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
+				http.FileServer(staticFS).ServeHTTP(w, r)
+
+				return
+			}
+
+			_, _ = fmt.Fprintf(os.Stderr, "Connect From: %s\n", r.RemoteAddr)
+
+			handler.ServeHTTP(w, r)
+		})
 	}
 }
 
-func uiMiddleware(handler http.Handler, dir string, allowedAddr string) http.Handler {
-	staticFS := http.Dir(dir)
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		remoteAddrPort, err := netip.ParseAddrPort(r.RemoteAddr)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)
-			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-
-			return
-		}
-
-		remoteAddr := remoteAddrPort.Addr().String()
-
-		if allowedAddr != "" && remoteAddr != allowedAddr {
-			_, _ = fmt.Fprintf(os.Stderr, "Connect From: %s Restricted\n", r.RemoteAddr)
-			_, _ = fmt.Fprintf(os.Stderr, "Remote: %s Expected:%s\n", remoteAddr, allowedAddr)
-			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-
-			return
-		}
-
-		filename := filepath.Join(dir, r.URL.Path)
-		finfo, err := os.Stat(filename)
-
-		// If the file doesn't exist and it is a directory, try to serve the default index file.
-		if err == nil && finfo.IsDir() {
-			_, err = os.Stat(filepath.Join(filename, DefaultIndexFile))
-		}
-
-		// If the file exists, serve it.
-		if err == nil {
-			w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
-			http.FileServer(staticFS).ServeHTTP(w, r)
-
-			return
-		}
-
-		_, _ = fmt.Fprintf(os.Stderr, "Connect From: %s\n", r.RemoteAddr)
-
-		handler.ServeHTTP(w, r)
-	})
-}
-
-func maintenanceMiddleware(handler http.Handler, paths ...string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ok, till, msg := maintenance.CheckInPaths(paths...)
-		if ok {
-			me := maintenance.NewError(till, msg)
-			w.Header().Set("Retry-After", me.RetryAfter().String())
-			w.WriteHeader(http.StatusServiceUnavailable)
-			if err := json.NewEncoder(w).Encode(me); err != nil {
-				_, _ = fmt.Fprintln(os.Stderr, "encode maintenance error:", err)
+func maintenanceMiddlewareBuilder(paths ...string) middleware.Builder {
+	return func(handler http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ok, till := maintenance.CheckInPaths(paths...)
+			if ok {
+				me := maintenance.NewError(till)
+				w.Header().Set("Retry-After", me.RetryAfter().String())
+				w.WriteHeader(http.StatusServiceUnavailable)
+				if err := json.NewEncoder(w).Encode(me); err != nil {
+					_, _ = fmt.Fprintln(os.Stderr, "encode maintenance error:", err)
+				}
+				return
 			}
-			return
-		}
-		handler.ServeHTTP(w, r)
-	})
+			handler.ServeHTTP(w, r)
+		})
+	}
 }

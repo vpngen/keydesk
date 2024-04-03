@@ -1,0 +1,4 @@
+package: messages
+generate:
+  client: true
+output: ../gen/messages/client.gen.go

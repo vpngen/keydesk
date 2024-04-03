@@ -51,3 +51,4 @@ There's [CLI utility](cmd/jwt/main.go) for generating tokens for testing.
 - ttl: optional
 ### Storage
 Messages are stored in `.messages` field of `brigade.json`.
+

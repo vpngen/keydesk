@@ -1,0 +1,188 @@
+openapi: 3.0.3
+info:
+  title: Keydesk message API
+  description: Keydesk message API
+  version: 1.0.0
+#servers:
+#  - url: 'https'
+paths:
+  /messages:
+#    get:
+#      summary: Get messages
+#      description: Get messages, triggered by frontend
+#      operationId: getMessages
+#      parameters:
+#        - $ref: '#/components/parameters/Offset'
+#        - $ref: '#/components/parameters/Limit'
+#        - $ref: '#/components/parameters/ReadFilter'
+#        - $ref: '#/components/parameters/PriorityFilter'
+#        - $ref: '#/components/parameters/Sort'
+#      responses:
+#        200:
+#          description: OK
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/PaginatedMessages'
+#        default:
+#          description: error
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create message
+      description: Used by datacenter management. JWT token with messages:create scope is required.
+      security:
+        - JWTAuth:
+            - messages:create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMessageRequest'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        default:
+          description: error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        text:
+          type: string
+        is_read:
+          type: boolean
+        priority:
+          type: integer
+        time:
+          type: string
+          format: date-time
+        ttl:
+          type: string
+      required:
+        - id
+        - text
+        - is_read
+        - priority
+        - time
+        - ttl
+    Messages:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        total:
+          type: integer
+    Pagination:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        total:
+          type: integer
+          description: The total number of elements in collection
+      required:
+        - items
+        - total
+    PaginatedMessages:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        total:
+          type: integer
+          description: The total number of messages
+      required:
+        - messages
+        - total
+    CreateMessageRequest:
+      type: object
+      properties:
+        text:
+          type: string
+        ttl:
+          type: string
+        priority:
+          type: integer
+      required:
+        - text
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+      required:
+        - code
+        - message
+    SortSide:
+      type: string
+      enum:
+        - asc
+        - desc
+  parameters:
+    Offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        default: 0
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 25
+    Sort:
+      name: sort
+      in: query
+      schema:
+        type: object
+        additionalProperties:
+          $ref: '#/components/schemas/SortSide'
+    PriorityFilter:
+      name: priority
+      in: query
+      schema:
+        type: object
+        additionalProperties:
+          type: integer
+      style: deepObject
+      explode: true
+    ReadFilter:
+      name: read
+      in: query
+      schema:
+        type: boolean
+    MessageID:
+      name: id
+      in: path
+      schema:
+        type: integer
+  securitySchemes:
+    JWTAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

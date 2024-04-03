@@ -57,6 +57,12 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 		PostUserHandler: PostUserHandlerFunc(func(params PostUserParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation PostUser has not yet been implemented")
 		}),
+		GetMessagesHandler: GetMessagesHandlerFunc(func(params GetMessagesParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation GetMessages has not yet been implemented")
+		}),
+		MarkMessageAsReadHandler: MarkMessageAsReadHandlerFunc(func(params MarkMessageAsReadParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation MarkMessageAsRead has not yet been implemented")
+		}),
 
 		// Applies when the "Authorization" header is set
 		BearerAuth: func(token string) (interface{}, error) {
@@ -117,6 +123,10 @@ type UserAPI struct {
 	PostTokenHandler PostTokenHandler
 	// PostUserHandler sets the operation handler for the post user operation
 	PostUserHandler PostUserHandler
+	// GetMessagesHandler sets the operation handler for the get messages operation
+	GetMessagesHandler GetMessagesHandler
+	// MarkMessageAsReadHandler sets the operation handler for the mark message as read operation
+	MarkMessageAsReadHandler MarkMessageAsReadHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -212,6 +222,12 @@ func (o *UserAPI) Validate() error {
 	}
 	if o.PostUserHandler == nil {
 		unregistered = append(unregistered, "PostUserHandler")
+	}
+	if o.GetMessagesHandler == nil {
+		unregistered = append(unregistered, "GetMessagesHandler")
+	}
+	if o.MarkMessageAsReadHandler == nil {
+		unregistered = append(unregistered, "MarkMessageAsReadHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -330,6 +346,14 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/user"] = NewPostUser(o.context, o.PostUserHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/messages"] = NewGetMessages(o.context, o.GetMessagesHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/messages/{id}/read"] = NewMarkMessageAsRead(o.context, o.MarkMessageAsReadHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

@@ -448,9 +448,9 @@ func uiMiddlewareBuilder(dir string, allowedAddr string) middleware.Builder {
 func maintenanceMiddlewareBuilder(paths ...string) middleware.Builder {
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ok, till := maintenance.CheckInPaths(paths...)
+			ok, till, msg := maintenance.CheckInPaths(paths...)
 			if ok {
-				me := maintenance.NewError(till)
+				me := maintenance.NewError(till, msg)
 				w.Header().Set("Retry-After", me.RetryAfter().String())
 				w.WriteHeader(http.StatusServiceUnavailable)
 				if err := json.NewEncoder(w).Encode(me); err != nil {

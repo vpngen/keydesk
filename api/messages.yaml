@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: Keydesk message & push API
-  description: Keydesk message & push API
+  title: Keydesk message API
+  description: Keydesk message API
   version: 1.0.0
 #servers:
 #  - url: 'https'
@@ -32,6 +32,7 @@ paths:
 #                $ref: '#/components/schemas/Error'
     post:
       summary: Create message
+      description: Used by datacenter management. JWT token with messages:create scope is required.
       security:
         - JWTAuth:
             - messages:create

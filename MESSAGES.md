@@ -40,6 +40,7 @@ DC API requires JWT token signed with ECDSA256 private key. Required JWT claims:
   ]
 }
 ```
+
 There's [CLI utility](cmd/jwt/main.go) for generating tokens for testing.
 ## Implementation
 ### Message structure

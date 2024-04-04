@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/vpngen/keydesk/internal/maintenance"
+	"log"
 	"math"
 	"net/url"
 	"os"
@@ -170,6 +171,12 @@ func pickUpUser(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *
 		if err != nil {
 			return nil, nil, nil, nil, "", "", "", "", "", fmt.Errorf("get vpn configs: %w", err)
 		}
+
+		log.Println("vpnCfgs: ", vpnCfgs)
+		log.Println("ovc:", vpnCfgs.Ovc)
+		log.Println("ipsec:", vpnCfgs.IPSec)
+		log.Println("outline:", vpnCfgs.Outline)
+		log.Println("wg:", vpnCfgs.Wg)
 
 		user, wgPriv, wgPSK, ovcPriv, CloakByPassUID, ippsecUsername, ipsecPassword, outlineSecret, err := addUser(db, vpnCfgs, fullname, person, false, false, routerPublicKey, shufflerPublicKey)
 		if err != nil {
@@ -536,6 +543,7 @@ func genUserOutlineSecret(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKe
 
 	secret = secret[:OutlineSecretLen]
 
+	// TODO: why do we encrypt *encoded* secret?
 	secretRouter, err := box.SealAnonymous(nil, []byte(secret), routerPublicKey, rand.Reader)
 	if err != nil {
 		return "", "", "", fmt.Errorf("secret router seal: %w", err)

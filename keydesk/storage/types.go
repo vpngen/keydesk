@@ -2,6 +2,7 @@ package storage
 
 import (
 	"github.com/SherClockHolmes/webpush-go"
+	"github.com/vpngen/keydesk/internal/vpn"
 	"net/netip"
 	"time"
 
@@ -168,6 +169,10 @@ type User struct {
 	Quotas                    Quota                 `json:"quotas"`
 }
 
+func NewUser(userID uuid.UUID, name string, createdAt time.Time, isBrigadier bool, IPv4Addr netip.Addr, IPv6Addr netip.Addr, person namesgenerator.Person) User {
+	return User{UserID: userID, Name: name, CreatedAt: createdAt, IsBrigadier: isBrigadier, IPv4Addr: IPv4Addr, IPv6Addr: IPv6Addr, Person: person}
+}
+
 // BrigadeVersion - json version.
 const BrigadeVersion = 9
 
@@ -212,6 +217,25 @@ type Brigade struct {
 	Endpoints             UsersNetworks        `json:"endpoints,omitempty"`
 	Messages              []Message            `json:"messages,omitempty"`
 	Subscription          webpush.Subscription `json:"subscription"`
+}
+
+func (b Brigade) GetSupportedVPNProtocols() vpn.ProtocolSet {
+	types := vpn.TypeWG // wg is always supported
+
+	if b.OvCACertPemGzipBase64 != "" && b.OvCAKeyRouterEnc != "" && b.OvCAKeyShufflerEnc != "" {
+		types |= vpn.TypeOVC
+	}
+
+	if b.IPSecPSK != "" && b.IPSecPSKRouterEnc != "" && b.IPSecPSKShufflerEnc != "" {
+		types |= vpn.TypeIPSec
+	}
+
+	if b.OutlinePort > 0 {
+		types |= vpn.TypeOutline
+	}
+
+	return types
+
 }
 
 // UserConfig - new user structure.

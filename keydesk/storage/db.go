@@ -224,3 +224,11 @@ func openStats(statsFilename, statsSpinlock string) (*kdlib.FileDb, error) {
 
 	return f, nil
 }
+
+func (db *BrigadeStorage) GetActualAddrPort() netip.AddrPort {
+	return db.actualAddrPort
+}
+
+func (db *BrigadeStorage) GetCalculatedAddrPort() netip.AddrPort {
+	return db.calculatedAddrPort
+}

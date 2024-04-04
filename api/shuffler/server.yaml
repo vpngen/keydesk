@@ -1,0 +1,5 @@
+package: shuffler
+generate:
+  echo-server: true
+  strict-server: true
+output: ../../gen/shuffler/server.gen.go

@@ -1,0 +1,4 @@
+package: shuffler
+generate:
+  embedded-spec: true
+output: ../../gen/shuffler/embedded-spec.gen.go

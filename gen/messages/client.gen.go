@@ -12,8 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/oapi-codegen/runtime"
 )
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
@@ -93,9 +91,6 @@ type ClientInterface interface {
 	PostMessagesWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PostMessages(ctx context.Context, body PostMessagesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// PostMessagesIdRead request
-	PostMessagesIdRead(ctx context.Context, id MessageID, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) PostMessagesWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -112,18 +107,6 @@ func (c *Client) PostMessagesWithBody(ctx context.Context, contentType string, b
 
 func (c *Client) PostMessages(ctx context.Context, body PostMessagesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostMessagesRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PostMessagesIdRead(ctx context.Context, id MessageID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostMessagesIdReadRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -170,40 +153,6 @@ func NewPostMessagesRequestWithBody(server string, contentType string, body io.R
 	}
 
 	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewPostMessagesIdReadRequest generates requests for PostMessagesIdRead
-func NewPostMessagesIdReadRequest(server string, id MessageID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/messages/%s/read", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
 
 	return req, nil
 }
@@ -255,9 +204,6 @@ type ClientWithResponsesInterface interface {
 	PostMessagesWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostMessagesResponse, error)
 
 	PostMessagesWithResponse(ctx context.Context, body PostMessagesJSONRequestBody, reqEditors ...RequestEditorFn) (*PostMessagesResponse, error)
-
-	// PostMessagesIdReadWithResponse request
-	PostMessagesIdReadWithResponse(ctx context.Context, id MessageID, reqEditors ...RequestEditorFn) (*PostMessagesIdReadResponse, error)
 }
 
 type PostMessagesResponse struct {
@@ -283,28 +229,6 @@ func (r PostMessagesResponse) StatusCode() int {
 	return 0
 }
 
-type PostMessagesIdReadResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSONDefault  *Error
-}
-
-// Status returns HTTPResponse.Status
-func (r PostMessagesIdReadResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PostMessagesIdReadResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 // PostMessagesWithBodyWithResponse request with arbitrary body returning *PostMessagesResponse
 func (c *ClientWithResponses) PostMessagesWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostMessagesResponse, error) {
 	rsp, err := c.PostMessagesWithBody(ctx, contentType, body, reqEditors...)
@@ -320,15 +244,6 @@ func (c *ClientWithResponses) PostMessagesWithResponse(ctx context.Context, body
 		return nil, err
 	}
 	return ParsePostMessagesResponse(rsp)
-}
-
-// PostMessagesIdReadWithResponse request returning *PostMessagesIdReadResponse
-func (c *ClientWithResponses) PostMessagesIdReadWithResponse(ctx context.Context, id MessageID, reqEditors ...RequestEditorFn) (*PostMessagesIdReadResponse, error) {
-	rsp, err := c.PostMessagesIdRead(ctx, id, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePostMessagesIdReadResponse(rsp)
 }
 
 // ParsePostMessagesResponse parses an HTTP response from a PostMessagesWithResponse call
@@ -352,32 +267,6 @@ func ParsePostMessagesResponse(rsp *http.Response) (*PostMessagesResponse, error
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest Error
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParsePostMessagesIdReadResponse parses an HTTP response from a PostMessagesIdReadWithResponse call
-func ParsePostMessagesIdReadResponse(rsp *http.Response) (*PostMessagesIdReadResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PostMessagesIdReadResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {

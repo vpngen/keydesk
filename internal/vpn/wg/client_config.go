@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/vpngen/keydesk/internal/vpn"
+	"github.com/vpngen/keydesk/internal/vpn/endpoint"
 	"github.com/vpngen/keydesk/kdlib"
 	"net/netip"
 	"strings"
@@ -35,7 +36,7 @@ type clientConfig struct {
 	PSK          string
 }
 
-func (c Config) GetClientConfig() (any, error) {
+func (c Config) GetClientConfig(_ endpoint.APIResponse) (any, error) {
 	buf, err := c.renderClientConfig()
 	if err != nil {
 		return nil, fmt.Errorf("render: %w", err)

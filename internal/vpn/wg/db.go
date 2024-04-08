@@ -8,7 +8,7 @@ import (
 	"golang.org/x/crypto/nacl/box"
 )
 
-func (c Config) SaveToUser(user *storage.User, router, shuffler [naclkey.NaclBoxKeyLength]byte) error {
+func (c Config) Store(user *storage.User, router, shuffler [naclkey.NaclBoxKeyLength]byte) error {
 	routerPSK, shufflerPSK, err := c.encrypt(router, shuffler)
 	if err != nil {
 		return fmt.Errorf("encrypt: %w", err)

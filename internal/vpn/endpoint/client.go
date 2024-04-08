@@ -45,7 +45,8 @@ func NewClient(addrPort netip.AddrPort) RealClient {
 		},
 		client: &http.Client{
 			Transport: &http.Transport{
-				Dial: (&net.Dialer{Timeout: ConnTimeout}).Dial,
+				//Dial:        (&net.Dialer{Timeout: ConnTimeout}).Dial,
+				DialContext: (&net.Dialer{Timeout: ConnTimeout}).DialContext,
 			},
 		},
 	}

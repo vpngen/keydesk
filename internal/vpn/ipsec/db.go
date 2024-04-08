@@ -13,7 +13,7 @@ type EncryptedConfig struct {
 	routerUser, routerPass, shufflerUser, shufflerPass string
 }
 
-func (c Config) SaveToUser(user *storage.User, router, shuffler [32]byte) error {
+func (c Config) Store(user *storage.User, router, shuffler [32]byte) error {
 	ec, err := c.encrypt(router, shuffler)
 	if err != nil {
 		return err

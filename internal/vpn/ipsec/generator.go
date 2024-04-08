@@ -7,18 +7,18 @@ import (
 	"github.com/vpngen/keydesk/internal/vpn"
 )
 
-type generator struct {
+type Generator struct {
 	psk, host string
 }
 
-func NewGenerator(psk, host string) generator {
-	return generator{
+func NewGenerator(psk, host string) Generator {
+	return Generator{
 		psk:  psk,
 		host: host,
 	}
 }
 
-func (g generator) Generate() (vpn.Config2, error) {
+func (g Generator) Generate() (vpn.Config, error) {
 	usernameRand := make([]byte, UsernameLen)
 	if _, err := rand.Read(usernameRand); err != nil {
 		return Config{}, fmt.Errorf("username rand: %w", err)

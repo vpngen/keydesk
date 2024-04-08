@@ -2,7 +2,6 @@ package ovc
 
 import (
 	"fmt"
-	"github.com/vpngen/keydesk/internal/vpn/endpoint"
 )
 
 func (c Config) GetEndpointParams() (map[string]string, error) {
@@ -14,9 +13,4 @@ func (c Config) GetEndpointParams() (map[string]string, error) {
 		"openvpn-client-csr": string(csr),
 		"cloak-uid":          c.bypass.String(),
 	}, nil
-}
-
-func (c Config) ConfigureEndpoint(client endpoint.Client) error {
-	//TODO implement me
-	panic("implement me")
 }

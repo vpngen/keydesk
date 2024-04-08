@@ -7,15 +7,15 @@ import (
 	"net/netip"
 )
 
-type generator struct {
+type Generator struct {
 	priv, pub, epPub     wgtypes.Key
 	ip4, ip6, dns4, dns6 netip.Addr
 	host, userName       string
 	port                 uint16
 }
 
-func NewGenerator(priv, pub, epPub wgtypes.Key, ip4, ip6, dns4, dns6 netip.Addr, host, userName string, port uint16) generator {
-	return generator{
+func NewGenerator(priv, pub, epPub wgtypes.Key, ip4, ip6, dns4, dns6 netip.Addr, host, userName string, port uint16) Generator {
+	return Generator{
 		priv:     priv,
 		pub:      pub,
 		epPub:    epPub,
@@ -29,7 +29,7 @@ func NewGenerator(priv, pub, epPub wgtypes.Key, ip4, ip6, dns4, dns6 netip.Addr,
 	}
 }
 
-func (g generator) Generate() (vpn.Config2, error) {
+func (g Generator) Generate() (vpn.Config, error) {
 	psk, err := wgtypes.GenerateKey()
 	if err != nil {
 		return nil, fmt.Errorf("psk: %w", err)
@@ -53,8 +53,4 @@ func (g generator) Generate() (vpn.Config2, error) {
 		userName: g.userName,
 		port:     g.port,
 	}, nil
-}
-
-func init() {
-	vpn.RegisterGenerator(vpn.WG, generator{})
 }

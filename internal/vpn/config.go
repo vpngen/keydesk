@@ -6,24 +6,16 @@ import (
 	"github.com/vpngen/vpngine/naclkey"
 )
 
-type (
-	Config interface {
-		Protocol() string
-		UserConfig(name, host string, port uint16) any
-		//AssignToDBUser(user *storage.User, shufflerPub, routerPub [naclkey.NaclBoxKeyLength]byte)
-	}
+type Config interface {
+	// Protocol returns the name of the protocol
+	Protocol() string
 
-	FileConfig struct {
-		Content    string
-		FileName   string
-		ConfigName string
-	}
+	// GetEndpointParams returns the parameters to be passed to the endpoint API
+	GetEndpointParams() (map[string]string, error)
 
-	Config2 interface {
-		Protocol() string
-		GetEndpointParams() (map[string]string, error)
-		SaveToUser(user *storage.User, router, shuffler [naclkey.NaclBoxKeyLength]byte) error
-		GetClientConfig() (any, error)
-		ConfigureEndpoint(client endpoint.Client) error
-	}
-)
+	// Store saves encrypted config to brigade storage
+	Store(user *storage.User, router, shuffler [naclkey.NaclBoxKeyLength]byte) error
+
+	// GetClientConfig returns the config for client connection
+	GetClientConfig(data endpoint.APIResponse) (any, error)
+}

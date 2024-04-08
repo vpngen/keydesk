@@ -23,22 +23,18 @@ const (
 
 type (
 	Config struct {
-		cn, bypass                                             uuid.UUID
-		key                                                    *ecdsa.PrivateKey
-		csr                                                    []byte
-		host, name, dns1, dns2, fakeDomain, caCert, clientCert string
-		ep4                                                    netip.Addr
-		wgPub                                                  wgtypes.Key
+		cn, bypass                                 uuid.UUID
+		key                                        *ecdsa.PrivateKey
+		csr                                        []byte
+		host, name, dns1, dns2, fakeDomain, caCert string
+		ep4                                        netip.Addr
+		wgPub                                      wgtypes.Key
 	}
 
 	EncryptedConfig struct {
 		routerBypass, shufflerBypass []byte
 	}
 )
-
-func (c Config) UserConfig(name, host string, port uint16) any {
-	panic("not implemented")
-}
 
 func (c Config) getCloakConfig(host string, wgPub wgtypes.Key, fakeDomain string) cloak.Config {
 	return cloak.NewConfig(

@@ -7,16 +7,16 @@ import (
 	"github.com/vpngen/keydesk/internal/vpn"
 )
 
-type generator struct {
+type Generator struct {
 	name, host string
 	port       uint16
 }
 
-func NewGenerator(name string, host string, port uint16) generator {
-	return generator{name: name, host: host, port: port}
+func NewGenerator(name string, host string, port uint16) Generator {
+	return Generator{name: name, host: host, port: port}
 }
 
-func (g generator) Generate() (vpn.Config2, error) {
+func (g Generator) Generate() (vpn.Config, error) {
 	secretRand := make([]byte, SecretLen)
 	if _, err := rand.Read(secretRand); err != nil {
 		return Config{}, fmt.Errorf("secret rand: %w", err)

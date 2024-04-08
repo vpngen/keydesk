@@ -9,17 +9,17 @@ import (
 	"net/netip"
 )
 
-type generator struct {
-	host, name, dns1, dns2, fakeDomain, caCert, clientCert string
-	ep4                                                    netip.Addr
-	wgPub                                                  wgtypes.Key
+type Generator struct {
+	host, name, dns1, dns2, fakeDomain, caCert string
+	ep4                                        netip.Addr
+	wgPub                                      wgtypes.Key
 }
 
-func NewGenerator(host, name, fakeDomain, caCert, clientCert string, ep4 netip.Addr, wgPub wgtypes.Key) generator {
-	return generator{host: host, name: name, dns1: defaultInternalDNS, dns2: defaultInternalDNS, fakeDomain: fakeDomain, caCert: caCert, clientCert: clientCert, ep4: ep4, wgPub: wgPub}
+func NewGenerator(host, name, fakeDomain, caCert string, ep4 netip.Addr, wgPub wgtypes.Key) Generator {
+	return Generator{host: host, name: name, dns1: defaultInternalDNS, dns2: defaultInternalDNS, fakeDomain: fakeDomain, caCert: caCert, ep4: ep4, wgPub: wgPub}
 }
 
-func (g generator) Generate() (vpn.Config2, error) {
+func (g Generator) Generate() (vpn.Config, error) {
 	cn := uuid.New()
 	csr, key, err := kdlib.NewOvClientCertRequest(cn.String())
 	if err != nil {
@@ -36,7 +36,6 @@ func (g generator) Generate() (vpn.Config2, error) {
 		dns2:       g.dns2,
 		fakeDomain: g.fakeDomain,
 		caCert:     g.caCert,
-		clientCert: g.clientCert,
 		ep4:        g.ep4,
 		wgPub:      g.wgPub,
 	}, nil

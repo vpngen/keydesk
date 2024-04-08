@@ -27,6 +27,7 @@ import (
 	msgapp "github.com/vpngen/keydesk/internal/messages/app"
 	msgsvc "github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/internal/server"
+	shflrapp "github.com/vpngen/keydesk/internal/shuffler/app"
 	"github.com/vpngen/keydesk/internal/stat"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -283,27 +284,27 @@ func main() {
 		})
 	}
 
-	//if brigade.Mode == storage.ModeShuffler && cfg.shufflerAPISocket != nil {
-	//	echoSrv, err := shflrapp.SetupServer(db, cfg.jwtPublicKeyFile)
-	//	if err != nil {
-	//		errQuit("shuffler server", err)
-	//	}
-	//	echoSrv.Listener = cfg.shufflerAPISocket
-	//	r.AddTask("shuffler", runner.Task{
-	//		Func: func(ctx context.Context) error {
-	//			if err = echoSrv.Start(""); err != nil && !stderrors.Is(err, http.ErrServerClosed) {
-	//				return err
-	//			}
-	//			return nil
-	//		},
-	//		Shutdown: func(ctx context.Context) error {
-	//			if err = echoSrv.Shutdown(ctx); err != nil {
-	//				return err
-	//			}
-	//			return nil
-	//		},
-	//	})
-	//}
+	if brigade.Mode == storage.ModeShuffler && cfg.shufflerAPISocket != nil {
+		echoSrv, err := shflrapp.SetupServer(db, cfg.jwtPublicKeyFile, routerPublicKey, shufflerPublicKey)
+		if err != nil {
+			errQuit("shuffler server", err)
+		}
+		echoSrv.Listener = cfg.shufflerAPISocket
+		r.AddTask("shuffler", runner.Task{
+			Func: func(ctx context.Context) error {
+				if err = echoSrv.Start(""); err != nil && !stderrors.Is(err, http.ErrServerClosed) {
+					return err
+				}
+				return nil
+			},
+			Shutdown: func(ctx context.Context) error {
+				if err = echoSrv.Shutdown(ctx); err != nil {
+					return err
+				}
+				return nil
+			},
+		})
+	}
 
 	r.Run()
 	sigCh := make(chan os.Signal, 1)

@@ -45,8 +45,8 @@ type OutlineConfig struct {
 
 // SlotsInfo defines model for SlotsInfo.
 type SlotsInfo struct {
-	FreeSlots  *int `json:"free_slots,omitempty"`
-	TotalSlots *int `json:"total_slots,omitempty"`
+	FreeSlots  int `json:"free_slots"`
+	TotalSlots int `json:"total_slots"`
 }
 
 // VPNConfig defines model for VPNConfig.
@@ -67,7 +67,7 @@ type PostConfigsJSONBody struct {
 	Domain *string `json:"domain,omitempty"`
 
 	// Type VPN type
-	Type *ConfigType `json:"type,omitempty"`
+	Type ConfigType `json:"type"`
 }
 
 // PostConfigsJSONRequestBody defines body for PostConfigs for application/json ContentType.

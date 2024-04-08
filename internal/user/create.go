@@ -17,15 +17,28 @@ type User struct {
 	Configs map[string]any
 }
 
-func (s Service) create(protocols vpn.ProtocolSet) (User, error) {
-	f, brigade, err := s.db.OpenDbToModify()
-	if err != nil {
-		return User{}, fmt.Errorf("db: %w", err)
-	}
+type createUserResponse struct {
+	User
+	FreeSlots, TotalSlots uint
+}
 
-	defer f.Close()
+func (s Service) CreateUser(protocols vpn.ProtocolSet) (res createUserResponse, err error) {
+	err = s.db.RunInTransaction(func(brigade *storage.Brigade) error {
+		res.User, err = s.createUserWithConfigs(protocols, brigade)
+		if err != nil {
+			return fmt.Errorf("create user with configs %s: %w", protocols, err)
+		}
 
-	protocols, unsupported := protocols.GetSupported(brigade.GetSupportedVPNProtocols())
+		res.FreeSlots, res.TotalSlots = s.getSlotsInfo(brigade)
+
+		return nil
+	})
+
+	return
+}
+
+func (s Service) createUserWithConfigs(protocols vpn.ProtocolSet, brigade *storage.Brigade) (User, error) {
+	protocols, unsupported := protocols.GetSupported(vpn.NewProtocolSet(brigade.GetSupportedVPNProtocols()))
 	if unsupported > 0 {
 		return User{}, fmt.Errorf("unsupported VPN protocols: %s", unsupported)
 	}
@@ -56,7 +69,7 @@ func (s Service) create(protocols vpn.ProtocolSet) (User, error) {
 		return User{}, fmt.Errorf("peer add: %w", err)
 	}
 
-	if err = saveConfigsToDB(&dbUser, configs, s.routerPub, s.shufflerPub); err != nil {
+	if err = saveConfigsToDB(brigade, &dbUser, configs, s.routerPub, s.shufflerPub); err != nil {
 		return User{}, fmt.Errorf("save configs to db: %w", err)
 	}
 
@@ -120,12 +133,15 @@ func getEndpointParams(configs map[string]vpn.Config) (map[string]string, error)
 	return epParams, nil
 }
 
-func saveConfigsToDB(user *storage.User, configs map[string]vpn.Config, routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) error {
+func saveConfigsToDB(brigade *storage.Brigade, user *storage.User, configs map[string]vpn.Config, routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) error {
 	for protocol, config := range configs {
 		if err := config.Store(user, routerPub, shufflerPub); err != nil {
 			return fmt.Errorf("save %s config to user %s: %w", protocol, user.Name, err)
 		}
 	}
+
+	brigade.Users = append(brigade.Users, user)
+
 	return nil
 }
 

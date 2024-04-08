@@ -20,6 +20,11 @@ paths:
                 domain:
                   type: string
                   description: Domain for connection, if omitted default domain is domain of keydesk
+              required:
+                - type
+              example:
+                type: outline
+                domain: example.com
       responses:
         201:
           description: New VPN config, unique ID is returned
@@ -39,8 +44,10 @@ paths:
                     type: integer
                     description: Number of free VPN slots after creation
                 required:
+                  - id
                   - type
                   - config
+                  - free_slots
         412:
           description: No free VPN slots
         default:
@@ -134,6 +141,9 @@ components:
           type: integer
         total_slots:
           type: integer
+      required:
+        - free_slots
+        - total_slots
     Error:
       type: string
   securitySchemes:

@@ -2,7 +2,6 @@ package storage
 
 import (
 	"github.com/SherClockHolmes/webpush-go"
-	"github.com/vpngen/keydesk/internal/vpn"
 	"net/netip"
 	"time"
 
@@ -219,23 +218,22 @@ type Brigade struct {
 	Subscription          webpush.Subscription `json:"subscription"`
 }
 
-func (b Brigade) GetSupportedVPNProtocols() vpn.ProtocolSet {
-	types := vpn.TypeWG // wg is always supported
+func (b Brigade) GetSupportedVPNProtocols() []string {
+	protocols := []string{"wg"} // wg is always supported
 
 	if b.OvCACertPemGzipBase64 != "" && b.OvCAKeyRouterEnc != "" && b.OvCAKeyShufflerEnc != "" {
-		types |= vpn.TypeOVC
+		protocols = append(protocols, "ovc")
 	}
 
 	if b.IPSecPSK != "" && b.IPSecPSKRouterEnc != "" && b.IPSecPSKShufflerEnc != "" {
-		types |= vpn.TypeIPSec
+		protocols = append(protocols, "ipsec")
 	}
 
 	if b.OutlinePort > 0 {
-		types |= vpn.TypeOutline
+		protocols = append(protocols, "outline")
 	}
 
-	return types
-
+	return protocols
 }
 
 // UserConfig - new user structure.

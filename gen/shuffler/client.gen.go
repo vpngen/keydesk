@@ -260,8 +260,8 @@ type PostConfigsResponse struct {
 		Config VPNConfig `json:"config"`
 
 		// FreeSlots Number of free VPN slots after creation
-		FreeSlots *int                `json:"free_slots,omitempty"`
-		Id        *openapi_types.UUID `json:"id,omitempty"`
+		FreeSlots int                `json:"free_slots"`
+		Id        openapi_types.UUID `json:"id"`
 
 		// Type VPN type
 		Type ConfigType `json:"type"`
@@ -353,8 +353,8 @@ func ParsePostConfigsResponse(rsp *http.Response) (*PostConfigsResponse, error) 
 			Config VPNConfig `json:"config"`
 
 			// FreeSlots Number of free VPN slots after creation
-			FreeSlots *int                `json:"free_slots,omitempty"`
-			Id        *openapi_types.UUID `json:"id,omitempty"`
+			FreeSlots int                `json:"free_slots"`
+			Id        openapi_types.UUID `json:"id"`
 
 			// Type VPN type
 			Type ConfigType `json:"type"`

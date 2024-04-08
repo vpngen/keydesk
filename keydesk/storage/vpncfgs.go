@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"github.com/vpngen/keydesk/internal/vpn"
 	"strings"
 )
 
@@ -102,10 +101,10 @@ func (c *ConfigsImplemented) NewOutlineConfigs(req map[string]bool) {
 }
 
 // GetSupportedVPNProtocols returns the list of supported VPN types
-func (db *BrigadeStorage) GetSupportedVPNProtocols() (vpn.ProtocolSet, error) {
+func (db *BrigadeStorage) GetSupportedVPNProtocols() ([]string, error) {
 	f, data, err := db.openWithReading()
 	if err != nil {
-		return 0, fmt.Errorf("open db: %w", err)
+		return nil, fmt.Errorf("open db: %w", err)
 	}
 
 	defer f.Close()

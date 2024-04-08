@@ -12,7 +12,7 @@ type Service struct {
 	routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte
 }
 
-func New(db *storage.BrigadeStorage) Service {
+func New(db *storage.BrigadeStorage, routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) Service {
 	var epClient endpoint.Client
 	if db.GetActualAddrPort().IsValid() {
 		epClient = endpoint.NewClient(db.GetActualAddrPort())
@@ -22,7 +22,9 @@ func New(db *storage.BrigadeStorage) Service {
 		}
 	}
 	return Service{
-		db:       db,
-		epClient: epClient,
+		db:          db,
+		epClient:    epClient,
+		routerPub:   routerPub,
+		shufflerPub: shufflerPub,
 	}
 }

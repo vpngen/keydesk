@@ -27,13 +27,17 @@ var (
 )
 
 func (s ProtocolSet) String() string {
-	types := make([]string, 0, len(type2string))
+	return strings.Join(s.Protocols(), ",")
+}
+
+func (s ProtocolSet) Protocols() []string {
+	protocols := make([]string, 0, len(type2string))
 	for k, v := range type2string {
 		if s&k != 0 {
-			types = append(types, v)
+			protocols = append(protocols, v)
 		}
 	}
-	return strings.Join(types, ",")
+	return protocols
 }
 
 func (s ProtocolSet) GetSupported(available ProtocolSet) (supported ProtocolSet, unsupported ProtocolSet) {
@@ -42,10 +46,14 @@ func (s ProtocolSet) GetSupported(available ProtocolSet) (supported ProtocolSet,
 	return
 }
 
-func NewTypesFromString(s string) ProtocolSet {
+func NewProtocolSet(protocols []string) ProtocolSet {
 	t := ProtocolSet(0)
-	for _, v := range strings.Split(s, ",") {
-		t |= string2type[strings.Trim(v, " ")]
+	for _, v := range protocols {
+		t |= string2type[v]
 	}
 	return t
+}
+
+func NewProtocolSetFromString(s string) ProtocolSet {
+	return NewProtocolSet(strings.Split(s, ","))
 }

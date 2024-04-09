@@ -41,7 +41,7 @@ func (g Generator) Generate(routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byt
 	}
 
 	return Config{
-		secret:         base58.Encode(secretRand),
+		secret:         secret,
 		name:           g.name,
 		host:           g.host,
 		port:           g.port,

@@ -43,11 +43,6 @@ func (g Generator) Generate(routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byt
 		return nil, fmt.Errorf("psk: %w", err)
 	}
 
-	priv, err := wgtypes.GeneratePrivateKey()
-	if err != nil {
-		return nil, fmt.Errorf("priv: %w", err)
-	}
-
 	routerPsk, err := box.SealAnonymous(nil, psk[:], &routerPub, rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("psk router seal: %w", err)
@@ -59,8 +54,8 @@ func (g Generator) Generate(routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byt
 	}
 
 	return Config{
-		pub:         priv.PublicKey(),
-		priv:        priv,
+		priv:        g.priv,
+		pub:         g.pub,
 		psk:         psk,
 		routerPSK:   routerPsk,
 		shufflerPSK: shufflerPsk,

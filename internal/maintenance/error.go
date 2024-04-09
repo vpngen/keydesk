@@ -67,7 +67,7 @@ func (e Error) MarshalJSON() ([]byte, error) {
 		"retry_after": e.RetryAfter().String(),
 	}
 	if e.msg != "" {
-		data["msg"] = e.msg
+		data["message"] = e.msg
 	}
 	return json.Marshal(data)
 }

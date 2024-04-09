@@ -21,20 +21,15 @@ const (
 	defaultInternalDNS      = "100.126.0.1"
 )
 
-type (
-	Config struct {
-		cn, bypass                                 uuid.UUID
-		key                                        *ecdsa.PrivateKey
-		csr                                        []byte
-		host, name, dns1, dns2, fakeDomain, caCert string
-		ep4                                        netip.Addr
-		wgPub                                      wgtypes.Key
-	}
-
-	EncryptedConfig struct {
-		routerBypass, shufflerBypass []byte
-	}
-)
+type Config struct {
+	cn, bypass                                 uuid.UUID
+	key                                        *ecdsa.PrivateKey
+	csr                                        []byte
+	routerBypass, shufflerBypass               []byte
+	host, name, dns1, dns2, fakeDomain, caCert string
+	ep4                                        netip.Addr
+	wgPub                                      wgtypes.Key
+}
 
 func (c Config) getCloakConfig(host string, wgPub wgtypes.Key, fakeDomain string) cloak.Config {
 	return cloak.NewConfig(

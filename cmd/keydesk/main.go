@@ -261,6 +261,8 @@ func main() {
 		errQuit("close db", err)
 	}
 
+	_, _ = fmt.Fprintf(os.Stderr, "Brigade mode: %s \n", brigade.Mode)
+
 	if brigade.Mode == storage.ModeBrigade && cfg.messageAPISocket != nil {
 		echoSrv, err := msgapp.SetupServer(db, cfg.jwtPublicKeyFile)
 		if err != nil {

@@ -79,8 +79,8 @@ components:
       description: VPN type
       enum:
         - outline
-        - amnzovc
-        - wireguard
+        - ovc
+        - wg
         - ipsec
     OutlineConfig:
       properties:

@@ -1,11 +1,14 @@
 package endpoint
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/netip"
@@ -63,8 +66,11 @@ func (c RealClient) addQueryParams(params map[string]string) string {
 var ErrInvalidRespCode = errors.New("invalid resp code")
 
 func (c RealClient) PeerAdd(wgPub wgtypes.Key, params map[string]string) (APIResponse, error) {
-	params["peer_add"] = base64.StdEncoding.EncodeToString(wgPub[:])
-	c.url.RawQuery = c.addQueryParams(params)
+	cmd := url.Values{}
+	cmd.Set("peer_add", base64.StdEncoding.EncodeToString(wgPub[:]))
+	c.url.RawQuery = cmd.Encode() + "&" + c.addQueryParams(params)
+
+	log.Println("endpoint request:", c.url.String())
 
 	res, err := c.client.Get(c.url.String())
 	if err != nil {
@@ -72,8 +78,17 @@ func (c RealClient) PeerAdd(wgPub wgtypes.Key, params map[string]string) (APIRes
 	}
 	defer res.Body.Close()
 
+	buf := bytes.NewBuffer(nil)
+
+	_, err = io.Copy(buf, res.Body)
+	if err != nil {
+		return APIResponse{}, fmt.Errorf("copy body to buf: %w", err)
+	}
+
+	log.Println("endpoint response:", res.StatusCode, buf.String())
+
 	data := APIResponse{}
-	err = json.NewDecoder(res.Body).Decode(&data)
+	err = json.NewDecoder(buf).Decode(&data)
 	if err != nil {
 		return APIResponse{}, fmt.Errorf("decode: %w", err)
 	}

@@ -48,6 +48,7 @@ type flags struct {
 	ipsecCfgs   *string
 	outlineCfgs *string
 
+	unixSocketDir    *string
 	messageAPI       *string
 	shufflerAPI      *string
 	jwtPublicKeyFile *string
@@ -89,8 +90,9 @@ func parseFlags(flagSet *flag.FlagSet, args []string) flags {
 	f.ipsecCfgs = flagSet.String("ipsec", "", "IPSec configs ("+storage.ConfigsIPSec+")")
 	f.outlineCfgs = flagSet.String("outline", "", "Outline configs ("+storage.ConfigsOutline+")")
 
-	f.messageAPI = flagSet.String("m", "", fmt.Sprintf("Message API unix socket path. Default: %s/<BrigadeID>/messages.sock '-' to disable", defaultUnixSocketDir))
-	f.shufflerAPI = flagSet.String("shuffler", "", fmt.Sprintf("Shuffler API unix socket path. Default: %s/<BrigadeID>/shuffler.sock '-' to disable", defaultUnixSocketDir))
+	f.unixSocketDir = flagSet.String("socket-dir", defaultUnixSocketDir, fmt.Sprintf("Unix sockets dir. Default: %s", defaultUnixSocketDir))
+	f.messageAPI = flagSet.String("m", "", fmt.Sprintf("Message API unix socket path. Default: %s/<BrigadeID>/messages.sock '-' to disable", *f.unixSocketDir))
+	f.shufflerAPI = flagSet.String("shuffler", "", fmt.Sprintf("Shuffler API unix socket path. Default: %s/<BrigadeID>/shuffler.sock '-' to disable", *f.unixSocketDir))
 	f.jwtPublicKeyFile = flagSet.String("jwtpub", "", fmt.Sprintf("Path to JWT public key file. Default: %s/%s", keydesk.DefaultEtcDir, jwtPubFileName))
 
 	// ignore errors, see original flag.Parse() func
@@ -115,6 +117,7 @@ type config struct {
 	person            namesgenerator.Person
 	replaceBrigadier  bool
 	vpnConfigs        *storage.ConfigsImplemented
+	unixSocketDir     string
 	messageAPISocket  net.Listener
 	shufflerAPISocket net.Listener
 	jwtPublicKeyFile  string
@@ -122,9 +125,10 @@ type config struct {
 
 func parseArgs2(flags flags) (config, error) {
 	cfg := config{
-		chunked:    *flags.chunked,
-		jsonOut:    *flags.jsonOut,
-		enableCORS: *flags.pcors,
+		chunked:       *flags.chunked,
+		jsonOut:       *flags.jsonOut,
+		enableCORS:    *flags.pcors,
+		unixSocketDir: *flags.unixSocketDir,
 	}
 
 	sysUser, err := user.Current()
@@ -176,13 +180,13 @@ func parseArgs2(flags flags) (config, error) {
 			cfg.jwtPublicKeyFile = filepath.Join(cfg.etcDir, jwtPubFileName)
 		}
 
-		listener, err := createUnixSocketListener(*flags.messageAPI, cfg.brigadeID, cfg.etcDir, defaultMessageSocket)
+		listener, err := createUnixSocketListener(*flags.messageAPI, cfg.brigadeID, cfg.unixSocketDir, defaultMessageSocket)
 		if err != nil {
 			return cfg, fmt.Errorf("create messages listener: %w", err)
 		}
 		cfg.messageAPISocket = listener
 
-		listener, err = createUnixSocketListener(*flags.shufflerAPI, cfg.brigadeID, cfg.etcDir, defaultShufflerSocket)
+		listener, err = createUnixSocketListener(*flags.shufflerAPI, cfg.brigadeID, cfg.unixSocketDir, defaultShufflerSocket)
 		if err != nil {
 			return cfg, fmt.Errorf("create shuffler listener: %w", err)
 		}
@@ -222,39 +226,6 @@ func parseArgs2(flags flags) (config, error) {
 
 	return cfg, nil
 }
-
-//func parseMessageAPISocket(f flags, cfg config) (config, error) {
-//	var path string
-//
-//	switch *f.messageAPI {
-//	case "-":
-//		return cfg, nil
-//	case "":
-//		path = filepath.Join(defaultUnixSocketDir, cfg.brigadeID, "messages.sock")
-//	default:
-//		path = *f.messageAPI
-//	}
-//
-//	// delete socket if exists
-//	if info, err := os.Stat(path); err == nil && !info.IsDir() {
-//		if err := os.Remove(path); err != nil {
-//			return cfg, fmt.Errorf("cannot remove socket: %w", err)
-//		}
-//	}
-//
-//	l, err := net.Listen("unix", path)
-//	if err != nil {
-//		return cfg, fmt.Errorf("cannot listen: %w", err)
-//	}
-//
-//	if err := os.Chmod(path, 0o660); err != nil {
-//		return cfg, fmt.Errorf("cannot chmod socket: %w", err)
-//	}
-//
-//	cfg.messageAPISocket = l
-//
-//	return cfg, nil
-//}
 
 func createUnixSocketListener(param, brigadeID, dir, file string) (net.Listener, error) {
 	var path string

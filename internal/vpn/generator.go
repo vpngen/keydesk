@@ -1,5 +1,7 @@
 package vpn
 
+import "github.com/vpngen/vpngine/naclkey"
+
 type Generator interface {
-	Generate() (Config, error)
+	Generate(routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) (Config, error)
 }

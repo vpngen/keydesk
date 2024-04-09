@@ -11,10 +11,10 @@ import (
 
 // Defines values for ConfigType.
 const (
-	Amnzovc   ConfigType = "amnzovc"
-	Ipsec     ConfigType = "ipsec"
-	Outline   ConfigType = "outline"
-	Wireguard ConfigType = "wireguard"
+	Ipsec   ConfigType = "ipsec"
+	Outline ConfigType = "outline"
+	Ovc     ConfigType = "ovc"
+	Wg      ConfigType = "wg"
 )
 
 // AmneziaOVCConfig defines model for AmneziaOVCConfig.

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/vpngen/keydesk/internal/vpn"
+	"github.com/vpngen/vpngine/naclkey"
+	"golang.org/x/crypto/nacl/box"
 )
 
 type Generator struct {
@@ -18,7 +20,7 @@ func NewGenerator(psk, host string) Generator {
 	}
 }
 
-func (g Generator) Generate() (vpn.Config, error) {
+func (g Generator) Generate(routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) (vpn.Config, error) {
 	usernameRand := make([]byte, UsernameLen)
 	if _, err := rand.Read(usernameRand); err != nil {
 		return Config{}, fmt.Errorf("username rand: %w", err)
@@ -29,10 +31,37 @@ func (g Generator) Generate() (vpn.Config, error) {
 		return Config{}, fmt.Errorf("password rand: %w", err)
 	}
 
+	username := base58.Encode(usernameRand)[:UsernameLen]
+	password := base58.Encode(passwordRand)[:UsernameLen]
+
+	routerUser, err := box.SealAnonymous(nil, []byte(username), &routerPub, rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("username router seal: %w", err)
+	}
+
+	routerPass, err := box.SealAnonymous(nil, []byte(password), &routerPub, rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("password router seal: %w", err)
+	}
+
+	shufflerUser, err := box.SealAnonymous(nil, []byte(username), &shufflerPub, rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("username shuffler seal: %w", err)
+	}
+
+	shufflerPass, err := box.SealAnonymous(nil, []byte(password), &shufflerPub, rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("password shuffler seal: %w", err)
+	}
+
 	return Config{
-		username: base58.Encode(usernameRand),
-		password: base58.Encode(passwordRand),
-		host:     g.host,
-		psk:      g.psk,
+		username:     username,
+		password:     password,
+		host:         g.host,
+		psk:          g.psk,
+		routerUser:   routerUser,
+		routerPass:   routerPass,
+		shufflerUser: shufflerUser,
+		shufflerPass: shufflerPass,
 	}, nil
 }

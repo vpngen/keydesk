@@ -12,16 +12,11 @@ const (
 	encryption = "chacha20-ietf-poly1305"
 )
 
-type (
-	Config struct {
-		secret, name, host string
-		port               uint16
-	}
-
-	EncryptedConfig struct {
-		routerSecret, shufflerSecret string
-	}
-)
+type Config struct {
+	secret, name, host           string
+	port                         uint16
+	routerSecret, shufflerSecret []byte
+}
 
 func (c Config) Protocol() string {
 	return vpn.Outline

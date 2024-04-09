@@ -13,7 +13,12 @@ import (
 	"net/netip"
 )
 
-func newGenerator(protocol string, brigade storage.Brigade, user storage.User, wgPriv, wgPub wgtypes.Key) (g vpn.Generator, err error) {
+func newGenerator(
+	protocol string,
+	brigade storage.Brigade,
+	user storage.User,
+	wgPriv, wgPub wgtypes.Key,
+) (g vpn.Generator, err error) {
 	switch protocol {
 	default:
 		err = fmt.Errorf("unsupported VPN protocol: %s", protocol)
@@ -29,7 +34,8 @@ func newGenerator(protocol string, brigade storage.Brigade, user storage.User, w
 	return
 }
 
-func newWGGenerator(brigade storage.Brigade, wgPriv, wgPub wgtypes.Key, ip4, ip6 netip.Addr, userName string) vpn.Generator {
+func newWGGenerator(brigade storage.Brigade, wgPriv, wgPub wgtypes.Key, ip4, ip6 netip.Addr, userName string,
+) vpn.Generator {
 	host := brigade.EndpointDomain
 	if host == "" {
 		host = brigade.EndpointIPv4.String()
@@ -65,7 +71,8 @@ func newIPSecGenerator(brigade storage.Brigade) vpn.Generator {
 	return ipsec.NewGenerator(brigade.IPSecPSK, host)
 }
 
-func newOVCGenerator(brigade storage.Brigade, name string, ep4 netip.Addr, wgPub wgtypes.Key) (vpn.Generator, error) {
+func newOVCGenerator(brigade storage.Brigade, name string, ep4 netip.Addr, wgPub wgtypes.Key,
+) (vpn.Generator, error) {
 	host := brigade.EndpointDomain
 	if host == "" {
 		host = brigade.EndpointIPv4.String()

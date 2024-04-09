@@ -10,7 +10,8 @@ const (
 )
 
 type Config struct {
-	username, password, host, psk string
+	username, password, host, psk                      string
+	routerUser, routerPass, shufflerUser, shufflerPass []byte
 }
 
 func (c Config) Protocol() string {

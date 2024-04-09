@@ -1,6 +1,7 @@
 package ovc
 
 import (
+	"encoding/base64"
 	"fmt"
 )
 
@@ -11,6 +12,6 @@ func (c Config) GetEndpointParams() (map[string]string, error) {
 	}
 	return map[string]string{
 		"openvpn-client-csr": string(csr),
-		"cloak-uid":          c.bypass.String(),
+		"cloak-uid":          base64.StdEncoding.EncodeToString(c.routerBypass),
 	}, nil
 }

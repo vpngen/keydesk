@@ -6,7 +6,6 @@ import (
 	"github.com/vpngen/keydesk/internal/vpn"
 	"github.com/vpngen/keydesk/internal/vpn/endpoint"
 	"github.com/vpngen/keydesk/keydesk/storage"
-	"github.com/vpngen/vpngine/naclkey"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"strings"
 	"time"
@@ -38,6 +37,8 @@ func (s Service) CreateUser(protocols vpn.ProtocolSet) (res createUserResponse, 
 }
 
 func (s Service) createUserWithConfigs(protocols vpn.ProtocolSet, brigade *storage.Brigade) (User, error) {
+	protocols |= vpn.TypeWG // wg is always required
+
 	protocols, unsupported := protocols.GetSupported(vpn.NewProtocolSet(brigade.GetSupportedVPNProtocols()))
 	if unsupported > 0 {
 		return User{}, fmt.Errorf("unsupported VPN protocols: %s", unsupported)
@@ -53,7 +54,7 @@ func (s Service) createUserWithConfigs(protocols vpn.ProtocolSet, brigade *stora
 		return User{}, fmt.Errorf("generate wg key: %w", err)
 	}
 
-	configs, err := generateConfigs(protocols, *brigade, dbUser, priv, priv.PublicKey())
+	configs, err := s.generateConfigs(protocols, *brigade, dbUser, priv, priv.PublicKey())
 	if err != nil {
 		return User{}, fmt.Errorf("generate configs %s: %w", protocols, err)
 	}
@@ -69,7 +70,7 @@ func (s Service) createUserWithConfigs(protocols vpn.ProtocolSet, brigade *stora
 		return User{}, fmt.Errorf("peer add: %w", err)
 	}
 
-	if err = saveConfigsToDB(brigade, &dbUser, configs, s.routerPub, s.shufflerPub); err != nil {
+	if err = saveConfigsToDB(brigade, &dbUser, configs); err != nil {
 		return User{}, fmt.Errorf("save configs to db: %w", err)
 	}
 
@@ -100,7 +101,7 @@ func newUser(brigade *storage.Brigade) (storage.User, error) {
 	return storage.NewUser(uid, name, time.Now(), false, ip4, ip6, person), nil
 }
 
-func generateConfigs(protocols vpn.ProtocolSet, brigade storage.Brigade, user storage.User, wgPriv, wgPub wgtypes.Key) (map[string]vpn.Config, error) {
+func (s Service) generateConfigs(protocols vpn.ProtocolSet, brigade storage.Brigade, user storage.User, wgPriv, wgPub wgtypes.Key) (map[string]vpn.Config, error) {
 	configs := make(map[string]vpn.Config)
 	for _, protocol := range strings.Split(protocols.String(), ",") {
 		generator, err := newGenerator(protocol, brigade, user, wgPriv, wgPub)
@@ -108,7 +109,7 @@ func generateConfigs(protocols vpn.ProtocolSet, brigade storage.Brigade, user st
 			return nil, fmt.Errorf("get %s generator: %w", protocol, err)
 		}
 
-		config, err := generator.Generate()
+		config, err := generator.Generate(s.routerPub, s.shufflerPub)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s: %w", protocol, err)
 		}
@@ -133,9 +134,9 @@ func getEndpointParams(configs map[string]vpn.Config) (map[string]string, error)
 	return epParams, nil
 }
 
-func saveConfigsToDB(brigade *storage.Brigade, user *storage.User, configs map[string]vpn.Config, routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) error {
+func saveConfigsToDB(brigade *storage.Brigade, user *storage.User, configs map[string]vpn.Config) error {
 	for protocol, config := range configs {
-		if err := config.Store(user, routerPub, shufflerPub); err != nil {
+		if err := config.Store(user); err != nil {
 			return fmt.Errorf("save %s config to user %s: %w", protocol, user.Name, err)
 		}
 	}

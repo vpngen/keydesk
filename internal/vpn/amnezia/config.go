@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/vpngen/keydesk/internal/vpn/cloak"
 	"github.com/vpngen/keydesk/internal/vpn/openvpn"
+	"io"
 )
 
 const (
@@ -97,6 +98,47 @@ func (c *Config) Marshal() (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+func Unmarshal(reader io.Reader, config *Config) error {
+	dec, err := DecodeToJSON(reader)
+	if err != nil {
+		return fmt.Errorf("decode amnezia: %w", err)
+	}
+	defer dec.Close()
+
+	jsonDec := json.NewDecoder(dec)
+
+	if err = jsonDec.Decode(config); err != nil {
+		return fmt.Errorf("decode json: %w", err)
+	}
+
+	return nil
+}
+
+func DecodeToJSON(reader io.Reader) (io.ReadCloser, error) {
+	prefix := make([]byte, 6)
+	if _, err := reader.Read(prefix); err != nil {
+		return nil, fmt.Errorf("read prefix: %w", err)
+	}
+
+	if !bytes.Equal(prefix, []byte("vpn://")) {
+		return nil, fmt.Errorf("unexpected prefix: %q", prefix)
+	}
+
+	b64dec := base64.NewDecoder(base64.URLEncoding.WithPadding(base64.NoPadding), reader)
+
+	buf := new(bytes.Buffer)
+	if _, err := io.Copy(buf, b64dec); err != nil {
+		return nil, fmt.Errorf("base64 decode: %w", err)
+	}
+
+	zdec, err := zlib.NewReader(bytes.NewReader(buf.Bytes()[4:]))
+	if err != nil {
+		return nil, fmt.Errorf("new zlib reader: %w", err)
+	}
+
+	return zdec, nil
 }
 
 func NewOVCContainer(cloakCfg cloak.Config, ovpnCfg openvpn.Config) (Container, error) {

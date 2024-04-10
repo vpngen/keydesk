@@ -269,7 +269,7 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("invalid mode %q", *mode)
 	}
 
-	return vpnCfgs, config, addrPort, etcdir, dbdir, storage.Mode(*mode), *maxUsers, nil
+	return vpnCfgs, config, addrPort, etcdir, dbdir, *mode, *maxUsers, nil
 }
 
 func main() {

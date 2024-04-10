@@ -29,7 +29,7 @@ func newGenerator(
 	case vpn.Outline:
 		g = newOutlineGenerator(brigade, user.Name)
 	case vpn.OVC:
-		g, err = newOVCGenerator(brigade, user.Name, user.IPv4Addr, wgPub)
+		g, err = newOVCGenerator(brigade, user.Name, user.IPv4Addr)
 	}
 	return
 }
@@ -71,8 +71,7 @@ func newIPSecGenerator(brigade storage.Brigade) vpn.Generator {
 	return ipsec.NewGenerator(brigade.IPSecPSK, host)
 }
 
-func newOVCGenerator(brigade storage.Brigade, name string, ep4 netip.Addr, wgPub wgtypes.Key,
-) (vpn.Generator, error) {
+func newOVCGenerator(brigade storage.Brigade, name string, ep4 netip.Addr) (vpn.Generator, error) {
 	host := brigade.EndpointDomain
 	if host == "" {
 		host = brigade.EndpointIPv4.String()
@@ -81,5 +80,13 @@ func newOVCGenerator(brigade storage.Brigade, name string, ep4 netip.Addr, wgPub
 	if err != nil {
 		return nil, fmt.Errorf("unbase64 ca: %w", err)
 	}
-	return ovc.NewGenerator(host, name, brigade.CloakFakeDomain, string(caPem), ep4, wgPub), nil
+	return ovc.NewGenerator(
+		host,
+		name,
+		brigade.CloakFakeDomain,
+		string(caPem),
+		ep4,
+		*(*[32]byte)(brigade.WgPublicKey),
+		//wgtypes.Key(brigade.WgPublicKey),
+	), nil
 }

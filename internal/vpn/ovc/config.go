@@ -3,6 +3,7 @@ package ovc
 import (
 	"crypto/ecdsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"github.com/google/uuid"
@@ -28,14 +29,14 @@ type Config struct {
 	routerBypass, shufflerBypass               []byte
 	host, name, dns1, dns2, fakeDomain, caCert string
 	ep4                                        netip.Addr
-	wgPub                                      wgtypes.Key
+	epPub                                      wgtypes.Key
 }
 
 func (c Config) getCloakConfig(host string, wgPub wgtypes.Key, fakeDomain string) cloak.Config {
 	return cloak.NewConfig(
 		host,
 		wgPub.String(),
-		c.bypass.String(),
+		base64.StdEncoding.EncodeToString(c.bypass[:]),
 		defaultCloakBrowserSig,
 		cloakProxyMethodOpenVPN,
 		fakeDomain,

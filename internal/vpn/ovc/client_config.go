@@ -11,7 +11,7 @@ import (
 func (c Config) GetClientConfig(data endpoint.APIResponse) (any, error) {
 	// TODO: check if hosts are equal
 	amnz := amnezia.NewConfig(c.host, c.name, c.dns1, c.dns2)
-	container, err := c.getAmneziaContainer(c.host, c.ep4, c.wgPub, c.fakeDomain, c.caCert, data.OpenvpnClientCertificate)
+	container, err := c.getAmneziaContainer(c.host, c.ep4, c.epPub, c.fakeDomain, c.caCert, data.OpenvpnClientCertificate)
 	if err != nil {
 		return nil, fmt.Errorf("amnezia container: %w", err)
 	}

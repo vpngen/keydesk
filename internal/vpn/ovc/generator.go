@@ -15,13 +15,13 @@ import (
 type Generator struct {
 	host, name, dns1, dns2, fakeDomain, caCert string
 	ep4                                        netip.Addr
-	wgPub                                      wgtypes.Key
+	epPub                                      wgtypes.Key
 }
 
 func NewGenerator(
 	host, name, fakeDomain, caCert string,
 	ep4 netip.Addr,
-	wgPub wgtypes.Key,
+	epPub wgtypes.Key,
 ) Generator {
 	return Generator{
 		host:       host,
@@ -31,17 +31,19 @@ func NewGenerator(
 		fakeDomain: fakeDomain,
 		caCert:     caCert,
 		ep4:        ep4,
-		wgPub:      wgPub,
+		epPub:      epPub,
 	}
 }
 
 func (g Generator) Generate(routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) (vpn.Config, error) {
 	cn := uuid.New()
-	bypass := uuid.New()
+
 	csr, key, err := kdlib.NewOvClientCertRequest(cn.String())
 	if err != nil {
 		return nil, fmt.Errorf("ov new csr: %w", err)
 	}
+
+	bypass := uuid.New()
 
 	routerBypass, err := box.SealAnonymous(nil, bypass[:], &routerPub, rand.Reader)
 	if err != nil {
@@ -67,6 +69,6 @@ func (g Generator) Generate(routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byt
 		fakeDomain:     g.fakeDomain,
 		caCert:         g.caCert,
 		ep4:            g.ep4,
-		wgPub:          g.wgPub,
+		epPub:          g.epPub,
 	}, nil
 }

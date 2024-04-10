@@ -23,28 +23,30 @@ func newGenerator(
 	default:
 		err = fmt.Errorf("unsupported VPN protocol: %s", protocol)
 	case vpn.WG:
-		g = newWGGenerator(brigade, wgPriv, wgPub, user.IPv4Addr, user.IPv6Addr, user.Name)
+		g, err = newWGGenerator(brigade, wgPriv, wgPub, user.IPv4Addr, user.IPv6Addr, user.Name)
 	case vpn.IPSec:
 		g = newIPSecGenerator(brigade)
 	case vpn.Outline:
 		g = newOutlineGenerator(brigade, user.Name)
 	case vpn.OVC:
-		g, err = newOVCGenerator(brigade, user.Name, user.IPv4Addr)
+		g, err = newOVCGenerator(brigade, user.Name, brigade.EndpointIPv4)
 	}
 	return
 }
 
-func newWGGenerator(brigade storage.Brigade, wgPriv, wgPub wgtypes.Key, ip4, ip6 netip.Addr, userName string,
-) vpn.Generator {
+func newWGGenerator(brigade storage.Brigade, wgPriv, wgPub wgtypes.Key, ip4, ip6 netip.Addr, userName string) (vpn.Generator, error) {
 	host := brigade.EndpointDomain
 	if host == "" {
 		host = brigade.EndpointIPv4.String()
 	}
-
+	epPub, err := wgtypes.NewKey(brigade.WgPublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("bad ep wg publick key: %w", err)
+	}
 	return wg.NewGenerator(
 		wgPriv,
 		wgPub,
-		wgtypes.Key(brigade.WgPublicKey),
+		epPub,
 		ip4,
 		ip6,
 		brigade.DNSv4,
@@ -52,7 +54,7 @@ func newWGGenerator(brigade storage.Brigade, wgPriv, wgPub wgtypes.Key, ip4, ip6
 		host,
 		userName,
 		brigade.EndpointPort,
-	)
+	), nil
 }
 
 func newOutlineGenerator(brigade storage.Brigade, userName string) vpn.Generator {
@@ -80,13 +82,16 @@ func newOVCGenerator(brigade storage.Brigade, name string, ep4 netip.Addr) (vpn.
 	if err != nil {
 		return nil, fmt.Errorf("unbase64 ca: %w", err)
 	}
+	epPub, err := wgtypes.NewKey(brigade.WgPublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("bad ep wg publick key: %w", err)
+	}
 	return ovc.NewGenerator(
 		host,
 		name,
 		brigade.CloakFakeDomain,
 		string(caPem),
 		ep4,
-		*(*[32]byte)(brigade.WgPublicKey),
-		//wgtypes.Key(brigade.WgPublicKey),
+		epPub,
 	), nil
 }

@@ -9,6 +9,10 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+const (
+	JWTAuthScopes = "JWTAuth.Scopes"
+)
+
 // Defines values for ConfigType.
 const (
 	Ipsec   ConfigType = "ipsec"

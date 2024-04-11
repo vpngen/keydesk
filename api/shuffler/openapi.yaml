@@ -25,6 +25,8 @@ paths:
               example:
                 type: outline
                 domain: example.com
+      security:
+        - JWTAuth: [ configs:create ]
       responses:
         201:
           description: New VPN config, unique ID is returned
@@ -86,6 +88,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+      security:
+        - JWTAuth: [ configs:delete ]
   /configs/slots:
     get:
       summary: Get free VPN slots
@@ -102,6 +106,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+      security:
+        - JWTAuth: [ ]
 components:
   schemas:
     ConfigType:

@@ -37,6 +37,8 @@ type ServerInterfaceWrapper struct {
 func (w *ServerInterfaceWrapper) PostConfigs(ctx echo.Context) error {
 	var err error
 
+	ctx.Set(JWTAuthScopes, []string{"configs:create"})
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostConfigs(ctx)
 	return err
@@ -45,6 +47,8 @@ func (w *ServerInterfaceWrapper) PostConfigs(ctx echo.Context) error {
 // GetConfigsSlots converts echo context to params.
 func (w *ServerInterfaceWrapper) GetConfigsSlots(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(JWTAuthScopes, []string{})
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetConfigsSlots(ctx)
@@ -61,6 +65,8 @@ func (w *ServerInterfaceWrapper) DeleteConfigsId(ctx echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
 	}
+
+	ctx.Set(JWTAuthScopes, []string{"configs:delete"})
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.DeleteConfigsId(ctx, id)

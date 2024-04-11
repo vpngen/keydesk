@@ -9,6 +9,7 @@ import (
 	"golang.org/x/crypto/nacl/box"
 )
 
+// Generator implements vpn.Generator
 type Generator struct {
 	psk, host string
 }

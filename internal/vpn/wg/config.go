@@ -6,6 +6,7 @@ import (
 	"net/netip"
 )
 
+// Config implements vpn.Config
 type Config struct {
 	pub, priv, psk, epPub  wgtypes.Key
 	routerPSK, shufflerPSK []byte

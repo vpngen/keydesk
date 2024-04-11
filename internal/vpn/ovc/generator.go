@@ -12,6 +12,7 @@ import (
 	"net/netip"
 )
 
+// Generator implements vpn.Generator
 type Generator struct {
 	host, name, dns1, dns2, fakeDomain, caCert string
 	ep4                                        netip.Addr

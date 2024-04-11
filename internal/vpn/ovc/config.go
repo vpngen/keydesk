@@ -22,6 +22,7 @@ const (
 	defaultInternalDNS      = "100.126.0.1"
 )
 
+// Config implements vpn.Config
 type Config struct {
 	cn, bypass                                 uuid.UUID
 	key                                        *ecdsa.PrivateKey

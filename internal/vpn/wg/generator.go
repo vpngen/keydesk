@@ -10,6 +10,7 @@ import (
 	"net/netip"
 )
 
+// Generator implements vpn.Generator
 type Generator struct {
 	priv, pub, epPub     wgtypes.Key
 	ip4, ip6, dns4, dns6 netip.Addr

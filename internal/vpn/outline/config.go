@@ -12,6 +12,7 @@ const (
 	encryption = "chacha20-ietf-poly1305"
 )
 
+// Config implements vpn.Config
 type Config struct {
 	secret, name, host           string
 	port                         uint16

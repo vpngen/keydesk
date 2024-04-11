@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -96,6 +97,9 @@ type ClientInterface interface {
 
 	// GetConfigsSlots request
 	GetConfigsSlots(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteConfigsId request
+	DeleteConfigsId(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) PostConfigsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -124,6 +128,18 @@ func (c *Client) PostConfigs(ctx context.Context, body PostConfigsJSONRequestBod
 
 func (c *Client) GetConfigsSlots(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetConfigsSlotsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteConfigsId(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteConfigsIdRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -201,6 +217,40 @@ func NewGetConfigsSlotsRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewDeleteConfigsIdRequest generates requests for DeleteConfigsId
+func NewDeleteConfigsIdRequest(server string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/configs/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -251,6 +301,9 @@ type ClientWithResponsesInterface interface {
 
 	// GetConfigsSlotsWithResponse request
 	GetConfigsSlotsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetConfigsSlotsResponse, error)
+
+	// DeleteConfigsIdWithResponse request
+	DeleteConfigsIdWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteConfigsIdResponse, error)
 }
 
 type PostConfigsResponse struct {
@@ -308,6 +361,31 @@ func (r GetConfigsSlotsResponse) StatusCode() int {
 	return 0
 }
 
+type DeleteConfigsIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		FreeSlots int `json:"free_slots"`
+	}
+	JSONDefault *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteConfigsIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteConfigsIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 // PostConfigsWithBodyWithResponse request with arbitrary body returning *PostConfigsResponse
 func (c *ClientWithResponses) PostConfigsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostConfigsResponse, error) {
 	rsp, err := c.PostConfigsWithBody(ctx, contentType, body, reqEditors...)
@@ -332,6 +410,15 @@ func (c *ClientWithResponses) GetConfigsSlotsWithResponse(ctx context.Context, r
 		return nil, err
 	}
 	return ParseGetConfigsSlotsResponse(rsp)
+}
+
+// DeleteConfigsIdWithResponse request returning *DeleteConfigsIdResponse
+func (c *ClientWithResponses) DeleteConfigsIdWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteConfigsIdResponse, error) {
+	rsp, err := c.DeleteConfigsId(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteConfigsIdResponse(rsp)
 }
 
 // ParsePostConfigsResponse parses an HTTP response from a PostConfigsWithResponse call
@@ -392,6 +479,41 @@ func ParseGetConfigsSlotsResponse(rsp *http.Response) (*GetConfigsSlotsResponse,
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest SlotsInfo
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteConfigsIdResponse parses an HTTP response from a DeleteConfigsIdWithResponse call
+func ParseDeleteConfigsIdResponse(rsp *http.Response) (*DeleteConfigsIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteConfigsIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			FreeSlots int `json:"free_slots"`
+		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

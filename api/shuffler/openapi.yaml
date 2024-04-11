@@ -56,6 +56,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /configs/{id}:
+    delete:
+      summary: Delete VPN config
+      parameters:
+        - name: id
+          schema:
+            type: string
+            format: uuid
+          in: path
+          required: true
+      responses:
+        200:
+          description: Successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  free_slots:
+                    type: integer
+                required:
+                  - free_slots
+        404:
+          description: User not found
+        default:
+          description: error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /configs/slots:
     get:
       summary: Get free VPN slots

@@ -24,13 +24,14 @@ const (
 )
 
 type (
-	Client interface {
-		PeerAdd(wgPub wgtypes.Key, params map[string]string) (APIResponse, error)
-	}
+	//Client interface {
+	//	PeerAdd(wgPub wgtypes.Key, params map[string]string) (APIResponse, error)
+	//}
 
 	RealClient struct {
 		url    url.URL
 		client *http.Client
+		logger *log.Logger
 	}
 
 	APIResponse struct {
@@ -40,7 +41,8 @@ type (
 	}
 )
 
-func NewClient(addrPort netip.AddrPort) RealClient {
+// NewClient returns endpoint client. If logger != nil, logs debug requests and responses.
+func NewClient(addrPort netip.AddrPort, logger *log.Logger) RealClient {
 	return RealClient{
 		url: url.URL{
 			Scheme: "http",
@@ -52,6 +54,7 @@ func NewClient(addrPort netip.AddrPort) RealClient {
 				DialContext: (&net.Dialer{Timeout: ConnTimeout}).DialContext,
 			},
 		},
+		logger: logger,
 	}
 }
 
@@ -70,26 +73,71 @@ func (c RealClient) PeerAdd(wgPub wgtypes.Key, params map[string]string) (APIRes
 	cmd.Set("peer_add", base64.StdEncoding.EncodeToString(wgPub[:]))
 	c.url.RawQuery = cmd.Encode() + "&" + c.addQueryParams(params)
 
-	log.Println("endpoint request:", c.url.String())
-
-	res, err := c.client.Get(c.url.String())
+	res, err := c.request(c.url)
 	if err != nil {
-		return APIResponse{}, fmt.Errorf("request: %w", err)
+		return APIResponse{}, err
 	}
+
 	defer res.Body.Close()
 
-	buf := bytes.NewBuffer(nil)
-
-	_, err = io.Copy(buf, res.Body)
+	data, err := c.decodeResponse(res.Body)
 	if err != nil {
-		return APIResponse{}, fmt.Errorf("copy body to buf: %w", err)
+		return APIResponse{}, err
 	}
 
-	log.Println("endpoint response:", res.StatusCode, buf.String())
+	return data, nil
+}
+
+func (c RealClient) PeerDel(pub, epPub wgtypes.Key) error {
+	q := url.Values{}
+	q.Set("peer_del", pub.String())
+	q.Set("wg-public-key", epPub.String())
+	c.url.RawQuery = q.Encode()
+
+	res, err := c.request(c.url)
+	if err != nil {
+		return err
+	}
+
+	defer res.Body.Close()
+
+	_, err = c.decodeResponse(res.Body)
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (c RealClient) request(u url.URL) (*http.Response, error) {
+	if c.logger != nil {
+		c.logger.Println("endpoint request:", c.url.String())
+	}
+
+	res, err := c.client.Get(u.String())
+	if err != nil {
+		return nil, fmt.Errorf("request: %w", err)
+	}
+
+	if c.logger != nil {
+		c.logger.Println("endpoint response code:", res.StatusCode)
+	}
+
+	return res, nil
+}
+
+func (c RealClient) decodeResponse(reader io.Reader) (APIResponse, error) {
+	if c.logger != nil {
+		buf := bytes.NewBuffer(nil)
+		if _, err := io.Copy(buf, reader); err != nil {
+			return APIResponse{}, fmt.Errorf("copy body to logger buf: %w", err)
+		}
+		c.logger.Println("endpoint response:", buf.String())
+		reader = buf
+	}
 
 	data := APIResponse{}
-	err = json.NewDecoder(buf).Decode(&data)
-	if err != nil {
+	if err := json.NewDecoder(reader).Decode(&data); err != nil {
 		return APIResponse{}, fmt.Errorf("decode: %w", err)
 	}
 

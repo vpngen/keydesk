@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/oapi-codegen/runtime"
 	strictecho "github.com/oapi-codegen/runtime/strictmiddleware/echo"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -22,6 +23,9 @@ type ServerInterface interface {
 	// Get free VPN slots
 	// (GET /configs/slots)
 	GetConfigsSlots(ctx echo.Context) error
+	// Delete VPN config
+	// (DELETE /configs/{id})
+	DeleteConfigsId(ctx echo.Context, id openapi_types.UUID) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -44,6 +48,22 @@ func (w *ServerInterfaceWrapper) GetConfigsSlots(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetConfigsSlots(ctx)
+	return err
+}
+
+// DeleteConfigsId converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteConfigsId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteConfigsId(ctx, id)
 	return err
 }
 
@@ -77,6 +97,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 
 	router.POST(baseURL+"/configs", wrapper.PostConfigs)
 	router.GET(baseURL+"/configs/slots", wrapper.GetConfigsSlots)
+	router.DELETE(baseURL+"/configs/:id", wrapper.DeleteConfigsId)
 
 }
 
@@ -154,6 +175,45 @@ func (response GetConfigsSlotsdefaultJSONResponse) VisitGetConfigsSlotsResponse(
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
+type DeleteConfigsIdRequestObject struct {
+	Id openapi_types.UUID `json:"id"`
+}
+
+type DeleteConfigsIdResponseObject interface {
+	VisitDeleteConfigsIdResponse(w http.ResponseWriter) error
+}
+
+type DeleteConfigsId200JSONResponse struct {
+	FreeSlots int `json:"free_slots"`
+}
+
+func (response DeleteConfigsId200JSONResponse) VisitDeleteConfigsIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteConfigsId404Response struct {
+}
+
+func (response DeleteConfigsId404Response) VisitDeleteConfigsIdResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type DeleteConfigsIddefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response DeleteConfigsIddefaultJSONResponse) VisitDeleteConfigsIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Create new VPN config
@@ -162,6 +222,9 @@ type StrictServerInterface interface {
 	// Get free VPN slots
 	// (GET /configs/slots)
 	GetConfigsSlots(ctx context.Context, request GetConfigsSlotsRequestObject) (GetConfigsSlotsResponseObject, error)
+	// Delete VPN config
+	// (DELETE /configs/{id})
+	DeleteConfigsId(ctx context.Context, request DeleteConfigsIdRequestObject) (DeleteConfigsIdResponseObject, error)
 }
 
 type StrictHandlerFunc = strictecho.StrictEchoHandlerFunc
@@ -222,6 +285,31 @@ func (sh *strictHandler) GetConfigsSlots(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(GetConfigsSlotsResponseObject); ok {
 		return validResponse.VisitGetConfigsSlotsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteConfigsId operation middleware
+func (sh *strictHandler) DeleteConfigsId(ctx echo.Context, id openapi_types.UUID) error {
+	var request DeleteConfigsIdRequestObject
+
+	request.Id = id
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteConfigsId(ctx.Request().Context(), request.(DeleteConfigsIdRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteConfigsId")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteConfigsIdResponseObject); ok {
+		return validResponse.VisitDeleteConfigsIdResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

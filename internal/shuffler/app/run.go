@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	jwt2 "github.com/golang-jwt/jwt/v5"
@@ -17,6 +18,7 @@ import (
 	"github.com/vpngen/keydesk/pkg/jwt"
 	"github.com/vpngen/keydesk/utils"
 	"github.com/vpngen/vpngine/naclkey"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -54,14 +56,19 @@ func SetupServer(db *storage.BrigadeStorage, jwtPubFileName string, routerPub, s
 
 	e := echo.New()
 	e.HideBanner = true
-	logger := echomw.LoggerWithConfig(echomw.LoggerConfig{
+	loggerMW := echomw.LoggerWithConfig(echomw.LoggerConfig{
 		Format:           "${time_custom}\t${method}\t${uri}\t${status}\n",
 		CustomTimeFormat: "2006-01-02 15:04:05 -07:00",
 	})
 
-	e.Use(echomw.Recover(), logger, validator)
+	e.Use(echomw.Recover(), loggerMW, validator)
 
-	userSvc := user.New(db, routerPub, shufflerPub)
+	logger := log.New(os.Stderr, "[endpoint client]\t", log.LstdFlags|log.Lshortfile|log.Lmsgprefix)
+	userSvc, err := user.New(db, routerPub, shufflerPub, logger)
+	if err != nil {
+		return nil, fmt.Errorf("init user service: %w", err)
+	}
+
 	srv := server{service: userSvc}
 
 	shuffler.RegisterHandlers(e, shuffler.NewStrictHandler(srv, nil))
@@ -107,6 +114,20 @@ func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsReq
 	}
 
 	return res, nil
+}
+
+func (s server) DeleteConfigsId(ctx context.Context, request shuffler.DeleteConfigsIdRequestObject) (shuffler.DeleteConfigsIdResponseObject, error) {
+	free, err := s.service.DeleteUser(request.Id)
+	if errors.Is(err, user.ErrNotFound) {
+		return shuffler.DeleteConfigsId404Response{}, nil
+	} else if err != nil {
+		return shuffler.DeleteConfigsIddefaultJSONResponse{
+			Body:       err.Error(),
+			StatusCode: http.StatusInternalServerError,
+		}, nil
+	}
+
+	return shuffler.DeleteConfigsId200JSONResponse{FreeSlots: int(free)}, nil
 }
 
 func getVPNConfig(protocol string, data any) (shuffler.VPNConfig, error) {

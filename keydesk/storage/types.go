@@ -152,6 +152,7 @@ type User struct {
 	IsBrigadier               bool                  `json:"is_brigadier,omitempty"`
 	IPv4Addr                  netip.Addr            `json:"ipv4_addr"`
 	IPv6Addr                  netip.Addr            `json:"ipv6_addr"`
+	EndpointDomain            string                `json:"endpoint_domain,omitempty"`
 	WgPublicKey               []byte                `json:"wg_public_key"`
 	WgPSKRouterEnc            []byte                `json:"wg_psk_router_enc"`
 	WgPSKShufflerEnc          []byte                `json:"wg_psk_shuffler_enc"`

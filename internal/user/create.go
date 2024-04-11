@@ -21,9 +21,9 @@ type createUserResponse struct {
 	FreeSlots, TotalSlots uint
 }
 
-func (s Service) CreateUser(protocols vpn.ProtocolSet) (res createUserResponse, err error) {
+func (s Service) CreateUser(protocols vpn.ProtocolSet, domain string) (res createUserResponse, err error) {
 	err = s.db.RunInTransaction(func(brigade *storage.Brigade) error {
-		res.User, err = s.createUserWithConfigs(protocols, brigade)
+		res.User, err = s.createUserWithConfigs(brigade, protocols, domain)
 		if err != nil {
 			return fmt.Errorf("create user with configs %s: %w", protocols, err)
 		}
@@ -36,7 +36,7 @@ func (s Service) CreateUser(protocols vpn.ProtocolSet) (res createUserResponse, 
 	return
 }
 
-func (s Service) createUserWithConfigs(protocols vpn.ProtocolSet, brigade *storage.Brigade) (User, error) {
+func (s Service) createUserWithConfigs(brigade *storage.Brigade, protocols vpn.ProtocolSet, domain string) (User, error) {
 	protocols |= vpn.TypeWG // wg is always required
 
 	protocols, unsupported := protocols.GetSupported(vpn.NewProtocolSet(brigade.GetSupportedVPNProtocols()))
@@ -44,7 +44,7 @@ func (s Service) createUserWithConfigs(protocols vpn.ProtocolSet, brigade *stora
 		return User{}, fmt.Errorf("unsupported VPN protocols: %s", unsupported)
 	}
 
-	dbUser, err := newUser(brigade)
+	dbUser, err := newUser(brigade, domain)
 	if err != nil {
 		return User{}, fmt.Errorf("new user: %w", err)
 	}
@@ -54,7 +54,7 @@ func (s Service) createUserWithConfigs(protocols vpn.ProtocolSet, brigade *stora
 		return User{}, fmt.Errorf("generate wg key: %w", err)
 	}
 
-	configs, err := s.generateConfigs(protocols, *brigade, dbUser, priv, priv.PublicKey())
+	configs, err := s.generateConfigs(protocols, brigade, &dbUser, priv, priv.PublicKey())
 	if err != nil {
 		return User{}, fmt.Errorf("generate configs %s: %w", protocols, err)
 	}
@@ -85,7 +85,7 @@ func (s Service) createUserWithConfigs(protocols vpn.ProtocolSet, brigade *stora
 	}, nil
 }
 
-func newUser(brigade *storage.Brigade) (storage.User, error) {
+func newUser(brigade *storage.Brigade, domain string) (storage.User, error) {
 	names, uids, ips4, ips6 := getExisting(brigade)
 
 	name, person, err := getUniquePerson(names)
@@ -98,10 +98,15 @@ func newUser(brigade *storage.Brigade) (storage.User, error) {
 	ip6 := getUniqueAddr6(brigade.IPv6ULA, ips6)
 	name = blurIP4(name, brigade.BrigadeID, ip4, brigade.IPv4CGNAT)
 
-	return storage.NewUser(uid, name, time.Now(), false, ip4, ip6, person), nil
+	user := storage.NewUser(uid, name, time.Now(), false, ip4, ip6, person)
+	if domain != "" {
+		user.EndpointDomain = domain
+	}
+
+	return user, nil
 }
 
-func (s Service) generateConfigs(protocols vpn.ProtocolSet, brigade storage.Brigade, user storage.User, wgPriv, wgPub wgtypes.Key) (map[string]vpn.Config, error) {
+func (s Service) generateConfigs(protocols vpn.ProtocolSet, brigade *storage.Brigade, user *storage.User, wgPriv, wgPub wgtypes.Key) (map[string]vpn.Config, error) {
 	configs := make(map[string]vpn.Config)
 	for _, protocol := range strings.Split(protocols.String(), ",") {
 		generator, err := newGenerator(protocol, brigade, user, wgPriv, wgPub)

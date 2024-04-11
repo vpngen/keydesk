@@ -74,7 +74,12 @@ func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsReq
 		}, nil
 	}
 
-	userCfg, err := s.service.CreateUser(protocols)
+	domain := ""
+	if request.Body.Domain != nil {
+		domain = *request.Body.Domain
+	}
+
+	userCfg, err := s.service.CreateUser(protocols, domain)
 	if err != nil {
 		return shuffler.PostConfigsdefaultJSONResponse{
 			Body:       err.Error(),

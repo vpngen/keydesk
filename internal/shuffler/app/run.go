@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/getkin/kin-openapi/openapi3filter"
-	jwt2 "github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
 	oapiechomw "github.com/oapi-codegen/echo-middleware"
@@ -16,7 +15,6 @@ import (
 	"github.com/vpngen/keydesk/internal/vpn/ipsec"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/jwt"
-	"github.com/vpngen/keydesk/utils"
 	"github.com/vpngen/vpngine/naclkey"
 	"log"
 	"net/http"
@@ -24,17 +22,7 @@ import (
 	"strings"
 )
 
-func SetupServer(db *storage.BrigadeStorage, jwtPubFileName string, routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) (*echo.Echo, error) {
-	pubFile, err := os.Open(jwtPubFileName)
-	if err != nil {
-		return nil, fmt.Errorf("read jwt public key: %w", err)
-	}
-
-	ecPub, err := utils.ReadECPublicKey(pubFile)
-	if err != nil {
-		return nil, fmt.Errorf("decode jwt public key: %w", err)
-	}
-
+func SetupServer(db *storage.BrigadeStorage, authorizer jwt.Authorizer, routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) (*echo.Echo, error) {
 	swagger, err := shuffler.GetSwagger()
 	if err != nil {
 		return nil, fmt.Errorf("get swagger: %s", err.Error())
@@ -46,16 +34,13 @@ func SetupServer(db *storage.BrigadeStorage, jwtPubFileName string, routerPub, s
 		swagger,
 		&oapiechomw.Options{
 			Options: openapi3filter.Options{
-				AuthenticationFunc: authmw.AuthFuncFactory(jwt.NewAuthorizer(ecPub, jwt.Options{
-					Issuer:        "dc-mgmt",
-					Audience:      []string{"keydesk"},
-					SigningMethod: jwt2.SigningMethodES256,
-				})),
+				AuthenticationFunc: authmw.AuthFuncFactory(authorizer),
 			},
 		})
 
 	e := echo.New()
 	e.HideBanner = true
+
 	loggerMW := echomw.LoggerWithConfig(echomw.LoggerConfig{
 		Format:           "${time_custom}\t${method}\t${uri}\t${status}\n",
 		CustomTimeFormat: "2006-01-02 15:04:05 -07:00",

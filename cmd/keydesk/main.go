@@ -263,8 +263,24 @@ func main() {
 
 	_, _ = fmt.Fprintf(os.Stderr, "Brigade mode: %s \n", brigade.Mode)
 
+	pubFile, err := os.Open(cfg.jwtPublicKeyFile)
+	if err != nil {
+		errQuit("read jwt public key", err)
+	}
+
+	ecPub, err := utils.ReadECPublicKey(pubFile)
+	if err != nil {
+		errQuit("decode jwt public key", err)
+	}
+
+	authorizer := jwtsvc.NewAuthorizer(ecPub, jwtsvc.Options{
+		Issuer:        "dc-mgmt",
+		Audience:      []string{"keydesk"},
+		SigningMethod: jwt.SigningMethodES256,
+	})
+
 	if brigade.Mode == storage.ModeBrigade && cfg.messageAPISocket != nil {
-		echoSrv, err := msgapp.SetupServer(db, cfg.jwtPublicKeyFile)
+		echoSrv, err := msgapp.SetupServer(db, authorizer)
 		if err != nil {
 			errQuit("message server", err)
 		}
@@ -287,7 +303,7 @@ func main() {
 	}
 
 	if brigade.Mode == storage.ModeShuffler && cfg.shufflerAPISocket != nil {
-		echoSrv, err := shflrapp.SetupServer(db, cfg.jwtPublicKeyFile, routerPublicKey, shufflerPublicKey)
+		echoSrv, err := shflrapp.SetupServer(db, authorizer, routerPublicKey, shufflerPublicKey)
 		if err != nil {
 			errQuit("shuffler server", err)
 		}

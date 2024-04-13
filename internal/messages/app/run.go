@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 	"github.com/getkin/kin-openapi/openapi3filter"
-	jwt2 "github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
 	oapiechomw "github.com/oapi-codegen/echo-middleware"
@@ -13,21 +12,9 @@ import (
 	"github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/jwt"
-	"github.com/vpngen/keydesk/utils"
-	"os"
 )
 
-func SetupServer(db *storage.BrigadeStorage, jwtPubFileName string) (*echo.Echo, error) {
-	pubFile, err := os.Open(jwtPubFileName)
-	if err != nil {
-		return nil, fmt.Errorf("read jwt public key: %w", err)
-	}
-
-	ecPub, err := utils.ReadECPublicKey(pubFile)
-	if err != nil {
-		return nil, fmt.Errorf("decode jwt public key: %w", err)
-	}
-
+func SetupServer(db *storage.BrigadeStorage, authorizer jwt.Authorizer) (*echo.Echo, error) {
 	swagger, err := messages.GetSwagger()
 	if err != nil {
 		return nil, fmt.Errorf("get swagger: %s", err.Error())
@@ -39,11 +26,7 @@ func SetupServer(db *storage.BrigadeStorage, jwtPubFileName string) (*echo.Echo,
 		swagger,
 		&oapiechomw.Options{
 			Options: openapi3filter.Options{
-				AuthenticationFunc: authmw.AuthFuncFactory(jwt.NewAuthorizer(ecPub, jwt.Options{
-					Issuer:        "dc-mgmt",
-					Audience:      []string{"keydesk"},
-					SigningMethod: jwt2.SigningMethodES256,
-				})),
+				AuthenticationFunc: authmw.AuthFuncFactory(authorizer),
 			},
 		})
 

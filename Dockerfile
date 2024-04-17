@@ -54,13 +54,12 @@ COPY --from=build /go/bin/keydesk.test .
 COPY --from=build /go/src/keydesk/cmd/createbrigade/create_brigade.sh .
 COPY --from=build /go/src/keydesk/cmd/destroybrigade/destroy_brigade.sh .
 COPY --from=build /go/src/keydesk/cmd/replacebrigadier/replace_brigadier.sh .
+COPY scripts .
 
 RUN ./nacl genkey > vg-router-private.json
 RUN ./nacl pubkey < vg-router-private.json > vg-router.json
 RUN ./nacl genkey > vg-shuffler-private.json
 RUN ./nacl pubkey < vg-shuffler-private.json > vg-shuffler.json
 RUN ./keygen
-
-COPY scripts .
 
 CMD ["./test.sh"]

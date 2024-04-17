@@ -11,10 +11,10 @@ import (
 
 var host string
 
-func TestMain(t *testing.M) {
+func TestMain(m *testing.M) {
 	flag.StringVar(&host, "host", "localhost:8000", "server address")
 	flag.Parse()
-	os.Exit(t.Run())
+	os.Exit(m.Run())
 }
 
 func TestClient(t *testing.T) {
@@ -40,6 +40,9 @@ func TestClient(t *testing.T) {
 		users, err := c.Operations.GetUser(nil, authInfo)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if len(users.Payload) < 1 {
+			t.Errorf("got len(users)=%d, want >=1", len(users.Payload))
 		}
 		for _, user := range users.Payload {
 			t.Log(*user.UserID, *user.UserName)

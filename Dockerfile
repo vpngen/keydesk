@@ -21,6 +21,7 @@ RUN go build -o /go/bin/ github.com/vpngen/keydesk/cmd/destroybrigade
 RUN go build -o /go/bin/ github.com/vpngen/keydesk/cmd/brigade-helper
 # utils
 RUN go build -o /go/bin/ github.com/vpngen/keydesk/cmd/keygen
+RUN go build -o /go/bin/ github.com/vpngen/keydesk/cmd/jwt
 RUN go build -o /go/bin/ github.com/vpngen/vpngine/nacl
 # tests
 RUN go test -o /go/bin/ -c github.com/vpngen/keydesk/tests/keydesk
@@ -49,6 +50,7 @@ COPY --from=build /go/bin/createbrigade .
 COPY --from=build /go/bin/destroybrigade .
 COPY --from=build /go/bin/brigade-helper .
 COPY --from=build /go/bin/keygen .
+COPY --from=build /go/bin/jwt .
 COPY --from=build /go/bin/nacl .
 COPY --from=build /go/bin/keydesk.test .
 COPY --from=build /go/src/keydesk/cmd/createbrigade/create_brigade.sh .

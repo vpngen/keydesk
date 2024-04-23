@@ -18,9 +18,9 @@ const endpointPort = 8080
 
 const (
 	// CallTimeout - timeout for API call.
-	CallTimeout = 60 * time.Second // 60 seconds.
+	CallTimeout = 120 * time.Second // 60 seconds.
 	// ConnTimeout - timeout for API connection.
-	ConnTimeout = 10 * time.Second // 10 seconds.
+	ConnTimeout = 5 * time.Second // 10 seconds.
 )
 
 // TemplatedAddrPort - value indicates that it is a template.

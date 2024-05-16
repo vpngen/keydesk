@@ -7,12 +7,13 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/vpngen/keydesk/internal/maintenance"
 	"math"
 	"net/url"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/vpngen/keydesk/internal/maintenance"
 
 	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/gen/models"
@@ -66,6 +67,14 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgenerator.Person, replaceBrigadier bool, reqVpnCfgs *storage.ConfigsImplemented, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, *models.Newuser, error) {
 	if ok, till, msg := maintenance.CheckInPaths("/.maintenance", filepath.Dir(db.BrigadeFilename)+"/.maintenance"); ok {
 		return "", "", nil, maintenance.NewError(till, msg)
+	}
+
+	if replaceBrigadier {
+		if _, err := os.Stat(filepath.Dir(db.BrigadeFilename) + "/.maintenance_till_restore"); err == nil {
+			if err := os.Remove(filepath.Dir(db.BrigadeFilename) + "/.maintenance_till_restore"); err != nil {
+				fmt.Fprintf(os.Stderr, "remove .maintenance_till_restore: %s\n", err)
+			}
+		}
 	}
 
 	dbVpnCfgs, err := db.GetVpnConfigs(reqVpnCfgs)

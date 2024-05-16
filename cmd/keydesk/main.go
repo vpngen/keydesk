@@ -392,7 +392,11 @@ func initSwaggerAPI(
 	)
 
 	handler := api.Serve(nil)
-	handler = maintenanceMiddlewareBuilder("/.maintenance", filepath.Dir(db.BrigadeFilename)+"/.maintenance")(handler)
+	handler = maintenanceMiddlewareBuilder(
+		"/.maintenance",
+		filepath.Dir(db.BrigadeFilename)+"/.maintenance",
+		filepath.Dir(db.BrigadeFilename)+"/.maintenance_till_restore",
+	)(handler)
 	handler = uiMiddlewareBuilder(webDir, allowedAddr)(handler)
 	if pcors {
 		return cors.AllowAll().Handler(handler)

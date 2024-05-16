@@ -15,7 +15,7 @@ func IsMaintenance(path string) (bool, time.Time, string) {
 	file, err := os.Open(path)
 	if err != nil {
 		// can't open file, it's not maintenance
-		_, _ = fmt.Fprintln(os.Stderr, "read maintenance file error:", err)
+		// _, _ = fmt.Fprintln(os.Stderr, "open maintenance file error:", err)
 		return false, time.Time{}, ""
 	}
 	defer file.Close()

@@ -65,6 +65,17 @@ type server struct {
 	service user.Service
 }
 
+func (s server) GetActivity(ctx context.Context, request shuffler.GetActivityRequestObject) (shuffler.GetActivityResponseObject, error) {
+	lastSeen, err := s.service.GetLastConnections()
+	if err != nil {
+		return shuffler.GetActivitydefaultJSONResponse{
+			Body:       err.Error(),
+			StatusCode: http.StatusInternalServerError,
+		}, nil
+	}
+	return shuffler.GetActivity200JSONResponse(lastSeen), nil
+}
+
 func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsRequestObject) (shuffler.PostConfigsResponseObject, error) {
 	protocols := vpn.NewProtocolSetFromString(string(request.Body.Type))
 	if len(protocols.Protocols()) != 1 {
@@ -210,16 +221,16 @@ func getOutlineConfig(data any) (shuffler.VPNConfig, error) {
 	return ret, nil
 }
 
-func (s server) GetConfigsSlots(ctx context.Context, request shuffler.GetConfigsSlotsRequestObject) (shuffler.GetConfigsSlotsResponseObject, error) {
+func (s server) GetSlots(ctx context.Context, request shuffler.GetSlotsRequestObject) (shuffler.GetSlotsResponseObject, error) {
 	free, total, err := s.service.GetSlotsInfo()
 	if err != nil {
-		return shuffler.GetConfigsSlotsdefaultJSONResponse{
+		return shuffler.GetSlotsdefaultJSONResponse{
 			Body:       err.Error(),
 			StatusCode: http.StatusInternalServerError,
 		}, nil
 	}
 
-	return shuffler.GetConfigsSlots200JSONResponse{
+	return shuffler.GetSlots200JSONResponse{
 		FreeSlots:  int(free),
 		TotalSlots: int(total),
 	}, nil

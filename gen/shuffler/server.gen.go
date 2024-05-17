@@ -17,20 +17,34 @@ import (
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Get VPN users activity
+	// (GET /activity)
+	GetActivity(ctx echo.Context) error
 	// Create new VPN config
 	// (POST /configs)
 	PostConfigs(ctx echo.Context) error
-	// Get free VPN slots
-	// (GET /configs/slots)
-	GetConfigsSlots(ctx echo.Context) error
 	// Delete VPN config
 	// (DELETE /configs/{id})
 	DeleteConfigsId(ctx echo.Context, id openapi_types.UUID) error
+	// Get free VPN slots
+	// (GET /slots)
+	GetSlots(ctx echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// GetActivity converts echo context to params.
+func (w *ServerInterfaceWrapper) GetActivity(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(JWTAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetActivity(ctx)
+	return err
 }
 
 // PostConfigs converts echo context to params.
@@ -41,17 +55,6 @@ func (w *ServerInterfaceWrapper) PostConfigs(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostConfigs(ctx)
-	return err
-}
-
-// GetConfigsSlots converts echo context to params.
-func (w *ServerInterfaceWrapper) GetConfigsSlots(ctx echo.Context) error {
-	var err error
-
-	ctx.Set(JWTAuthScopes, []string{})
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.GetConfigsSlots(ctx)
 	return err
 }
 
@@ -70,6 +73,17 @@ func (w *ServerInterfaceWrapper) DeleteConfigsId(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.DeleteConfigsId(ctx, id)
+	return err
+}
+
+// GetSlots converts echo context to params.
+func (w *ServerInterfaceWrapper) GetSlots(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(JWTAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetSlots(ctx)
 	return err
 }
 
@@ -101,10 +115,41 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
+	router.GET(baseURL+"/activity", wrapper.GetActivity)
 	router.POST(baseURL+"/configs", wrapper.PostConfigs)
-	router.GET(baseURL+"/configs/slots", wrapper.GetConfigsSlots)
 	router.DELETE(baseURL+"/configs/:id", wrapper.DeleteConfigsId)
+	router.GET(baseURL+"/slots", wrapper.GetSlots)
 
+}
+
+type ErrorResponseJSONResponse Error
+
+type GetActivityRequestObject struct {
+}
+
+type GetActivityResponseObject interface {
+	VisitGetActivityResponse(w http.ResponseWriter) error
+}
+
+type GetActivity200JSONResponse Activities
+
+func (response GetActivity200JSONResponse) VisitGetActivityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetActivitydefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetActivitydefaultJSONResponse) VisitGetActivityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type PostConfigsRequestObject struct {
@@ -153,34 +198,6 @@ func (response PostConfigsdefaultJSONResponse) VisitPostConfigsResponse(w http.R
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
-type GetConfigsSlotsRequestObject struct {
-}
-
-type GetConfigsSlotsResponseObject interface {
-	VisitGetConfigsSlotsResponse(w http.ResponseWriter) error
-}
-
-type GetConfigsSlots200JSONResponse SlotsInfo
-
-func (response GetConfigsSlots200JSONResponse) VisitGetConfigsSlotsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetConfigsSlotsdefaultJSONResponse struct {
-	Body       Error
-	StatusCode int
-}
-
-func (response GetConfigsSlotsdefaultJSONResponse) VisitGetConfigsSlotsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body)
-}
-
 type DeleteConfigsIdRequestObject struct {
 	Id openapi_types.UUID `json:"id"`
 }
@@ -220,17 +237,48 @@ func (response DeleteConfigsIddefaultJSONResponse) VisitDeleteConfigsIdResponse(
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
+type GetSlotsRequestObject struct {
+}
+
+type GetSlotsResponseObject interface {
+	VisitGetSlotsResponse(w http.ResponseWriter) error
+}
+
+type GetSlots200JSONResponse SlotsInfo
+
+func (response GetSlots200JSONResponse) VisitGetSlotsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSlotsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetSlotsdefaultJSONResponse) VisitGetSlotsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Get VPN users activity
+	// (GET /activity)
+	GetActivity(ctx context.Context, request GetActivityRequestObject) (GetActivityResponseObject, error)
 	// Create new VPN config
 	// (POST /configs)
 	PostConfigs(ctx context.Context, request PostConfigsRequestObject) (PostConfigsResponseObject, error)
-	// Get free VPN slots
-	// (GET /configs/slots)
-	GetConfigsSlots(ctx context.Context, request GetConfigsSlotsRequestObject) (GetConfigsSlotsResponseObject, error)
 	// Delete VPN config
 	// (DELETE /configs/{id})
 	DeleteConfigsId(ctx context.Context, request DeleteConfigsIdRequestObject) (DeleteConfigsIdResponseObject, error)
+	// Get free VPN slots
+	// (GET /slots)
+	GetSlots(ctx context.Context, request GetSlotsRequestObject) (GetSlotsResponseObject, error)
 }
 
 type StrictHandlerFunc = strictecho.StrictEchoHandlerFunc
@@ -243,6 +291,29 @@ func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareF
 type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
+}
+
+// GetActivity operation middleware
+func (sh *strictHandler) GetActivity(ctx echo.Context) error {
+	var request GetActivityRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetActivity(ctx.Request().Context(), request.(GetActivityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetActivity")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetActivityResponseObject); ok {
+		return validResponse.VisitGetActivityResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
 }
 
 // PostConfigs operation middleware
@@ -274,29 +345,6 @@ func (sh *strictHandler) PostConfigs(ctx echo.Context) error {
 	return nil
 }
 
-// GetConfigsSlots operation middleware
-func (sh *strictHandler) GetConfigsSlots(ctx echo.Context) error {
-	var request GetConfigsSlotsRequestObject
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetConfigsSlots(ctx.Request().Context(), request.(GetConfigsSlotsRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetConfigsSlots")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(GetConfigsSlotsResponseObject); ok {
-		return validResponse.VisitGetConfigsSlotsResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
 // DeleteConfigsId operation middleware
 func (sh *strictHandler) DeleteConfigsId(ctx echo.Context, id openapi_types.UUID) error {
 	var request DeleteConfigsIdRequestObject
@@ -316,6 +364,29 @@ func (sh *strictHandler) DeleteConfigsId(ctx echo.Context, id openapi_types.UUID
 		return err
 	} else if validResponse, ok := response.(DeleteConfigsIdResponseObject); ok {
 		return validResponse.VisitDeleteConfigsIdResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetSlots operation middleware
+func (sh *strictHandler) GetSlots(ctx echo.Context) error {
+	var request GetSlotsRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSlots(ctx.Request().Context(), request.(GetSlotsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSlots")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetSlotsResponseObject); ok {
+		return validResponse.VisitGetSlotsResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

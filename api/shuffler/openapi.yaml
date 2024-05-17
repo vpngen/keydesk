@@ -53,11 +53,7 @@ paths:
         412:
           description: No free VPN slots
         default:
-          description: error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          $ref: '#/components/responses/ErrorResponse'
   /configs/{id}:
     delete:
       summary: Delete VPN config
@@ -83,14 +79,10 @@ paths:
         404:
           description: User not found
         default:
-          description: error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - JWTAuth: [ configs:delete ]
-  /configs/slots:
+  /slots:
     get:
       summary: Get free VPN slots
       responses:
@@ -101,11 +93,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/SlotsInfo'
         default:
-          description: error
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - JWTAuth: [ ]
+  /activity:
+    get:
+      summary: Get VPN users activity
+      responses:
+        200:
+          description: Last connection by user
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Activities'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - JWTAuth: [ ]
 components:
@@ -180,8 +182,37 @@ components:
       required:
         - free_slots
         - total_slots
+    Activity:
+      type: object
+      properties:
+        last_seen:
+          type: string
+          format: date-time
+        updated:
+          type: string
+          format: date-time
+      required:
+        - last_seen
+        - updated
+      x-go-type: user.Activity
+      x-go-type-import:
+        path: github.com/vpngen/keydesk/internal/user
+    Activities:
+      additionalProperties:
+        $ref: '#/components/schemas/Activity'
+      x-go-type: user.Activities
+      x-go-type-import:
+        path: github.com/vpngen/keydesk/internal/user
+
     Error:
       type: string
+  responses:
+    ErrorResponse:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
   securitySchemes:
     JWTAuth:
       type: http

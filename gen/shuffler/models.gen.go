@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 
 	"github.com/oapi-codegen/runtime"
+	"github.com/vpngen/keydesk/internal/user"
 )
 
 const (
@@ -20,6 +21,12 @@ const (
 	Ovc     ConfigType = "ovc"
 	Wg      ConfigType = "wg"
 )
+
+// Activities defines model for Activities.
+type Activities = user.Activities
+
+// Activity defines model for Activity.
+type Activity = user.Activity
 
 // AmneziaOVCConfig defines model for AmneziaOVCConfig.
 type AmneziaOVCConfig struct {
@@ -64,6 +71,9 @@ type WireGuardConfig struct {
 	FileName    string `json:"file_name"`
 	TunnelName  string `json:"tunnel_name"`
 }
+
+// ErrorResponse defines model for ErrorResponse.
+type ErrorResponse = Error
 
 // PostConfigsJSONBody defines parameters for PostConfigs.
 type PostConfigsJSONBody struct {

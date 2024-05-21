@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/filter"
+	"log"
 	"sort"
 	"time"
 )
@@ -207,6 +208,7 @@ var NotFound = errors.New("not found")
 func (s Service) MarkAsRead(id int) error {
 	return s.transaction(func(brigade *storage.Brigade) error {
 		for i, message := range brigade.Messages {
+			log.Println(id, message.ID, id == message.ID)
 			if message.ID == id {
 				brigade.Messages[i].IsRead = true
 				return nil

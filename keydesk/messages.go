@@ -25,14 +25,17 @@ func GetMessages(
 
 	ret := make([]*models.Message, 0, len(messages))
 	for _, v := range messages {
-		ret = append(ret, &models.Message{
+		m := models.Message{
 			ID:       int64(v.ID),
 			Text:     swag.String(v.Text),
 			IsRead:   v.IsRead,
 			Priority: int64(v.Priority),
 			Time:     strfmt.DateTime(v.CreatedAt),
-			TTL:      v.TTL.String(),
-		})
+		}
+		if v.TTL != 0 {
+			m.TTL = v.TTL.String()
+		}
+		ret = append(ret, &m)
 	}
 
 	return operations.NewGetMessagesOK().WithPayload(&models.Messages{

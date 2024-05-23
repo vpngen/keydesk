@@ -83,7 +83,6 @@ components:
         - is_read
         - priority
         - time
-        - ttl
     Messages:
       type: object
       properties:

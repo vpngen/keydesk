@@ -5,6 +5,25 @@ import (
 	"fmt"
 )
 
+type Interface[T any] interface {
+	Filter(values []T) []T
+}
+
+type Fn[T any] func(values []T) []T
+
+func (fn Fn[T]) Pipe(fns ...Interface[T]) Fn[T] {
+	return func(values []T) []T {
+		for _, f := range fns {
+			values = f.Filter(values)
+		}
+		return values
+	}
+}
+
+func (fn Fn[T]) Filter(values []T) (ret []T) {
+	return fn(values)
+}
+
 type Func[T any] func(T) bool
 
 func (f Func[T]) And(f2 Func[T]) Func[T] {
@@ -43,7 +62,7 @@ func (f Func[T]) Filter(values []T) (ret []T) {
 	return
 }
 
-func Filter[T any](values []T, filters ...Func[T]) []T {
+func Filter[T any](values []T, filters ...Interface[T]) []T {
 	for _, filter := range filters {
 		values = filter.Filter(values)
 	}

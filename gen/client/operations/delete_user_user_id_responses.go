@@ -6,6 +6,7 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -103,11 +104,11 @@ func (o *DeleteUserUserIDNoContent) Code() int {
 }
 
 func (o *DeleteUserUserIDNoContent) Error() string {
-	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdNoContent ", 204)
+	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdNoContent", 204)
 }
 
 func (o *DeleteUserUserIDNoContent) String() string {
-	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdNoContent ", 204)
+	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdNoContent", 204)
 }
 
 func (o *DeleteUserUserIDNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -159,11 +160,11 @@ func (o *DeleteUserUserIDForbidden) Code() int {
 }
 
 func (o *DeleteUserUserIDForbidden) Error() string {
-	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdForbidden ", 403)
+	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdForbidden", 403)
 }
 
 func (o *DeleteUserUserIDForbidden) String() string {
-	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdForbidden ", 403)
+	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdForbidden", 403)
 }
 
 func (o *DeleteUserUserIDForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -215,11 +216,11 @@ func (o *DeleteUserUserIDInternalServerError) Code() int {
 }
 
 func (o *DeleteUserUserIDInternalServerError) Error() string {
-	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdInternalServerError ", 500)
+	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdInternalServerError", 500)
 }
 
 func (o *DeleteUserUserIDInternalServerError) String() string {
-	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdInternalServerError ", 500)
+	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdInternalServerError", 500)
 }
 
 func (o *DeleteUserUserIDInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -272,11 +273,13 @@ func (o *DeleteUserUserIDServiceUnavailable) Code() int {
 }
 
 func (o *DeleteUserUserIDServiceUnavailable) Error() string {
-	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdServiceUnavailable %s", 503, payload)
 }
 
 func (o *DeleteUserUserIDServiceUnavailable) String() string {
-	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /user/{UserID}][%d] deleteUserUserIdServiceUnavailable %s", 503, payload)
 }
 
 func (o *DeleteUserUserIDServiceUnavailable) GetPayload() *models.MaintenanceError {
@@ -344,11 +347,13 @@ func (o *DeleteUserUserIDDefault) Code() int {
 }
 
 func (o *DeleteUserUserIDDefault) Error() string {
-	return fmt.Sprintf("[DELETE /user/{UserID}][%d] DeleteUserUserID default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /user/{UserID}][%d] DeleteUserUserID default %s", o._statusCode, payload)
 }
 
 func (o *DeleteUserUserIDDefault) String() string {
-	return fmt.Sprintf("[DELETE /user/{UserID}][%d] DeleteUserUserID default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /user/{UserID}][%d] DeleteUserUserID default %s", o._statusCode, payload)
 }
 
 func (o *DeleteUserUserIDDefault) GetPayload() *models.Error {

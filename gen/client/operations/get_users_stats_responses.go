@@ -6,6 +6,7 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -104,11 +105,13 @@ func (o *GetUsersStatsOK) Code() int {
 }
 
 func (o *GetUsersStatsOK) Error() string {
-	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsOK %s", 200, payload)
 }
 
 func (o *GetUsersStatsOK) String() string {
-	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsOK %s", 200, payload)
 }
 
 func (o *GetUsersStatsOK) GetPayload() *models.Stats {
@@ -171,11 +174,11 @@ func (o *GetUsersStatsForbidden) Code() int {
 }
 
 func (o *GetUsersStatsForbidden) Error() string {
-	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsForbidden ", 403)
+	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsForbidden", 403)
 }
 
 func (o *GetUsersStatsForbidden) String() string {
-	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsForbidden ", 403)
+	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsForbidden", 403)
 }
 
 func (o *GetUsersStatsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -227,11 +230,11 @@ func (o *GetUsersStatsInternalServerError) Code() int {
 }
 
 func (o *GetUsersStatsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsInternalServerError ", 500)
+	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsInternalServerError", 500)
 }
 
 func (o *GetUsersStatsInternalServerError) String() string {
-	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsInternalServerError ", 500)
+	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsInternalServerError", 500)
 }
 
 func (o *GetUsersStatsInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -284,11 +287,13 @@ func (o *GetUsersStatsServiceUnavailable) Code() int {
 }
 
 func (o *GetUsersStatsServiceUnavailable) Error() string {
-	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsServiceUnavailable %s", 503, payload)
 }
 
 func (o *GetUsersStatsServiceUnavailable) String() string {
-	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /users/stats][%d] getUsersStatsServiceUnavailable %s", 503, payload)
 }
 
 func (o *GetUsersStatsServiceUnavailable) GetPayload() *models.MaintenanceError {
@@ -356,11 +361,13 @@ func (o *GetUsersStatsDefault) Code() int {
 }
 
 func (o *GetUsersStatsDefault) Error() string {
-	return fmt.Sprintf("[GET /users/stats][%d] GetUsersStats default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /users/stats][%d] GetUsersStats default %s", o._statusCode, payload)
 }
 
 func (o *GetUsersStatsDefault) String() string {
-	return fmt.Sprintf("[GET /users/stats][%d] GetUsersStats default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /users/stats][%d] GetUsersStats default %s", o._statusCode, payload)
 }
 
 func (o *GetUsersStatsDefault) GetPayload() *models.Error {

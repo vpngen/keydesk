@@ -14,7 +14,6 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 )
 
 // NewMarkMessageAsReadParams creates a new MarkMessageAsReadParams object,
@@ -63,7 +62,9 @@ MarkMessageAsReadParams contains all the parameters to send to the API endpoint
 type MarkMessageAsReadParams struct {
 
 	// ID.
-	ID int64
+	//
+	// Format: uuid
+	ID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
@@ -119,13 +120,13 @@ func (o *MarkMessageAsReadParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithID adds the id to the mark message as read params
-func (o *MarkMessageAsReadParams) WithID(id int64) *MarkMessageAsReadParams {
+func (o *MarkMessageAsReadParams) WithID(id strfmt.UUID) *MarkMessageAsReadParams {
 	o.SetID(id)
 	return o
 }
 
 // SetID adds the id to the mark message as read params
-func (o *MarkMessageAsReadParams) SetID(id int64) {
+func (o *MarkMessageAsReadParams) SetID(id strfmt.UUID) {
 	o.ID = id
 }
 
@@ -138,7 +139,7 @@ func (o *MarkMessageAsReadParams) WriteToRequest(r runtime.ClientRequest, reg st
 	var res []error
 
 	// path param id
-	if err := r.SetPathParam("id", swag.FormatInt64(o.ID)); err != nil {
+	if err := r.SetPathParam("id", o.ID.String()); err != nil {
 		return err
 	}
 

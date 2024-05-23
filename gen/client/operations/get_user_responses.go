@@ -6,6 +6,7 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -104,11 +105,13 @@ func (o *GetUserOK) Code() int {
 }
 
 func (o *GetUserOK) Error() string {
-	return fmt.Sprintf("[GET /user][%d] getUserOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /user][%d] getUserOK %s", 200, payload)
 }
 
 func (o *GetUserOK) String() string {
-	return fmt.Sprintf("[GET /user][%d] getUserOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /user][%d] getUserOK %s", 200, payload)
 }
 
 func (o *GetUserOK) GetPayload() []*models.User {
@@ -169,11 +172,11 @@ func (o *GetUserForbidden) Code() int {
 }
 
 func (o *GetUserForbidden) Error() string {
-	return fmt.Sprintf("[GET /user][%d] getUserForbidden ", 403)
+	return fmt.Sprintf("[GET /user][%d] getUserForbidden", 403)
 }
 
 func (o *GetUserForbidden) String() string {
-	return fmt.Sprintf("[GET /user][%d] getUserForbidden ", 403)
+	return fmt.Sprintf("[GET /user][%d] getUserForbidden", 403)
 }
 
 func (o *GetUserForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -225,11 +228,11 @@ func (o *GetUserInternalServerError) Code() int {
 }
 
 func (o *GetUserInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /user][%d] getUserInternalServerError ", 500)
+	return fmt.Sprintf("[GET /user][%d] getUserInternalServerError", 500)
 }
 
 func (o *GetUserInternalServerError) String() string {
-	return fmt.Sprintf("[GET /user][%d] getUserInternalServerError ", 500)
+	return fmt.Sprintf("[GET /user][%d] getUserInternalServerError", 500)
 }
 
 func (o *GetUserInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -282,11 +285,13 @@ func (o *GetUserServiceUnavailable) Code() int {
 }
 
 func (o *GetUserServiceUnavailable) Error() string {
-	return fmt.Sprintf("[GET /user][%d] getUserServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /user][%d] getUserServiceUnavailable %s", 503, payload)
 }
 
 func (o *GetUserServiceUnavailable) String() string {
-	return fmt.Sprintf("[GET /user][%d] getUserServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /user][%d] getUserServiceUnavailable %s", 503, payload)
 }
 
 func (o *GetUserServiceUnavailable) GetPayload() *models.MaintenanceError {
@@ -354,11 +359,13 @@ func (o *GetUserDefault) Code() int {
 }
 
 func (o *GetUserDefault) Error() string {
-	return fmt.Sprintf("[GET /user][%d] GetUser default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /user][%d] GetUser default %s", o._statusCode, payload)
 }
 
 func (o *GetUserDefault) String() string {
-	return fmt.Sprintf("[GET /user][%d] GetUser default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /user][%d] GetUser default %s", o._statusCode, payload)
 }
 
 func (o *GetUserDefault) GetPayload() *models.Error {

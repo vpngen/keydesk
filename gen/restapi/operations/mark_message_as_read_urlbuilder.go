@@ -11,12 +11,12 @@ import (
 	golangswaggerpaths "path"
 	"strings"
 
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/strfmt"
 )
 
 // MarkMessageAsReadURL generates an URL for the mark message as read operation
 type MarkMessageAsReadURL struct {
-	ID int64
+	ID strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -44,7 +44,7 @@ func (o *MarkMessageAsReadURL) Build() (*url.URL, error) {
 
 	var _path = "/messages/{id}/read"
 
-	id := swag.FormatInt64(o.ID)
+	id := o.ID.String()
 	if id != "" {
 		_path = strings.Replace(_path, "{id}", id, -1)
 	} else {

@@ -61,8 +61,11 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
         text:
+          type: string
+        title:
           type: string
         is_read:
           type: boolean
@@ -76,6 +79,7 @@ components:
       required:
         - id
         - text
+        - title
         - is_read
         - priority
         - time
@@ -119,6 +123,8 @@ components:
     CreateMessageRequest:
       type: object
       properties:
+        title:
+          type: string
         text:
           type: string
         ttl:
@@ -126,6 +132,7 @@ components:
         priority:
           type: integer
       required:
+        - title
         - text
     Error:
       type: object
@@ -180,7 +187,8 @@ components:
       name: id
       in: path
       schema:
-        type: integer
+        type: string
+        format: uuid
   securitySchemes:
     JWTAuth:
       type: http

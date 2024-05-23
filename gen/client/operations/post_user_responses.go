@@ -6,6 +6,7 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -104,11 +105,13 @@ func (o *PostUserCreated) Code() int {
 }
 
 func (o *PostUserCreated) Error() string {
-	return fmt.Sprintf("[POST /user][%d] postUserCreated  %+v", 201, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /user][%d] postUserCreated %s", 201, payload)
 }
 
 func (o *PostUserCreated) String() string {
-	return fmt.Sprintf("[POST /user][%d] postUserCreated  %+v", 201, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /user][%d] postUserCreated %s", 201, payload)
 }
 
 func (o *PostUserCreated) GetPayload() *models.Newuser {
@@ -171,11 +174,11 @@ func (o *PostUserForbidden) Code() int {
 }
 
 func (o *PostUserForbidden) Error() string {
-	return fmt.Sprintf("[POST /user][%d] postUserForbidden ", 403)
+	return fmt.Sprintf("[POST /user][%d] postUserForbidden", 403)
 }
 
 func (o *PostUserForbidden) String() string {
-	return fmt.Sprintf("[POST /user][%d] postUserForbidden ", 403)
+	return fmt.Sprintf("[POST /user][%d] postUserForbidden", 403)
 }
 
 func (o *PostUserForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -227,11 +230,11 @@ func (o *PostUserInternalServerError) Code() int {
 }
 
 func (o *PostUserInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /user][%d] postUserInternalServerError ", 500)
+	return fmt.Sprintf("[POST /user][%d] postUserInternalServerError", 500)
 }
 
 func (o *PostUserInternalServerError) String() string {
-	return fmt.Sprintf("[POST /user][%d] postUserInternalServerError ", 500)
+	return fmt.Sprintf("[POST /user][%d] postUserInternalServerError", 500)
 }
 
 func (o *PostUserInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -284,11 +287,13 @@ func (o *PostUserServiceUnavailable) Code() int {
 }
 
 func (o *PostUserServiceUnavailable) Error() string {
-	return fmt.Sprintf("[POST /user][%d] postUserServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /user][%d] postUserServiceUnavailable %s", 503, payload)
 }
 
 func (o *PostUserServiceUnavailable) String() string {
-	return fmt.Sprintf("[POST /user][%d] postUserServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /user][%d] postUserServiceUnavailable %s", 503, payload)
 }
 
 func (o *PostUserServiceUnavailable) GetPayload() *models.MaintenanceError {
@@ -356,11 +361,13 @@ func (o *PostUserDefault) Code() int {
 }
 
 func (o *PostUserDefault) Error() string {
-	return fmt.Sprintf("[POST /user][%d] PostUser default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /user][%d] PostUser default %s", o._statusCode, payload)
 }
 
 func (o *PostUserDefault) String() string {
-	return fmt.Sprintf("[POST /user][%d] PostUser default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /user][%d] PostUser default %s", o._statusCode, payload)
 }
 
 func (o *PostUserDefault) GetPayload() *models.Error {

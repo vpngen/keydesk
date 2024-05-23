@@ -6,6 +6,7 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -98,11 +99,13 @@ func (o *PostTokenCreated) Code() int {
 }
 
 func (o *PostTokenCreated) Error() string {
-	return fmt.Sprintf("[POST /token][%d] postTokenCreated  %+v", 201, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /token][%d] postTokenCreated %s", 201, payload)
 }
 
 func (o *PostTokenCreated) String() string {
-	return fmt.Sprintf("[POST /token][%d] postTokenCreated  %+v", 201, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /token][%d] postTokenCreated %s", 201, payload)
 }
 
 func (o *PostTokenCreated) GetPayload() *models.Token {
@@ -165,11 +168,11 @@ func (o *PostTokenInternalServerError) Code() int {
 }
 
 func (o *PostTokenInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /token][%d] postTokenInternalServerError ", 500)
+	return fmt.Sprintf("[POST /token][%d] postTokenInternalServerError", 500)
 }
 
 func (o *PostTokenInternalServerError) String() string {
-	return fmt.Sprintf("[POST /token][%d] postTokenInternalServerError ", 500)
+	return fmt.Sprintf("[POST /token][%d] postTokenInternalServerError", 500)
 }
 
 func (o *PostTokenInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -222,11 +225,13 @@ func (o *PostTokenServiceUnavailable) Code() int {
 }
 
 func (o *PostTokenServiceUnavailable) Error() string {
-	return fmt.Sprintf("[POST /token][%d] postTokenServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /token][%d] postTokenServiceUnavailable %s", 503, payload)
 }
 
 func (o *PostTokenServiceUnavailable) String() string {
-	return fmt.Sprintf("[POST /token][%d] postTokenServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /token][%d] postTokenServiceUnavailable %s", 503, payload)
 }
 
 func (o *PostTokenServiceUnavailable) GetPayload() *models.MaintenanceError {
@@ -294,11 +299,13 @@ func (o *PostTokenDefault) Code() int {
 }
 
 func (o *PostTokenDefault) Error() string {
-	return fmt.Sprintf("[POST /token][%d] PostToken default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /token][%d] PostToken default %s", o._statusCode, payload)
 }
 
 func (o *PostTokenDefault) String() string {
-	return fmt.Sprintf("[POST /token][%d] PostToken default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /token][%d] PostToken default %s", o._statusCode, payload)
 }
 
 func (o *PostTokenDefault) GetPayload() *models.Error {

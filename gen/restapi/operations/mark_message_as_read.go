@@ -34,7 +34,7 @@ func NewMarkMessageAsRead(ctx *middleware.Context, handler MarkMessageAsReadHand
 
 # Mark message as read
 
-Mark message as read
+Used by frontend. JWT token is required.
 */
 type MarkMessageAsRead struct {
 	Context *middleware.Context

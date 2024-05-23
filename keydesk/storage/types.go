@@ -264,8 +264,9 @@ type LastActivityPoints struct {
 }
 
 type Message struct {
-	ID        int           `json:"id"`
+	ID        uuid.UUID     `json:"id"`
 	Text      string        `json:"text"`
+	Title     string        `json:"title"`
 	IsRead    bool          `json:"is_read"`
 	Priority  int           `json:"priority"`
 	CreatedAt time.Time     `json:"created_at"`

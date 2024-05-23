@@ -3,8 +3,10 @@ package service
 import (
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/filter"
+	"log"
 	"sort"
 	"time"
 )
@@ -173,12 +175,13 @@ func sortMessagesFactory(result []storage.Message, sortParams map[string]bool) (
 	return result, nil
 }
 
-func (s Service) CreateMessage(text string, ttl time.Duration, priority int) (storage.Message, error) {
+func (s Service) CreateMessage(title, text string, ttl time.Duration, priority int) (storage.Message, error) {
 	var msg storage.Message
 	if err := s.transaction(func(brigade *storage.Brigade) error {
 		now := time.Now()
 		msg = storage.Message{
-			ID:        int(now.UnixNano()),
+			ID:        uuid.New(),
+			Title:     title,
 			Text:      text,
 			Priority:  priority,
 			CreatedAt: now,
@@ -204,9 +207,10 @@ func cleanupMessages(messages []storage.Message) []storage.Message {
 
 var NotFound = errors.New("not found")
 
-func (s Service) MarkAsRead(id int) error {
+func (s Service) MarkAsRead(id uuid.UUID) error {
 	return s.transaction(func(brigade *storage.Brigade) error {
 		for i, message := range brigade.Messages {
+			log.Println(id, message.ID, id == message.ID)
 			if message.ID == id {
 				brigade.Messages[i].IsRead = true
 				return nil

@@ -46,18 +46,22 @@ func (s Server) PostMessages(_ context.Context, request messages2.PostMessagesRe
 	if request.Body.Priority != nil {
 		priority = *request.Body.Priority
 	}
-	msg, err := s.msgSvc.CreateMessage(request.Body.Text, ttl, priority)
+	msg, err := s.msgSvc.CreateMessage(request.Body.Title, request.Body.Text, ttl, priority)
 	if err != nil {
 		return postMessagesError(http.StatusInternalServerError, fmt.Sprintf("create message: %s", err.Error()))
 	}
-	return messages2.PostMessages200JSONResponse(messages2.Message{
+	res := messages2.Message{
 		Id:       msg.ID,
 		IsRead:   msg.IsRead,
 		Priority: msg.Priority,
+		Title:    msg.Title,
 		Text:     msg.Text,
 		Time:     msg.CreatedAt,
-		Ttl:      msg.TTL.String(),
-	}), nil
+	}
+	if msg.TTL > 0 {
+		res.Ttl = msg.TTL.String()
+	}
+	return messages2.PostMessages200JSONResponse(res), nil
 }
 
 //func markAsReadError(code int, message string) (messages2.PostMessagesIdReadResponseObject, error) {

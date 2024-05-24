@@ -174,6 +174,8 @@ func parseArgs2(flags flags) (config, error) {
 
 	if *flags.jwtPublicKeyFile == "" {
 		cfg.jwtPublicKeyFile = filepath.Join(cfg.etcDir, jwtPubFileName)
+	} else {
+		cfg.jwtPublicKeyFile = *flags.jwtPublicKeyFile
 	}
 
 	if *flags.brigadierName == "" {
@@ -229,6 +231,11 @@ func parseMessageAPISocket(f flags, cfg config) (config, error) {
 		if err := os.Remove(path); err != nil {
 			return cfg, fmt.Errorf("cannot remove socket: %w", err)
 		}
+	}
+
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return cfg, fmt.Errorf("mkdir %q: %w", dir, err)
 	}
 
 	l, err := net.Listen("unix", path)

@@ -41,6 +41,15 @@ func firstN(n int) filter.Func[storage.Message] {
 	}
 }
 
+func lastN(n int) filter.Fn[storage.Message] {
+	return func(values []storage.Message) (ret []storage.Message) {
+		if len(values) < n {
+			return values
+		}
+		return values[len(values)-n:]
+	}
+}
+
 func isReadFilter(b bool) filter.Func[storage.Message] {
 	return func(message storage.Message) bool {
 		return message.IsRead == b

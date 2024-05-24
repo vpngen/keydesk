@@ -7,6 +7,7 @@ import (
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/filter"
 	"log"
+	"slices"
 	"sort"
 	"time"
 )
@@ -85,7 +86,7 @@ func (s Service) GetMessages(
 		return nil, 0, err
 	}
 
-	var filters []filter.Func[storage.Message]
+	var filters []filter.Interface[storage.Message]
 
 	if read != nil {
 		filters = append(filters, isReadFilter(*read))
@@ -199,9 +200,29 @@ func cleanupMessages(messages []storage.Message) []storage.Message {
 	return filter.Filter(
 		messages,
 		ttlExpired(),
-		firstN(10).IfOrTrue(noTTL()),
+		filter.Fn[storage.Message](func(messages []storage.Message) []storage.Message {
+			var idxs []int
+			i := 0
+			for i < len(messages) {
+				if idx := slices.IndexFunc(messages[i:], noTTL()); idx != -1 {
+					idxs = append(idxs, idx)
+					i++
+				} else {
+					break
+				}
+			}
+			if len(idxs) <= 10 {
+				return messages
+			}
+			toRemove := idxs[:len(idxs)-10]
+			slices.Reverse(toRemove)
+			for _, idx := range toRemove {
+				messages = append(messages[:idx], messages[idx+1:]...)
+			}
+			return messages
+		}),
 		notOlder(24*time.Hour*30).IfOrTrue(noTTL()),
-		firstN(100),
+		lastN(100),
 	)
 }
 

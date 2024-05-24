@@ -35,7 +35,7 @@ type Message struct {
 	Text     string             `json:"text"`
 	Time     time.Time          `json:"time"`
 	Title    string             `json:"title"`
-	Ttl      string             `json:"ttl"`
+	Ttl      *string            `json:"ttl,omitempty"`
 }
 
 // PostMessagesJSONRequestBody defines body for PostMessages for application/json ContentType.

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/go-openapi/swag"
 	messages2 "github.com/vpngen/keydesk/gen/messages"
 	"github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -59,7 +60,7 @@ func (s Server) PostMessages(_ context.Context, request messages2.PostMessagesRe
 		Time:     msg.CreatedAt,
 	}
 	if msg.TTL > 0 {
-		res.Ttl = msg.TTL.String()
+		res.Ttl = swag.String(msg.TTL.String())
 	}
 	return messages2.PostMessages200JSONResponse(res), nil
 }

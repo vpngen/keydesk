@@ -453,6 +453,12 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 		}
 	}
 
+	for _, prefix := range endpointMap.Outline {
+		if prefix.IsValid() {
+			data.Endpoints[prefix.String()] = now
+		}
+	}
+
 	lowLimit := now.Add(-endpointsTTL)
 	for prefix, updated := range data.Endpoints {
 		if updated.Before(lowLimit) {
@@ -461,36 +467,6 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 	}
 
 	data.CountersUpdateTime = statsTimestamp.Time
-
-	if data.Ver < 6 {
-		/*stats := &data.StatsCountersStack[len(data.StatsCountersStack)-1]
-		stats.TotalTraffic = data.TotalTraffic.Monthly
-		stats.TotalWgTraffic = data.TotalWgTraffic.Monthly
-		stats.TotalIPSecTraffic = data.TotalIPSecTraffic.Monthly*/
-
-		data.StatsCountersStack[0].ActiveWgUsersCount = data.StatsCountersStack[0].ActiveUsersCount
-
-		for i := len(data.StatsCountersStack) - 1; i > 0; i-- {
-			x := data.StatsCountersStack[i]
-			y := data.StatsCountersStack[i-1]
-
-			data.StatsCountersStack[i].TotalTraffic.Rx = x.NetCounters.TotalTraffic.Rx - y.NetCounters.TotalTraffic.Rx
-			data.StatsCountersStack[i].TotalTraffic.Tx = x.NetCounters.TotalTraffic.Tx - y.NetCounters.TotalTraffic.Tx
-			data.StatsCountersStack[i].TotalWgTraffic.Rx = x.NetCounters.TotalWgTraffic.Rx - y.NetCounters.TotalWgTraffic.Rx
-			data.StatsCountersStack[i].TotalWgTraffic.Tx = x.NetCounters.TotalWgTraffic.Tx - y.NetCounters.TotalWgTraffic.Tx
-			data.StatsCountersStack[i].TotalIPSecTraffic.Rx = x.NetCounters.TotalIPSecTraffic.Rx - y.NetCounters.TotalIPSecTraffic.Rx
-			data.StatsCountersStack[i].TotalIPSecTraffic.Tx = x.NetCounters.TotalIPSecTraffic.Tx - y.NetCounters.TotalIPSecTraffic.Tx
-
-			data.StatsCountersStack[i].ActiveWgUsersCount = data.StatsCountersStack[i].ActiveUsersCount
-		}
-
-		data.Ver = BrigadeVersion
-	}
-
-	if data.Ver < 7 || data.EndpointPort == 0 {
-		data.EndpointPort = 51820
-		data.Ver = BrigadeVersion
-	}
 
 	data.StatsCountersStack.Put(data.BrigadeCounters, totalTraffic)
 

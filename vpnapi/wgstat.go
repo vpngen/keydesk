@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/netip"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -104,6 +105,8 @@ func WgStatParseTraffic(traffic WgStatTrafficMapIn) (*WgStatTrafficMap, error) {
 	m := NewWgStatTrafficMap()
 
 	for id, data := range traffic {
+		id = strings.ReplaceAll(strings.ReplaceAll(id, "-", "+"), "_", "/")
+
 		for vpnType, traffic := range data {
 			rx, err := strconv.ParseUint(traffic.Received, 10, 64)
 			if err != nil {
@@ -147,6 +150,8 @@ func WgStatParseLastActivity(lastSeen WgStatLastseenMapIn) (*WgStatLastActivityM
 	m := NewWgStatLastActivityMap()
 
 	for id, data := range lastSeen {
+		id = strings.ReplaceAll(strings.ReplaceAll(id, "-", "+"), "_", "/")
+
 		for vpnType, lastSeen := range data {
 			ts, err := strconv.ParseInt(lastSeen.Timestamp, 10, 64)
 			if err != nil {
@@ -177,6 +182,8 @@ func WgStatParseEndpoints(endpoints WgStatEndpointMapIn) (*WgStatEndpointMap, er
 	m := NewWgStatEndpointMap()
 
 	for id, data := range endpoints {
+		id = strings.ReplaceAll(strings.ReplaceAll(id, "-", "+"), "_", "/")
+
 		for vpnType, endpoint := range data {
 			if endpoint.Subnet == "(none)" {
 				continue

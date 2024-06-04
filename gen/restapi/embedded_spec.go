@@ -32,7 +32,7 @@ func init() {
             "Bearer": []
           }
         ],
-        "description": "Get messages, triggered by frontend",
+        "description": "Get messages, used by frontend. JWT token is required.",
         "summary": "Get messages",
         "operationId": "getMessages",
         "parameters": [
@@ -111,12 +111,13 @@ func init() {
             "Bearer": []
           }
         ],
-        "description": "Mark message as read",
+        "description": "Used by frontend. JWT token is required.",
         "summary": "Mark message as read",
         "operationId": "markMessageAsRead",
         "parameters": [
           {
-            "type": "integer",
+            "type": "string",
+            "format": "uuid",
             "name": "id",
             "in": "path",
             "required": true
@@ -328,11 +329,13 @@ func init() {
     "Message": {
       "type": "object",
       "required": [
-        "text"
+        "text",
+        "title"
       ],
       "properties": {
         "id": {
-          "type": "integer"
+          "type": "string",
+          "format": "uuid"
         },
         "is_read": {
           "type": "boolean"
@@ -346,6 +349,9 @@ func init() {
         "time": {
           "type": "string",
           "format": "date-time"
+        },
+        "title": {
+          "type": "string"
         },
         "ttl": {
           "type": "string"
@@ -634,7 +640,7 @@ func init() {
             "Bearer": []
           }
         ],
-        "description": "Get messages, triggered by frontend",
+        "description": "Get messages, used by frontend. JWT token is required.",
         "summary": "Get messages",
         "operationId": "getMessages",
         "parameters": [
@@ -713,12 +719,13 @@ func init() {
             "Bearer": []
           }
         ],
-        "description": "Mark message as read",
+        "description": "Used by frontend. JWT token is required.",
         "summary": "Mark message as read",
         "operationId": "markMessageAsRead",
         "parameters": [
           {
-            "type": "integer",
+            "type": "string",
+            "format": "uuid",
             "name": "id",
             "in": "path",
             "required": true
@@ -930,11 +937,13 @@ func init() {
     "Message": {
       "type": "object",
       "required": [
-        "text"
+        "text",
+        "title"
       ],
       "properties": {
         "id": {
-          "type": "integer"
+          "type": "string",
+          "format": "uuid"
         },
         "is_read": {
           "type": "boolean"
@@ -948,6 +957,9 @@ func init() {
         "time": {
           "type": "string",
           "format": "date-time"
+        },
+        "title": {
+          "type": "string"
         },
         "ttl": {
           "type": "string"

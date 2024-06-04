@@ -3,8 +3,11 @@ package service
 import (
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/filter"
+	"log"
+	"slices"
 	"sort"
 	"time"
 )
@@ -83,7 +86,7 @@ func (s Service) GetMessages(
 		return nil, 0, err
 	}
 
-	var filters []filter.Func[storage.Message]
+	var filters []filter.Interface[storage.Message]
 
 	if read != nil {
 		filters = append(filters, isReadFilter(*read))
@@ -173,12 +176,13 @@ func sortMessagesFactory(result []storage.Message, sortParams map[string]bool) (
 	return result, nil
 }
 
-func (s Service) CreateMessage(text string, ttl time.Duration, priority int) (storage.Message, error) {
+func (s Service) CreateMessage(title, text string, ttl time.Duration, priority int) (storage.Message, error) {
 	var msg storage.Message
 	if err := s.transaction(func(brigade *storage.Brigade) error {
 		now := time.Now()
 		msg = storage.Message{
-			ID:        int(now.UnixNano()),
+			ID:        uuid.New(),
+			Title:     title,
 			Text:      text,
 			Priority:  priority,
 			CreatedAt: now,
@@ -196,17 +200,38 @@ func cleanupMessages(messages []storage.Message) []storage.Message {
 	return filter.Filter(
 		messages,
 		ttlExpired(),
-		firstN(10).IfOrTrue(noTTL()),
+		filter.Fn[storage.Message](func(messages []storage.Message) []storage.Message {
+			var idxs []int
+			i := 0
+			for i < len(messages) {
+				if idx := slices.IndexFunc(messages[i:], noTTL()); idx != -1 {
+					idxs = append(idxs, idx)
+					i++
+				} else {
+					break
+				}
+			}
+			if len(idxs) <= 10 {
+				return messages
+			}
+			toRemove := idxs[:len(idxs)-10]
+			slices.Reverse(toRemove)
+			for _, idx := range toRemove {
+				messages = append(messages[:idx], messages[idx+1:]...)
+			}
+			return messages
+		}),
 		notOlder(24*time.Hour*30).IfOrTrue(noTTL()),
-		firstN(100),
+		lastN(100),
 	)
 }
 
 var NotFound = errors.New("not found")
 
-func (s Service) MarkAsRead(id int) error {
+func (s Service) MarkAsRead(id uuid.UUID) error {
 	return s.transaction(func(brigade *storage.Brigade) error {
 		for i, message := range brigade.Messages {
+			log.Println(id, message.ID, id == message.ID)
 			if message.ID == id {
 				brigade.Messages[i].IsRead = true
 				return nil

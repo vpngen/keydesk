@@ -5,6 +5,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/gen/models"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
 	"github.com/vpngen/keydesk/internal/messages/service"
@@ -25,14 +26,18 @@ func GetMessages(
 
 	ret := make([]*models.Message, 0, len(messages))
 	for _, v := range messages {
-		ret = append(ret, &models.Message{
-			ID:       int64(v.ID),
+		m := models.Message{
+			ID:       strfmt.UUID(v.ID.String()),
+			Title:    swag.String(v.Title),
 			Text:     swag.String(v.Text),
 			IsRead:   v.IsRead,
 			Priority: int64(v.Priority),
 			Time:     strfmt.DateTime(v.CreatedAt),
-			TTL:      v.TTL.String(),
-		})
+		}
+		if v.TTL != 0 {
+			m.TTL = v.TTL.String()
+		}
+		ret = append(ret, &m)
 	}
 
 	return operations.NewGetMessagesOK().WithPayload(&models.Messages{
@@ -48,8 +53,16 @@ func GetMessages(
 //	return operations.NewPutMessageOK()
 //}
 
-func MarkAsRead(svc service.Service, id int) middleware.Responder {
-	if err := svc.MarkAsRead(id); err != nil {
+func MarkAsRead(svc service.Service, id string) middleware.Responder {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return operations.NewMarkMessageAsReadDefault(http.StatusNotFound).WithPayload(&models.Error{
+			Code:    http.StatusBadRequest,
+			Message: swag.String(err.Error()),
+		})
+	}
+
+	if err := svc.MarkAsRead(uid); err != nil {
 		switch {
 		case errors.Is(err, service.NotFound):
 			return operations.NewMarkMessageAsReadDefault(http.StatusNotFound).WithPayload(&models.Error{

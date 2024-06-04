@@ -20,7 +20,8 @@ import (
 type Message struct {
 
 	// id
-	ID int64 `json:"id,omitempty"`
+	// Format: uuid
+	ID strfmt.UUID `json:"id,omitempty"`
 
 	// is read
 	IsRead bool `json:"is_read,omitempty"`
@@ -36,6 +37,10 @@ type Message struct {
 	// Format: date-time
 	Time strfmt.DateTime `json:"time,omitempty"`
 
+	// title
+	// Required: true
+	Title *string `json:"title"`
+
 	// ttl
 	TTL string `json:"ttl,omitempty"`
 }
@@ -43,6 +48,10 @@ type Message struct {
 // Validate validates this message
 func (m *Message) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateID(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateText(formats); err != nil {
 		res = append(res, err)
@@ -52,9 +61,25 @@ func (m *Message) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateTitle(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Message) validateID(formats strfmt.Registry) error {
+	if swag.IsZero(m.ID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -73,6 +98,15 @@ func (m *Message) validateTime(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("time", "body", "date-time", m.Time.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Message) validateTitle(formats strfmt.Registry) error {
+
+	if err := validate.Required("title", "body", m.Title); err != nil {
 		return err
 	}
 

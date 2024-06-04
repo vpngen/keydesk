@@ -6,6 +6,7 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -85,11 +86,11 @@ func (o *MarkMessageAsReadOK) Code() int {
 }
 
 func (o *MarkMessageAsReadOK) Error() string {
-	return fmt.Sprintf("[POST /messages/{id}/read][%d] markMessageAsReadOK ", 200)
+	return fmt.Sprintf("[POST /messages/{id}/read][%d] markMessageAsReadOK", 200)
 }
 
 func (o *MarkMessageAsReadOK) String() string {
-	return fmt.Sprintf("[POST /messages/{id}/read][%d] markMessageAsReadOK ", 200)
+	return fmt.Sprintf("[POST /messages/{id}/read][%d] markMessageAsReadOK", 200)
 }
 
 func (o *MarkMessageAsReadOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -146,11 +147,13 @@ func (o *MarkMessageAsReadDefault) Code() int {
 }
 
 func (o *MarkMessageAsReadDefault) Error() string {
-	return fmt.Sprintf("[POST /messages/{id}/read][%d] markMessageAsRead default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /messages/{id}/read][%d] markMessageAsRead default %s", o._statusCode, payload)
 }
 
 func (o *MarkMessageAsReadDefault) String() string {
-	return fmt.Sprintf("[POST /messages/{id}/read][%d] markMessageAsRead default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /messages/{id}/read][%d] markMessageAsRead default %s", o._statusCode, payload)
 }
 
 func (o *MarkMessageAsReadDefault) GetPayload() *models.Error {

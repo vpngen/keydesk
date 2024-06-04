@@ -11,7 +11,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // NewMarkMessageAsReadParams creates a new MarkMessageAsReadParams object
@@ -35,7 +35,7 @@ type MarkMessageAsReadParams struct {
 	  Required: true
 	  In: path
 	*/
-	ID int64
+	ID strfmt.UUID
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -67,11 +67,25 @@ func (o *MarkMessageAsReadParams) bindID(rawData []string, hasKey bool, formats 
 	// Required: true
 	// Parameter is provided by construction from the route
 
-	value, err := swag.ConvertInt64(raw)
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
 	if err != nil {
-		return errors.InvalidType("id", "path", "int64", raw)
+		return errors.InvalidType("id", "path", "strfmt.UUID", raw)
 	}
-	o.ID = value
+	o.ID = *(value.(*strfmt.UUID))
 
+	if err := o.validateID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateID carries on validations for parameter ID
+func (o *MarkMessageAsReadParams) validateID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("id", "path", "uuid", o.ID.String(), formats); err != nil {
+		return err
+	}
 	return nil
 }

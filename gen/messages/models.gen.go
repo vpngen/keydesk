@@ -5,6 +5,8 @@ package messages
 
 import (
 	"time"
+
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 const (
@@ -15,6 +17,7 @@ const (
 type CreateMessageRequest struct {
 	Priority *int    `json:"priority,omitempty"`
 	Text     string  `json:"text"`
+	Title    string  `json:"title"`
 	Ttl      *string `json:"ttl,omitempty"`
 }
 
@@ -26,12 +29,13 @@ type Error struct {
 
 // Message defines model for Message.
 type Message struct {
-	Id       int       `json:"id"`
-	IsRead   bool      `json:"is_read"`
-	Priority int       `json:"priority"`
-	Text     string    `json:"text"`
-	Time     time.Time `json:"time"`
-	Ttl      string    `json:"ttl"`
+	Id       openapi_types.UUID `json:"id"`
+	IsRead   bool               `json:"is_read"`
+	Priority int                `json:"priority"`
+	Text     string             `json:"text"`
+	Time     time.Time          `json:"time"`
+	Title    string             `json:"title"`
+	Ttl      *string            `json:"ttl,omitempty"`
 }
 
 // PostMessagesJSONRequestBody defines body for PostMessages for application/json ContentType.

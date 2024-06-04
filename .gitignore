@@ -12,7 +12,7 @@ bin
 
 brigade.json*
 brigade.lock
-.maintenance
+.maintenance*
 stats.json*
 stats.lock
 vg-*.json

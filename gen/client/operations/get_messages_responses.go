@@ -6,6 +6,7 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -85,11 +86,13 @@ func (o *GetMessagesOK) Code() int {
 }
 
 func (o *GetMessagesOK) Error() string {
-	return fmt.Sprintf("[GET /messages][%d] getMessagesOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /messages][%d] getMessagesOK %s", 200, payload)
 }
 
 func (o *GetMessagesOK) String() string {
-	return fmt.Sprintf("[GET /messages][%d] getMessagesOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /messages][%d] getMessagesOK %s", 200, payload)
 }
 
 func (o *GetMessagesOK) GetPayload() *models.Messages {
@@ -152,11 +155,11 @@ func (o *GetMessagesInternalServerError) Code() int {
 }
 
 func (o *GetMessagesInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /messages][%d] getMessagesInternalServerError ", 500)
+	return fmt.Sprintf("[GET /messages][%d] getMessagesInternalServerError", 500)
 }
 
 func (o *GetMessagesInternalServerError) String() string {
-	return fmt.Sprintf("[GET /messages][%d] getMessagesInternalServerError ", 500)
+	return fmt.Sprintf("[GET /messages][%d] getMessagesInternalServerError", 500)
 }
 
 func (o *GetMessagesInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

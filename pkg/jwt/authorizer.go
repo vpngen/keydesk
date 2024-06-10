@@ -3,6 +3,7 @@ package jwt
 import (
 	"crypto"
 	"errors"
+	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -35,7 +36,7 @@ func (a Authorizer) Validate(tokenStr string) (Claims, error) {
 		},
 	)
 	if err != nil {
-		return Claims{}, ErrTokenInvalid
+		return Claims{}, fmt.Errorf("%w: %w", ErrTokenInvalid, err)
 	}
 	if !token.Valid {
 		return Claims{}, ErrTokenInvalid

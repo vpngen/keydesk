@@ -10,7 +10,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-openapi/runtime"
 	client2 "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/swag"
 	jwt2 "github.com/golang-jwt/jwt/v5"
@@ -466,19 +465,19 @@ func TestMessages(t *testing.T) {
 //	})
 //}
 
-func checkSwaggerResponse(resp runtime.ClientResponseStatus, t *testing.T) {
-	if !resp.IsSuccess() {
-		t.Error("expected success")
-	}
-
-	if resp.IsServerError() {
-		t.Error("expected not server error")
-	}
-
-	if resp.IsClientError() {
-		t.Error("expected not client error")
-	}
-}
+//func checkSwaggerResponse(resp runtime.ClientResponseStatus, t *testing.T) {
+//	if !resp.IsSuccess() {
+//		t.Error("expected success")
+//	}
+//
+//	if resp.IsServerError() {
+//		t.Error("expected not server error")
+//	}
+//
+//	if resp.IsClientError() {
+//		t.Error("expected not client error")
+//	}
+//}
 
 func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddleware) utils.TestMainMiddleware {
 	return func(m *testing.M) int {

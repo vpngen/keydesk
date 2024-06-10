@@ -1,0 +1,4 @@
+package: shuffler
+generate:
+  models: true
+output: ../../gen/shuffler/models.gen.go

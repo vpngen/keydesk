@@ -64,7 +64,7 @@ func MarkAsRead(svc service.Service, id string) middleware.Responder {
 
 	if err := svc.MarkAsRead(uid); err != nil {
 		switch {
-		case errors.Is(err, service.NotFound):
+		case errors.Is(err, service.ErrNotFound):
 			return operations.NewMarkMessageAsReadDefault(http.StatusNotFound).WithPayload(&models.Error{
 				Code:    http.StatusNotFound,
 				Message: swag.String(err.Error()),

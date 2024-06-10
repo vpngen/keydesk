@@ -1,0 +1,4 @@
+package: shuffler
+generate:
+  client: true
+output: ../../gen/shuffler/client.gen.go

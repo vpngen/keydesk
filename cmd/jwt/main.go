@@ -6,53 +6,52 @@ import (
 	gojwt "github.com/golang-jwt/jwt/v5"
 	"github.com/vpngen/keydesk/pkg/jwt"
 	"github.com/vpngen/keydesk/utils"
+	"log"
 	"os"
 	"strings"
 	"time"
 )
 
-func errQuit(msg string, err error) {
-	_, _ = fmt.Fprintf(os.Stderr, "%s: %s\n", msg, err)
-	os.Exit(1)
-}
-
 func main() {
-	keyFile := flag.String("key", "jwtkey.pem", "key file")
-	iss := flag.String("iss", "keydesk", "issuer")
-	sub := flag.String("sub", "keydesk", "subject")
-	aud := flag.String("aud", "keydesk", "audience, comma separated")
-	ttl := flag.String("ttl", "1h", "token ttl, duration string")
+	keyFile := flag.String("key", "key.pem", "private key file")
+	iss := flag.String("iss", "", "issuer")
+	sub := flag.String("sub", "", "subject")
+	aud := flag.String("aud", "", "audience, comma separated")
+	ttl := flag.String("ttl", "", "token ttl, duration string")
 	scopes := flag.String("scopes", "", "scopes, comma separated")
 	flag.Parse()
 
-	audSlice := strings.Split(*aud, ",")
-	scopeSlice := strings.Split(*scopes, ",")
-	dur, err := time.ParseDuration(*ttl)
-	if err != nil {
-		errQuit("parse duration", err)
-	}
+	log.Default().SetFlags(log.Lshortfile)
+	log.Default().SetOutput(os.Stderr)
+	log.Default().SetPrefix("[jwt]\t")
 
 	file, err := os.Open(*keyFile)
 	if err != nil {
-		errQuit("open key file", err)
+		log.Fatal("read key file:", err)
 	}
 
 	key, err := utils.ReadECPrivateKey(file)
 	if err != nil {
-		errQuit("read private key", err)
+		log.Fatal("read private key:", err)
 	}
 
 	issuer := jwt.NewIssuer(key, jwt.Options{
 		Issuer:        *iss,
+		Audience:      strings.Split(*aud, ","),
 		Subject:       *sub,
-		Audience:      audSlice,
 		SigningMethod: gojwt.SigningMethodES256,
 	})
-	token := issuer.CreateToken(dur, scopeSlice...)
-	signed, err := issuer.Sign(token)
+
+	ttlD, err := time.ParseDuration(*ttl)
 	if err != nil {
-		errQuit("sign token", err)
+		log.Fatal("parse ttl:", err)
 	}
 
-	fmt.Println(signed)
+	claims := issuer.CreateToken(ttlD, strings.Split(*scopes, ",")...)
+	token, err := issuer.Sign(claims)
+	if err != nil {
+		log.Fatal("sign token:", err)
+	}
+
+	fmt.Println(token)
 }

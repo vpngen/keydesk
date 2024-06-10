@@ -152,6 +152,7 @@ type User struct {
 	IsBrigadier               bool                  `json:"is_brigadier,omitempty"`
 	IPv4Addr                  netip.Addr            `json:"ipv4_addr"`
 	IPv6Addr                  netip.Addr            `json:"ipv6_addr"`
+	EndpointDomain            string                `json:"endpoint_domain,omitempty"`
 	WgPublicKey               []byte                `json:"wg_public_key"`
 	WgPSKRouterEnc            []byte                `json:"wg_psk_router_enc"`
 	WgPSKShufflerEnc          []byte                `json:"wg_psk_shuffler_enc"`
@@ -168,8 +169,20 @@ type User struct {
 	Quotas                    Quota                 `json:"quotas"`
 }
 
+func NewUser(userID uuid.UUID, name string, createdAt time.Time, isBrigadier bool, IPv4Addr netip.Addr, IPv6Addr netip.Addr, person namesgenerator.Person) User {
+	return User{UserID: userID, Name: name, CreatedAt: createdAt, IsBrigadier: isBrigadier, IPv4Addr: IPv4Addr, IPv6Addr: IPv6Addr, Person: person}
+}
+
 // BrigadeVersion - json version.
 const BrigadeVersion = 9
+
+type Mode = string
+
+const (
+	ModeBrigade  Mode = "brigade"
+	ModeShuffler Mode = "shuffler"
+	MaxUsers          = uint(255)
+)
 
 // Brigade - brigade.
 type Brigade struct {
@@ -178,10 +191,12 @@ type Brigade struct {
 	Ver                   int                  `json:"version"`
 	BrigadeID             string               `json:"brigade_id"`
 	CreatedAt             time.Time            `json:"created_at"`
+	Mode                  Mode                 `json:"mode"`
+	MaxUsers              uint                 `json:"max_users,omitempty"`
 	WgPublicKey           []byte               `json:"wg_public_key"`
 	WgPrivateRouterEnc    []byte               `json:"wg_private_router_enc"`
 	WgPrivateShufflerEnc  []byte               `json:"wg_private_shuffler_enc"`
-	CloakFakeDomain       string               `json:"cloak_faek_domain"`           // Cloak fake domain
+	CloakFakeDomain       string               `json:"cloak_fake_domain"`           // Cloak fake domain
 	OvCAKeyRouterEnc      string               `json:"openvpn_ca_key_router_enc"`   // OpenVPN CA key PEM PKSC8 for router prepared
 	OvCAKeyShufflerEnc    string               `json:"openvpn_ca_key_shuffler_enc"` // OpenVPN CA key PEM PKSC8 for shuffler prepared
 	OvCACertPemGzipBase64 string               `json:"openvpn_ca_cert"`             // OpenVPN CA cert PEM encoded
@@ -202,6 +217,24 @@ type Brigade struct {
 	Endpoints             UsersNetworks        `json:"endpoints,omitempty"`
 	Messages              []Message            `json:"messages,omitempty"`
 	Subscription          webpush.Subscription `json:"subscription"`
+}
+
+func (b Brigade) GetSupportedVPNProtocols() []string {
+	protocols := []string{"wg"} // wg is always supported
+
+	if b.OvCACertPemGzipBase64 != "" && b.OvCAKeyRouterEnc != "" && b.OvCAKeyShufflerEnc != "" {
+		protocols = append(protocols, "ovc")
+	}
+
+	if b.IPSecPSK != "" && b.IPSecPSKRouterEnc != "" && b.IPSecPSKShufflerEnc != "" {
+		protocols = append(protocols, "ipsec")
+	}
+
+	if b.OutlinePort > 0 {
+		protocols = append(protocols, "outline")
+	}
+
+	return protocols
 }
 
 // UserConfig - new user structure.

@@ -13,10 +13,8 @@ func TestRunner(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		r.AddTask(fmt.Sprintf("task-%d", i), Task{
 			Func: func(ctx context.Context) error {
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				}
+				<-ctx.Done()
+				return ctx.Err()
 			},
 		})
 	}

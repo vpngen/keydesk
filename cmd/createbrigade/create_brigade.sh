@@ -36,6 +36,10 @@ VGCERT_GROUP="vgcert"
 VGSTATS_GROUP="vgstats"
 VGROUTER_GROUP="vgrouter"
 
+MODE_BRIGADE="brigade"
+MODE_SHUFFLER="shuffler"
+DEFAULT_MAXUSERS=255
+
 if [ "root" != "$(whoami)" ]; then
         echo "DEBUG EXECUTION" >&2
         DEBUG="yes"
@@ -177,11 +181,31 @@ while [ "$#" -gt 0 ]; do
                         printdef "Invalid domain name ${domain}"
                 fi
                 ;;
+        -mode)
+                mode="$2"
+                shift 2
+                ;;
+        -maxusers)
+                maxusers="$2"
+                shift 2
+                ;;
         *)
                 printdef "Unknown option: $1"
                 ;;
     esac
 done
+
+if [ -z "$mode" ]; then
+        mode=$MODE_BRIGADE
+fi
+
+if [ -z "$maxusers" ]; then
+        maxusers=$DEFAULT_MAXUSERS
+fi
+
+if [ "${mode}" != $MODE_SHUFFLER ] && [ "${mode}" != $MODE_BRIGADE ]; then
+        printdef "Unknown mode: ${mode}"
+fi
 
 if [ -z "$brigade_id" ] \
 || [ -z "$endpoint_ip4" ] || [ -z "$ip4_cgnat" ] || [ -z "$ip6_ula" ] || [ -z "$dns_ip4" ] || [ -z "$dns_ip6" ] || [ -z "$keydesk_ip6" ] \
@@ -246,6 +270,8 @@ if [ -z "${DEBUG}" ]; then
                 -p "$port" \
                 -dn "$domain" \
                 ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
+                -mode "${mode}" \
+                -maxusers "${maxusers}" \
                 >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
 else
         BRIGADE_SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}")"
@@ -265,6 +291,8 @@ else
                         -c "${CONF_DIR}" \
                         ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
                         ${apiaddr} \
+                        -mode "${mode}" \
+                        -maxusers "${maxusers}" \
                         >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
         elif [ -s "${BRIGADE_SOURCE_DIR}/main.go" ]; then
                 # shellcheck disable=SC2086
@@ -282,6 +310,8 @@ else
                         -c "${CONF_DIR}" \
                         ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
                         ${apiaddr} \
+                        -mode "${mode}" \
+                        -maxusers "${maxusers}" \
                         >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
         else
                 echo "ERROR: Can't find ${BRIGADE_MAKER_APP_PATH} or ${BRIGADE_SOURCE_DIR}/main.go" >&2
@@ -290,53 +320,55 @@ else
         fi
 fi
 
-if [ -z "${DEBUG}" ]; then
-# shellcheck disable=SC2086
-wgconf="$(sudo -u "${brigade_id}" -g "${brigade_id}" "${KEYDESK_APP_PATH}" \
-        -name "${brigadier_name}" \
-        -person "${person_name}" \
-        -desc "${person_desc}" \
-        -url "${person_url}" \
-        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
-        ${chunked} \
-        ${json} \
-        )" || (echo "$wgconf"; exit 1)
-else
-        KEYDESK_SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}/../keydesk")"
-        # shellcheck disable=SC2086
-        if [ -x "${KEYDESK_APP_PATH}" ]; then
-                wgconf="$("${KEYDESK_APP_PATH}" \
-                        -name "${brigadier_name}" \
-                        -person "${person_name}" \
-                        -desc "${person_desc}" \
-                        -url "${person_url}" \
-                        -id "${brigade_id}" \
-                        -d "${DB_DIR}" \
-                        -c "${CONF_DIR}" \
-                        ${apiaddr} \
-                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
-                        ${chunked} \
-                        ${json} \
-                        )" || (echo "$wgconf"; exit 1)
-        elif [ -s "${KEYDESK_SOURCE_DIR}/../keydesk/main.go" ]; then
+if [ "${mode}" = $MODE_BRIGADE ]; then
+        if [ -z "${DEBUG}" ]; then
                 # shellcheck disable=SC2086
-                wgconf="$(go run "$(dirname $0)/../keydesk/main.go" \
+                wgconf="$(sudo -u "${brigade_id}" -g "${brigade_id}" "${KEYDESK_APP_PATH}" \
                         -name "${brigadier_name}" \
                         -person "${person_name}" \
                         -desc "${person_desc}" \
                         -url "${person_url}" \
-                        -id "${brigade_id}" \
-                        -d "${DB_DIR}" \
-                        -c "${CONF_DIR}" \
-                        ${apiaddr} \
                         ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
                         ${chunked} \
                         ${json} \
                         )" || (echo "$wgconf"; exit 1)
         else
-                echo "ERROR: can't find ${KEYDESK_APP_PATH} or ${KEYDESK_SOURCE_DIR}/../keydesk/main.go" >&2
+                KEYDESK_SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}/../keydesk")"
+                # shellcheck disable=SC2086
+                if [ -x "${KEYDESK_APP_PATH}" ]; then
+                        wgconf="$("${KEYDESK_APP_PATH}" \
+                                -name "${brigadier_name}" \
+                                -person "${person_name}" \
+                                -desc "${person_desc}" \
+                                -url "${person_url}" \
+                                -id "${brigade_id}" \
+                                -d "${DB_DIR}" \
+                                -c "${CONF_DIR}" \
+                                ${apiaddr} \
+                                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
+                                ${chunked} \
+                                ${json} \
+                                )" || (echo "$wgconf"; exit 1)
+                elif [ -s "${KEYDESK_SOURCE_DIR}/../keydesk/main.go" ]; then
+                        # shellcheck disable=SC2086
+                        wgconf="$(go run "$(dirname $0 | xargs realpath)/../keydesk" \
+                                -name "${brigadier_name}" \
+                                -person "${person_name}" \
+                                -desc "${person_desc}" \
+                                -url "${person_url}" \
+                                -id "${brigade_id}" \
+                                -d "${DB_DIR}" \
+                                -c "${CONF_DIR}" \
+                                ${apiaddr} \
+                                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
+                                ${chunked} \
+                                ${json} \
+                                )" || (echo "$wgconf"; exit 1)
+                else
+                        echo "ERROR: can't find ${KEYDESK_APP_PATH} or ${KEYDESK_SOURCE_DIR}/../keydesk/main.go" >&2
 
-                fatal "500" "Internal server error" "Can't find keydesk binary or source code"
+                        fatal "500" "Internal server error" "Can't find keydesk binary or source code"
+                fi
         fi
 fi
 
@@ -354,7 +386,9 @@ else
         echo "DEBUG: systemctl -q start ${systemd_vgkeydesk_instance}.service" >&2
 fi
 
-# Print brigadier config
-printf "%s" "${wgconf}"
+if [ "${mode}" = $MODE_BRIGADE ]; then
+        # Print brigadier config
+        printf "%s" "${wgconf}"
+fi
 
 [ -z "${DEBUG}" ] && date -u +"%Y-%m-%dT%H:%M:%S" > "${DB_DIR}/${brigade_id}/created"

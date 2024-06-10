@@ -545,6 +545,7 @@ func genUserOutlineSecret(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKe
 
 	secret = secret[:OutlineSecretLen]
 
+	// TODO: why do we encrypt *encoded* secret?
 	secretRouter, err := box.SealAnonymous(nil, []byte(secret), routerPublicKey, rand.Reader)
 	if err != nil {
 		return "", "", "", fmt.Errorf("secret router seal: %w", err)

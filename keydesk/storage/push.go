@@ -22,7 +22,7 @@ func (db *BrigadeStorage) SaveSubscription(sub webpush.Subscription) error {
 	return nil
 }
 
-var SubscriptionNotFound = fmt.Errorf("subscription not found")
+var ErrSubscriptionNotFound = fmt.Errorf("subscription not found")
 
 func (db *BrigadeStorage) GetSubscription() (webpush.Subscription, error) {
 	f, brigade, err := db.OpenDbToModify()
@@ -33,7 +33,7 @@ func (db *BrigadeStorage) GetSubscription() (webpush.Subscription, error) {
 
 	empty := webpush.Subscription{}
 	if brigade.Subscription == empty {
-		return webpush.Subscription{}, SubscriptionNotFound
+		return webpush.Subscription{}, ErrSubscriptionNotFound
 	}
 
 	sub := brigade.Subscription

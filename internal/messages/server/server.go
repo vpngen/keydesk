@@ -78,7 +78,7 @@ func (s Server) PostMessages(_ context.Context, request messages2.PostMessagesRe
 //func (s Server) PostMessagesIdRead(_ context.Context, request messages2.PostMessagesIdReadRequestObject) (messages2.PostMessagesIdReadResponseObject, error) {
 //	if err := s.msgSvc.MarkAsRead(request.Id); err != nil {
 //		switch {
-//		case errors.Is(err, service.NotFound):
+//		case errors.Is(err, service.ErrNotFound):
 //			return markAsReadError(http.StatusNotFound, err.Error())
 //		default:
 //			return markAsReadError(http.StatusInternalServerError, err.Error())

@@ -34,7 +34,7 @@ func NewGetMessages(ctx *middleware.Context, handler GetMessagesHandler) *GetMes
 
 # Get messages
 
-Get messages, triggered by frontend
+Get messages, used by frontend. JWT token is required.
 */
 type GetMessages struct {
 	Context *middleware.Context

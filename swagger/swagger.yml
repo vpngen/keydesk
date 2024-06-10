@@ -183,7 +183,8 @@ paths:
       parameters:
         - in: path
           name: id
-          type: integer
+          type: string
+          format: uuid
           required: true
       responses:
         200:
@@ -362,8 +363,11 @@ definitions:
     type: object
     properties:
       id:
-        type: integer
+        type: string
+        format: uuid
       text:
+        type: string
+      title:
         type: string
       is_read:
         type: boolean
@@ -376,6 +380,7 @@ definitions:
         type: string
     required:
       - text
+      - title
   Messages:
     type: object
     properties:

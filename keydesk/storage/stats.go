@@ -237,6 +237,10 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 		}
 	}
 
+	if data.Endpoints == nil {
+		data.Endpoints = UsersNetworks{}
+	}
+
 	for _, user := range data.Users {
 		id := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(user.WgPublicKey)
 		sum := RxTx{}
@@ -345,12 +349,28 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 		lastActivityWg := lastSeenMap.Wg[id]
 		lastActivityMark(now, lastActivityWg, &user.Quotas.LastWgActivity)
 
+		if prefix, ok := endpointMap.Wg[id]; ok {
+			if prefix.IsValid() {
+				if data.Endpoints[prefix.String()].Before(lastActivityWg) {
+					data.Endpoints[prefix.String()] = lastActivityWg
+				}
+			}
+		}
+
 		// !!! fix Unix zero time bug.
 		if user.Quotas.LastIPSecActivity.Total.Equal(nullUnixTime) {
 			user.Quotas.LastIPSecActivity.Total = time.Time{}
 		}
 		lastActivityIPSec := lastSeenMap.IPSec[id]
 		lastActivityMark(now, lastActivityIPSec, &user.Quotas.LastIPSecActivity)
+
+		if prefix, ok := endpointMap.IPSec[id]; ok {
+			if prefix.IsValid() {
+				if data.Endpoints[prefix.String()].Before(lastActivityIPSec) {
+					data.Endpoints[prefix.String()] = lastActivityIPSec
+				}
+			}
+		}
 
 		// !!! fix Unix zero time bug.
 		if user.Quotas.LastOvcActivity.Total.Equal(nullUnixTime) {
@@ -359,12 +379,28 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 		lastActivityOvc := lastSeenMap.Ovc[id]
 		lastActivityMark(now, lastActivityOvc, &user.Quotas.LastOvcActivity)
 
+		if prefix, ok := endpointMap.Ovc[id]; ok {
+			if prefix.IsValid() {
+				if data.Endpoints[prefix.String()].Before(lastActivityOvc) {
+					data.Endpoints[prefix.String()] = lastActivityOvc
+				}
+			}
+		}
+
 		// !!! fix Unix zero time bug.
 		if user.Quotas.LastOutlineActivity.Total.Equal(nullUnixTime) {
 			user.Quotas.LastOutlineActivity.Total = time.Time{}
 		}
 		lastActivityOutline := lastSeenMap.Outline[id]
 		lastActivityMark(now, lastActivityOutline, &user.Quotas.LastOutlineActivity)
+
+		if prefix, ok := endpointMap.Outline[id]; ok {
+			if prefix.IsValid() {
+				if data.Endpoints[prefix.String()].Before(lastActivityOutline) {
+					data.Endpoints[prefix.String()] = lastActivityOutline
+				}
+			}
+		}
 
 		lastActivityTotal := user.Quotas.LastActivity.Total
 
@@ -431,28 +467,6 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 	incDateSwitchRelated(now, totalTraffic.TrafficOvc.Rx, totalTraffic.TrafficOvc.Tx, &data.TotalOvcTraffic)
 	incDateSwitchRelated(now, totalTraffic.TrafficOutline.Rx, totalTraffic.TrafficOutline.Tx, &data.TotalOutlineTraffic)
 
-	if data.Endpoints == nil {
-		data.Endpoints = UsersNetworks{}
-	}
-
-	for _, prefix := range endpointMap.Wg {
-		if prefix.IsValid() {
-			data.Endpoints[prefix.String()] = now
-		}
-	}
-
-	for _, prefix := range endpointMap.IPSec {
-		if prefix.IsValid() {
-			data.Endpoints[prefix.String()] = now
-		}
-	}
-
-	for _, prefix := range endpointMap.Ovc {
-		if prefix.IsValid() {
-			data.Endpoints[prefix.String()] = now
-		}
-	}
-
 	lowLimit := now.Add(-endpointsTTL)
 	for prefix, updated := range data.Endpoints {
 		if updated.Before(lowLimit) {
@@ -461,36 +475,6 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 	}
 
 	data.CountersUpdateTime = statsTimestamp.Time
-
-	if data.Ver < 6 {
-		/*stats := &data.StatsCountersStack[len(data.StatsCountersStack)-1]
-		stats.TotalTraffic = data.TotalTraffic.Monthly
-		stats.TotalWgTraffic = data.TotalWgTraffic.Monthly
-		stats.TotalIPSecTraffic = data.TotalIPSecTraffic.Monthly*/
-
-		data.StatsCountersStack[0].ActiveWgUsersCount = data.StatsCountersStack[0].ActiveUsersCount
-
-		for i := len(data.StatsCountersStack) - 1; i > 0; i-- {
-			x := data.StatsCountersStack[i]
-			y := data.StatsCountersStack[i-1]
-
-			data.StatsCountersStack[i].TotalTraffic.Rx = x.NetCounters.TotalTraffic.Rx - y.NetCounters.TotalTraffic.Rx
-			data.StatsCountersStack[i].TotalTraffic.Tx = x.NetCounters.TotalTraffic.Tx - y.NetCounters.TotalTraffic.Tx
-			data.StatsCountersStack[i].TotalWgTraffic.Rx = x.NetCounters.TotalWgTraffic.Rx - y.NetCounters.TotalWgTraffic.Rx
-			data.StatsCountersStack[i].TotalWgTraffic.Tx = x.NetCounters.TotalWgTraffic.Tx - y.NetCounters.TotalWgTraffic.Tx
-			data.StatsCountersStack[i].TotalIPSecTraffic.Rx = x.NetCounters.TotalIPSecTraffic.Rx - y.NetCounters.TotalIPSecTraffic.Rx
-			data.StatsCountersStack[i].TotalIPSecTraffic.Tx = x.NetCounters.TotalIPSecTraffic.Tx - y.NetCounters.TotalIPSecTraffic.Tx
-
-			data.StatsCountersStack[i].ActiveWgUsersCount = data.StatsCountersStack[i].ActiveUsersCount
-		}
-
-		data.Ver = BrigadeVersion
-	}
-
-	if data.Ver < 7 || data.EndpointPort == 0 {
-		data.EndpointPort = 51820
-		data.Ver = BrigadeVersion
-	}
 
 	data.StatsCountersStack.Put(data.BrigadeCounters, totalTraffic)
 

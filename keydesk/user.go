@@ -7,7 +7,9 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/vpngen/keydesk/internal/vpn/vgc"
 	"math"
+	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -168,88 +170,44 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 
 	// TODO: check vpnCfgs
 	{
-		//key, err := wgtypes.NewKey(wgPriv)
-		//if err != nil {
-		//	return "", nil, fmt.Errorf("wgtypes.NewKey: %w", err)
-		//}
-		//
-		//pub, err := wgtypes.NewKey(user.EndpointWgPublic)
-		//if err != nil {
-		//	return "", nil, fmt.Errorf("wgtypes.NewKey: %w", err)
-		//}
-		//
-		//psk, err := wgtypes.NewKey(wgPSK)
-		//if err != nil {
-		//	return "", nil, fmt.Errorf("wgtypes.NewKey: %w", err)
-		//}
-		//
-		//wg := vgc.NewWireguardAnyIP(
-		//	key.String(),
-		//	netip.PrefixFrom(user.IPv4, 32).String()+","+netip.PrefixFrom(user.IPv6, 128).String(),
-		//	user.DNSv4.String()+","+user.DNSv6.String(),
-		//	pub.String(),
-		//	psk.String(),
-		//	fmt.Sprintf("%s:%d", endpointHostString, user.EndpointPort),
-		//)
-		//
-		//ss := vgc.NewSS(endpointHostString, ChaCha20, outlineSecret, user.OutlinePort)
-		//
-		//ck := vgc.NewCloakDefault(endpointHostString, cloakBypassUID, pub.String(), vgc.ProxyBook{
-		//	Shadowsocks: vgc.NewSSProxyBook(ChaCha20, outlineSecret),
-		//})
-		//
-		//cfg := vgc.NewV1(user.Name, wg, ck, ss)
-
-		cipher := ChaCha20
-		pubB64 := strfmt.Base64(user.EndpointWgPublic)
-		privB64 := strfmt.Base64(wgPriv[:])
-		pskB64 := strfmt.Base64(wgPSK[:])
-		ckPort := int64(443)
-		metaExt := int64(1)
-		metaVer := int64(1)
-		meta := models.Meta{
-			Extended: &metaExt,
-			Name:     &user.Name,
-			Version:  &metaVer,
+		key, err := wgtypes.NewKey(wgPriv)
+		if err != nil {
+			return "", nil, fmt.Errorf("wgtypes.NewKey: %w", err)
 		}
-		dns := user.DNSv4.String() + "," + user.DNSv6.String()
-		allowedIPs := "0.0.0.0/0,::/0"
-		ep := fmt.Sprintf("%s:%d", endpointHostString, user.EndpointPort)
 
-		newuser.VPNGenConfig = &models.VPNGenConfig{
-			Cloak: &models.Cloak{
-				ProxyBook: &models.ProxyBook{
-					Shadowsocks: &models.Shadowsocks{
-						Password: &outlineSecret,
-						Cipher:   &cipher,
-					},
-				},
-				PublicKey:  &pubB64,
-				RemoteHost: &endpointHostString,
-				RemotePort: &ckPort,
-				UID:        &cloakBypassUID,
-			},
-			Config: &meta,
-			Shadowsocks: &models.Shadowsocks{
-				Cipher:   &cipher,
-				Host:     endpointHostString,
-				Password: &cloakBypassUID,
-				Port:     int64(user.OutlinePort),
-			},
-			Wireguard: &models.Wireguard{
-				Interface: &models.WireguardInterface{
-					Address:    &endpointHostString,
-					DNS:        &dns,
-					PrivateKey: &privB64,
-				},
-				Peer: &models.WireguardPeer{
-					AllowedIPs:   &allowedIPs,
-					Endpoint:     &ep,
-					PresharedKey: pskB64,
-					PublicKey:    &pubB64,
-				},
-			},
+		pub, err := wgtypes.NewKey(user.EndpointWgPublic)
+		if err != nil {
+			return "", nil, fmt.Errorf("wgtypes.NewKey: %w", err)
 		}
+
+		psk, err := wgtypes.NewKey(wgPSK)
+		if err != nil {
+			return "", nil, fmt.Errorf("wgtypes.NewKey: %w", err)
+		}
+
+		wg := vgc.NewWireguardAnyIP(
+			key.String(),
+			netip.PrefixFrom(user.IPv4, 32).String()+","+netip.PrefixFrom(user.IPv6, 128).String(),
+			user.DNSv4.String()+","+user.DNSv6.String(),
+			pub.String(),
+			psk.String(),
+			fmt.Sprintf("%s:%d", endpointHostString, user.EndpointPort),
+		)
+
+		ss := vgc.NewSS(endpointHostString, ChaCha20, outlineSecret, user.OutlinePort)
+
+		ck := vgc.NewCloakDefault(endpointHostString, cloakBypassUID, pub.String(), vgc.ProxyBook{
+			Shadowsocks: vgc.NewSSProxyBook(ChaCha20, outlineSecret),
+		})
+
+		cfg := vgc.NewV1(user.Name, wg, ck, ss)
+
+		encoded, err := cfg.Encode()
+		if err != nil {
+			return "", nil, fmt.Errorf("vgc.Encode: %w", err)
+		}
+
+		newuser.VPNGenConfig = models.VGC(encoded)
 	}
 
 	return wgconf, newuser, nil

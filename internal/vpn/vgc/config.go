@@ -1,11 +1,26 @@
 package vgc
 
-type Config struct {
-	Config      config      `json:"config"`
-	Wireguard   Wireguard   `json:"wireguard"`
-	Cloak       Cloak       `json:"cloak"`
-	Shadowsocks Shadowsocks `json:"shadowsocks"`
-}
+import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
+	"fmt"
+	"github.com/btcsuite/btcd/btcutil/base58"
+)
+
+type (
+	Config struct {
+		Config      config      `json:"config"`
+		Wireguard   Wireguard   `json:"wireguard"`
+		Cloak       Cloak       `json:"cloak"`
+		Shadowsocks Shadowsocks `json:"shadowsocks"`
+	}
+	config struct {
+		Version  int    `json:"version"`
+		Name     string `json:"name"`
+		Extended int    `json:"extended"`
+	}
+)
 
 func New(name string, version, extended int, wg Wireguard, ck Cloak, ss Shadowsocks) Config {
 	return Config{
@@ -17,16 +32,19 @@ func New(name string, version, extended int, wg Wireguard, ck Cloak, ss Shadowso
 }
 
 func NewV1(name string, wg Wireguard, ck Cloak, ss Shadowsocks) Config {
-	return Config{
-		Config:      config{1, name, 1},
-		Wireguard:   wg,
-		Cloak:       ck,
-		Shadowsocks: ss,
-	}
+	return New(name, 1, 1, wg, ck, ss)
 }
 
-type config struct {
-	Version  int    `json:"version"`
-	Name     string `json:"name"`
-	Extended int    `json:"extended"`
+const Schema = "vgc://"
+
+func (c Config) Encode() (string, error) {
+	buf := new(bytes.Buffer)
+	gz := gzip.NewWriter(buf)
+	if err := json.NewEncoder(gz).Encode(c); err != nil {
+		return "", fmt.Errorf("encode: %w", err)
+	}
+	if err := gz.Close(); err != nil {
+		return "", fmt.Errorf("close gzip: %w", err)
+	}
+	return Schema + base58.Encode(buf.Bytes()), nil
 }

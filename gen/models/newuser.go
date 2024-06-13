@@ -33,7 +33,7 @@ type Newuser struct {
 	UserName *string `json:"UserName"`
 
 	// v p n gen config
-	VPNGenConfig *VPNGenConfig `json:"VPNGenConfig,omitempty"`
+	VPNGenConfig VGC `json:"VPNGenConfig,omitempty"`
 
 	// wireguard config
 	WireguardConfig *NewuserWireguardConfig `json:"WireguardConfig,omitempty"`
@@ -144,15 +144,13 @@ func (m *Newuser) validateVPNGenConfig(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if m.VPNGenConfig != nil {
-		if err := m.VPNGenConfig.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("VPNGenConfig")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("VPNGenConfig")
-			}
-			return err
+	if err := m.VPNGenConfig.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("VPNGenConfig")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("VPNGenConfig")
 		}
+		return err
 	}
 
 	return nil
@@ -272,20 +270,17 @@ func (m *Newuser) contextValidateOutlineConfig(ctx context.Context, formats strf
 
 func (m *Newuser) contextValidateVPNGenConfig(ctx context.Context, formats strfmt.Registry) error {
 
-	if m.VPNGenConfig != nil {
+	if swag.IsZero(m.VPNGenConfig) { // not required
+		return nil
+	}
 
-		if swag.IsZero(m.VPNGenConfig) { // not required
-			return nil
+	if err := m.VPNGenConfig.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("VPNGenConfig")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("VPNGenConfig")
 		}
-
-		if err := m.VPNGenConfig.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("VPNGenConfig")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("VPNGenConfig")
-			}
-			return err
-		}
+		return err
 	}
 
 	return nil

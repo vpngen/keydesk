@@ -326,38 +326,6 @@ func init() {
     }
   },
   "definitions": {
-    "Cloak": {
-      "type": "object",
-      "required": [
-        "RemoteHost",
-        "RemotePort",
-        "UID",
-        "PublicKey",
-        "ProxyBook"
-      ],
-      "properties": {
-        "ProxyBook": {
-          "$ref": "#/definitions/ProxyBook"
-        },
-        "PublicKey": {
-          "type": "string",
-          "format": "byte",
-          "example": "oD/F2vU4oaAFeA5Rh43Qbn8G2QnlKQOdGe18YxiskRw="
-        },
-        "RemoteHost": {
-          "type": "string",
-          "example": "195.133.0.115"
-        },
-        "RemotePort": {
-          "type": "integer",
-          "example": 443
-        },
-        "UID": {
-          "type": "string",
-          "example": "FLaIuM1TN4902FHHnzU/yQ=="
-        }
-      }
-    },
     "Message": {
       "type": "object",
       "required": [
@@ -408,144 +376,8 @@ func init() {
         }
       }
     },
-    "Meta": {
-      "type": "object",
-      "required": [
-        "version",
-        "name",
-        "extended"
-      ],
-      "properties": {
-        "extended": {
-          "type": "integer",
-          "example": 1
-        },
-        "name": {
-          "type": "string",
-          "example": "0_Yet_Another_Staging_JSON"
-        },
-        "version": {
-          "type": "integer",
-          "example": 1
-        }
-      }
-    },
-    "ProxyBook": {
-      "type": "object",
-      "required": [
-        "shadowsocks"
-      ],
-      "properties": {
-        "shadowsocks": {
-          "$ref": "#/definitions/Shadowsocks"
-        }
-      }
-    },
-    "Shadowsocks": {
-      "type": "object",
-      "required": [
-        "cipher",
-        "password"
-      ],
-      "properties": {
-        "cipher": {
-          "type": "string",
-          "example": "AEAD_CHACHA20_POLY1305"
-        },
-        "host": {
-          "type": "string",
-          "example": "195.133.0.115"
-        },
-        "password": {
-          "type": "string",
-          "example": "Cc6bBZVzaSz9moET8K6wBNEVQ6gctF1ffQtqqmGy4dnF6LJLoXHNxvLrG2dW1yoeCjKSgkThZ5EAVQtcM9j3RAAnYssPVSxW"
-        },
-        "port": {
-          "type": "integer",
-          "example": 9944
-        }
-      }
-    },
-    "VPNGenConfig": {
-      "type": "object",
-      "properties": {
-        "cloak": {
-          "$ref": "#/definitions/Cloak"
-        },
-        "config": {
-          "$ref": "#/definitions/Meta"
-        },
-        "shadowsocks": {
-          "$ref": "#/definitions/Shadowsocks"
-        },
-        "wireguard": {
-          "$ref": "#/definitions/Wireguard"
-        }
-      }
-    },
-    "Wireguard": {
-      "type": "object",
-      "required": [
-        "Interface",
-        "Peer"
-      ],
-      "properties": {
-        "Interface": {
-          "$ref": "#/definitions/WireguardInterface"
-        },
-        "Peer": {
-          "$ref": "#/definitions/WireguardPeer"
-        }
-      }
-    },
-    "WireguardInterface": {
-      "type": "object",
-      "required": [
-        "PrivateKey",
-        "Address",
-        "DNS"
-      ],
-      "properties": {
-        "Address": {
-          "type": "string",
-          "example": "172.16.0.2,fd0d:86fa:c3bc::2"
-        },
-        "DNS": {
-          "type": "string",
-          "example": "172.16.0.1,fd0d:86fa:c3bc::1"
-        },
-        "PrivateKey": {
-          "type": "string",
-          "format": "byte",
-          "example": "OGldQ4F+94FX2XAUfZb6hx30U3/aeZ8Xn6V07Egw/3M="
-        }
-      }
-    },
-    "WireguardPeer": {
-      "type": "object",
-      "required": [
-        "PublicKey",
-        "AllowedIPs",
-        "Endpoint"
-      ],
-      "properties": {
-        "AllowedIPs": {
-          "type": "string",
-          "example": "0.0.0.0/0,::/0"
-        },
-        "Endpoint": {
-          "type": "string",
-          "example": "195.133.0.118:40000"
-        },
-        "PresharedKey": {
-          "format": "byte"
-        },
-        "PublicKey": {
-          "type": "string",
-          "format": "byte",
-          "example": "gLXvjRXiSv3HHeXbnRxBxLPMfXDesAnJ2mpJveabNjM="
-        }
-      }
+    "VGC": {
+      "type": "string"
     },
     "error": {
       "type": "object",
@@ -643,7 +475,7 @@ func init() {
           "type": "string"
         },
         "VPNGenConfig": {
-          "$ref": "#/definitions/VPNGenConfig"
+          "$ref": "#/definitions/VGC"
         },
         "WireguardConfig": {
           "type": "object",
@@ -1108,38 +940,6 @@ func init() {
     }
   },
   "definitions": {
-    "Cloak": {
-      "type": "object",
-      "required": [
-        "RemoteHost",
-        "RemotePort",
-        "UID",
-        "PublicKey",
-        "ProxyBook"
-      ],
-      "properties": {
-        "ProxyBook": {
-          "$ref": "#/definitions/ProxyBook"
-        },
-        "PublicKey": {
-          "type": "string",
-          "format": "byte",
-          "example": "oD/F2vU4oaAFeA5Rh43Qbn8G2QnlKQOdGe18YxiskRw="
-        },
-        "RemoteHost": {
-          "type": "string",
-          "example": "195.133.0.115"
-        },
-        "RemotePort": {
-          "type": "integer",
-          "example": 443
-        },
-        "UID": {
-          "type": "string",
-          "example": "FLaIuM1TN4902FHHnzU/yQ=="
-        }
-      }
-    },
     "Message": {
       "type": "object",
       "required": [
@@ -1187,28 +987,6 @@ func init() {
         },
         "total": {
           "type": "integer"
-        }
-      }
-    },
-    "Meta": {
-      "type": "object",
-      "required": [
-        "version",
-        "name",
-        "extended"
-      ],
-      "properties": {
-        "extended": {
-          "type": "integer",
-          "example": 1
-        },
-        "name": {
-          "type": "string",
-          "example": "0_Yet_Another_Staging_JSON"
-        },
-        "version": {
-          "type": "integer",
-          "example": 1
         }
       }
     },
@@ -1284,42 +1062,6 @@ func init() {
         }
       }
     },
-    "ProxyBook": {
-      "type": "object",
-      "required": [
-        "shadowsocks"
-      ],
-      "properties": {
-        "shadowsocks": {
-          "$ref": "#/definitions/Shadowsocks"
-        }
-      }
-    },
-    "Shadowsocks": {
-      "type": "object",
-      "required": [
-        "cipher",
-        "password"
-      ],
-      "properties": {
-        "cipher": {
-          "type": "string",
-          "example": "AEAD_CHACHA20_POLY1305"
-        },
-        "host": {
-          "type": "string",
-          "example": "195.133.0.115"
-        },
-        "password": {
-          "type": "string",
-          "example": "Cc6bBZVzaSz9moET8K6wBNEVQ6gctF1ffQtqqmGy4dnF6LJLoXHNxvLrG2dW1yoeCjKSgkThZ5EAVQtcM9j3RAAnYssPVSxW"
-        },
-        "port": {
-          "type": "integer",
-          "example": 9944
-        }
-      }
-    },
     "StatsActiveUsersItems0": {
       "type": "object",
       "required": [
@@ -1366,86 +1108,8 @@ func init() {
         }
       }
     },
-    "VPNGenConfig": {
-      "type": "object",
-      "properties": {
-        "cloak": {
-          "$ref": "#/definitions/Cloak"
-        },
-        "config": {
-          "$ref": "#/definitions/Meta"
-        },
-        "shadowsocks": {
-          "$ref": "#/definitions/Shadowsocks"
-        },
-        "wireguard": {
-          "$ref": "#/definitions/Wireguard"
-        }
-      }
-    },
-    "Wireguard": {
-      "type": "object",
-      "required": [
-        "Interface",
-        "Peer"
-      ],
-      "properties": {
-        "Interface": {
-          "$ref": "#/definitions/WireguardInterface"
-        },
-        "Peer": {
-          "$ref": "#/definitions/WireguardPeer"
-        }
-      }
-    },
-    "WireguardInterface": {
-      "type": "object",
-      "required": [
-        "PrivateKey",
-        "Address",
-        "DNS"
-      ],
-      "properties": {
-        "Address": {
-          "type": "string",
-          "example": "172.16.0.2,fd0d:86fa:c3bc::2"
-        },
-        "DNS": {
-          "type": "string",
-          "example": "172.16.0.1,fd0d:86fa:c3bc::1"
-        },
-        "PrivateKey": {
-          "type": "string",
-          "format": "byte",
-          "example": "OGldQ4F+94FX2XAUfZb6hx30U3/aeZ8Xn6V07Egw/3M="
-        }
-      }
-    },
-    "WireguardPeer": {
-      "type": "object",
-      "required": [
-        "PublicKey",
-        "AllowedIPs",
-        "Endpoint"
-      ],
-      "properties": {
-        "AllowedIPs": {
-          "type": "string",
-          "example": "0.0.0.0/0,::/0"
-        },
-        "Endpoint": {
-          "type": "string",
-          "example": "195.133.0.118:40000"
-        },
-        "PresharedKey": {
-          "format": "byte"
-        },
-        "PublicKey": {
-          "type": "string",
-          "format": "byte",
-          "example": "gLXvjRXiSv3HHeXbnRxBxLPMfXDesAnJ2mpJveabNjM="
-        }
-      }
+    "VGC": {
+      "type": "string"
     },
     "error": {
       "type": "object",
@@ -1543,7 +1207,7 @@ func init() {
           "type": "string"
         },
         "VPNGenConfig": {
-          "$ref": "#/definitions/VPNGenConfig"
+          "$ref": "#/definitions/VGC"
         },
         "WireguardConfig": {
           "type": "object",

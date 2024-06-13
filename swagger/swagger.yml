@@ -259,7 +259,7 @@ definitions:
           AccessKey:
             type: string
       VPNGenConfig:
-        $ref: '#/definitions/VPNGenConfig'
+        $ref: '#/definitions/VGC'
   user:
     type: object
     required:
@@ -395,129 +395,8 @@ definitions:
     required:
       - messages
       - total
-  VPNGenConfig:
-    type: object
-    properties:
-      config:
-        $ref: '#/definitions/Meta'
-      wireguard:
-        $ref: '#/definitions/Wireguard'
-      cloak:
-        $ref: '#/definitions/Cloak'
-      shadowsocks:
-        $ref: '#/definitions/Shadowsocks'
-  Meta:
-    type: object
-    properties:
-      version:
-        type: integer
-        example: 1
-      name:
-        type: string
-        example: "0_Yet_Another_Staging_JSON"
-      extended:
-        type: integer
-        example: 1
-    required:
-      - version
-      - name
-      - extended
-  Wireguard:
-    type: object
-    properties:
-      Interface:
-        $ref: '#/definitions/WireguardInterface'
-      Peer:
-        $ref: '#/definitions/WireguardPeer'
-    required:
-      - Interface
-      - Peer
-  WireguardInterface:
-    type: object
-    properties:
-      PrivateKey:
-        type: string
-        format: byte
-        example: "OGldQ4F+94FX2XAUfZb6hx30U3/aeZ8Xn6V07Egw/3M="
-      Address:
-        type: string
-        example: "172.16.0.2,fd0d:86fa:c3bc::2"
-      DNS:
-        type: string
-        example: "172.16.0.1,fd0d:86fa:c3bc::1"
-    required:
-      - PrivateKey
-      - Address
-      - DNS
-  WireguardPeer:
-    type: object
-    properties:
-      PublicKey:
-        type: string
-        format: byte
-        example: "gLXvjRXiSv3HHeXbnRxBxLPMfXDesAnJ2mpJveabNjM="
-      PresharedKey:
-        format: byte
-        example: null
-      AllowedIPs:
-        type: string
-        example: "0.0.0.0/0,::/0"
-      Endpoint:
-        type: string
-        example: "195.133.0.118:40000"
-    required:
-      - PublicKey
-      - AllowedIPs
-      - Endpoint
-  Cloak:
-    type: object
-    properties:
-      RemoteHost:
-        type: string
-        example: "195.133.0.115"
-      RemotePort:
-        type: integer
-        example: 443
-      UID:
-        type: string
-        example: "FLaIuM1TN4902FHHnzU/yQ=="
-      PublicKey:
-        type: string
-        format: byte
-        example: "oD/F2vU4oaAFeA5Rh43Qbn8G2QnlKQOdGe18YxiskRw="
-      ProxyBook:
-        $ref: '#/definitions/ProxyBook'
-    required:
-      - RemoteHost
-      - RemotePort
-      - UID
-      - PublicKey
-      - ProxyBook
-  ProxyBook:
-    type: object
-    properties:
-      shadowsocks:
-        $ref: '#/definitions/Shadowsocks'
-    required:
-      - shadowsocks
-  Shadowsocks:
-    type: object
-    properties:
-      host:
-        type: string
-        example: "195.133.0.115"
-      port:
-        type: integer
-        example: 9944
-      cipher:
-        type: string
-        example: "AEAD_CHACHA20_POLY1305"
-      password:
-        type: string
-        example: "Cc6bBZVzaSz9moET8K6wBNEVQ6gctF1ffQtqqmGy4dnF6LJLoXHNxvLrG2dW1yoeCjKSgkThZ5EAVQtcM9j3RAAnYssPVSxW"
-    required:
-    - cipher
-    - password
+  VGC:
+    type: string
 securityDefinitions:
   Bearer:
     type: apiKey

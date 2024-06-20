@@ -1,6 +1,9 @@
 package storage
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 const (
 	ConfigWgTypeNative  = "native"
@@ -95,4 +98,16 @@ func (c *ConfigsImplemented) NewOutlineConfigs(req map[string]bool) {
 	}
 
 	c.Outline = req
+}
+
+// GetSupportedVPNProtocols returns the list of supported VPN types
+func (db *BrigadeStorage) GetSupportedVPNProtocols() ([]string, error) {
+	f, data, err := db.openWithReading()
+	if err != nil {
+		return nil, fmt.Errorf("open db: %w", err)
+	}
+
+	defer f.Close()
+
+	return data.GetSupportedVPNProtocols(), nil
 }

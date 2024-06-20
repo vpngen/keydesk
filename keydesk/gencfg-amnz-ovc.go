@@ -265,13 +265,14 @@ func (ac *AmneziaConfig) Marshal() (string, error) {
 }
 
 func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv, cloakByPassUID string) (*AmneziaContainer, error) {
-	endpointHostString := u.EndpointDomain
-	if endpointHostString == "" {
-		endpointHostString = u.EndpointIPv4.String()
-	}
+	//endpointHostString := u.EndpointDomain
+	//if endpointHostString == "" {
+	//	endpointHostString = u.EndpointIPv4.String()
+	//}
 
 	cloakConfig, err := NewCloackConfig(
-		endpointHostString,
+		// endpointHostString,
+		u.EndpointIPv4.String(),
 		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.EndpointWgPublic),
 		cloakByPassUID,
 		defaultCloakBrowserSig,

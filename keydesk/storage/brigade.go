@@ -37,6 +37,9 @@ func (db *BrigadeStorage) CreateBrigade(
 	ovcConf *BrigadeOvcConfig,
 	ipcseConf *BrigadeIPSecConfig,
 	outlineConf *BrigadeOutlineConfig,
+	mode Mode,
+	maxUsers uint,
+
 ) error {
 	f, data, err := db.openWithoutReading(config.BrigadeID)
 	if err != nil {
@@ -56,6 +59,11 @@ func (db *BrigadeStorage) CreateBrigade(
 		if db.actualAddrPort.IsValid() {
 			fmt.Fprintf(os.Stderr, "API endpoint: %s\n", db.actualAddrPort)
 		}
+	}
+
+	data.Mode = mode
+	if mode == ModeShuffler {
+		data.MaxUsers = maxUsers
 	}
 
 	data.IPv4CGNAT = config.IPv4CGNAT

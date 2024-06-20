@@ -90,8 +90,8 @@ func getAPIRequest(ident string, actualAddrPort, calculatedAddrPort netip.AddrPo
 		return nil, fmt.Errorf("new req: %w", err)
 	}
 
-	num := nextSerial()
-	fmt.Fprintf(os.Stderr, "Request (%s | n=%04x): %s\n", ident, num, apiURL)
+	// num := nextSerial()
+	// fmt.Fprintf(os.Stderr, "Request (%s | n=%04x): %s\n", ident, num, apiURL)
 
 	c := &http.Client{
 		Transport: &http.Transport{
@@ -110,7 +110,7 @@ func getAPIRequest(ident string, actualAddrPort, calculatedAddrPort netip.AddrPo
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 
-	fmt.Fprintf(os.Stderr, "Response (%s | n=%04x): %s\n", ident, num, body)
+	// fmt.Fprintf(os.Stderr, "Response (%s | n=%04x): %s\n", ident, num, body)
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("resp code: %w", err)

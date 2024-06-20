@@ -147,6 +147,10 @@ func (db *BrigadeStorage) openBrigadeWithReading() (*kdlib.FileDb, *Brigade, err
 		return nil, nil, fmt.Errorf("check: %w", ErrUnknownBrigade)
 	}
 
+	if data.CloakFakeDomain == "" && data.CloakFaekDomain != "" {
+		data.CloakFakeDomain = data.CloakFaekDomain
+	}
+
 	// backup is read was succesfull.
 	if err := f.Backup(); err != nil {
 		f.Close()

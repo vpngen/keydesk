@@ -269,10 +269,10 @@ func GenConfAmneziaOpenVPNoverCloak(u *storage.UserConfig, ovcKeyPriv, cloakByPa
 	//if endpointHostString == "" {
 	//	endpointHostString = u.EndpointIPv4.String()
 	//}
+	endpointHostString := u.EndpointIPv4.String()
 
 	cloakConfig, err := NewCloackConfig(
-		// endpointHostString,
-		u.EndpointIPv4.String(),
+		endpointHostString,
 		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(u.EndpointWgPublic),
 		cloakByPassUID,
 		defaultCloakBrowserSig,

@@ -1,10 +1,11 @@
 package vpn
 
 const (
-	Outline = "outline"
-	OVC     = "ovc"
-	WG      = "wg"
-	IPSec   = "ipsec"
+	Outline   = "outline"
+	Amnezia   = "amnezia"
+	Wireguard = "wireguard"
+	IPSec     = "ipsec"
+	VGC       = "vgc"
 )
 
 type FileConfig struct {

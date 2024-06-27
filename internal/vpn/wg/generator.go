@@ -1,72 +1,63 @@
 package wg
 
 import (
-	"crypto/rand"
 	"fmt"
-	"github.com/vpngen/keydesk/internal/vpn"
-	"github.com/vpngen/vpngine/naclkey"
-	"golang.org/x/crypto/nacl/box"
+	"github.com/vpngen/keydesk/keydesk/storage"
+	"github.com/vpngen/keydesk/utils"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"net/netip"
 )
 
-// Generator implements vpn.Generator
-type Generator struct {
-	priv, pub, epPub     wgtypes.Key
-	ip4, ip6, dns4, dns6 netip.Addr
-	host, userName       string
-	port                 uint16
-}
-
-func NewGenerator(
-	priv, pub, epPub wgtypes.Key,
-	ip4, ip6, dns4, dns6 netip.Addr,
-	host, userName string,
-	port uint16,
-) Generator {
-	return Generator{
-		priv:     priv,
-		pub:      pub,
-		epPub:    epPub,
-		ip4:      ip4,
-		ip6:      ip6,
-		dns4:     dns4,
-		dns6:     dns6,
-		host:     host,
-		userName: userName,
-		port:     port,
+func Generate(brigade *storage.Brigade, user *storage.User, nacl utils.NaCl, epData map[string]string) (RawConfig, error) {
+	// generate keys
+	epPub, err := wgtypes.NewKey(brigade.WgPublicKey)
+	if err != nil {
+		return RawConfig{}, fmt.Errorf("endpoint pub: %w", err)
 	}
-}
 
-func (g Generator) Generate(routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) (vpn.Config, error) {
+	key, err := wgtypes.GenerateKey()
+	if err != nil {
+		return RawConfig{}, fmt.Errorf("generate key: %w", err)
+	}
+
 	psk, err := wgtypes.GenerateKey()
 	if err != nil {
-		return nil, fmt.Errorf("psk: %w", err)
+		return RawConfig{}, fmt.Errorf("generate psk: %w", err)
 	}
 
-	routerPsk, err := box.SealAnonymous(nil, psk[:], &routerPub, rand.Reader)
+	// assemble config
+	wgcfg := RawConfig{
+		Key: key,
+		Address: []netip.Prefix{
+			netip.PrefixFrom(user.IPv4Addr, 32),
+			netip.PrefixFrom(user.IPv6Addr, 128),
+		},
+		DNS:          []netip.Addr{brigade.DNSv4, brigade.DNSv6},
+		PublicKey:    epPub,
+		PresharedKey: psk,
+		AllowedIPs: []netip.Prefix{
+			netip.PrefixFrom(netip.AddrFrom4([4]byte{}), 0),
+			netip.PrefixFrom(netip.AddrFrom16([16]byte{}), 0),
+		},
+		EndpointHost: storage.GetEndpointHost(brigade, user),
+		EndpointPort: brigade.EndpointPort,
+	}
+
+	// encrypt
+	pskenc, err := nacl.Seal(psk[:])
 	if err != nil {
-		return nil, fmt.Errorf("psk router seal: %w", err)
+		return RawConfig{}, fmt.Errorf("encrypt psk: %w", err)
 	}
 
-	shufflerPsk, err := box.SealAnonymous(nil, psk[:], &shufflerPub, rand.Reader)
-	if err != nil {
-		return nil, fmt.Errorf("psk shuffler seal: %w", err)
-	}
+	// add endpoint data
+	epData["wg-public-key"] = epPub.String()
+	epData["wg-psk-key"] = pskenc.Router.Base64()
+	epData["allowed-ips"] = wgcfg.GetAddresses()
 
-	return Config{
-		priv:        g.priv,
-		pub:         g.pub,
-		psk:         psk,
-		routerPSK:   routerPsk,
-		shufflerPSK: shufflerPsk,
-		epPub:       g.epPub,
-		ip4:         g.ip4,
-		ip6:         g.ip6,
-		dns4:        g.dns4,
-		dns6:        g.dns6,
-		host:        g.host,
-		userName:    g.userName,
-		port:        g.port,
-	}, nil
+	// add user data
+	user.WgPublicKey = epPub[:]
+	user.WgPSKRouterEnc = pskenc.Router
+	user.WgPSKShufflerEnc = pskenc.Shuffler
+
+	return wgcfg, nil
 }

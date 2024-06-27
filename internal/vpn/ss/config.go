@@ -1,10 +1,7 @@
 package ss
 
 import (
-	"encoding/base64"
 	"fmt"
-	"github.com/vpngen/keydesk/internal/vpn"
-	"net/url"
 )
 
 const (
@@ -12,25 +9,21 @@ const (
 	encryption = "chacha20-ietf-poly1305"
 )
 
-// Config implements vpn.Config
 type Config struct {
-	secret, name, host           string
-	port                         uint16
-	routerSecret, shufflerSecret []byte
+	Host     string `json:"host,omitempty"`
+	Port     uint16 `json:"port,omitempty"`
+	Cipher   string `json:"cipher"`
+	Password string `json:"password"`
 }
 
-func (c Config) Protocol() string {
-	return vpn.Outline
+func NewSS(host, cipher, password string, port uint16) Config {
+	return Config{Host: host, Port: port, Cipher: cipher, Password: password}
 }
 
-func (c Config) getConnString(host string, port uint16) string {
-	return fmt.Sprintf("%s:%s@%s:%d", encryption, c.secret, host, port)
+func NewSSProxyBook(cipher, password string) Config {
+	return Config{Cipher: cipher, Password: password}
 }
 
-func (c Config) GetAccessKey(name, host string, port uint16) string {
-	return fmt.Sprintf(
-		"ss://%s#%s",
-		base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString([]byte(c.getConnString(host, port))),
-		url.QueryEscape(name),
-	)
+func (c Config) GetConnString() string {
+	return fmt.Sprintf("%s:%s@%s:%d", encryption, c.Password, c.Host, c.Port)
 }

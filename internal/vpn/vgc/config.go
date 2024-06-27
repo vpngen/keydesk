@@ -6,14 +6,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/btcsuite/btcd/btcutil/base58"
+	"github.com/vpngen/keydesk/internal/vpn/cloak"
+	"github.com/vpngen/keydesk/internal/vpn/ss"
+	"github.com/vpngen/keydesk/internal/vpn/wg"
 )
 
 type (
 	Config struct {
-		Config      config      `json:"config"`
-		Wireguard   Wireguard   `json:"wireguard"`
-		Cloak       Cloak       `json:"cloak"`
-		Shadowsocks Shadowsocks `json:"shadowsocks"`
+		Config      config     `json:"config"`
+		Wireguard   wg.Config2 `json:"wireguard"`
+		Cloak       cloak.VGC  `json:"cloak"`
+		Shadowsocks ss.Config  `json:"shadowsocks"`
 	}
 	config struct {
 		Version  int    `json:"version"`
@@ -22,7 +25,7 @@ type (
 	}
 )
 
-func New(name string, version, extended int, wg Wireguard, ck Cloak, ss Shadowsocks) Config {
+func New(name string, version, extended int, wg wg.Config2, ck cloak.VGC, ss ss.Config) Config {
 	return Config{
 		Config:      config{version, name, extended},
 		Wireguard:   wg,
@@ -31,7 +34,7 @@ func New(name string, version, extended int, wg Wireguard, ck Cloak, ss Shadowso
 	}
 }
 
-func NewV1(name string, wg Wireguard, ck Cloak, ss Shadowsocks) Config {
+func NewV1(name string, wg wg.Config2, ck cloak.VGC, ss ss.Config) Config {
 	return New(name, 1, 1, wg, ck, ss)
 }
 

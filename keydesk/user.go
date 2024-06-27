@@ -7,7 +7,10 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/vpngen/keydesk/internal/vpn/cloak"
+	ss2 "github.com/vpngen/keydesk/internal/vpn/ss"
 	"github.com/vpngen/keydesk/internal/vpn/vgc"
+	wg2 "github.com/vpngen/keydesk/internal/vpn/wg"
 	"math"
 	"net/netip"
 	"net/url"
@@ -185,7 +188,7 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 			return "", nil, fmt.Errorf("wgtypes.NewKey: %w", err)
 		}
 
-		wg := vgc.NewWireguardAnyIP(
+		wg := wg2.NewWireguardAnyIP(
 			key.String(),
 			netip.PrefixFrom(user.IPv4, 32).String()+","+netip.PrefixFrom(user.IPv6, 128).String(),
 			user.DNSv4.String()+","+user.DNSv6.String(),
@@ -194,10 +197,10 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 			fmt.Sprintf("%s:%d", endpointHostString, user.EndpointPort),
 		)
 
-		ss := vgc.NewSS(endpointHostString, ChaCha20, outlineSecret, user.OutlinePort)
+		ss := ss2.NewSS(endpointHostString, ChaCha20, outlineSecret, user.OutlinePort)
 
-		ck := vgc.NewCloakDefault(endpointHostString, cloakBypassUID, pub.String(), vgc.ProxyBook{
-			Shadowsocks: vgc.NewSSProxyBook(ChaCha20, outlineSecret),
+		ck := cloak.NewCloakDefault(endpointHostString, cloakBypassUID, pub.String(), cloak.ProxyBook{
+			Shadowsocks: ss2.NewSSProxyBook(ChaCha20, outlineSecret),
 		})
 
 		cfg := vgc.NewV1(user.Name, wg, ck, ss)

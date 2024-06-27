@@ -378,14 +378,11 @@ type PostConfigsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON201      *struct {
-		Config VPNConfig `json:"config"`
+		Configs VPNConfig `json:"configs"`
 
 		// FreeSlots Number of free VPN slots after creation
 		FreeSlots int                `json:"free_slots"`
 		Id        openapi_types.UUID `json:"id"`
-
-		// Type VPN type
-		Type ConfigType `json:"type"`
 	}
 	JSONDefault *ErrorResponse
 }
@@ -547,14 +544,11 @@ func ParsePostConfigsResponse(rsp *http.Response) (*PostConfigsResponse, error) 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
 		var dest struct {
-			Config VPNConfig `json:"config"`
+			Configs VPNConfig `json:"configs"`
 
 			// FreeSlots Number of free VPN slots after creation
 			FreeSlots int                `json:"free_slots"`
 			Id        openapi_types.UUID `json:"id"`
-
-			// Type VPN type
-			Type ConfigType `json:"type"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err

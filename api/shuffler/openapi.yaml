@@ -7,7 +7,6 @@ paths:
   /configs:
     post:
       summary: Create new VPN config
-      description: Default config type is outline. Default domain is domain of keydesk.
       requestBody:
         required: true
         content:
@@ -15,13 +14,15 @@ paths:
             schema:
               type: object
               properties:
-                type:
-                  $ref: '#/components/schemas/ConfigType'
+                configs:
+                  type: array
+                  items:
+                    type: string
                 domain:
                   type: string
                   description: Domain for connection, if omitted default domain is domain of keydesk
               required:
-                - type
+                - configs
               example:
                 type: outline
                 domain: example.com
@@ -38,17 +39,14 @@ paths:
                   id:
                     type: string
                     format: uuid
-                  type:
-                    $ref: '#/components/schemas/ConfigType'
-                  config:
+                  configs:
                     $ref: '#/components/schemas/VPNConfig'
                   free_slots:
                     type: integer
                     description: Number of free VPN slots after creation
                 required:
                   - id
-                  - type
-                  - config
+                  - configs
                   - free_slots
         412:
           description: No free VPN slots
@@ -112,14 +110,14 @@ paths:
         - JWTAuth: [ ]
 components:
   schemas:
-    ConfigType:
-      type: string
-      description: VPN type
-      enum:
-        - outline
-        - ovc
-        - wg
-        - ipsec
+#    ConfigType:
+#      type: string
+#      description: VPN type
+#      enum:
+#        - outline
+#        - ovc
+#        - wg
+#        - ipsec
     OutlineConfig:
       properties:
         access_key:
@@ -167,11 +165,18 @@ components:
         - file_name
         - file_content
     VPNConfig:
-      oneOf:
-        - $ref: '#/components/schemas/OutlineConfig'
-        - $ref: '#/components/schemas/AmneziaOVCConfig'
-        - $ref: '#/components/schemas/WireGuardConfig'
-        - $ref: '#/components/schemas/IPSecL2TPConfig'
+      type: object
+      properties:
+        wireguard:
+          $ref: '#/components/schemas/WireGuardConfig'
+        amnezia:
+          $ref: '#/components/schemas/AmneziaOVCConfig'
+        outline:
+          type: string
+        ipsec:
+          $ref: '#/components/schemas/IPSecL2TPConfig'
+        vgc:
+          type: string
     SlotsInfo:
       type: object
       properties:

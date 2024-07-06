@@ -258,6 +258,8 @@ definitions:
         properties:
           AccessKey:
             type: string
+      VPNGenConfig:
+        $ref: '#/definitions/VGC'
   user:
     type: object
     required:
@@ -393,100 +395,8 @@ definitions:
     required:
       - messages
       - total
-#  Subscription:
-#    type: object
-#    properties:
-#      endpoint:
-#        type: string
-#      keys:
-#        type: object
-#        properties:
-#          p256dh:
-#            type: string
-#          auth:
-#            type: string
-#    required:
-#      - endpoint
-#      - keys
-#  PushOptions:
-#    type: object
-#    properties:
-#      subscriber:
-#        type: string
-#      topic:
-#        type: string
-#      urgency:
-#        type: string
-#      public_key:
-#        type: string
-#      private_key:
-#        type: string
-#  NotificationOptions:
-#    type: object
-#    properties:
-#      title:
-#        type: string
-#      options:
-#        type: object
-#        properties:
-#          body:
-#            type: string
-#          actions:
-#            type: array
-#            items:
-#              type: object
-#              properties:
-#                action:
-#                  type: string
-#                icon:
-#                  type: string
-#                title:
-#                  type: string
-#          badge:
-#            type: string
-#          data:
-#            $ref: '#/definitions/AnyValue'
-#          dir:
-#            type: string
-#          icon:
-#            type: string
-#          image:
-#            type: string
-#          lang:
-#            type: string
-#          renotify:
-#            type: boolean
-#          requireInteraction:
-#            type: boolean
-#          silent:
-#            type: boolean
-#          tag:
-#            type: string
-#          timestamp:
-#            type: integer
-#          vibrate:
-#            type: array
-#            items:
-#              type: integer
-#        required:
-#          - body
-#    required:
-#      - title
-#  PushRequest:
-#    type: object
-#    properties:
-#      notification:
-#        $ref: '#/definitions/NotificationOptions'
-#      subscription:
-#        $ref: '#/definitions/Subscription'
-#      options:
-#        $ref: '#/definitions/PushOptions'
-#    required:
-#      - notification
-#      - subscription
-#      - options
-#  AnyValue: { }
-
+  VGC:
+    type: string
 securityDefinitions:
   Bearer:
     type: apiKey

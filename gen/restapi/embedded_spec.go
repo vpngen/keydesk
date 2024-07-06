@@ -376,6 +376,9 @@ func init() {
         }
       }
     },
+    "VGC": {
+      "type": "string"
+    },
     "error": {
       "type": "object",
       "required": [
@@ -470,6 +473,9 @@ func init() {
         },
         "UserName": {
           "type": "string"
+        },
+        "VPNGenConfig": {
+          "$ref": "#/definitions/VGC"
         },
         "WireguardConfig": {
           "type": "object",
@@ -1102,6 +1108,9 @@ func init() {
         }
       }
     },
+    "VGC": {
+      "type": "string"
+    },
     "error": {
       "type": "object",
       "required": [
@@ -1196,6 +1205,9 @@ func init() {
         },
         "UserName": {
           "type": "string"
+        },
+        "VPNGenConfig": {
+          "$ref": "#/definitions/VGC"
         },
         "WireguardConfig": {
           "type": "object",

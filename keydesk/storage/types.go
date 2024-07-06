@@ -222,18 +222,18 @@ type Brigade struct {
 }
 
 func (b Brigade) GetSupportedVPNProtocols() []string {
-	protocols := []string{"wg"} // wg is always supported
+	protocols := []string{"wireguard"} // wg is always supported
 
 	if b.OvCACertPemGzipBase64 != "" && b.OvCAKeyRouterEnc != "" && b.OvCAKeyShufflerEnc != "" {
-		protocols = append(protocols, "ovc")
+		protocols = append(protocols, "openvpn", "cloak")
 	}
 
 	if b.IPSecPSK != "" && b.IPSecPSKRouterEnc != "" && b.IPSecPSKShufflerEnc != "" {
-		protocols = append(protocols, "ipsec")
+		protocols = append(protocols, "l2tp")
 	}
 
 	if b.OutlinePort > 0 {
-		protocols = append(protocols, "outline")
+		protocols = append(protocols, "shadowsocks")
 	}
 
 	return protocols

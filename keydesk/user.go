@@ -7,7 +7,12 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/vpngen/keydesk/internal/vpn/cloak"
+	ss2 "github.com/vpngen/keydesk/internal/vpn/ss"
+	"github.com/vpngen/keydesk/internal/vpn/vgc"
+	wg2 "github.com/vpngen/keydesk/internal/vpn/wg"
 	"math"
+	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -35,6 +40,7 @@ import (
 const (
 	CGNATPrefix = "100.64.0.0/10"
 	ULAPrefix   = "fd00::/8"
+	ChaCha20    = "chacha20-ietf-poly1305"
 )
 
 // Users defaults
@@ -166,6 +172,48 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 		newuser.OutlineConfig = &models.NewuserOutlineConfig{
 			AccessKey: &accessKey,
 		}
+	}
+
+	// TODO: check vpnCfgs
+	{
+		key, err := wgtypes.NewKey(wgPriv)
+		if err != nil {
+			return "", nil, fmt.Errorf("wgtypes.NewKey: %w", err)
+		}
+
+		pub, err := wgtypes.NewKey(user.EndpointWgPublic)
+		if err != nil {
+			return "", nil, fmt.Errorf("wgtypes.NewKey: %w", err)
+		}
+
+		psk, err := wgtypes.NewKey(wgPSK)
+		if err != nil {
+			return "", nil, fmt.Errorf("wgtypes.NewKey: %w", err)
+		}
+
+		wg := wg2.NewWireguardAnyIP(
+			key.String(),
+			netip.PrefixFrom(user.IPv4, 32).String()+","+netip.PrefixFrom(user.IPv6, 128).String(),
+			user.DNSv4.String()+","+user.DNSv6.String(),
+			pub.String(),
+			psk.String(),
+			fmt.Sprintf("%s:%d", endpointHostString, user.EndpointPort),
+		)
+
+		ss := ss2.NewSS(endpointHostString, ChaCha20, outlineSecret, user.OutlinePort)
+
+		ck := cloak.NewCloakDefault(endpointHostString, cloakBypassUID, pub.String(), cloak.ProxyBook{
+			Shadowsocks: ss2.NewSSProxyBook(ChaCha20, outlineSecret),
+		})
+
+		cfg := vgc.NewV1(user.Name, wg, ck, ss)
+
+		encoded, err := cfg.Encode()
+		if err != nil {
+			return "", nil, fmt.Errorf("vgc.Encode: %w", err)
+		}
+
+		newuser.VPNGenConfig = models.VGC(encoded)
 	}
 
 	return wgconf, newuser, nil

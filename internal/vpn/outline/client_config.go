@@ -1,7 +1,16 @@
 package outline
 
-import "github.com/vpngen/keydesk/internal/vpn/endpoint"
+import (
+	"encoding/base64"
+	"fmt"
+	"github.com/vpngen/keydesk/internal/vpn/ss"
+	"net/url"
+)
 
-func (c Config) GetClientConfig(_ endpoint.APIResponse) (any, error) {
-	return c.GetAccessKey(c.name, c.host, c.port), nil
+func NewFromSS(name string, cfg ss.Config) (string, error) {
+	return fmt.Sprintf(
+		"ss://%s#%s",
+		base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString([]byte(cfg.GetConnString())),
+		url.QueryEscape(name),
+	), nil
 }

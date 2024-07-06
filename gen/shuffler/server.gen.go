@@ -161,14 +161,11 @@ type PostConfigsResponseObject interface {
 }
 
 type PostConfigs201JSONResponse struct {
-	Config VPNConfig `json:"config"`
+	Configs VPNConfig `json:"configs"`
 
 	// FreeSlots Number of free VPN slots after creation
 	FreeSlots int                `json:"free_slots"`
 	Id        openapi_types.UUID `json:"id"`
-
-	// Type VPN type
-	Type ConfigType `json:"type"`
 }
 
 func (response PostConfigs201JSONResponse) VisitPostConfigsResponse(w http.ResponseWriter) error {

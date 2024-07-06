@@ -4,22 +4,11 @@
 package shuffler
 
 import (
-	"encoding/json"
-
-	"github.com/oapi-codegen/runtime"
 	"github.com/vpngen/keydesk/internal/user"
 )
 
 const (
 	JWTAuthScopes = "JWTAuth.Scopes"
-)
-
-// Defines values for ConfigType.
-const (
-	Ipsec   ConfigType = "ipsec"
-	Outline ConfigType = "outline"
-	Ovc     ConfigType = "ovc"
-	Wg      ConfigType = "wg"
 )
 
 // Activities defines model for Activities.
@@ -35,9 +24,6 @@ type AmneziaOVCConfig struct {
 	TunnelName  string `json:"tunnel_name"`
 }
 
-// ConfigType VPN type
-type ConfigType string
-
 // Error defines model for Error.
 type Error = string
 
@@ -49,11 +35,6 @@ type IPSecL2TPConfig struct {
 	Username string `json:"username"`
 }
 
-// OutlineConfig defines model for OutlineConfig.
-type OutlineConfig struct {
-	AccessKey string `json:"access_key"`
-}
-
 // SlotsInfo defines model for SlotsInfo.
 type SlotsInfo struct {
 	FreeSlots  int `json:"free_slots"`
@@ -62,7 +43,11 @@ type SlotsInfo struct {
 
 // VPNConfig defines model for VPNConfig.
 type VPNConfig struct {
-	union json.RawMessage
+	Amnezia   *AmneziaOVCConfig `json:"amnezia,omitempty"`
+	Ipsec     *IPSecL2TPConfig  `json:"ipsec,omitempty"`
+	Outline   *string           `json:"outline,omitempty"`
+	Vgc       *string           `json:"vgc,omitempty"`
+	Wireguard *WireGuardConfig  `json:"wireguard,omitempty"`
 }
 
 // WireGuardConfig defines model for WireGuardConfig.
@@ -77,126 +62,11 @@ type ErrorResponse = Error
 
 // PostConfigsJSONBody defines parameters for PostConfigs.
 type PostConfigsJSONBody struct {
+	Configs []string `json:"configs"`
+
 	// Domain Domain for connection, if omitted default domain is domain of keydesk
 	Domain *string `json:"domain,omitempty"`
-
-	// Type VPN type
-	Type ConfigType `json:"type"`
 }
 
 // PostConfigsJSONRequestBody defines body for PostConfigs for application/json ContentType.
 type PostConfigsJSONRequestBody PostConfigsJSONBody
-
-// AsOutlineConfig returns the union data inside the VPNConfig as a OutlineConfig
-func (t VPNConfig) AsOutlineConfig() (OutlineConfig, error) {
-	var body OutlineConfig
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromOutlineConfig overwrites any union data inside the VPNConfig as the provided OutlineConfig
-func (t *VPNConfig) FromOutlineConfig(v OutlineConfig) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeOutlineConfig performs a merge with any union data inside the VPNConfig, using the provided OutlineConfig
-func (t *VPNConfig) MergeOutlineConfig(v OutlineConfig) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsAmneziaOVCConfig returns the union data inside the VPNConfig as a AmneziaOVCConfig
-func (t VPNConfig) AsAmneziaOVCConfig() (AmneziaOVCConfig, error) {
-	var body AmneziaOVCConfig
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromAmneziaOVCConfig overwrites any union data inside the VPNConfig as the provided AmneziaOVCConfig
-func (t *VPNConfig) FromAmneziaOVCConfig(v AmneziaOVCConfig) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeAmneziaOVCConfig performs a merge with any union data inside the VPNConfig, using the provided AmneziaOVCConfig
-func (t *VPNConfig) MergeAmneziaOVCConfig(v AmneziaOVCConfig) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsWireGuardConfig returns the union data inside the VPNConfig as a WireGuardConfig
-func (t VPNConfig) AsWireGuardConfig() (WireGuardConfig, error) {
-	var body WireGuardConfig
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromWireGuardConfig overwrites any union data inside the VPNConfig as the provided WireGuardConfig
-func (t *VPNConfig) FromWireGuardConfig(v WireGuardConfig) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeWireGuardConfig performs a merge with any union data inside the VPNConfig, using the provided WireGuardConfig
-func (t *VPNConfig) MergeWireGuardConfig(v WireGuardConfig) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsIPSecL2TPConfig returns the union data inside the VPNConfig as a IPSecL2TPConfig
-func (t VPNConfig) AsIPSecL2TPConfig() (IPSecL2TPConfig, error) {
-	var body IPSecL2TPConfig
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromIPSecL2TPConfig overwrites any union data inside the VPNConfig as the provided IPSecL2TPConfig
-func (t *VPNConfig) FromIPSecL2TPConfig(v IPSecL2TPConfig) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeIPSecL2TPConfig performs a merge with any union data inside the VPNConfig, using the provided IPSecL2TPConfig
-func (t *VPNConfig) MergeIPSecL2TPConfig(v IPSecL2TPConfig) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t VPNConfig) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	return b, err
-}
-
-func (t *VPNConfig) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	return err
-}

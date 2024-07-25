@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -95,6 +96,8 @@ func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgener
 	return wgconf, kdlib.AssembleWgStyleTunName(user.Name) + ".conf", confJson, nil
 }
 
+const OutlinePrefix = "%16%03%01%00%C2%A8%01%01"
+
 func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemented, wgPriv, wgPSK []byte, ovcPriv, cloakBypassUID string, ipsecUsername, ipsecPassword, outlineSecret string) (string, *models.Newuser, error) {
 	var (
 		wgconf        string
@@ -161,8 +164,11 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 
 	if vpnCfgs.Outline[storage.ConfigOutlineTypeAccesskey] {
 		accessKey := "ss://" + base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString(
-			fmt.Appendf([]byte{}, "chacha20-ietf-poly1305:%s@%s:%d", outlineSecret, endpointHostString, user.OutlinePort),
-		) + "#" + url.QueryEscape(user.Name)
+			fmt.Appendf([]byte{}, "chacha20-ietf-poly1305:%s", outlineSecret),
+		) +
+			"@" + netip.AddrPortFrom(user.EndpointIPv4, user.OutlinePort).String() +
+			"/?outline=1&prefix=" + OutlinePrefix +
+			"#" + url.QueryEscape(user.Name)
 		newuser.OutlineConfig = &models.NewuserOutlineConfig{
 			AccessKey: &accessKey,
 		}

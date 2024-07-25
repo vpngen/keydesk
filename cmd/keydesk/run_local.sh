@@ -33,4 +33,4 @@ if [ -z "$NO_RANDOM" ]; then
     export VGSTATS_RANDOM_DATA
 fi
 
-go run ./"$(dirname "$0")" -m "${LISTEN_MESSAGE}" -a "${ADDRESS}"  -d "${DATA_DIR}" -c "${CONFIG_DIR}" -id "${BRIGADE_ID}" -l "${LISTEN_ADDR}" ${CORS} -w "${WEB_DIR}"
+go run ./"$(dirname "$0")" -shuffler  "-" -m "${LISTEN_MESSAGE}" -a "${ADDRESS}"  -d "${DATA_DIR}" -c "${CONFIG_DIR}" -id "${BRIGADE_ID}" -l "${LISTEN_ADDR}" ${CORS} -w "${WEB_DIR}"

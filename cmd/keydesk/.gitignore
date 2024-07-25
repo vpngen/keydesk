@@ -9,3 +9,5 @@ keydesk
 *.lock
 *.old
 created
+*.pem
+*.sock

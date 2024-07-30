@@ -410,10 +410,6 @@ func createBrigadier(db *storage.BrigadeStorage,
 		return fmt.Errorf("print json: %w", err)
 	}
 
-	if _, err := fmt.Println(); err != nil {
-		return fmt.Errorf("print newline: %w", err)
-	}
-
 	return nil
 }
 

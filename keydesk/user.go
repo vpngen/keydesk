@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -166,7 +165,7 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 		accessKey := "ss://" + base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString(
 			fmt.Appendf([]byte{}, "chacha20-ietf-poly1305:%s", outlineSecret),
 		) +
-			"@" + netip.AddrPortFrom(user.EndpointIPv4, user.OutlinePort).String() +
+			"@" + fmt.Sprintf("%s:%d", endpointHostString, user.OutlinePort) +
 			"/?outline=1&prefix=" + OutlinePrefix +
 			"#" + url.QueryEscape(user.Name)
 		newuser.OutlineConfig = &models.NewuserOutlineConfig{

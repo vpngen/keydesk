@@ -68,8 +68,8 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	ipsecCfgs := flag.String("ipsec", "", "IPSec configs (text,mobileconfig,ps)")
 	outlineCfgs := flag.String("outline", "", "Outline configs (access_key)")
 
-	mode := flag.String("mode", storage.ModeBrigade, "mode (brigade or shuffler)")
-	maxUsers := flag.Uint("maxusers", storage.MaxUsers, "max users, only valid in shuffler mode")
+	mode := flag.String("mode", storage.ModeBrigade, "mode (brigade or vgsocket)")
+	maxUsers := flag.Uint("maxusers", storage.MaxUsers, "max users, only valid in vgsocket mode")
 
 	flag.Parse()
 
@@ -261,7 +261,7 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 
 	switch *mode {
 	case storage.ModeBrigade:
-	case storage.ModeShuffler:
+	case storage.ModeVGSocket:
 		if *maxUsers > storage.MaxUsers {
 			return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("max users is %d", storage.MaxUsers)
 		}

@@ -181,7 +181,7 @@ type Mode = string
 
 const (
 	ModeBrigade  Mode = "brigade"
-	ModeShuffler Mode = "shuffler"
+	ModeVGSocket Mode = "vgsocket"
 	MaxUsers          = uint(255)
 )
 

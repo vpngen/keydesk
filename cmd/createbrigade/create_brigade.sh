@@ -37,7 +37,7 @@ VGSTATS_GROUP="vgstats"
 VGROUTER_GROUP="vgrouter"
 
 MODE_BRIGADE="brigade"
-MODE_SHUFFLER="shuffler"
+MODE_VGSOCKET="vgsocket"
 DEFAULT_MAXUSERS=255
 
 if [ "root" != "$(whoami)" ]; then
@@ -203,14 +203,20 @@ if [ -z "$maxusers" ]; then
         maxusers=$DEFAULT_MAXUSERS
 fi
 
-if [ "${mode}" != $MODE_SHUFFLER ] && [ "${mode}" != $MODE_BRIGADE ]; then
+if [ "${mode}" != $MODE_VGSOCKET ] && [ "${mode}" != $MODE_BRIGADE ]; then
         printdef "Unknown mode: ${mode}"
 fi
 
 if [ -z "$brigade_id" ] \
-|| [ -z "$endpoint_ip4" ] || [ -z "$ip4_cgnat" ] || [ -z "$ip6_ula" ] || [ -z "$dns_ip4" ] || [ -z "$dns_ip6" ] || [ -z "$keydesk_ip6" ] \
-|| [ -z "$brigadier_name" ] || [ -z "$person_name" ] || [ -z "$person_desc" ] || [ -z "$person_url" ]; then
+|| [ -z "$endpoint_ip4" ] || [ -z "$ip4_cgnat" ] || [ -z "$ip6_ula" ] || [ -z "$dns_ip4" ] || [ -z "$dns_ip6" ] \
+|| [ -z "$keydesk_ip6" ]; then
         printdef "Not enough arguments"
+fi
+
+if [ "${mode}" = $MODE_BRIGADE ]; then
+        if [ -z "$brigadier_name" ] || [ -z "$person_name" ] || [ -z "$person_desc" ] || [ -z "$person_url" ]; then
+                printdef "Not enough arguments"
+        fi
 fi
 
 if test -f "${DB_DIR}/${brigade_id}/.maintenance" && test "$(date '+%s')" -lt "$(cat "${DB_DIR}/${brigade_id}/.maintenance")"; then

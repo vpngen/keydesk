@@ -39,7 +39,6 @@ func (db *BrigadeStorage) CreateBrigade(
 	outlineConf *BrigadeOutlineConfig,
 	mode Mode,
 	maxUsers uint,
-
 ) error {
 	f, data, err := db.openWithoutReading(config.BrigadeID)
 	if err != nil {
@@ -62,7 +61,7 @@ func (db *BrigadeStorage) CreateBrigade(
 	}
 
 	data.Mode = mode
-	if mode == ModeShuffler {
+	if mode == ModeVGSocket {
 		data.MaxUsers = maxUsers
 	}
 

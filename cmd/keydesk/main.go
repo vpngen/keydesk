@@ -299,7 +299,7 @@ func main() {
 		})
 	}
 
-	if brigade.Mode == storage.ModeShuffler && cfg.shufflerAPISocket != nil {
+	if brigade.Mode == storage.ModeVGSocket && cfg.shufflerAPISocket != nil {
 		echoSrv, err := shflrapp.SetupServer(db, authorizer, routerPublicKey, shufflerPublicKey)
 		if err != nil {
 			errQuit("shuffler server", err)

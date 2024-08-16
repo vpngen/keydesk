@@ -28,6 +28,10 @@ type Newuser struct {
 	// outline config
 	OutlineConfig *NewuserOutlineConfig `json:"OutlineConfig,omitempty"`
 
+	// user ID
+	// Required: true
+	UserID *string `json:"UserID"`
+
 	// user name
 	// Required: true
 	UserName *string `json:"UserName"`
@@ -52,6 +56,10 @@ func (m *Newuser) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOutlineConfig(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateUserID(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -125,6 +133,15 @@ func (m *Newuser) validateOutlineConfig(formats strfmt.Registry) error {
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *Newuser) validateUserID(formats strfmt.Registry) error {
+
+	if err := validate.Required("UserID", "body", m.UserID); err != nil {
+		return err
 	}
 
 	return nil

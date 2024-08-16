@@ -7,16 +7,18 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/vpngen/keydesk/internal/vpn/cloak"
-	ss2 "github.com/vpngen/keydesk/internal/vpn/ss"
-	"github.com/vpngen/keydesk/internal/vpn/vgc"
-	wg2 "github.com/vpngen/keydesk/internal/vpn/wg"
 	"math"
 	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/vpngen/keydesk/internal/vpn/cloak"
+	ss2 "github.com/vpngen/keydesk/internal/vpn/ss"
+	"github.com/vpngen/keydesk/internal/vpn/vgc"
+	wg2 "github.com/vpngen/keydesk/internal/vpn/wg"
 
 	"github.com/vpngen/keydesk/internal/maintenance"
 
@@ -32,6 +34,7 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 
 	"github.com/btcsuite/btcd/btcutil/base58"
 )
@@ -101,6 +104,8 @@ func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgener
 	return wgconf, kdlib.AssembleWgStyleTunName(user.Name) + ".conf", confJson, nil
 }
 
+const OutlinePrefix = "%16%03%01%00%C2%A8%01%01"
+
 func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemented, wgPriv, wgPSK []byte, ovcPriv, cloakBypassUID string, ipsecUsername, ipsecPassword, outlineSecret string) (string, *models.Newuser, error) {
 	var (
 		wgconf        string
@@ -113,6 +118,7 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 	}
 
 	newuser := &models.Newuser{
+		UserID:   swag.String(user.ID.String()),
 		UserName: &user.Name,
 	}
 
@@ -167,8 +173,11 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 
 	if vpnCfgs.Outline[storage.ConfigOutlineTypeAccesskey] {
 		accessKey := "ss://" + base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString(
-			fmt.Appendf([]byte{}, "chacha20-ietf-poly1305:%s@%s:%d", outlineSecret, endpointHostString, user.OutlinePort),
-		) + "#" + url.QueryEscape(user.Name)
+			fmt.Appendf([]byte{}, "chacha20-ietf-poly1305:%s", outlineSecret),
+		) +
+			"@" + fmt.Sprintf("%s:%d", endpointHostString, user.OutlinePort) +
+			"/?outline=1&prefix=" + OutlinePrefix +
+			"#" + strings.ReplaceAll(url.QueryEscape(user.Name), "+", "%20")
 		newuser.OutlineConfig = &models.NewuserOutlineConfig{
 			AccessKey: &accessKey,
 		}

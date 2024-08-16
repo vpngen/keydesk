@@ -415,6 +415,7 @@ func init() {
     "newuser": {
       "type": "object",
       "required": [
+        "UserID",
         "UserName"
       ],
       "properties": {
@@ -470,6 +471,9 @@ func init() {
               "type": "string"
             }
           }
+        },
+        "UserID": {
+          "type": "string"
         },
         "UserName": {
           "type": "string"
@@ -1147,6 +1151,7 @@ func init() {
     "newuser": {
       "type": "object",
       "required": [
+        "UserID",
         "UserName"
       ],
       "properties": {
@@ -1202,6 +1207,9 @@ func init() {
               "type": "string"
             }
           }
+        },
+        "UserID": {
+          "type": "string"
         },
         "UserName": {
           "type": "string"

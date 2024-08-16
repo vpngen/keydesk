@@ -1,16 +1,16 @@
 package outline
 
 import (
-	"encoding/base64"
 	"fmt"
-	"github.com/vpngen/keydesk/internal/vpn/ss"
 	"net/url"
+	"strings"
+
+	"github.com/vpngen/keydesk/internal/vpn/ss"
 )
 
 func NewFromSS(name string, cfg ss.Config) (string, error) {
-	return fmt.Sprintf(
-		"ss://%s#%s",
-		base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString([]byte(cfg.GetConnString())),
-		url.QueryEscape(name),
+	return fmt.Sprintf("%s#%s",
+		cfg.GetConnString(),
+		strings.ReplaceAll(url.QueryEscape(name), "+", "%20"),
 	), nil
 }

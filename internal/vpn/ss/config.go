@@ -1,6 +1,7 @@
 package ss
 
 import (
+	"encoding/base64"
 	"fmt"
 )
 
@@ -25,5 +26,9 @@ func NewSSProxyBook(cipher, password string) Config {
 }
 
 func (c Config) GetConnString() string {
-	return fmt.Sprintf("%s:%s@%s:%d", encryption, c.Password, c.Host, c.Port)
+	return base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString(
+		fmt.Appendf([]byte("ss://"), "%s:%s", encryption, c.Password),
+	) +
+		"@" + fmt.Sprintf("%s:%d", c.Host, c.Port)
+	// return fmt.Sprintf("%s:%s@%s:%d", encryption, c.Password, c.Host, c.Port)
 }

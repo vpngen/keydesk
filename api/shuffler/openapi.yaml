@@ -41,12 +41,15 @@ paths:
                     format: uuid
                   configs:
                     $ref: '#/components/schemas/VPNConfig'
+                  name:
+                    type: string
                   free_slots:
                     type: integer
                     description: Number of free VPN slots after creation
                 required:
                   - id
                   - configs
+                  - name
                   - free_slots
         412:
           description: No free VPN slots

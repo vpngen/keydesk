@@ -2,14 +2,16 @@ package user
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/internal/vpn"
 	"github.com/vpngen/keydesk/keydesk/storage"
-	"time"
 )
 
 type User struct {
 	UUID    uuid.UUID
+	Name    string
 	Configs vpn.Configs
 }
 
@@ -48,6 +50,7 @@ func (s Service) createUserWithConfigs(brigade *storage.Brigade, configs []strin
 
 	return User{
 		UUID:    dbUser.UserID,
+		Name:    dbUser.Name,
 		Configs: cfgs,
 	}, nil
 }

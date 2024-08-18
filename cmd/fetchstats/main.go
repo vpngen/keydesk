@@ -59,7 +59,7 @@ func main() {
 		log.Fatalf("Print stats: %s", err)
 	}
 
-	fmt.Println()
+	fmt.Fprintln(w)
 }
 
 func getStats(statsBaseDir string, brigades []string) ([]byte, error) {

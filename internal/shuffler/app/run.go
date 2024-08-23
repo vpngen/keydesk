@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
@@ -14,9 +18,6 @@ import (
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/jwt"
 	"github.com/vpngen/vpngine/naclkey"
-	"log"
-	"net/http"
-	"os"
 )
 
 func SetupServer(db *storage.BrigadeStorage, authorizer jwt.Authorizer, routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) (*echo.Echo, error) {
@@ -98,6 +99,7 @@ func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsReq
 	res := shuffler.PostConfigs201JSONResponse{
 		FreeSlots: int(userCfg.FreeSlots),
 		Id:        userCfg.UUID,
+		Name:      userCfg.Name,
 	}
 
 	cfgs := userCfg.Configs

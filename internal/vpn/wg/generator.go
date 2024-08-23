@@ -2,10 +2,11 @@ package wg
 
 import (
 	"fmt"
+	"net/netip"
+
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/utils"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
-	"net/netip"
 )
 
 func Generate(brigade *storage.Brigade, user *storage.User, nacl utils.NaCl, epData map[string]string) (RawConfig, error) {
@@ -55,7 +56,7 @@ func Generate(brigade *storage.Brigade, user *storage.User, nacl utils.NaCl, epD
 	epData["allowed-ips"] = wgcfg.GetAddresses()
 
 	// add user data
-	user.WgPublicKey = epPub[:]
+	user.WgPublicKey = key[:]
 	user.WgPSKRouterEnc = pskenc.Router
 	user.WgPSKShufflerEnc = pskenc.Shuffler
 

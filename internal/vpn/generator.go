@@ -168,7 +168,7 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 			if err != nil {
 				return Configs{}, fmt.Errorf("get cloak config: %w", err)
 			}
-			cfg := vgc.NewV1(user.Name, protocolsObj.WireGuard.GetVGC(), ck, *sscfg, 0)
+			cfg := vgc.NewV1(user.Name, user.EndpointDomain, protocolsObj.WireGuard.GetVGC(), ck, *sscfg, 0)
 			enc, err := cfg.Encode()
 			if err != nil {
 				return Configs{}, fmt.Errorf("encode: %w", err)

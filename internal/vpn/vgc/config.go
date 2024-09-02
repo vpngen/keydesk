@@ -19,27 +19,27 @@ type (
 		Cloak       cloak.VGC  `json:"cloak"`
 		Shadowsocks ss.Config  `json:"shadowsocks"`
 	}
+
 	config struct {
 		Version  int    `json:"version"`
 		Name     string `json:"name"`
+		Domain   string `json:"domain"`
 		Extended int    `json:"extended"`
 	}
 )
 
-func New(name string, version, extended int, wg wg.Config2, ck cloak.VGC, ss ss.Config) Config {
+func New(name, domain string, version, extended int, wg wg.Config2, ck cloak.VGC, ss ss.Config) Config {
 	return Config{
-		Config:      config{version, name, extended},
+		Config:      config{version, name, domain, extended},
 		Wireguard:   wg,
 		Cloak:       ck,
 		Shadowsocks: ss,
 	}
 }
 
-func NewV1(name string, wg wg.Config2, ck cloak.VGC, ss ss.Config, ext int) Config {
-	return New(name, 1, ext, wg, ck, ss)
+func NewV1(name, domain string, wg wg.Config2, ck cloak.VGC, ss ss.Config, ext int) Config {
+	return New(name, domain, 1, ext, wg, ck, ss)
 }
-
-const Schema = "vgc://"
 
 func (c Config) Encode() (string, error) {
 	buf := new(bytes.Buffer)
@@ -50,5 +50,5 @@ func (c Config) Encode() (string, error) {
 	if err := gz.Close(); err != nil {
 		return "", fmt.Errorf("close gzip: %w", err)
 	}
-	return Schema + base58.Encode(buf.Bytes()), nil
+	return base58.Encode(buf.Bytes()), nil
 }

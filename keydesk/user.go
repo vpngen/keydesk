@@ -44,6 +44,8 @@ const (
 	CGNATPrefix = "100.64.0.0/10"
 	ULAPrefix   = "fd00::/8"
 	ChaCha20    = "chacha20-ietf-poly1305"
+
+	vpnConfigSchema = "vgc"
 )
 
 // Users defaults
@@ -215,14 +217,16 @@ func assembleConfig(user *storage.UserConfig, isBrigadier int, vpnCfgs *storage.
 			Shadowsocks: ss2.NewSSProxyBook(ChaCha20, outlineSecret),
 		})
 
-		cfg := vgc.NewV1(user.Name, wg, ck, ss, isBrigadier)
+		cfg := vgc.NewV1(user.Name, user.EndpointDomain, wg, ck, ss, isBrigadier)
 
 		encoded, err := cfg.Encode()
 		if err != nil {
 			return "", nil, fmt.Errorf("vgc.Encode: %w", err)
 		}
 
-		newuser.VPNGenConfig = models.VGC(encoded)
+		redirectURL := fmt.Sprintf("http://%s/?%s://%s", user.EndpointDomain, vpnConfigSchema, encoded)
+
+		newuser.VPNGenConfig = models.VGC(redirectURL)
 	}
 
 	return wgconf, newuser, nil

@@ -64,7 +64,7 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 		return operations.NewPostUserInternalServerError()
 	}
 
-	_, confJson, err := assembleConfig(user, vpnCfgs, wgPriv, wgPSK, ovcPriv, cloakBypassUID, ipsecUsername, ipsecPassword, outlineSecret)
+	_, confJson, err := assembleConfig(user, 0, vpnCfgs, wgPriv, wgPSK, ovcPriv, cloakBypassUID, ipsecUsername, ipsecPassword, outlineSecret)
 	if err != nil {
 		return operations.NewPostUserInternalServerError()
 	}
@@ -96,7 +96,7 @@ func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgener
 		return "", "", nil, fmt.Errorf("addUser: %w", err)
 	}
 
-	wgconf, confJson, err := assembleConfig(user, dbVpnCfgs, wgPriv, wgPSK, ovcPriv, cloakBypassUID, ipsecUsername, ipsecPassword, outlineSecret)
+	wgconf, confJson, err := assembleConfig(user, 1, dbVpnCfgs, wgPriv, wgPSK, ovcPriv, cloakBypassUID, ipsecUsername, ipsecPassword, outlineSecret)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("assembleConfig: %w", err)
 	}
@@ -106,7 +106,7 @@ func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgener
 
 const OutlinePrefix = "%16%03%01%00%C2%A8%01%01"
 
-func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemented, wgPriv, wgPSK []byte, ovcPriv, cloakBypassUID string, ipsecUsername, ipsecPassword, outlineSecret string) (string, *models.Newuser, error) {
+func assembleConfig(user *storage.UserConfig, isBrigadier int, vpnCfgs *storage.ConfigsImplemented, wgPriv, wgPSK []byte, ovcPriv, cloakBypassUID string, ipsecUsername, ipsecPassword, outlineSecret string) (string, *models.Newuser, error) {
 	var (
 		wgconf        string
 		amneziaConfig *AmneziaConfig
@@ -215,7 +215,7 @@ func assembleConfig(user *storage.UserConfig, vpnCfgs *storage.ConfigsImplemente
 			Shadowsocks: ss2.NewSSProxyBook(ChaCha20, outlineSecret),
 		})
 
-		cfg := vgc.NewV1(user.Name, wg, ck, ss)
+		cfg := vgc.NewV1(user.Name, wg, ck, ss, isBrigadier)
 
 		encoded, err := cfg.Encode()
 		if err != nil {

@@ -2,6 +2,9 @@ package vpn
 
 import (
 	"fmt"
+	"log"
+	"slices"
+
 	"github.com/vpngen/keydesk/internal/vpn/amnezia"
 	"github.com/vpngen/keydesk/internal/vpn/cloak"
 	"github.com/vpngen/keydesk/internal/vpn/endpoint"
@@ -14,8 +17,6 @@ import (
 	"github.com/vpngen/keydesk/kdlib"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/utils"
-	"log"
-	"slices"
 )
 
 const (
@@ -167,7 +168,7 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 			if err != nil {
 				return Configs{}, fmt.Errorf("get cloak config: %w", err)
 			}
-			cfg := vgc.NewV1(user.Name, protocolsObj.WireGuard.GetVGC(), ck, *sscfg)
+			cfg := vgc.NewV1(user.Name, protocolsObj.WireGuard.GetVGC(), ck, *sscfg, 0)
 			enc, err := cfg.Encode()
 			if err != nil {
 				return Configs{}, fmt.Errorf("encode: %w", err)

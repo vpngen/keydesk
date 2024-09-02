@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+
 	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/vpngen/keydesk/internal/vpn/cloak"
 	"github.com/vpngen/keydesk/internal/vpn/ss"
@@ -34,8 +35,8 @@ func New(name string, version, extended int, wg wg.Config2, ck cloak.VGC, ss ss.
 	}
 }
 
-func NewV1(name string, wg wg.Config2, ck cloak.VGC, ss ss.Config) Config {
-	return New(name, 1, 1, wg, ck, ss)
+func NewV1(name string, wg wg.Config2, ck cloak.VGC, ss ss.Config, ext int) Config {
+	return New(name, 1, ext, wg, ck, ss)
 }
 
 const Schema = "vgc://"

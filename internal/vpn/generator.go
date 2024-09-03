@@ -29,7 +29,7 @@ const (
 
 var cfgProtocols = map[string][]string{
 	Wireguard: {}, // wireguard is always required
-	VGC:       {ProtocolCloak, ProtocolShadowsocks},
+	Universal: {ProtocolCloak, ProtocolShadowsocks},
 	Outline:   {ProtocolShadowsocks},
 	Amnezia:   {ProtocolCloak, ProtocolOpenVPN},
 	IPSec:     {ProtocolL2TP},
@@ -42,7 +42,7 @@ type Generator struct {
 
 type Configs struct {
 	WireGuard *FileConfig
-	VGC       *string
+	Universal *string
 	Outline   *string
 	Amnezia   *FileConfig
 	IPSec     *ipsec.ClientConfig
@@ -160,7 +160,7 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 				ConfigName: name,
 			}
 
-		case VGC:
+		case Universal:
 			sscfg := protocolsObj.Shadowsocks
 			ck, err := protocolsObj.Cloak.GetVGC(cloak.ProxyBook{
 				Shadowsocks: ss.NewSSProxyBook(sscfg.Cipher, sscfg.Password),
@@ -173,7 +173,7 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 			if err != nil {
 				return Configs{}, fmt.Errorf("encode: %w", err)
 			}
-			ret.VGC = &enc
+			ret.Universal = &enc
 
 		case Outline:
 			cfg, err := outline.NewFromSS(user.Name, *protocolsObj.Shadowsocks)

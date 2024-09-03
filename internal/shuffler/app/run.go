@@ -121,8 +121,8 @@ func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsReq
 		}
 	}
 
-	if cfgs.VGC != nil {
-		res.Configs.Vgc = cfgs.VGC
+	if cfgs.Universal != nil {
+		res.Configs.Vgc = cfgs.Universal
 	}
 
 	if cfgs.Outline != nil {

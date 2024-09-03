@@ -5,7 +5,7 @@ const (
 	Amnezia   = "amnezia"
 	Wireguard = "wireguard"
 	IPSec     = "ipsec"
-	VGC       = "vgc"
+	Universal = "universal"
 )
 
 type FileConfig struct {

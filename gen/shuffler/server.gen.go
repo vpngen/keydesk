@@ -162,7 +162,7 @@ type PostConfigsResponseObject interface {
 
 type PostConfigs201JSONResponse struct {
 	Configs VPNConfig `json:"configs"`
-	Domain  *string   `json:"domain,omitempty"`
+	Domain  string    `json:"domain"`
 
 	// FreeSlots Number of free VPN slots after creation
 	FreeSlots int                `json:"free_slots"`

@@ -30,7 +30,12 @@ type (
 
 func New(name, domain string, version, extended int, wg wg.Config2, ck cloak.VGC, ss ss.Config) Config {
 	return Config{
-		Config:      config{version, name, domain, extended},
+		Config: config{
+			Version:  version,
+			Name:     name,
+			Domain:   domain,
+			Extended: extended,
+		},
 		Wireguard:   wg,
 		Cloak:       ck,
 		Shadowsocks: ss,

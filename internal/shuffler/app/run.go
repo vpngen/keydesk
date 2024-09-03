@@ -100,6 +100,7 @@ func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsReq
 		FreeSlots: int(userCfg.FreeSlots),
 		Id:        userCfg.UUID,
 		Name:      userCfg.Name,
+		Domain:    userCfg.Domain,
 	}
 
 	cfgs := userCfg.Configs

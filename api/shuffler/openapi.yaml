@@ -52,6 +52,7 @@ paths:
                   - id
                   - configs
                   - name
+                  - domain
                   - free_slots
         412:
           description: No free VPN slots

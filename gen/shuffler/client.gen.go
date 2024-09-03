@@ -379,7 +379,7 @@ type PostConfigsResponse struct {
 	HTTPResponse *http.Response
 	JSON201      *struct {
 		Configs VPNConfig `json:"configs"`
-		Domain  *string   `json:"domain,omitempty"`
+		Domain  string    `json:"domain"`
 
 		// FreeSlots Number of free VPN slots after creation
 		FreeSlots int                `json:"free_slots"`
@@ -547,7 +547,7 @@ func ParsePostConfigsResponse(rsp *http.Response) (*PostConfigsResponse, error) 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
 		var dest struct {
 			Configs VPNConfig `json:"configs"`
-			Domain  *string   `json:"domain,omitempty"`
+			Domain  string    `json:"domain"`
 
 			// FreeSlots Number of free VPN slots after creation
 			FreeSlots int                `json:"free_slots"`

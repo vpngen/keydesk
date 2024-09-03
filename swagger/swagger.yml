@@ -212,6 +212,8 @@ definitions:
         type: string
       UserName:
         type: string
+      Domain:
+        type: string
       WireguardConfig:
         type: object
         required:

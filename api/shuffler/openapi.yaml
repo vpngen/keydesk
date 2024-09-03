@@ -43,6 +43,8 @@ paths:
                     $ref: '#/components/schemas/VPNConfig'
                   name:
                     type: string
+                  domain:
+                    type: string
                   free_slots:
                     type: integer
                     description: Number of free VPN slots after creation

@@ -122,6 +122,7 @@ func assembleConfig(user *storage.UserConfig, isBrigadier int, vpnCfgs *storage.
 	newuser := &models.Newuser{
 		UserID:   swag.String(user.ID.String()),
 		UserName: &user.Name,
+		Domain:   endpointHostString,
 	}
 
 	wgStyleTunName := kdlib.AssembleWgStyleTunName(user.Name)

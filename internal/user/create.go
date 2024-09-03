@@ -12,6 +12,7 @@ import (
 type User struct {
 	UUID    uuid.UUID
 	Name    string
+	Domain  string
 	Configs vpn.Configs
 }
 
@@ -48,9 +49,18 @@ func (s Service) createUserWithConfigs(brigade *storage.Brigade, configs []strin
 
 	brigade.Users = append(brigade.Users, &dbUser)
 
+	endpointHostString := dbUser.EndpointDomain
+	if endpointHostString == "" {
+		endpointHostString = brigade.EndpointDomain
+		if endpointHostString == "" {
+			endpointHostString = brigade.EndpointIPv4.String()
+		}
+	}
+
 	return User{
 		UUID:    dbUser.UserID,
 		Name:    dbUser.Name,
+		Domain:  endpointHostString,
 		Configs: cfgs,
 	}, nil
 }

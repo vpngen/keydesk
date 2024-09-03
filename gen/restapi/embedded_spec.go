@@ -438,6 +438,9 @@ func init() {
             }
           }
         },
+        "Domain": {
+          "type": "string"
+        },
         "IPSecL2TPManualConfig": {
           "type": "object",
           "required": [
@@ -1173,6 +1176,9 @@ func init() {
               "type": "string"
             }
           }
+        },
+        "Domain": {
+          "type": "string"
         },
         "IPSecL2TPManualConfig": {
           "type": "object",

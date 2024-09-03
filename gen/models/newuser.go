@@ -22,6 +22,9 @@ type Newuser struct {
 	// amnz ovc config
 	AmnzOvcConfig *NewuserAmnzOvcConfig `json:"AmnzOvcConfig,omitempty"`
 
+	// domain
+	Domain string `json:"Domain,omitempty"`
+
 	// IP sec l2 t p manual config
 	IPSecL2TPManualConfig *NewuserIPSecL2TPManualConfig `json:"IPSecL2TPManualConfig,omitempty"`
 

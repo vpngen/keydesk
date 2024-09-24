@@ -3,9 +3,11 @@ package vpnapi
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/netip"
 	"net/url"
+	"os"
 )
 
 type WgStatTrafficIn struct {
@@ -175,6 +177,14 @@ func WgDel(ident string, actualAddrPort, calculatedAddrPort netip.AddrPort, wgIf
 
 	_, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query)
 	if err != nil {
+		apiErr := &APIResponse{}
+
+		if errors.As(err, &apiErr) && apiErr.Code == "128" {
+			fmt.Fprintf(os.Stderr, "WARNING: api: %s\n", apiErr.Message)
+
+			return nil
+		}
+
 		return fmt.Errorf("api: %w", err)
 	}
 

@@ -16,7 +16,7 @@ func Generate(brigade *storage.Brigade, user *storage.User, nacl utils.NaCl, epD
 		return RawConfig{}, fmt.Errorf("endpoint pub: %w", err)
 	}
 
-	key, err := wgtypes.GenerateKey()
+	key, err := wgtypes.GeneratePrivateKey()
 	if err != nil {
 		return RawConfig{}, fmt.Errorf("generate key: %w", err)
 	}
@@ -56,7 +56,8 @@ func Generate(brigade *storage.Brigade, user *storage.User, nacl utils.NaCl, epD
 	epData["allowed-ips"] = wgcfg.GetAddresses()
 
 	// add user data
-	user.WgPublicKey = key[:]
+	pkey := key.PublicKey()
+	user.WgPublicKey = pkey[:]
 	user.WgPSKRouterEnc = pskenc.Router
 	user.WgPSKShufflerEnc = pskenc.Shuffler
 

@@ -26,7 +26,6 @@ touch "${spinlock}" 2>/dev/null
 
 set -e
 
-DB_DIR="/home"
 STATS_DIR="/var/lib/vgstats"
 ROUTER_SOCKETS_DIR="/var/lib/dcapi"
 BRIGADE_MAKER_APP_PATH="/opt/vgkeydesk/createbrigade"
@@ -219,12 +218,7 @@ if [ "${mode}" = $MODE_BRIGADE ]; then
         fi
 fi
 
-if test -f "${DB_DIR}/${brigade_id}/.maintenance" && test "$(date '+%s')" -lt "$(cat "${DB_DIR}/${brigade_id}/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "${DB_DIR}/${brigade_id}/.maintenance")")"
-fi
-if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
-fi
+DB_DIR=${DB_DIR:-"/home/${brigade_id}"}
 
 if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ]; then
         wg_configs="-wg native"
@@ -235,10 +229,18 @@ if [ -z "${port}" ]; then
 fi
 
 # * Check if brigade is exists
-if [ -z "${DEBUG}" ] && [ -s "${DB_DIR}/${brigade_id}/created" ]; then
+if [ -z "${DEBUG}" ] && [ -s "${DB_DIR}/created" ]; then
         echo "Brigade ${brigade_id} already exists" >&2
 
         fatal "409" "Conflict" "Brigade ${brigade_id} already exists"
+fi
+
+if test -f "${DB_DIR}/.maintenance" && test "$(date '+%s')" -lt "$(cat "${DB_DIR}/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "${DB_DIR}/.maintenance")")"
+fi
+
+if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
 fi
 
 if  [ -z "${DEBUG}" ] && [ ! -d "${ROUTER_SOCKETS_DIR}" ]; then
@@ -248,15 +250,15 @@ fi
 # * Create system user
 if [ -z "${DEBUG}" ]; then
         {
-                useradd -p '*' -G "${VGCERT_GROUP}" -M -s /usr/sbin/nologin -d "${DB_DIR}/${brigade_id}" "${brigade_id}" >&2
-                install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${DB_DIR}/${brigade_id}" >&2
+                useradd -p '*' -G "${VGCERT_GROUP}" -M -s /usr/sbin/nologin -d "${DB_DIR}" "${brigade_id}" >&2
+                install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${DB_DIR}" >&2
                 install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 0710 -d "${STATS_DIR}/${brigade_id}" >&2
                 install -o "${brigade_id}" -g "${VGROUTER_GROUP}" -m 2710 -d "${ROUTER_SOCKETS_DIR}/${brigade_id}" >&2
         
         } || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
 else
-        echo "DEBUG: useradd -p '*' -G ${VGCERT_GROUP} -M -s /usr/sbin/nologin -d ${DB_DIR}/${brigade_id} ${brigade_id}" >&2
-        echo "DEBUG: install -o ${brigade_id} -g ${brigade_id} -m 0700 -d ${DB_DIR}/${brigade_id}" >&2
+        echo "DEBUG: useradd -p '*' -G ${VGCERT_GROUP} -M -s /usr/sbin/nologin -d ${DB_DIR} ${brigade_id}" >&2
+        echo "DEBUG: install -o ${brigade_id} -g ${brigade_id} -m 0700 -d ${DB_DIR}" >&2
         echo "DEBUG: install -o ${brigade_id} -g ${VGSTATS_GROUP} -m 0710 -d ${STATS_DIR}/${brigade_id}" >&2
         echo "DEBUG: install -o ${brigade_id} -g ${VGROUTER_GROUP} -m 2710 -d ${ROUTER_SOCKETS_DIR}/${brigade_id}" >&2
 fi
@@ -397,4 +399,4 @@ if [ "${mode}" = $MODE_BRIGADE ]; then
         printf "%s" "${wgconf}"
 fi
 
-[ -z "${DEBUG}" ] && date -u +"%Y-%m-%dT%H:%M:%S" > "${DB_DIR}/${brigade_id}/created"
+[ -z "${DEBUG}" ] && date -u +"%Y-%m-%dT%H:%M:%S" > "${DB_DIR}/created"

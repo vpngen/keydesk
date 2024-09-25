@@ -247,6 +247,24 @@ if  [ -z "${DEBUG}" ] && [ ! -d "${ROUTER_SOCKETS_DIR}" ]; then
         install -o root -g "${VGROUTER_GROUP}" -m 0711 -d "${ROUTER_SOCKETS_DIR}" >&2
 fi
 
+# Disable doubled brigades.
+grep -s "${endpoint_ip4}" "$(dirname "${DB_DIR}")"/*/brigade.json | grep "endpoint_ipv4" | sed 's/\:.*$//' | while IFS= read -r orphan; do
+        echo "DEBUG: doubled brigade $orphan" >&2
+
+        orphan_id="$(basename "$(dirname "${orphan}")")"
+
+        if [ -z "${DEBUG}" ]; then
+                systemctl --quiet --force stop vgkeydesk@"${orphan_id}".service ||:
+                systemctl --quiet disable vgkeydesk@"${orphan_id}".service ||:
+
+                mv -f "${orphan}" "${orphan}.removed" ||:
+        else 
+                echo "DEBUG: systemctl --quiet --force stop vgkeydesk@${orphan_id}.service" >&2
+                echo "DEBUG: systemctl --quiet disable vgkeydesk@${orphan_id}.service" >&2
+                echo "DEBUG: mv -f ${orphan} ${orphan}.removed" >&2
+        fi
+done
+
 # * Create system user
 if [ -z "${DEBUG}" ]; then
         {

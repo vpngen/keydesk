@@ -20,6 +20,9 @@ const (
 
 	ConfigOutlineTypeAccesskey = "access_key"
 	ConfigsOutline             = ConfigOutlineTypeAccesskey
+
+	ConfigProto0TypeAccesskey = "access_key"
+	ConfigsProto0             = ConfigProto0TypeAccesskey
 )
 
 type ConfigsImplemented struct {
@@ -27,6 +30,7 @@ type ConfigsImplemented struct {
 	Ovc     map[string]bool
 	IPSec   map[string]bool
 	Outline map[string]bool
+	Proto0  map[string]bool
 }
 
 func NewConfigsImplemented() *ConfigsImplemented {
@@ -35,6 +39,7 @@ func NewConfigsImplemented() *ConfigsImplemented {
 		Ovc:     make(map[string]bool),
 		IPSec:   make(map[string]bool),
 		Outline: make(map[string]bool),
+		Proto0:  make(map[string]bool),
 	}
 }
 
@@ -58,6 +63,10 @@ func (c *ConfigsImplemented) AddIPSec(s string) {
 
 func (c *ConfigsImplemented) AddOutline(s string) {
 	add(c.Outline, s)
+}
+
+func (c *ConfigsImplemented) AddProto0(s string) {
+	add(c.Proto0, s)
 }
 
 func (c *ConfigsImplemented) NewWgConfigs(req map[string]bool) {
@@ -98,6 +107,16 @@ func (c *ConfigsImplemented) NewOutlineConfigs(req map[string]bool) {
 	}
 
 	c.Outline = req
+}
+
+func (c *ConfigsImplemented) NewProto0Configs(req map[string]bool) {
+	if req == nil {
+		c.AddProto0(ConfigsProto0)
+
+		return
+	}
+
+	c.Proto0 = req
 }
 
 // GetSupportedVPNProtocols returns the list of supported VPN types

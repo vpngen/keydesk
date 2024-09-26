@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/base32"
 	"encoding/base64"
 	"errors"
@@ -87,12 +88,18 @@ func Do(db *storage.BrigadeStorage, m map[string]map[netip.Addr]string, dryrun b
 			continue
 		}
 
-		if !dryrun {
-			pub, err := base64.StdEncoding.WithPadding(base64.StdPadding).DecodeString(u)
-			if err != nil {
-				return fmt.Errorf("decode: %w", err)
-			}
+		pub, err := base64.StdEncoding.WithPadding(base64.StdPadding).DecodeString(u)
+		if err != nil {
+			return fmt.Errorf("decode: %w", err)
+		}
 
+		if bytes.Equal(user.WgPublicKey, pub) {
+			fmt.Fprintf(os.Stderr, "User %s: already OK\n", user.Name)
+
+			continue
+		}
+
+		if !dryrun {
 			user.WgPublicKey = pub
 		}
 	}

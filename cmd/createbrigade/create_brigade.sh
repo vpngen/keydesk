@@ -118,6 +118,10 @@ while [ "$#" -gt 0 ]; do
                 outline_configs="-outline $2"
                 shift 2
                 ;;
+        -proto0)
+                proto0_configs="-p0 $2"
+                shift 2
+                ;;
         -ep4)
                 endpoint_ip4="$2"
                 shift 2
@@ -220,7 +224,7 @@ fi
 
 DB_DIR=${DB_DIR:-"/home/${brigade_id}"}
 
-if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ]; then
+if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ] && [ -z "${proto0_configs}" ]; then
         wg_configs="-wg native"
 fi
 
@@ -295,7 +299,7 @@ if [ -z "${DEBUG}" ]; then
                 -kd6 "${keydesk_ip6}" \
                 -p "$port" \
                 -dn "$domain" \
-                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
+                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs} \
                 -mode "${mode}" \
                 -maxusers "${maxusers}" \
                 >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
@@ -315,7 +319,7 @@ else
                         -id "${brigade_id}" \
                         -d "${DB_DIR}" \
                         -c "${CONF_DIR}" \
-                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
+                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs} \
                         ${apiaddr} \
                         -mode "${mode}" \
                         -maxusers "${maxusers}" \
@@ -334,7 +338,7 @@ else
                         -id "${brigade_id}" \
                         -d "${DB_DIR}" \
                         -c "${CONF_DIR}" \
-                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
+                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs} \
                         ${apiaddr} \
                         -mode "${mode}" \
                         -maxusers "${maxusers}" \
@@ -354,7 +358,7 @@ if [ "${mode}" = $MODE_BRIGADE ]; then
                         -person "${person_name}" \
                         -desc "${person_desc}" \
                         -url "${person_url}" \
-                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
+                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs} \
                         ${chunked} \
                         ${json} \
                         )" || (echo "$wgconf"; exit 1)
@@ -371,7 +375,7 @@ if [ "${mode}" = $MODE_BRIGADE ]; then
                                 -d "${DB_DIR}" \
                                 -c "${CONF_DIR}" \
                                 ${apiaddr} \
-                                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
+                                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs} \
                                 ${chunked} \
                                 ${json} \
                                 )" || (echo "$wgconf"; exit 1)
@@ -386,7 +390,7 @@ if [ "${mode}" = $MODE_BRIGADE ]; then
                                 -d "${DB_DIR}" \
                                 -c "${CONF_DIR}" \
                                 ${apiaddr} \
-                                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
+                                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs} \
                                 ${chunked} \
                                 ${json} \
                                 )" || (echo "$wgconf"; exit 1)

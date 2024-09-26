@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+
 	"github.com/vpngen/keydesk/kdlib"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/vpngine/naclkey"
@@ -29,11 +30,14 @@ func CreateBrigade(
 
 	// fmt.Fprintf(os.Stderr, "cfgs: %#v\n", vpnCfgs)
 
-	var ovcConf *storage.BrigadeOvcConfig
+	var (
+		ovcConf      *storage.BrigadeOvcConfig
+		p0FakeDomain string
+	)
 	if len(vpnCfgs.Ovc) > 0 {
 		var err error
 
-		ovcConf, err = GenEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey)
+		ovcConf, err = GenEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey, p0FakeDomain)
 		if err != nil {
 			return fmt.Errorf("ovc creds: %w", err)
 		}
@@ -52,7 +56,20 @@ func CreateBrigade(
 		outlineConf = &storage.BrigadeOutlineConfig{OutlinePort: config.OutlinePort}
 	}
 
-	err = db.CreateBrigade(config, wgConf, ovcConf, ipsecConf, outlineConf, mode, maxUsers)
+	var (
+		p0Conf        *storage.BrigadeP0Config
+		ovcFakeDomain string
+	)
+
+	if ovcConf != nil {
+		ovcFakeDomain = ovcConf.OvcFakeDomain
+	}
+
+	if len(vpnCfgs.Proto0) > 0 {
+		p0Conf = GenEndpointP0Creds(ovcFakeDomain)
+	}
+
+	err = db.CreateBrigade(config, wgConf, ovcConf, ipsecConf, outlineConf, p0Conf, mode, maxUsers)
 	if err != nil {
 		return fmt.Errorf("put: %w", err)
 	}
@@ -95,7 +112,7 @@ func genEndpointWGKeys(routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]b
 	}, nil
 }
 
-func GenEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte) (*storage.BrigadeOvcConfig, error) {
+func GenEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte, p0FakeDomain string) (*storage.BrigadeOvcConfig, error) {
 	cert, key, err := kdlib.NewOvCA()
 	if err != nil {
 		return nil, fmt.Errorf("ov new ca: %w", err)
@@ -126,10 +143,32 @@ func GenEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey *[naclkey.Nac
 		return nil, fmt.Errorf("shuffler seal: %w", err)
 	}
 
+	var fakeDomain string
+	for {
+		fakeDomain = GetRandomSite()
+		if fakeDomain != p0FakeDomain {
+			break
+		}
+	}
+
 	return &storage.BrigadeOvcConfig{
-		OvcFakeDomain:          GetRandomSite(),
+		OvcFakeDomain:          fakeDomain,
 		OvcCACertPemGzipBase64: string(caPemGzipBase64),
 		OvcRouterCAKey:         base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(routerKey),
 		OvcShufflerCAKey:       base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(shufflerKey),
 	}, nil
+}
+
+func GenEndpointP0Creds(ovcFakeDomain string) *storage.BrigadeP0Config {
+	var fakeDomain string
+	for {
+		fakeDomain = GetRandomSite()
+		if fakeDomain != ovcFakeDomain {
+			break
+		}
+	}
+
+	return &storage.BrigadeP0Config{
+		P0FakeDomain: fakeDomain,
+	}
 }

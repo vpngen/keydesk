@@ -26,10 +26,17 @@ touch "${spinlock}" 2>/dev/null
 
 set -e
 
-STATS_DIR="/var/lib/vgstats"
-ROUTER_SOCKETS_DIR="/var/lib/dcapi"
-BRIGADE_MAKER_APP_PATH="/opt/vgkeydesk/createbrigade"
-KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
+STATS_DIR=${STATS_DIR:-"/var/lib/vgstats"}
+ROUTER_SOCKETS_DIR=${ROUTER_SOCKETS_DIR:-"/var/lib/dcapi"}
+BRIGADE_MAKER_APP_PATH=${BRIGADE_MAKER_APP_PATH:-"/opt/vgkeydesk/createbrigade"}
+if [ -s "$(dirname "${BRIGADE_MAKER_APP_PATH}")/main.go" ]; then
+    BRIGADE_SOURCE_DIR="$(dirname "${BRIGADE_MAKER_APP_PATH}")"
+fi
+
+KEYDESK_APP_PATH=${KEYDESK_APP_PATH:-"/opt/vgkeydesk/keydesk"}
+if [ -s "$(dirname "${KEYDESK_APP_PATH}")/main.go" ]; then
+    KEYDESK_SOURCE_DIR="$(dirname "${KEYDESK_APP_PATH}")"
+fi
 
 VGCERT_GROUP="vgcert"
 VGSTATS_GROUP="vgstats"
@@ -119,7 +126,7 @@ while [ "$#" -gt 0 ]; do
                 shift 2
                 ;;
         -proto0)
-                proto0_configs="-p0 $2"
+                proto0_configs="-proto0 $2"
                 shift 2
                 ;;
         -ep4)
@@ -167,6 +174,19 @@ while [ "$#" -gt 0 ]; do
                 shift 2
 
                 case "${port}" in
+                        [0-9]*)
+                                ;;
+                        *)
+                                echo "invalid port ${port}" >&2
+                                printdef "Invalid port ${port}"
+                        ;;
+                esac
+                ;;
+        -op)
+                oport="$2"
+                shift 2
+
+                case "${oport}" in
                         [0-9]*)
                                 ;;
                         *)
@@ -232,6 +252,14 @@ if [ -z "${port}" ]; then
         port="0"
 fi
 
+if [ -z "${oport}" ]; then
+        oport="0"
+fi
+
+if [ "${port}" != "0" ] && [ "${oport}" != "0" ] && [ "${port}" = "${oport}" ]; then
+        printdef "Port and oport can't be the same"
+fi
+
 # * Check if brigade is exists
 if [ -z "${DEBUG}" ] && [ -s "${DB_DIR}/created" ]; then
         echo "Brigade ${brigade_id} already exists" >&2
@@ -239,12 +267,12 @@ if [ -z "${DEBUG}" ] && [ -s "${DB_DIR}/created" ]; then
         fatal "409" "Conflict" "Brigade ${brigade_id} already exists"
 fi
 
-if test -f "${DB_DIR}/.maintenance" && test "$(date '+%s')" -lt "$(cat "${DB_DIR}/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "${DB_DIR}/.maintenance")")"
+if test -f "${DB_DIR}/.maintenance" && test "$(date '+%s')" -lt "$(head -n 1 < "${DB_DIR}/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(head -n 1 < "${DB_DIR}/.maintenance")")"
 fi
 
-if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
+if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(head -n 1 < "/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(head -n 1 < /.maintenance)")"
 fi
 
 if  [ -z "${DEBUG}" ] && [ ! -d "${ROUTER_SOCKETS_DIR}" ]; then
@@ -285,8 +313,6 @@ else
         echo "DEBUG: install -o ${brigade_id} -g ${VGROUTER_GROUP} -m 2710 -d ${ROUTER_SOCKETS_DIR}/${brigade_id}" >&2
 fi
 
-EXECUTABLE_DIR="$(realpath "$(dirname "$0")")"
-
 if [ -z "${DEBUG}" ]; then
         # Create json datafile
         # shellcheck disable=SC2086
@@ -304,10 +330,9 @@ if [ -z "${DEBUG}" ]; then
                 -maxusers "${maxusers}" \
                 >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
 else
-        BRIGADE_SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}")"
-        if [ -x "${BRIGADE_MAKER_APP_PATH}" ]; then
+        if [ -s "${BRIGADE_SOURCE_DIR}/main.go" ]; then
                 # shellcheck disable=SC2086
-                "${BRIGADE_MAKER_APP_PATH}" \
+                go run "${BRIGADE_SOURCE_DIR}/" \
                         -ep4 "${endpoint_ip4}" \
                         -dns4 "${dns_ip4}" \
                         -dns6 "${dns_ip6}" \
@@ -324,9 +349,9 @@ else
                         -mode "${mode}" \
                         -maxusers "${maxusers}" \
                         >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
-        elif [ -s "${BRIGADE_SOURCE_DIR}/main.go" ]; then
+        elif [ -x "${BRIGADE_MAKER_APP_PATH}" ]; then
                 # shellcheck disable=SC2086
-                go run "${BRIGADE_SOURCE_DIR}" \
+                "${BRIGADE_MAKER_APP_PATH}" \
                         -ep4 "${endpoint_ip4}" \
                         -dns4 "${dns_ip4}" \
                         -dns6 "${dns_ip6}" \
@@ -363,10 +388,10 @@ if [ "${mode}" = $MODE_BRIGADE ]; then
                         ${json} \
                         )" || (echo "$wgconf"; exit 1)
         else
-                KEYDESK_SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}/../keydesk")"
                 # shellcheck disable=SC2086
-                if [ -x "${KEYDESK_APP_PATH}" ]; then
-                        wgconf="$("${KEYDESK_APP_PATH}" \
+                if [ -s "${KEYDESK_SOURCE_DIR}/main.go" ]; then
+                        # shellcheck disable=SC2086
+                        wgconf="$(go run "${KEYDESK_SOURCE_DIR}/" \
                                 -name "${brigadier_name}" \
                                 -person "${person_name}" \
                                 -desc "${person_desc}" \
@@ -379,9 +404,8 @@ if [ "${mode}" = $MODE_BRIGADE ]; then
                                 ${chunked} \
                                 ${json} \
                                 )" || (echo "$wgconf"; exit 1)
-                elif [ -s "${KEYDESK_SOURCE_DIR}/../keydesk/main.go" ]; then
-                        # shellcheck disable=SC2086
-                        wgconf="$(go run "$(dirname $0 | xargs realpath)/../keydesk" \
+                elif [ -x "${KEYDESK_APP_PATH}" ]; then
+                        wgconf="$("${KEYDESK_APP_PATH}" \
                                 -name "${brigadier_name}" \
                                 -person "${person_name}" \
                                 -desc "${person_desc}" \

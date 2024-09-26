@@ -30,6 +30,10 @@ type BrigadeOutlineConfig struct {
 	OutlinePort uint16
 }
 
+type BrigadeP0Config struct {
+	P0FakeDomain string
+}
+
 // CreateBrigade - create brigade config.
 func (db *BrigadeStorage) CreateBrigade(
 	config *BrigadeConfig,
@@ -37,6 +41,7 @@ func (db *BrigadeStorage) CreateBrigade(
 	ovcConf *BrigadeOvcConfig,
 	ipcseConf *BrigadeIPSecConfig,
 	outlineConf *BrigadeOutlineConfig,
+	p0Conf *BrigadeP0Config,
 	mode Mode,
 	maxUsers uint,
 ) error {
@@ -95,6 +100,10 @@ func (db *BrigadeStorage) CreateBrigade(
 		data.OutlinePort = outlineConf.OutlinePort
 	}
 
+	if p0Conf != nil {
+		data.P0FakeDomain = p0Conf.P0FakeDomain
+	}
+
 	// if we catch a slowdown problems we need organize queue
 	err = vpnapi.WgAdd(
 		data.BrigadeID,
@@ -110,6 +119,7 @@ func (db *BrigadeStorage) CreateBrigade(
 		data.OvCAKeyRouterEnc,
 		data.IPSecPSKRouterEnc,
 		data.OutlinePort,
+		data.P0FakeDomain,
 	)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)

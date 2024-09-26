@@ -40,6 +40,7 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 			data.OvCAKeyRouterEnc,
 			data.IPSecPSKRouterEnc,
 			data.OutlinePort,
+			data.P0FakeDomain,
 		)
 		if err != nil {
 			return fmt.Errorf("wg add: %w", err)

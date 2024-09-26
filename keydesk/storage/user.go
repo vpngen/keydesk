@@ -1,9 +1,11 @@
 package storage
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/netip"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -189,6 +191,14 @@ func (db *BrigadeStorage) CreateUser(
 		return nil, fmt.Errorf("save: %w", err)
 	}
 
+	if isBrigadier {
+		fmt.Fprintf(os.Stderr, "Brigadier %s (%s) added\n", userconf.ID, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub))
+
+		return userconf, nil
+	}
+
+	fmt.Fprintf(os.Stderr, "User %s (%s) added\n", userconf.ID, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub))
+
 	return userconf, nil
 }
 
@@ -300,6 +310,8 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 		return fmt.Errorf("save: %w", err)
 	}
 
+	fmt.Fprintf(os.Stderr, "User %s (%s) removed\n", id, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub))
+
 	return nil
 }
 
@@ -321,6 +333,8 @@ func (db *BrigadeStorage) removeBrigadier(data *Brigade) (string, namesgenerator
 			if err != nil {
 				return "", namesgenerator.Person{}, fmt.Errorf("peer del: %w", err)
 			}
+
+			fmt.Fprintf(os.Stderr, "Brigadier %s (%s) removed\n", user.UserID, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub))
 
 			break
 		}

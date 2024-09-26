@@ -131,6 +131,7 @@ func WgAdd(
 	ovcRouterCAKey string,
 	ipsecPSK string,
 	outlinePort uint16,
+	p0FakeDomain string,
 ) error {
 	// fmt.Fprintf(os.Stderr, "WgAdd: %d\n", len(wgPriv))
 
@@ -158,6 +159,12 @@ func WgAdd(
 	if outlinePort != 0 {
 		query += fmt.Sprintf("&outline-ss-port=%d",
 			outlinePort,
+		)
+	}
+
+	if p0FakeDomain != "" {
+		query += fmt.Sprintf("&p0-domain=%s",
+			url.QueryEscape(p0FakeDomain),
 		)
 	}
 

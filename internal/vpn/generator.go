@@ -3,6 +3,7 @@ package vpn
 import (
 	"fmt"
 	"log"
+	"os"
 	"slices"
 
 	"github.com/vpngen/keydesk/internal/vpn/amnezia"
@@ -137,6 +138,8 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 	if err != nil {
 		return Configs{}, fmt.Errorf("peer add: %w", err)
 	}
+
+	fmt.Fprintf(os.Stderr, "User %s (%s) added\n", user.UserID, protocolsObj.WireGuard.Key.PublicKey())
 
 	if protocolsObj.OpenVPN != nil {
 		protocolsObj.OpenVPN.Cert = resp.OpenvpnClientCertificate

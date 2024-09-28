@@ -475,6 +475,17 @@ func init() {
             }
           }
         },
+        "Proto0Config": {
+          "type": "object",
+          "required": [
+            "AccessKey"
+          ],
+          "properties": {
+            "AccessKey": {
+              "type": "string"
+            }
+          }
+        },
         "UserID": {
           "type": "string"
         },
@@ -1050,6 +1061,17 @@ func init() {
         }
       }
     },
+    "NewuserProto0Config": {
+      "type": "object",
+      "required": [
+        "AccessKey"
+      ],
+      "properties": {
+        "AccessKey": {
+          "type": "string"
+        }
+      }
+    },
     "NewuserWireguardConfig": {
       "type": "object",
       "required": [
@@ -1204,6 +1226,17 @@ func init() {
           }
         },
         "OutlineConfig": {
+          "type": "object",
+          "required": [
+            "AccessKey"
+          ],
+          "properties": {
+            "AccessKey": {
+              "type": "string"
+            }
+          }
+        },
+        "Proto0Config": {
           "type": "object",
           "required": [
             "AccessKey"

@@ -263,6 +263,13 @@ definitions:
         properties:
           AccessKey:
             type: string
+      Proto0Config:
+        type: object
+        required:
+          - AccessKey
+        properties:
+          AccessKey:
+            type: string
       VPNGenConfig:
         $ref: '#/definitions/VGC'
   user:

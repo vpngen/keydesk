@@ -14,6 +14,7 @@ const (
 	ipsecStatName   = "ipsec"
 	ovcStatName     = "cloak-openvpn"
 	outlineStatName = "outline-ss"
+	proto0StatName  = "proto0"
 )
 
 // WgStatTimestamp - VPN stat timestamp.
@@ -35,6 +36,7 @@ type WgStatTrafficMap struct {
 	IPSec   map[string]*WgStatTraffic
 	Ovc     map[string]*WgStatTraffic
 	Outline map[string]*WgStatTraffic
+	Proto0  map[string]*WgStatTraffic
 }
 
 // WgStatLastActivityMap - VPN stat last activity map, key is User wg_public_key.
@@ -44,6 +46,7 @@ type WgStatLastActivityMap struct {
 	IPSec   map[string]time.Time
 	Ovc     map[string]time.Time
 	Outline map[string]time.Time
+	Proto0  map[string]time.Time
 }
 
 // WgStatEndpointMap - VPN stat endpoint map, key is User wg_public_key.
@@ -53,6 +56,7 @@ type WgStatEndpointMap struct {
 	IPSec   map[string]netip.Prefix
 	Ovc     map[string]netip.Prefix
 	Outline map[string]netip.Prefix
+	Proto0  map[string]netip.Prefix
 }
 
 // ErrInvalidStatFormat - invalid stat format.
@@ -65,6 +69,7 @@ func NewWgStatTrafficMap() *WgStatTrafficMap {
 		IPSec:   make(map[string]*WgStatTraffic),
 		Ovc:     make(map[string]*WgStatTraffic),
 		Outline: make(map[string]*WgStatTraffic),
+		Proto0:  make(map[string]*WgStatTraffic),
 	}
 }
 
@@ -75,6 +80,7 @@ func NewWgStatLastActivityMap() *WgStatLastActivityMap {
 		IPSec:   make(map[string]time.Time),
 		Ovc:     make(map[string]time.Time),
 		Outline: make(map[string]time.Time),
+		Proto0:  make(map[string]time.Time),
 	}
 }
 
@@ -85,6 +91,7 @@ func NewWgStatEndpointMap() *WgStatEndpointMap {
 		IPSec:   make(map[string]netip.Prefix),
 		Ovc:     make(map[string]netip.Prefix),
 		Outline: make(map[string]netip.Prefix),
+		Proto0:  make(map[string]netip.Prefix),
 	}
 }
 
@@ -139,6 +146,11 @@ func WgStatParseTraffic(traffic WgStatTrafficMapIn) (*WgStatTrafficMap, error) {
 					Rx: rx,
 					Tx: tx,
 				}
+			case proto0StatName:
+				m.Proto0[id] = &WgStatTraffic{
+					Rx: rx,
+					Tx: tx,
+				}
 			}
 		}
 	}
@@ -171,6 +183,8 @@ func WgStatParseLastActivity(lastSeen WgStatLastseenMapIn) (*WgStatLastActivityM
 				m.Ovc[id] = time.Unix(ts, 0).UTC()
 			case outlineStatName:
 				m.Outline[id] = time.Unix(ts, 0).UTC()
+			case proto0StatName:
+				m.Proto0[id] = time.Unix(ts, 0).UTC()
 			}
 		}
 	}
@@ -207,6 +221,8 @@ func WgStatParseEndpoints(endpoints WgStatEndpointMapIn) (*WgStatEndpointMap, er
 				m.Ovc[id] = prefix
 			case outlineStatName:
 				m.Outline[id] = prefix
+			case proto0StatName:
+				m.Proto0[id] = prefix
 			}
 		}
 	}

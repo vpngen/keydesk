@@ -62,6 +62,7 @@ func WgPeerAdd(
 	ipsecUsername string,
 	ipsecPassword string,
 	outlineSecret string,
+	proto0Secret string,
 ) ([]byte, error) {
 	query := fmt.Sprintf("peer_add=%s&wg-public-key=%s&wg-psk-key=%s&allowed-ips=%s",
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub)),
@@ -87,6 +88,12 @@ func WgPeerAdd(
 	if outlineSecret != "" {
 		query += fmt.Sprintf("&outline-ss-password=%s",
 			url.QueryEscape(outlineSecret),
+		)
+	}
+
+	if proto0Secret != "" {
+		query += fmt.Sprintf("&p0-id=%s",
+			url.QueryEscape(proto0Secret),
 		)
 	}
 
@@ -131,7 +138,7 @@ func WgAdd(
 	ovcRouterCAKey string,
 	ipsecPSK string,
 	outlinePort uint16,
-	p0FakeDomain string,
+	proto0FakeDomain string,
 ) error {
 	// fmt.Fprintf(os.Stderr, "WgAdd: %d\n", len(wgPriv))
 
@@ -162,9 +169,9 @@ func WgAdd(
 		)
 	}
 
-	if p0FakeDomain != "" {
+	if proto0FakeDomain != "" {
 		query += fmt.Sprintf("&p0-domain=%s",
-			url.QueryEscape(p0FakeDomain),
+			url.QueryEscape(proto0FakeDomain),
 		)
 	}
 

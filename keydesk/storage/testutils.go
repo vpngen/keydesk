@@ -29,7 +29,7 @@ func BrigadeTestMiddleware(db *BrigadeStorage, mw utils.TestMainMiddleware) util
 			&BrigadeOvcConfig{},
 			&BrigadeIPSecConfig{},
 			&BrigadeOutlineConfig{},
-			&BrigadeP0Config{},
+			&BrigadeProto0Config{},
 			ModeBrigade,
 			0,
 		); err != nil {

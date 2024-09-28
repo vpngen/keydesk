@@ -31,6 +31,9 @@ type Newuser struct {
 	// outline config
 	OutlineConfig *NewuserOutlineConfig `json:"OutlineConfig,omitempty"`
 
+	// proto0 config
+	Proto0Config *NewuserProto0Config `json:"Proto0Config,omitempty"`
+
 	// user ID
 	// Required: true
 	UserID *string `json:"UserID"`
@@ -59,6 +62,10 @@ func (m *Newuser) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOutlineConfig(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateProto0Config(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -141,6 +148,25 @@ func (m *Newuser) validateOutlineConfig(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *Newuser) validateProto0Config(formats strfmt.Registry) error {
+	if swag.IsZero(m.Proto0Config) { // not required
+		return nil
+	}
+
+	if m.Proto0Config != nil {
+		if err := m.Proto0Config.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("Proto0Config")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("Proto0Config")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (m *Newuser) validateUserID(formats strfmt.Registry) error {
 
 	if err := validate.Required("UserID", "body", m.UserID); err != nil {
@@ -208,6 +234,10 @@ func (m *Newuser) ContextValidate(ctx context.Context, formats strfmt.Registry) 
 	}
 
 	if err := m.contextValidateOutlineConfig(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateProto0Config(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -280,6 +310,27 @@ func (m *Newuser) contextValidateOutlineConfig(ctx context.Context, formats strf
 				return ve.ValidateName("OutlineConfig")
 			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("OutlineConfig")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *Newuser) contextValidateProto0Config(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Proto0Config != nil {
+
+		if swag.IsZero(m.Proto0Config) { // not required
+			return nil
+		}
+
+		if err := m.Proto0Config.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("Proto0Config")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("Proto0Config")
 			}
 			return err
 		}
@@ -591,6 +642,62 @@ func (m *NewuserOutlineConfig) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (m *NewuserOutlineConfig) UnmarshalBinary(b []byte) error {
 	var res NewuserOutlineConfig
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// NewuserProto0Config newuser proto0 config
+//
+// swagger:model NewuserProto0Config
+type NewuserProto0Config struct {
+
+	// access key
+	// Required: true
+	AccessKey *string `json:"AccessKey"`
+}
+
+// Validate validates this newuser proto0 config
+func (m *NewuserProto0Config) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateAccessKey(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *NewuserProto0Config) validateAccessKey(formats strfmt.Registry) error {
+
+	if err := validate.Required("Proto0Config"+"."+"AccessKey", "body", m.AccessKey); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this newuser proto0 config based on context it is used
+func (m *NewuserProto0Config) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *NewuserProto0Config) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *NewuserProto0Config) UnmarshalBinary(b []byte) error {
+	var res NewuserProto0Config
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

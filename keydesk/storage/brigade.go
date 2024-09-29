@@ -179,5 +179,9 @@ func (db *BrigadeStorage) GetVpnConfigs(req *ConfigsImplemented) (*ConfigsImplem
 		vpnCfgs.NewOutlineConfigs(req.Outline)
 	}
 
+	if data.Proto0FakeDomain != "" {
+		vpnCfgs.NewProto0Configs(req.Proto0)
+	}
+
 	return vpnCfgs, nil
 }

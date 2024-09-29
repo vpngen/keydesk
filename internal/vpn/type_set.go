@@ -9,6 +9,7 @@ const (
 	TypeOVC
 	TypeWG
 	TypeIPSec
+	TypeProto0
 )
 
 var (
@@ -17,12 +18,14 @@ var (
 		TypeOVC:     Amnezia,
 		TypeWG:      Wireguard,
 		TypeIPSec:   IPSec,
+		TypeProto0:  Proto0,
 	}
 	string2type = map[string]ProtocolSet{
 		Outline:   TypeOutline,
 		Amnezia:   TypeOVC,
 		Wireguard: TypeWG,
 		IPSec:     TypeIPSec,
+		Proto0:    TypeProto0,
 	}
 )
 

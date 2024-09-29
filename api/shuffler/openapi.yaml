@@ -130,6 +130,12 @@ components:
           type: string
       required:
         - access_key
+    Proto0Config:
+      properties:
+        access_key:
+          type: string
+      required:
+        - access_key
     AmneziaOVCConfig:
       properties:
         tunnel_name:
@@ -181,6 +187,8 @@ components:
           type: string
         ipsec:
           $ref: '#/components/schemas/IPSecL2TPConfig'
+        proto0:
+          $ref: '#/components/schemas/Proto0Config'
         vgc:
           type: string
     SlotsInfo:

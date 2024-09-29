@@ -12,6 +12,7 @@ import (
 	"github.com/vpngen/keydesk/internal/vpn/ipsec"
 	"github.com/vpngen/keydesk/internal/vpn/openvpn"
 	"github.com/vpngen/keydesk/internal/vpn/outline"
+	"github.com/vpngen/keydesk/internal/vpn/proto0"
 	"github.com/vpngen/keydesk/internal/vpn/ss"
 	"github.com/vpngen/keydesk/internal/vpn/vgc"
 	"github.com/vpngen/keydesk/internal/vpn/wg"
@@ -26,6 +27,7 @@ const (
 	ProtocolCloak       = "cloak"
 	ProtocolOpenVPN     = "openvpn"
 	ProtocolL2TP        = "l2tp"
+	ProtocolProto0      = "proto0"
 )
 
 var cfgProtocols = map[string][]string{
@@ -34,6 +36,7 @@ var cfgProtocols = map[string][]string{
 	Outline:   {ProtocolShadowsocks},
 	Amnezia:   {ProtocolCloak, ProtocolOpenVPN},
 	IPSec:     {ProtocolL2TP},
+	Proto0:    {ProtocolProto0},
 }
 
 type Generator struct {
@@ -47,6 +50,7 @@ type Configs struct {
 	Outline   *string
 	Amnezia   *FileConfig
 	IPSec     *ipsec.ClientConfig
+	Proto0    *string
 }
 
 type Protocols struct {
@@ -55,6 +59,7 @@ type Protocols struct {
 	Cloak       *cloak.Config
 	OpenVPN     *openvpn.Config
 	L2TP        *ipsec.ClientConfig
+	Proto0      *proto0.Config
 }
 
 const defaultInternalDNS = "100.126.0.1"
@@ -122,6 +127,13 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 			}
 			protocolsObj.L2TP = &cfg
 
+		case ProtocolProto0:
+			cfg, err := proto0.Generate(brigade, user, g.NaCl, epData)
+			if err != nil {
+				return Configs{}, fmt.Errorf("generate %q: %w", p, err)
+			}
+			protocolsObj.Proto0 = cfg
+
 		default:
 			return Configs{}, fmt.Errorf("unsupported protocol %q", p)
 		}
@@ -171,7 +183,9 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 			if err != nil {
 				return Configs{}, fmt.Errorf("get cloak config: %w", err)
 			}
-			cfg := vgc.NewV1(user.Name, user.EndpointDomain, protocolsObj.WireGuard.GetVGC(), ck, *sscfg, 0)
+			proto0 := protocolsObj.Proto0
+
+			cfg := vgc.NewV1(user.Name, user.EndpointDomain, protocolsObj.WireGuard.GetVGC(), ck, sscfg, proto0, 0)
 			enc, err := cfg.Encode()
 			if err != nil {
 				return Configs{}, fmt.Errorf("encode: %w", err)
@@ -184,6 +198,10 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 				return Configs{}, fmt.Errorf("outline: %w", err)
 			}
 			ret.Outline = &cfg
+
+		case Proto0:
+			cfg := protocolsObj.Proto0.GetConnString(user.Name)
+			ret.Proto0 = &cfg
 
 		case Amnezia:
 			amnz := amnezia.NewConfig(storage.GetEndpointHost(brigade, user), user.Name, defaultInternalDNS, defaultInternalDNS)

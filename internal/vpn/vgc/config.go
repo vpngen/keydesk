@@ -8,16 +8,18 @@ import (
 
 	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/vpngen/keydesk/internal/vpn/cloak"
+	"github.com/vpngen/keydesk/internal/vpn/proto0"
 	"github.com/vpngen/keydesk/internal/vpn/ss"
 	"github.com/vpngen/keydesk/internal/vpn/wg"
 )
 
 type (
 	Config struct {
-		Config      config     `json:"config"`
-		Wireguard   wg.Config2 `json:"wireguard"`
-		Cloak       cloak.VGC  `json:"cloak"`
-		Shadowsocks ss.Config  `json:"shadowsocks"`
+		Config      config         `json:"config"`
+		Wireguard   *wg.Config2    `json:"wireguard,omitempty"`
+		Cloak       *cloak.VGC     `json:"cloak,omitempty"`
+		Shadowsocks *ss.Config     `json:"shadowsocks,omitempty"`
+		Proto0      *proto0.Config `json:"proto0,omitempty"`
 	}
 
 	config struct {
@@ -28,7 +30,7 @@ type (
 	}
 )
 
-func New(name, domain string, version, extended int, wg wg.Config2, ck cloak.VGC, ss ss.Config) Config {
+func New(name, domain string, version, extended int, wg *wg.Config2, ck *cloak.VGC, ss *ss.Config, proto0 *proto0.Config) Config {
 	return Config{
 		Config: config{
 			Version:  version,
@@ -39,11 +41,12 @@ func New(name, domain string, version, extended int, wg wg.Config2, ck cloak.VGC
 		Wireguard:   wg,
 		Cloak:       ck,
 		Shadowsocks: ss,
+		Proto0:      proto0,
 	}
 }
 
-func NewV1(name, domain string, wg wg.Config2, ck cloak.VGC, ss ss.Config, ext int) Config {
-	return New(name, domain, 1, ext, wg, ck, ss)
+func NewV1(name, domain string, wg *wg.Config2, ck *cloak.VGC, ss *ss.Config, proto0 *proto0.Config, ext int) Config {
+	return New(name, domain, 1, ext, wg, ck, ss, proto0)
 }
 
 func (c Config) Encode() (string, error) {

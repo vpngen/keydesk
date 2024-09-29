@@ -1,8 +1,9 @@
 package cloak
 
 import (
-	"github.com/vpngen/keydesk/internal/vpn/ss"
 	"strconv"
+
+	"github.com/vpngen/keydesk/internal/vpn/ss"
 )
 
 const (
@@ -27,12 +28,12 @@ type Config struct {
 	UID              string `json:"UID"`
 }
 
-func (c Config) GetVGC(book ProxyBook) (VGC, error) {
+func (c Config) GetVGC(book ProxyBook) (*VGC, error) {
 	port, err := strconv.Atoi(c.RemotePort)
 	if err != nil {
-		return VGC{}, err
+		return nil, err
 	}
-	return VGC{
+	return &VGC{
 		RemoteHost: c.RemoteHost,
 		RemotePort: port,
 		UID:        c.UID,
@@ -59,21 +60,22 @@ func NewConfig(domain, pubKey, uid, browser, proxyMethod, fakeDomain string) Con
 
 type (
 	VGC struct {
-		RemoteHost string
-		RemotePort int
-		UID        string
-		PublicKey  string
-		ProxyBook  ProxyBook
+		RemoteHost string    `json:"RemoteHost"`
+		RemotePort int       `json:"RemotePort"`
+		UID        string    `json:"UID"`
+		PublicKey  string    `json:"PublicKey"`
+		ProxyBook  ProxyBook `json:"ProxyBook"`
+		ServerName string    `json:"ServerName"`
 	}
 	ProxyBook struct {
 		Shadowsocks ss.Config `json:"shadowsocks"`
 	}
 )
 
-func NewCloak(remoteHost, uid, publicKey string, remotePort int, proxyBook ProxyBook) VGC {
-	return VGC{RemoteHost: remoteHost, RemotePort: remotePort, UID: uid, PublicKey: publicKey, ProxyBook: proxyBook}
+func NewCloak(remoteHost, uid, publicKey string, remotePort int, serverName string, proxyBook ProxyBook) *VGC {
+	return &VGC{RemoteHost: remoteHost, RemotePort: remotePort, UID: uid, PublicKey: publicKey, ServerName: serverName, ProxyBook: proxyBook}
 }
 
-func NewCloakDefault(remoteHost, uid, publicKey string, proxyBook ProxyBook) VGC {
-	return NewCloak(remoteHost, uid, publicKey, 443, proxyBook)
+func NewCloakDefault(remoteHost, uid, publicKey string, serverName string, proxyBook ProxyBook) *VGC {
+	return NewCloak(remoteHost, uid, publicKey, 443, serverName, proxyBook)
 }

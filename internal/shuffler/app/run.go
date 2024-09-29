@@ -129,6 +129,12 @@ func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsReq
 		res.Configs.Outline = cfgs.Outline
 	}
 
+	if cfgs.Proto0 != nil {
+		res.Configs.Proto0 = &shuffler.Proto0Config{
+			AccessKey: *cfgs.Proto0,
+		}
+	}
+
 	if cfgs.IPSec != nil {
 		res.Configs.Ipsec = &shuffler.IPSecL2TPConfig{
 			Password: cfgs.IPSec.Password,

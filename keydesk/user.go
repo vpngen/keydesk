@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/vpngen/keydesk/internal/vpn/cloak"
+	"github.com/vpngen/keydesk/internal/vpn/proto0"
 	ss2 "github.com/vpngen/keydesk/internal/vpn/ss"
 	"github.com/vpngen/keydesk/internal/vpn/vgc"
 	wg2 "github.com/vpngen/keydesk/internal/vpn/wg"
@@ -239,13 +240,27 @@ func assembleConfig(
 			fmt.Sprintf("%s:%d", endpointHostString, user.EndpointPort),
 		)
 
-		ss := ss2.NewSS(endpointHostString, ChaCha20, outlineSecret, user.OutlinePort)
+		var (
+			ss *ss2.Config
+			ck *cloak.VGC
+			p0 *proto0.Config
+		)
 
-		ck := cloak.NewCloakDefault(endpointHostString, cloakBypassUID, pub.String(), cloak.ProxyBook{
-			Shadowsocks: ss2.NewSSProxyBook(ChaCha20, outlineSecret),
-		})
+		if outlineSecret != "" && user.OutlinePort > 0 {
+			ss = ss2.NewSS(endpointHostString, ChaCha20, outlineSecret, user.OutlinePort)
+		}
 
-		cfg := vgc.NewV1(user.Name, user.EndpointDomain, wg, ck, ss, isBrigadier)
+		if cloakBypassUID != "" && outlineSecret != "" && user.OutlinePort > 0 && user.CloakFakeDomain != "" {
+			ck = cloak.NewCloakDefault(endpointHostString, cloakBypassUID, pub.String(), user.CloakFakeDomain, cloak.ProxyBook{
+				Shadowsocks: ss2.NewSSProxyBook(ChaCha20, outlineSecret),
+			})
+		}
+
+		if proto0LongID != "" && proto0ShortID != "" && user.Proto0FakeDomain != "" {
+			p0 = proto0.NewProto0(user.EndpointWgPublic, proto0LongID, proto0ShortID, endpointHostString, user.Proto0FakeDomain)
+		}
+
+		cfg := vgc.NewV1(user.Name, user.EndpointDomain, wg, ck, ss, p0, isBrigadier)
 
 		encoded, err := cfg.Encode()
 		if err != nil {

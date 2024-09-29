@@ -3,11 +3,12 @@ package wg
 import (
 	"bytes"
 	"fmt"
-	"github.com/vpngen/keydesk/internal/vpn/endpoint"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"net/netip"
 	"strings"
 	"text/template"
+
+	"github.com/vpngen/keydesk/internal/vpn/endpoint"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 type (
@@ -42,8 +43,8 @@ func (c RawConfig) HandleEndpointAPIResponse(resp endpoint.APIResponse) error {
 	return nil
 }
 
-func (c RawConfig) GetVGC() Config2 {
-	return Config2{
+func (c RawConfig) GetVGC() *Config2 {
+	return &Config2{
 		Interface: Interface{
 			PrivateKey: c.Key.String(),
 			Address:    strings.Join([]string{c.Address[0].String(), c.Address[1].String()}, ","),
@@ -76,8 +77,8 @@ func (c RawConfig) GetAddresses() string {
 	return strings.Join(ips, ",")
 }
 
-func NewWireguard(key, addr, dns, pub, psk, ips, ep string) Config2 {
-	return Config2{
+func NewWireguard(key, addr, dns, pub, psk, ips, ep string) *Config2 {
+	return &Config2{
 		Interface: Interface{
 			PrivateKey: key,
 			Address:    addr,
@@ -92,7 +93,7 @@ func NewWireguard(key, addr, dns, pub, psk, ips, ep string) Config2 {
 	}
 }
 
-func NewWireguardAnyIP(key, addr, dns, pub, psk, ep string) Config2 {
+func NewWireguardAnyIP(key, addr, dns, pub, psk, ep string) *Config2 {
 	return NewWireguard(key, addr, dns, pub, psk, "0.0.0.0/0,::/0", ep)
 }
 

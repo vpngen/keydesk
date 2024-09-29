@@ -35,6 +35,11 @@ type IPSecL2TPConfig struct {
 	Username string `json:"username"`
 }
 
+// Proto0Config defines model for Proto0Config.
+type Proto0Config struct {
+	AccessKey string `json:"access_key"`
+}
+
 // SlotsInfo defines model for SlotsInfo.
 type SlotsInfo struct {
 	FreeSlots  int `json:"free_slots"`
@@ -46,6 +51,7 @@ type VPNConfig struct {
 	Amnezia   *AmneziaOVCConfig `json:"amnezia,omitempty"`
 	Ipsec     *IPSecL2TPConfig  `json:"ipsec,omitempty"`
 	Outline   *string           `json:"outline,omitempty"`
+	Proto0    *Proto0Config     `json:"proto0,omitempty"`
 	Vgc       *string           `json:"vgc,omitempty"`
 	Wireguard *WireGuardConfig  `json:"wireguard,omitempty"`
 }

@@ -28,8 +28,8 @@ type Config struct {
 	Outline Outline `json:"outline,omitempty"`
 }
 
-func NewSS(host, cipher, password string, port uint16) Config {
-	return Config{
+func NewSS(host, cipher, password string, port uint16) *Config {
+	return &Config{
 		Host:     host,
 		Port:     port,
 		Cipher:   cipher,

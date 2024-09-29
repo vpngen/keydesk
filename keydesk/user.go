@@ -198,7 +198,7 @@ func assembleConfig(
 
 	if vpnCfgs.Proto0[storage.ConfigProto0TypeAccesskey] {
 		accessKey := "\u0076\u006C\u0065\u0073\u0073\u003A\u002F\u002F" + proto0LongID +
-			fmt.Sprintf("@%s?", endpointHostString) +
+			fmt.Sprintf("@%s:%d?", endpointHostString, user.Proto0Port) +
 			"\u0073\u0065\u0063\u0075\u0072\u0069\u0074\u0079\u003D\u0072\u0065\u0061\u006C\u0069\u0074\u0079" +
 			"\u0026\u0065\u006E\u0063\u0072\u0079\u0070\u0074\u0069\u006F\u006E\u003D\u006E\u006F\u006E\u0065" + "\u0026\u0070\u0062\u006B\u003D" +
 			base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(user.EndpointWgPublic) +
@@ -257,7 +257,7 @@ func assembleConfig(
 		}
 
 		if proto0LongID != "" && proto0ShortID != "" && user.Proto0FakeDomain != "" {
-			p0 = proto0.NewProto0(user.EndpointWgPublic, proto0LongID, proto0ShortID, endpointHostString, user.Proto0FakeDomain)
+			p0 = proto0.NewProto0(user.EndpointWgPublic, proto0LongID, proto0ShortID, endpointHostString, user.Proto0FakeDomain, user.Proto0Port)
 		}
 
 		cfg := vgc.NewV1(user.Name, user.EndpointDomain, wg, ck, ss, p0, isBrigadier)

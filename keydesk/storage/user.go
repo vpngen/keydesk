@@ -119,6 +119,7 @@ func (db *BrigadeStorage) CreateUser(
 
 	if len(vpnCfgs.Proto0) > 0 {
 		userconf.Proto0FakeDomain = data.Proto0FakeDomain
+		userconf.Proto0Port = data.Proto0Port
 	}
 
 	// if we catch a slowdown problems we need organize queue

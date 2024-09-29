@@ -159,13 +159,13 @@ func addProto0Support(db *storage.BrigadeStorage, domain string) error {
 
 	defer f.Close()
 
-	if data.Proto0FakeDomain != "" {
+	if data.Proto0FakeDomain != "" && data.Proto0Port > 0 {
 		fmt.Fprintf(os.Stderr, "Brigade %s already has Proto0\n", db.BrigadeID)
 
 		return ErrProto0AlreadyPresent
 	}
 
-	proto0Conf := keydesk.GenEndpointProto0Creds(data.Proto0FakeDomain)
+	proto0Conf := keydesk.GenEndpointProto0Creds(data.Proto0FakeDomain, 0)
 
 	if domain != "" {
 		proto0Conf.Proto0FakeDomain = domain
@@ -186,13 +186,14 @@ func removeProto0Support(db *storage.BrigadeStorage) error {
 
 	defer f.Close()
 
-	if data.Proto0FakeDomain == "" {
+	if data.Proto0FakeDomain == "" || data.Proto0Port <= 0 {
 		fmt.Fprintf(os.Stderr, "Brigade %s already hasn't Proto0\n", db.BrigadeID)
 
 		return ErrProto0AlreadyAbsent
 	}
 
 	data.Proto0FakeDomain = ""
+	data.Proto0Port = 0
 
 	f.Commit(data)
 

@@ -13,17 +13,19 @@ type Config struct {
 	ShortID   string `json:"short_id,omitempty"`
 
 	EndpointHost string `json:"host,omitempty"`
+	EndpointPort uint16 `json:"port,omitempty"`
 
 	ServerName string `json:"server_name,omitempty"`
 }
 
-func NewProto0(pubkey []byte, longID, shortID string, host string, sn string) *Config {
+func NewProto0(pubkey []byte, longID, shortID string, host string, sn string, port uint16) *Config {
 	return &Config{
 		PublicKey: pubkey,
 		LongID:    longID,
 		ShortID:   shortID,
 
 		EndpointHost: host,
+		EndpointPort: port,
 
 		ServerName: sn,
 	}
@@ -31,7 +33,7 @@ func NewProto0(pubkey []byte, longID, shortID string, host string, sn string) *C
 
 func (c Config) GetConnString(name string) string {
 	return "\u0076\u006C\u0065\u0073\u0073\u003A\u002F\u002F" + c.LongID +
-		fmt.Sprintf("@%s?", c.EndpointHost) +
+		fmt.Sprintf("@%s:%d?", c.EndpointHost, c.EndpointPort) +
 		"\u0073\u0065\u0063\u0075\u0072\u0069\u0074\u0079\u003D\u0072\u0065\u0061\u006C\u0069\u0074\u0079" +
 		"\u0026\u0065\u006E\u0063\u0072\u0079\u0070\u0074\u0069\u006F\u006E\u003D\u006E\u006F\u006E\u0065" + "\u0026\u0070\u0062\u006B\u003D" +
 		base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(c.PublicKey) +

@@ -14,6 +14,8 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
+const DefaultProto0Port = 443
+
 // CreateBrigade - create brigadier user.
 func CreateBrigade(
 	db *storage.BrigadeStorage,
@@ -66,7 +68,7 @@ func CreateBrigade(
 	}
 
 	if len(vpnCfgs.Proto0) > 0 {
-		proto0Conf = GenEndpointProto0Creds(ovcFakeDomain)
+		proto0Conf = GenEndpointProto0Creds(ovcFakeDomain, 0)
 	}
 
 	err = db.CreateBrigade(config, wgConf, ovcConf, ipsecConf, outlineConf, proto0Conf, mode, maxUsers)
@@ -159,16 +161,21 @@ func GenEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey *[naclkey.Nac
 	}, nil
 }
 
-func GenEndpointProto0Creds(ovcFakeDomain string) *storage.BrigadeProto0Config {
+func GenEndpointProto0Creds(domain string, port uint16) *storage.BrigadeProto0Config {
 	var fakeDomain string
 	for {
 		fakeDomain = GetRandomSite()
-		if fakeDomain != ovcFakeDomain {
+		if fakeDomain != domain {
 			break
 		}
 	}
 
+	if port == 0 {
+		port = DefaultProto0Port
+	}
+
 	return &storage.BrigadeProto0Config{
 		Proto0FakeDomain: fakeDomain,
+		Proto0Port:       port,
 	}
 }

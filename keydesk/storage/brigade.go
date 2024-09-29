@@ -32,6 +32,7 @@ type BrigadeOutlineConfig struct {
 
 type BrigadeProto0Config struct {
 	Proto0FakeDomain string
+	Proto0Port       uint16
 }
 
 // CreateBrigade - create brigade config.
@@ -102,6 +103,7 @@ func (db *BrigadeStorage) CreateBrigade(
 
 	if proto0Conf != nil {
 		data.Proto0FakeDomain = proto0Conf.Proto0FakeDomain
+		data.Proto0Port = proto0Conf.Proto0Port
 	}
 
 	// if we catch a slowdown problems we need organize queue
@@ -179,7 +181,7 @@ func (db *BrigadeStorage) GetVpnConfigs(req *ConfigsImplemented) (*ConfigsImplem
 		vpnCfgs.NewOutlineConfigs(req.Outline)
 	}
 
-	if data.Proto0FakeDomain != "" {
+	if data.Proto0FakeDomain != "" && data.Proto0Port > 0 {
 		vpnCfgs.NewProto0Configs(req.Proto0)
 	}
 

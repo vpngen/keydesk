@@ -220,6 +220,7 @@ type Brigade struct {
 	EndpointPort          uint16               `json:"endpoint_port"`
 	OutlinePort           uint16               `json:"outline_port"`
 	Proto0FakeDomain      string               `json:"proto0_fake_domain"` // Protocol0 fake domain
+	Proto0Port            uint16               `json:"proto0_port"`        // Protocol0 port
 	DNSv4                 netip.Addr           `json:"dns4"`
 	DNSv6                 netip.Addr           `json:"dns6"`
 	KeydeskIPv6           netip.Addr           `json:"keydesk_ipv6"`
@@ -247,7 +248,7 @@ func (b Brigade) GetSupportedVPNProtocols() []string {
 		protocols = append(protocols, "shadowsocks")
 	}
 
-	if b.Proto0FakeDomain != "" {
+	if b.Proto0FakeDomain != "" && b.Proto0Port > 0 {
 		protocols = append(protocols, "proto0")
 	}
 
@@ -273,6 +274,7 @@ type UserConfig struct {
 	IPSecPassword    string
 	OutlinePort      uint16
 	Proto0FakeDomain string
+	Proto0Port       uint16
 	Proto0LongID     string
 	Proto0ShortID    string
 }

@@ -248,7 +248,7 @@ func (b Brigade) GetSupportedVPNProtocols() []string {
 	}
 
 	if b.Proto0FakeDomain != "" {
-		protocols = append(protocols, "protocol0")
+		protocols = append(protocols, "proto0")
 	}
 
 	return protocols

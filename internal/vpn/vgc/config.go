@@ -19,7 +19,7 @@ type (
 		Wireguard   *wg.Config2    `json:"wireguard,omitempty"`
 		Cloak       *cloak.VGC     `json:"cloak,omitempty"`
 		Shadowsocks *ss.Config     `json:"shadowsocks,omitempty"`
-		Proto0      *proto0.Config `json:"proto0,omitempty"`
+		Proto0      *proto0.Config `json:"protocol0,omitempty"`
 	}
 
 	config struct {

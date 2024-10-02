@@ -42,7 +42,7 @@ func (s Service) createUserWithConfigs(brigade *storage.Brigade, configs []strin
 		return User{}, fmt.Errorf("new user: %w", err)
 	}
 
-	cfgs, err := s.generator.GenerateConfigs(brigade, &dbUser, configs)
+	cfgs, name, err := s.generator.GenerateConfigs(brigade, &dbUser, configs)
 	if err != nil {
 		return User{}, fmt.Errorf("generate configs: %w", err)
 	}
@@ -59,7 +59,7 @@ func (s Service) createUserWithConfigs(brigade *storage.Brigade, configs []strin
 
 	return User{
 		UUID:    dbUser.UserID,
-		Name:    dbUser.Name,
+		Name:    name,
 		Domain:  endpointHostString,
 		Configs: cfgs,
 	}, nil

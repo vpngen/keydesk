@@ -64,13 +64,13 @@ type Protocols struct {
 
 const defaultInternalDNS = "100.126.0.1"
 
-func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User, configs []string) (Configs, error) {
+func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User, configs []string) (Configs, string, error) {
 	log.Println("generating configs:", configs)
 	protos2gen := make(utils.StringSet)
 	protos2gen.Add(ProtocolWireguard)
 	for _, c := range configs {
 		if protos, ok := cfgProtocols[c]; !ok {
-			return Configs{}, fmt.Errorf("unsupported config %q", c)
+			return Configs{}, "", fmt.Errorf("unsupported config %q", c)
 		} else {
 			protos2gen.Add(protos...)
 		}
@@ -83,7 +83,7 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 
 	for _, p := range protos2gen.Slice() {
 		if !slices.Contains(supported, p) {
-			return Configs{}, fmt.Errorf("unsupported VPN protocol %q", p)
+			return Configs{}, "", fmt.Errorf("unsupported VPN protocol %q", p)
 		}
 	}
 
@@ -95,47 +95,47 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 		case ProtocolWireguard:
 			cfg, err := wg.Generate(brigade, user, g.NaCl, epData)
 			if err != nil {
-				return Configs{}, fmt.Errorf("generate %q: %w", p, err)
+				return Configs{}, "", fmt.Errorf("generate %q: %w", p, err)
 			}
 			protocolsObj.WireGuard = cfg
 
 		case ProtocolShadowsocks:
 			cfg, err := ss.Generate(brigade, user, g.NaCl, epData)
 			if err != nil {
-				return Configs{}, fmt.Errorf("generate %q: %w", p, err)
+				return Configs{}, "", fmt.Errorf("generate %q: %w", p, err)
 			}
 			protocolsObj.Shadowsocks = &cfg
 
 		case ProtocolCloak:
 			cfg, err := cloak.Generate(brigade, user, g.NaCl, epData)
 			if err != nil {
-				return Configs{}, fmt.Errorf("generate %q: %w", p, err)
+				return Configs{}, "", fmt.Errorf("generate %q: %w", p, err)
 			}
 			protocolsObj.Cloak = &cfg
 
 		case ProtocolOpenVPN:
 			cfg, err := openvpn.Generate(brigade, user, g.NaCl, epData)
 			if err != nil {
-				return Configs{}, fmt.Errorf("generate %q: %w", p, err)
+				return Configs{}, "", fmt.Errorf("generate %q: %w", p, err)
 			}
 			protocolsObj.OpenVPN = &cfg
 
 		case ProtocolL2TP:
 			cfg, err := ipsec.Generate(brigade, user, g.NaCl, epData)
 			if err != nil {
-				return Configs{}, fmt.Errorf("generate %q: %w", p, err)
+				return Configs{}, "", fmt.Errorf("generate %q: %w", p, err)
 			}
 			protocolsObj.L2TP = &cfg
 
 		case ProtocolProto0:
 			cfg, err := proto0.Generate(brigade, user, g.NaCl, epData)
 			if err != nil {
-				return Configs{}, fmt.Errorf("generate %q: %w", p, err)
+				return Configs{}, "", fmt.Errorf("generate %q: %w", p, err)
 			}
 			protocolsObj.Proto0 = cfg
 
 		default:
-			return Configs{}, fmt.Errorf("unsupported protocol %q", p)
+			return Configs{}, "", fmt.Errorf("unsupported protocol %q", p)
 		}
 	}
 
@@ -148,7 +148,7 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 
 	resp, err := g.Client.PeerAdd(protocolsObj.WireGuard.Key.PublicKey(), epData)
 	if err != nil {
-		return Configs{}, fmt.Errorf("peer add: %w", err)
+		return Configs{}, "", fmt.Errorf("peer add: %w", err)
 	}
 
 	fmt.Fprintf(os.Stderr, "User %s (%s) added\n", user.UserID, protocolsObj.WireGuard.Key.PublicKey())
@@ -159,20 +159,24 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 
 	ret := Configs{}
 
+	bnum := kdlib.BlurIpv4Addr(brigade.EndpointIPv4, 24, kdlib.ExtractUint32Salt(brigade.BrigadeID))
+	unum := kdlib.BlurIpv4Addr(user.IPv4Addr, brigade.IPv4CGNAT.Bits(), kdlib.ExtractUint32Salt(brigade.BrigadeID))
+	sname := fmt.Sprintf("vpn_%03d_%03d", bnum, unum)
+
 	for _, config := range configs {
 		switch config {
 		case Wireguard:
 			raw := protocolsObj.WireGuard.GetVGC()
 			native, err := raw.GetNative()
 			if err != nil {
-				return Configs{}, fmt.Errorf("wireguard native config: %w", err)
+				return Configs{}, "", fmt.Errorf("wireguard native config: %w", err)
 			}
 
-			name := kdlib.AssembleWgStyleTunName(user.Name)
+			// name := kdlib.AssembleWgStyleTunName(user.Name)
 			ret.WireGuard = &FileConfig{
 				Content:    string(native),
-				FileName:   name + ".conf",
-				ConfigName: name,
+				FileName:   sname + ".conf",
+				ConfigName: sname,
 			}
 
 		case Universal:
@@ -181,33 +185,33 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 				Shadowsocks: ss.NewSSProxyBook(sscfg.Cipher, sscfg.Password),
 			})
 			if err != nil {
-				return Configs{}, fmt.Errorf("get cloak config: %w", err)
+				return Configs{}, "", fmt.Errorf("get cloak config: %w", err)
 			}
 			proto0 := protocolsObj.Proto0
 
-			cfg := vgc.NewV1(user.Name, user.EndpointDomain, protocolsObj.WireGuard.GetVGC(), ck, sscfg, proto0, 0)
+			cfg := vgc.NewV1(sname, user.EndpointDomain, protocolsObj.WireGuard.GetVGC(), ck, sscfg, proto0, 0)
 			enc, err := cfg.Encode()
 			if err != nil {
-				return Configs{}, fmt.Errorf("encode: %w", err)
+				return Configs{}, "", fmt.Errorf("encode: %w", err)
 			}
 			ret.Universal = &enc
 
 		case Outline:
-			cfg, err := outline.NewFromSS(user.Name, *protocolsObj.Shadowsocks)
+			cfg, err := outline.NewFromSS("", *protocolsObj.Shadowsocks)
 			if err != nil {
-				return Configs{}, fmt.Errorf("outline: %w", err)
+				return Configs{}, "", fmt.Errorf("outline: %w", err)
 			}
 			ret.Outline = &cfg
 
 		case Proto0:
-			cfg := protocolsObj.Proto0.GetConnString(user.Name)
+			cfg := protocolsObj.Proto0.GetConnString("")
 			ret.Proto0 = &cfg
 
 		case Amnezia:
-			amnz := amnezia.NewConfig(storage.GetEndpointHost(brigade, user), user.Name, defaultInternalDNS, defaultInternalDNS)
+			amnz := amnezia.NewConfig(storage.GetEndpointHost(brigade, user), sname, defaultInternalDNS, defaultInternalDNS)
 			container, err := amnezia.NewOVCContainer(*protocolsObj.Cloak, *protocolsObj.OpenVPN)
 			if err != nil {
-				return Configs{}, fmt.Errorf("amnezia new container: %w", err)
+				return Configs{}, "", fmt.Errorf("amnezia new container: %w", err)
 			}
 
 			amnz.AddContainer(container)
@@ -215,23 +219,23 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 
 			amnzConf, err := amnz.Marshal()
 			if err != nil {
-				return Configs{}, fmt.Errorf("amnezia marshal: %w", err)
+				return Configs{}, "", fmt.Errorf("amnezia marshal: %w", err)
 			}
 
-			name := kdlib.AssembleWgStyleTunName(user.Name)
+			// name := kdlib.AssembleWgStyleTunName(user.Name)
 			ret.Amnezia = &FileConfig{
 				Content:    amnzConf,
-				FileName:   name + ".ovc",
-				ConfigName: name,
+				FileName:   sname + ".vpn",
+				ConfigName: sname,
 			}
 
 		case IPSec:
 			ret.IPSec = protocolsObj.L2TP
 
 		default:
-			return Configs{}, fmt.Errorf("unsupported config %q", config)
+			return Configs{}, "", fmt.Errorf("unsupported config %q", config)
 		}
 	}
 
-	return ret, nil
+	return ret, sname, nil
 }

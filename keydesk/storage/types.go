@@ -237,7 +237,7 @@ func (b Brigade) GetSupportedVPNProtocols() []string {
 	protocols := []string{"wireguard"} // wg is always supported
 
 	if b.OvCACertPemGzipBase64 != "" && b.OvCAKeyRouterEnc != "" && b.OvCAKeyShufflerEnc != "" {
-		protocols = append(protocols, "openvpn", "cloak")
+		protocols = append(protocols, "openvpn")
 	}
 
 	if b.IPSecPSK != "" && b.IPSecPSKRouterEnc != "" && b.IPSecPSKShufflerEnc != "" {
@@ -246,6 +246,10 @@ func (b Brigade) GetSupportedVPNProtocols() []string {
 
 	if b.OutlinePort > 0 {
 		protocols = append(protocols, "shadowsocks")
+	}
+
+	if b.CloakFakeDomain != "" {
+		protocols = append(protocols, "cloak")
 	}
 
 	if b.Proto0FakeDomain != "" && b.Proto0Port > 0 {

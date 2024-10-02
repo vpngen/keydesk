@@ -13,8 +13,11 @@ type BrigadeWgConfig struct {
 	WgPrivateShufflerEnc []byte
 }
 
+type BrigadeCloakConfig struct {
+	CloakFakeDomain string
+}
+
 type BrigadeOvcConfig struct {
-	OvcFakeDomain          string
 	OvcCACertPemGzipBase64 string
 	OvcRouterCAKey         string
 	OvcShufflerCAKey       string
@@ -40,6 +43,7 @@ func (db *BrigadeStorage) CreateBrigade(
 	config *BrigadeConfig,
 	wgConf *BrigadeWgConfig,
 	ovcConf *BrigadeOvcConfig,
+	cloakConf *BrigadeCloakConfig,
 	ipcseConf *BrigadeIPSecConfig,
 	outlineConf *BrigadeOutlineConfig,
 	proto0Conf *BrigadeProto0Config,
@@ -85,7 +89,6 @@ func (db *BrigadeStorage) CreateBrigade(
 	data.WgPrivateShufflerEnc = wgConf.WgPrivateShufflerEnc
 
 	if ovcConf != nil {
-		data.CloakFakeDomain = ovcConf.OvcFakeDomain
 		data.OvCAKeyRouterEnc = ovcConf.OvcRouterCAKey
 		data.OvCAKeyShufflerEnc = ovcConf.OvcShufflerCAKey
 		data.OvCACertPemGzipBase64 = ovcConf.OvcCACertPemGzipBase64
@@ -99,6 +102,10 @@ func (db *BrigadeStorage) CreateBrigade(
 
 	if outlineConf != nil {
 		data.OutlinePort = outlineConf.OutlinePort
+	}
+
+	if outlineConf != nil || ovcConf != nil {
+		data.CloakFakeDomain = cloakConf.CloakFakeDomain
 	}
 
 	if proto0Conf != nil {

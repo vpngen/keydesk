@@ -27,6 +27,7 @@ func BrigadeTestMiddleware(db *BrigadeStorage, mw utils.TestMainMiddleware) util
 			&BrigadeConfig{BrigadeID: db.BrigadeID},
 			&BrigadeWgConfig{},
 			&BrigadeOvcConfig{},
+			&BrigadeCloakConfig{},
 			&BrigadeIPSecConfig{},
 			&BrigadeOutlineConfig{},
 			&BrigadeProto0Config{},

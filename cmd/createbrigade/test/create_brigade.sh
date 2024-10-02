@@ -106,6 +106,7 @@ echo "url: ${url}"
 # -c: <conf_dir>
 # -a: <api_addr>
 
+set -x
 BRIGADE_MAKER_APP_PATH="${BRIGADE_MAKER_APP_PATH}" \
 KEYDESK_APP_PATH="${KEYDESK_APP_PATH}" \
 ../create_brigade.sh -id "${id}" -ep4 "${ep4}" -dn "${dn}" \

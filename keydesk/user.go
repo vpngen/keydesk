@@ -327,9 +327,20 @@ func addUser(
 	if len(vpnCfgs.Ovc) > 0 {
 		var err error
 
-		ovcKeyPriv, ovcCsrGzipBase64, cloakBypassUID, cloakByPassUIDRouterEnc, CloakByPassUIDShufflerEnc, err = genUserOvcKeys(routerPublicKey, shufflerPublicKey)
+		ovcKeyPriv, ovcCsrGzipBase64, err = genUserOvcKeys()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ovc gen: %s\n", err)
+
+			return nil, nil, nil, "", "", "", "", "", "", "", fmt.Errorf("ovc gen: %w", err)
+		}
+	}
+
+	if len(vpnCfgs.Ovc) > 0 || len(vpnCfgs.Outline) > 0 {
+		var err error
+
+		cloakBypassUID, cloakByPassUIDRouterEnc, CloakByPassUIDShufflerEnc, err = genUserCloakKeys(routerPublicKey, shufflerPublicKey)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "cloak gen: %s\n", err)
 
 			return nil, nil, nil, "", "", "", "", "", "", "", fmt.Errorf("ovc gen: %w", err)
 		}
@@ -495,42 +506,46 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 	return operations.NewGetUserOK().WithPayload(apiUsers)
 }
 
-func genUserOvcKeys(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, string, string, string, error) {
+func genUserCloakKeys(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, string, error) {
+	cloakBypassUID := uuid.New()
+
+	cloakBypassUIDRouterEnc, err := box.SealAnonymous(nil, cloakBypassUID[:], routerPublicKey, rand.Reader)
+	if err != nil {
+		return "", "", "", fmt.Errorf("cloakBypassUID router seal: %w", err)
+	}
+
+	CloakByPassUIDShufflerEnc, err := box.SealAnonymous(nil, cloakBypassUID[:], shufflerPublicKey, rand.Reader)
+	if err != nil {
+		return "", "", "", fmt.Errorf("cloakBypassUID shuffler seal: %w", err)
+	}
+
+	return base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(cloakBypassUID[:]),
+		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(cloakBypassUIDRouterEnc),
+		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(CloakByPassUIDShufflerEnc),
+		nil
+}
+
+func genUserOvcKeys() (string, string, error) {
 	cn := uuid.New().String()
 	csr, key, err := kdlib.NewOvClientCertRequest(cn)
 	if err != nil {
-		return "", "", "", "", "", fmt.Errorf("ov new csr: %w", err)
+		return "", "", fmt.Errorf("ov new csr: %w", err)
 	}
 
 	userKey, err := x509.MarshalPKCS8PrivateKey(key)
 	if err != nil {
-		return "", "", "", "", "", fmt.Errorf("marshal key: %w", err)
+		return "", "", fmt.Errorf("marshal key: %w", err)
 	}
 
 	keyPem := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: userKey})
 
 	csrPemGzBase64, err := kdlib.PemGzipBase64(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr})
 	if err != nil {
-		return "", "", "", "", "", fmt.Errorf("csr pem encode: %w", err)
-	}
-
-	cloakBypassUID := uuid.New()
-
-	cloakBypassUIDRouterEnc, err := box.SealAnonymous(nil, cloakBypassUID[:], routerPublicKey, rand.Reader)
-	if err != nil {
-		return "", "", "", "", "", fmt.Errorf("cloakBypassUID router seal: %w", err)
-	}
-
-	CloakByPassUIDShufflerEnc, err := box.SealAnonymous(nil, cloakBypassUID[:], shufflerPublicKey, rand.Reader)
-	if err != nil {
-		return "", "", "", "", "", fmt.Errorf("cloakBypassUID shuffler seal: %w", err)
+		return "", "", fmt.Errorf("csr pem encode: %w", err)
 	}
 
 	return string(keyPem),
 		string(csrPemGzBase64),
-		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(cloakBypassUID[:]),
-		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(cloakBypassUIDRouterEnc),
-		base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(CloakByPassUIDShufflerEnc),
 		nil
 }
 

@@ -192,16 +192,18 @@ func addOVCSupport(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKe
 		return ErrOvcAlreadyPresent
 	}
 
-	ovcConf, err := keydesk.GenEndpointOpenVPNoverCloakCreds(routerPublicKey, shufflerPublicKey, data.Proto0FakeDomain)
+	cloakConf := keydesk.GenEndpointCloakCreds(data.Proto0FakeDomain)
+
+	ovcConf, err := keydesk.GenEndpointOpenVPNoverCloakCreds(routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return fmt.Errorf("ovc creds: %w", err)
 	}
 
 	if domain != "" {
-		ovcConf.OvcFakeDomain = domain
+		cloakConf.CloakFakeDomain = domain
 	}
 
-	data.CloakFakeDomain = ovcConf.OvcFakeDomain
+	data.CloakFakeDomain = cloakConf.CloakFakeDomain
 	data.OvCAKeyRouterEnc = ovcConf.OvcRouterCAKey
 	data.OvCAKeyShufflerEnc = ovcConf.OvcShufflerCAKey
 	data.OvCACertPemGzipBase64 = ovcConf.OvcCACertPemGzipBase64

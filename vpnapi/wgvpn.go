@@ -71,9 +71,14 @@ func WgPeerAdd(
 		url.QueryEscape(localIPv4.String()+","+localIPv6.String()),
 	)
 
-	if ovcCertRequest != "" && cloakBypasUID != "" {
-		query += fmt.Sprintf("&openvpn-client-csr=%s&cloak-uid=%s",
+	if ovcCertRequest != "" {
+		query += fmt.Sprintf("&openvpn-client-csr=%s",
 			url.QueryEscape(ovcCertRequest),
+		)
+	}
+
+	if cloakBypasUID != "" {
+		query += fmt.Sprintf("&cloak-uid=%s",
 			url.QueryEscape(cloakBypasUID),
 		)
 	}
@@ -149,11 +154,16 @@ func WgAdd(
 		url.QueryEscape(localNetIPv4.String()+","+localNetIPv6.String()),
 	)
 
+	if ovcFakeDomain != "" {
+		query += fmt.Sprintf("&cloak-domain=%s",
+			url.QueryEscape(ovcFakeDomain),
+		)
+	}
+
 	if ovcCACert != "" && len(ovcRouterCAKey) > 0 {
-		query += fmt.Sprintf("&openvpn-ca-crt=%s&openvpn-ca-key=%s&cloak-domain=%s",
+		query += fmt.Sprintf("&openvpn-ca-crt=%s&openvpn-ca-key=%s",
 			url.QueryEscape(ovcCACert),
 			url.QueryEscape(ovcRouterCAKey),
-			url.QueryEscape(ovcFakeDomain),
 		)
 	}
 

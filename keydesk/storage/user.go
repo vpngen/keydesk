@@ -110,11 +110,14 @@ func (db *BrigadeStorage) CreateUser(
 		}
 
 		userconf.OvCACertPem = string(caPem)
-		userconf.CloakFakeDomain = data.CloakFakeDomain
 	}
 
 	if len(vpnCfgs.Outline) > 0 {
 		userconf.OutlinePort = data.OutlinePort
+	}
+
+	if len(vpnCfgs.Outline) > 0 || len(vpnCfgs.Ovc) > 0 {
+		userconf.CloakFakeDomain = data.CloakFakeDomain
 	}
 
 	if len(vpnCfgs.Proto0) > 0 {

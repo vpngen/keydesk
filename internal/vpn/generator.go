@@ -33,7 +33,7 @@ const (
 var cfgProtocols = map[string][]string{
 	Wireguard: {}, // wireguard is always required
 	Universal: {ProtocolCloak, ProtocolShadowsocks},
-	Outline:   {ProtocolShadowsocks},
+	Outline:   {ProtocolCloak, ProtocolShadowsocks},
 	Amnezia:   {ProtocolCloak, ProtocolOpenVPN},
 	IPSec:     {ProtocolL2TP},
 	Proto0:    {ProtocolProto0},

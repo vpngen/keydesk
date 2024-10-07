@@ -11,3 +11,4 @@ keydesk
 *.sock
 created
 testing/
+*.pem

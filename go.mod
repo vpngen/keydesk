@@ -8,7 +8,7 @@ require (
 	github.com/SherClockHolmes/webpush-go v1.3.0
 	github.com/alexsergivan/transliterator v1.0.1
 	github.com/btcsuite/btcd/btcutil v1.1.6
-	github.com/getkin/kin-openapi v0.127.0
+	github.com/getkin/kin-openapi v0.128.0
 	github.com/go-openapi/errors v0.22.0
 	github.com/go-openapi/loads v0.22.0
 	github.com/go-openapi/runtime v0.28.0
@@ -22,11 +22,11 @@ require (
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/oapi-codegen/echo-middleware v1.0.2
 	github.com/oapi-codegen/runtime v1.1.1
-	github.com/rs/cors v1.11.0
-	github.com/vpngen/vpngine v0.1.1
-	github.com/vpngen/wordsgens v1.0.4
-	golang.org/x/crypto v0.26.0
-	golang.org/x/net v0.28.0
+	github.com/rs/cors v1.11.1
+	github.com/vpngen/vpngine v0.1.2-0.20240528050541-356825e04e77
+	github.com/vpngen/wordsgens v1.0.5-0.20240801234606-bf622613e5b7
+	golang.org/x/crypto v0.28.0
+	golang.org/x/net v0.30.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20230429144221-925a1e7659e6
 )
 
@@ -54,14 +54,14 @@ require (
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	go.mongodb.org/mongo-driver v1.16.1 // indirect
-	go.opentelemetry.io/otel v1.28.0 // indirect
-	go.opentelemetry.io/otel/metric v1.28.0 // indirect
-	go.opentelemetry.io/otel/trace v1.28.0 // indirect
+	go.mongodb.org/mongo-driver v1.17.1 // indirect
+	go.opentelemetry.io/otel v1.30.0 // indirect
+	go.opentelemetry.io/otel/metric v1.30.0 // indirect
+	go.opentelemetry.io/otel/trace v1.30.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.24.0 // indirect
-	golang.org/x/text v0.17.0 // indirect
-	golang.org/x/time v0.6.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/time v0.7.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

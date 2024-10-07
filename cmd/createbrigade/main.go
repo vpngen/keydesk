@@ -67,9 +67,10 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	ovcCfgs := flag.String("ovc", "", "OpenVPN over Cloak configs (amnezia)")
 	ipsecCfgs := flag.String("ipsec", "", "IPSec configs (text,mobileconfig,ps)")
 	outlineCfgs := flag.String("outline", "", "Outline configs (access_key)")
+	proto0Cfgs := flag.String("proto0", "", "Protocol0 configs (access_key)")
 
-	mode := flag.String("mode", storage.ModeBrigade, "mode (brigade or shuffler)")
-	maxUsers := flag.Uint("maxusers", storage.MaxUsers, "max users, only valid in shuffler mode")
+	mode := flag.String("mode", storage.ModeBrigade, "mode (brigade or vgsocket)")
+	maxUsers := flag.Uint("maxusers", storage.MaxUsers, "max users, only valid in vgsocket mode")
 
 	flag.Parse()
 
@@ -89,6 +90,10 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 
 	if *outlineCfgs != "" {
 		vpnCfgs.AddOutline(*outlineCfgs)
+	}
+
+	if *proto0Cfgs != "" {
+		vpnCfgs.AddProto0(*proto0Cfgs)
 	}
 
 	if *port != 0 && *port == *outlinePort {
@@ -261,7 +266,7 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 
 	switch *mode {
 	case storage.ModeBrigade:
-	case storage.ModeShuffler:
+	case storage.ModeVGSocket:
 		if *maxUsers > storage.MaxUsers {
 			return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("max users is %d", storage.MaxUsers)
 		}

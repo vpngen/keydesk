@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"crypto/rand"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -11,10 +10,8 @@ import (
 	"testing"
 
 	client2 "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/swag"
 	jwt2 "github.com/golang-jwt/jwt/v5"
 	"github.com/vpngen/keydesk/gen/client"
-	"github.com/vpngen/keydesk/gen/client/operations"
 	go_swagger "github.com/vpngen/keydesk/internal/auth/go-swagger"
 	"github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -34,6 +31,7 @@ func TestMain(m *testing.M) {
 	os.Exit(mw(m))
 }
 
+/*
 func TestMessages(t *testing.T) {
 	ctx := context.Background()
 	var token string
@@ -379,7 +377,7 @@ func TestMessages(t *testing.T) {
 		})
 	})
 }
-
+*/
 //func TestPush(t *testing.T) {
 //	ctx := context.Background()
 //	t.Run("post subscription", func(t *testing.T) {

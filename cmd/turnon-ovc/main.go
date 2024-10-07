@@ -28,7 +28,7 @@ var (
 func main() {
 	var routerPublicKey, shufflerPublicKey [naclkey.NaclBoxKeyLength]byte
 
-	replay, purge, brigadeID, etcDir, dbDir, addr, err := parseArgs()
+	replay, purge, brigadeID, etcDir, dbDir, addr, domain, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 		os.Exit(1)
@@ -67,12 +67,12 @@ func main() {
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 
-	if err = Do(db, replay, purge, &routerPublicKey, &shufflerPublicKey); err != nil {
+	if err = Do(db, replay, purge, &routerPublicKey, &shufflerPublicKey, domain); err != nil {
 		log.Fatalf("Can't do: %s\n", err)
 	}
 }
 
-func parseArgs() (bool, bool, string, string, string, netip.AddrPort, error) {
+func parseArgs() (bool, bool, string, string, string, netip.AddrPort, string, error) {
 	var (
 		id       string
 		dbdir    string
@@ -83,7 +83,7 @@ func parseArgs() (bool, bool, string, string, string, netip.AddrPort, error) {
 
 	sysUser, err := user.Current()
 	if err != nil {
-		return false, false, "", "", "", addrPort, fmt.Errorf("cannot define user: %w", err)
+		return false, false, "", "", "", addrPort, "", fmt.Errorf("cannot define user: %w", err)
 	}
 
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
@@ -92,27 +92,28 @@ func parseArgs() (bool, bool, string, string, string, netip.AddrPort, error) {
 	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
 	replay := flag.Bool("r", false, "Replay brigade")
 	purge := flag.String("p", "", "Purge OpenVPN over Cloak (need brigadeID)")
+	domain := flag.String("dn", "", "Fake domain for OpenVPN over Cloak")
 
 	flag.Parse()
 
 	if *filedbDir != "" {
 		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return false, false, "", "", "", addrPort, fmt.Errorf("dbdir dir: %w", err)
+			return false, false, "", "", "", addrPort, "", fmt.Errorf("dbdir dir: %w", err)
 		}
 	}
 
 	if *etcDir != "" {
 		etcdir, err = filepath.Abs(*etcDir)
 		if err != nil {
-			return false, false, "", "", "", addrPort, fmt.Errorf("etcdir dir: %w", err)
+			return false, false, "", "", "", addrPort, "", fmt.Errorf("etcdir dir: %w", err)
 		}
 	}
 
 	if *addr != "-" {
 		addrPort, err = netip.ParseAddrPort(*addr)
 		if err != nil {
-			return false, false, "", "", "", addrPort, fmt.Errorf("addr: %w", err)
+			return false, false, "", "", "", addrPort, "", fmt.Errorf("addr: %w", err)
 		}
 	}
 
@@ -144,11 +145,11 @@ func parseArgs() (bool, bool, string, string, string, netip.AddrPort, error) {
 		}
 	}
 
-	return *replay, *purge == id, id, etcdir, dbdir, addrPort, nil
+	return *replay, *purge == id, id, etcdir, dbdir, addrPort, *domain, nil
 }
 
 // Do - do replay.
-func Do(db *storage.BrigadeStorage, replay, purge bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) error {
+func Do(db *storage.BrigadeStorage, replay, purge bool, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte, domain string) error {
 	switch purge {
 	case true:
 		if err := removeOVCSupport(db); err != nil {
@@ -159,7 +160,7 @@ func Do(db *storage.BrigadeStorage, replay, purge bool, routerPublicKey, shuffle
 			return fmt.Errorf("remove OVC: %w", err)
 		}
 	default:
-		if err := addOVCSupport(db, routerPublicKey, shufflerPublicKey); err != nil {
+		if err := addOVCSupport(db, routerPublicKey, shufflerPublicKey, domain); err != nil {
 			if errors.Is(err, ErrOvcAlreadyPresent) {
 				return nil
 			}
@@ -177,7 +178,7 @@ func Do(db *storage.BrigadeStorage, replay, purge bool, routerPublicKey, shuffle
 	return nil
 }
 
-func addOVCSupport(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) error {
+func addOVCSupport(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte, domain string) error {
 	f, data, err := db.OpenDbToModify()
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
@@ -191,12 +192,18 @@ func addOVCSupport(db *storage.BrigadeStorage, routerPublicKey, shufflerPublicKe
 		return ErrOvcAlreadyPresent
 	}
 
+	cloakConf := keydesk.GenEndpointCloakCreds(data.Proto0FakeDomain)
+
 	ovcConf, err := keydesk.GenEndpointOpenVPNoverCloakCreds(routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		return fmt.Errorf("ovc creds: %w", err)
 	}
 
-	data.CloakFakeDomain = ovcConf.OvcFakeDomain
+	if domain != "" {
+		cloakConf.CloakFakeDomain = domain
+	}
+
+	data.CloakFakeDomain = cloakConf.CloakFakeDomain
 	data.OvCAKeyRouterEnc = ovcConf.OvcRouterCAKey
 	data.OvCAKeyShufflerEnc = ovcConf.OvcShufflerCAKey
 	data.OvCACertPemGzipBase64 = ovcConf.OvcCACertPemGzipBase64

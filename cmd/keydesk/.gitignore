@@ -8,6 +8,7 @@ keydesk
 *.crt
 *.lock
 *.old
-created
-*.pem
 *.sock
+created
+testing/
+*.pem

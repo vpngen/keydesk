@@ -2,11 +2,12 @@ package user
 
 import (
 	"fmt"
+	"net/netip"
+
 	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/kdlib"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/wordsgens/namesgenerator"
-	"net/netip"
 )
 
 type set[T comparable] map[T]struct{}
@@ -35,7 +36,7 @@ func getExisting(brigade *storage.Brigade) (set[string], set[uuid.UUID], set[net
 
 func getUniquePerson(nameSet set[string]) (string, namesgenerator.Person, error) {
 	for {
-		name, person, err := namesgenerator.PeaceAwardeeShort()
+		name, person, err := namesgenerator.ChemistryAwardeeShort()
 		if err != nil {
 			return "", person, fmt.Errorf("generate person: %w", err)
 		}

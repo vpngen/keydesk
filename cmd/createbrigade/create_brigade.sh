@@ -26,18 +26,24 @@ touch "${spinlock}" 2>/dev/null
 
 set -e
 
-DB_DIR="/home"
-STATS_DIR="/var/lib/vgstats"
-ROUTER_SOCKETS_DIR="/var/lib/dcapi"
-BRIGADE_MAKER_APP_PATH="/opt/vgkeydesk/createbrigade"
-KEYDESK_APP_PATH="/opt/vgkeydesk/keydesk"
+STATS_DIR=${STATS_DIR:-"/var/lib/vgstats"}
+ROUTER_SOCKETS_DIR=${ROUTER_SOCKETS_DIR:-"/var/lib/dcapi"}
+BRIGADE_MAKER_APP_PATH=${BRIGADE_MAKER_APP_PATH:-"/opt/vgkeydesk/createbrigade"}
+if [ -s "$(dirname "${BRIGADE_MAKER_APP_PATH}")/main.go" ]; then
+    BRIGADE_SOURCE_DIR="$(dirname "${BRIGADE_MAKER_APP_PATH}")"
+fi
+
+KEYDESK_APP_PATH=${KEYDESK_APP_PATH:-"/opt/vgkeydesk/keydesk"}
+if [ -s "$(dirname "${KEYDESK_APP_PATH}")/main.go" ]; then
+    KEYDESK_SOURCE_DIR="$(dirname "${KEYDESK_APP_PATH}")"
+fi
 
 VGCERT_GROUP="vgcert"
 VGSTATS_GROUP="vgstats"
 VGROUTER_GROUP="vgrouter"
 
 MODE_BRIGADE="brigade"
-MODE_SHUFFLER="shuffler"
+MODE_VGSOCKET="vgsocket"
 DEFAULT_MAXUSERS=255
 
 if [ "root" != "$(whoami)" ]; then
@@ -119,6 +125,10 @@ while [ "$#" -gt 0 ]; do
                 outline_configs="-outline $2"
                 shift 2
                 ;;
+        -proto0)
+                proto0_configs="-proto0 $2"
+                shift 2
+                ;;
         -ep4)
                 endpoint_ip4="$2"
                 shift 2
@@ -172,6 +182,19 @@ while [ "$#" -gt 0 ]; do
                         ;;
                 esac
                 ;;
+        -op)
+                oport="$2"
+                shift 2
+
+                case "${oport}" in
+                        [0-9]*)
+                                ;;
+                        *)
+                                echo "invalid port ${port}" >&2
+                                printdef "Invalid port ${port}"
+                        ;;
+                esac
+                ;;
         -dn)
                 domain="$2"
                 shift 2
@@ -203,24 +226,25 @@ if [ -z "$maxusers" ]; then
         maxusers=$DEFAULT_MAXUSERS
 fi
 
-if [ "${mode}" != $MODE_SHUFFLER ] && [ "${mode}" != $MODE_BRIGADE ]; then
+if [ "${mode}" != $MODE_VGSOCKET ] && [ "${mode}" != $MODE_BRIGADE ]; then
         printdef "Unknown mode: ${mode}"
 fi
 
 if [ -z "$brigade_id" ] \
-|| [ -z "$endpoint_ip4" ] || [ -z "$ip4_cgnat" ] || [ -z "$ip6_ula" ] || [ -z "$dns_ip4" ] || [ -z "$dns_ip6" ] || [ -z "$keydesk_ip6" ] \
-|| [ -z "$brigadier_name" ] || [ -z "$person_name" ] || [ -z "$person_desc" ] || [ -z "$person_url" ]; then
+|| [ -z "$endpoint_ip4" ] || [ -z "$ip4_cgnat" ] || [ -z "$ip6_ula" ] || [ -z "$dns_ip4" ] || [ -z "$dns_ip6" ] \
+|| [ -z "$keydesk_ip6" ]; then
         printdef "Not enough arguments"
 fi
 
-if test -f "${DB_DIR}/${brigade_id}/.maintenance" && test "$(date '+%s')" -lt "$(cat "${DB_DIR}/${brigade_id}/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "${DB_DIR}/${brigade_id}/.maintenance")")"
-fi
-if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
+if [ "${mode}" = $MODE_BRIGADE ]; then
+        if [ -z "$brigadier_name" ] || [ -z "$person_name" ] || [ -z "$person_desc" ] || [ -z "$person_url" ]; then
+                printdef "Not enough arguments"
+        fi
 fi
 
-if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ]; then
+DB_DIR=${DB_DIR:-"/home/${brigade_id}"}
+
+if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ] && [ -z "${proto0_configs}" ]; then
         wg_configs="-wg native"
 fi
 
@@ -228,34 +252,66 @@ if [ -z "${port}" ]; then
         port="0"
 fi
 
+if [ -z "${oport}" ]; then
+        oport="0"
+fi
+
+if [ "${port}" != "0" ] && [ "${oport}" != "0" ] && [ "${port}" = "${oport}" ]; then
+        printdef "Port and oport can't be the same"
+fi
+
 # * Check if brigade is exists
-if [ -z "${DEBUG}" ] && [ -s "${DB_DIR}/${brigade_id}/created" ]; then
+if [ -z "${DEBUG}" ] && [ -s "${DB_DIR}/created" ]; then
         echo "Brigade ${brigade_id} already exists" >&2
 
         fatal "409" "Conflict" "Brigade ${brigade_id} already exists"
+fi
+
+if test -f "${DB_DIR}/.maintenance" && test "$(date '+%s')" -lt "$(head -n 1 < "${DB_DIR}/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(head -n 1 < "${DB_DIR}/.maintenance")")"
+fi
+
+if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(head -n 1 < "/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(head -n 1 < /.maintenance)")"
 fi
 
 if  [ -z "${DEBUG}" ] && [ ! -d "${ROUTER_SOCKETS_DIR}" ]; then
         install -o root -g "${VGROUTER_GROUP}" -m 0711 -d "${ROUTER_SOCKETS_DIR}" >&2
 fi
 
+# Disable doubled brigades.
+grep -s "${endpoint_ip4}" "$(dirname "${DB_DIR}")"/*/brigade.json | grep "endpoint_ipv4" | sed 's/\:.*$//' | while IFS= read -r orphan; do
+        echo "DEBUG: doubled brigade $orphan" >&2
+
+        orphan_id="$(basename "$(dirname "${orphan}")")"
+
+        if [ -z "${DEBUG}" ]; then
+                systemctl --quiet --force stop vgkeydesk@"${orphan_id}".service ||:
+                systemctl --quiet disable vgkeydesk@"${orphan_id}".service ||:
+
+                mv -f "${orphan}" "${orphan}.removed" ||:
+        else 
+                echo "DEBUG: systemctl --quiet --force stop vgkeydesk@${orphan_id}.service" >&2
+                echo "DEBUG: systemctl --quiet disable vgkeydesk@${orphan_id}.service" >&2
+                echo "DEBUG: mv -f ${orphan} ${orphan}.removed" >&2
+        fi
+done
+
 # * Create system user
 if [ -z "${DEBUG}" ]; then
         {
-                useradd -p '*' -G "${VGCERT_GROUP}" -M -s /usr/sbin/nologin -d "${DB_DIR}/${brigade_id}" "${brigade_id}" >&2
-                install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${DB_DIR}/${brigade_id}" >&2
+                useradd -p '*' -G "${VGCERT_GROUP}" -M -s /usr/sbin/nologin -d "${DB_DIR}" "${brigade_id}" >&2
+                install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${DB_DIR}" >&2
                 install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 0710 -d "${STATS_DIR}/${brigade_id}" >&2
                 install -o "${brigade_id}" -g "${VGROUTER_GROUP}" -m 2710 -d "${ROUTER_SOCKETS_DIR}/${brigade_id}" >&2
         
         } || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
 else
-        echo "DEBUG: useradd -p '*' -G ${VGCERT_GROUP} -M -s /usr/sbin/nologin -d ${DB_DIR}/${brigade_id} ${brigade_id}" >&2
-        echo "DEBUG: install -o ${brigade_id} -g ${brigade_id} -m 0700 -d ${DB_DIR}/${brigade_id}" >&2
+        echo "DEBUG: useradd -p '*' -G ${VGCERT_GROUP} -M -s /usr/sbin/nologin -d ${DB_DIR} ${brigade_id}" >&2
+        echo "DEBUG: install -o ${brigade_id} -g ${brigade_id} -m 0700 -d ${DB_DIR}" >&2
         echo "DEBUG: install -o ${brigade_id} -g ${VGSTATS_GROUP} -m 0710 -d ${STATS_DIR}/${brigade_id}" >&2
         echo "DEBUG: install -o ${brigade_id} -g ${VGROUTER_GROUP} -m 2710 -d ${ROUTER_SOCKETS_DIR}/${brigade_id}" >&2
 fi
-
-EXECUTABLE_DIR="$(realpath "$(dirname "$0")")"
 
 if [ -z "${DEBUG}" ]; then
         # Create json datafile
@@ -269,13 +325,31 @@ if [ -z "${DEBUG}" ]; then
                 -kd6 "${keydesk_ip6}" \
                 -p "$port" \
                 -dn "$domain" \
-                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
+                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs} \
                 -mode "${mode}" \
                 -maxusers "${maxusers}" \
                 >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
 else
-        BRIGADE_SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}")"
-        if [ -x "${BRIGADE_MAKER_APP_PATH}" ]; then
+        if [ -s "${BRIGADE_SOURCE_DIR}/main.go" ]; then
+                # shellcheck disable=SC2086
+                go run "${BRIGADE_SOURCE_DIR}/" \
+                        -ep4 "${endpoint_ip4}" \
+                        -dns4 "${dns_ip4}" \
+                        -dns6 "${dns_ip6}" \
+                        -int4 "${ip4_cgnat}" \
+                        -int6 "${ip6_ula}" \
+                        -kd6 "${keydesk_ip6}" \
+                        -p "$port" \
+                        -dn "$domain" \
+                        -id "${brigade_id}" \
+                        -d "${DB_DIR}" \
+                        -c "${CONF_DIR}" \
+                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs} \
+                        ${apiaddr} \
+                        -mode "${mode}" \
+                        -maxusers "${maxusers}" \
+                        >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
+        elif [ -x "${BRIGADE_MAKER_APP_PATH}" ]; then
                 # shellcheck disable=SC2086
                 "${BRIGADE_MAKER_APP_PATH}" \
                         -ep4 "${endpoint_ip4}" \
@@ -289,26 +363,7 @@ else
                         -id "${brigade_id}" \
                         -d "${DB_DIR}" \
                         -c "${CONF_DIR}" \
-                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
-                        ${apiaddr} \
-                        -mode "${mode}" \
-                        -maxusers "${maxusers}" \
-                        >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
-        elif [ -s "${BRIGADE_SOURCE_DIR}/main.go" ]; then
-                # shellcheck disable=SC2086
-                go run "${BRIGADE_SOURCE_DIR}" \
-                        -ep4 "${endpoint_ip4}" \
-                        -dns4 "${dns_ip4}" \
-                        -dns6 "${dns_ip6}" \
-                        -int4 "${ip4_cgnat}" \
-                        -int6 "${ip6_ula}" \
-                        -kd6 "${keydesk_ip6}" \
-                        -p "$port" \
-                        -dn "$domain" \
-                        -id "${brigade_id}" \
-                        -d "${DB_DIR}" \
-                        -c "${CONF_DIR}" \
-                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
+                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs} \
                         ${apiaddr} \
                         -mode "${mode}" \
                         -maxusers "${maxusers}" \
@@ -328,14 +383,28 @@ if [ "${mode}" = $MODE_BRIGADE ]; then
                         -person "${person_name}" \
                         -desc "${person_desc}" \
                         -url "${person_url}" \
-                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
+                        ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs} \
                         ${chunked} \
                         ${json} \
                         )" || (echo "$wgconf"; exit 1)
         else
-                KEYDESK_SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}/../keydesk")"
                 # shellcheck disable=SC2086
-                if [ -x "${KEYDESK_APP_PATH}" ]; then
+                if [ -s "${KEYDESK_SOURCE_DIR}/main.go" ]; then
+                        # shellcheck disable=SC2086
+                        wgconf="$(go run "${KEYDESK_SOURCE_DIR}/" \
+                                -name "${brigadier_name}" \
+                                -person "${person_name}" \
+                                -desc "${person_desc}" \
+                                -url "${person_url}" \
+                                -id "${brigade_id}" \
+                                -d "${DB_DIR}" \
+                                -c "${CONF_DIR}" \
+                                ${apiaddr} \
+                                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs} \
+                                ${chunked} \
+                                ${json} \
+                                )" || (echo "$wgconf"; exit 1)
+                elif [ -x "${KEYDESK_APP_PATH}" ]; then
                         wgconf="$("${KEYDESK_APP_PATH}" \
                                 -name "${brigadier_name}" \
                                 -person "${person_name}" \
@@ -345,22 +414,7 @@ if [ "${mode}" = $MODE_BRIGADE ]; then
                                 -d "${DB_DIR}" \
                                 -c "${CONF_DIR}" \
                                 ${apiaddr} \
-                                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
-                                ${chunked} \
-                                ${json} \
-                                )" || (echo "$wgconf"; exit 1)
-                elif [ -s "${KEYDESK_SOURCE_DIR}/../keydesk/main.go" ]; then
-                        # shellcheck disable=SC2086
-                        wgconf="$(go run "$(dirname $0 | xargs realpath)/../keydesk" \
-                                -name "${brigadier_name}" \
-                                -person "${person_name}" \
-                                -desc "${person_desc}" \
-                                -url "${person_url}" \
-                                -id "${brigade_id}" \
-                                -d "${DB_DIR}" \
-                                -c "${CONF_DIR}" \
-                                ${apiaddr} \
-                                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} \
+                                ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs} \
                                 ${chunked} \
                                 ${json} \
                                 )" || (echo "$wgconf"; exit 1)
@@ -391,4 +445,4 @@ if [ "${mode}" = $MODE_BRIGADE ]; then
         printf "%s" "${wgconf}"
 fi
 
-[ -z "${DEBUG}" ] && date -u +"%Y-%m-%dT%H:%M:%S" > "${DB_DIR}/${brigade_id}/created"
+[ -z "${DEBUG}" ] && date -u +"%Y-%m-%dT%H:%M:%S" > "${DB_DIR}/created"

@@ -209,6 +209,80 @@ func randomData(data *Brigade, now time.Time) (*vpnapi.WgStatTimestamp, *vpnapi.
 	return ts, trafficMap, lastSeenMap, endpointMap
 }
 
+func handleTrafficStat(
+	id string,
+	now time.Time,
+	m map[string]*vpnapi.WgStatTraffic,
+	osCounters *RxTx,
+	sum *RxTx,
+	total *RxTx,
+	counters *DateSummaryNetCounters,
+) {
+	if traffic, ok := m[id]; ok {
+		rx := traffic.Rx
+		tx := traffic.Tx
+
+		if osCounters.Rx <= traffic.Rx {
+			rx = traffic.Rx - osCounters.Rx
+		}
+
+		if osCounters.Tx <= traffic.Tx {
+			tx = traffic.Tx - osCounters.Tx
+		}
+
+		osCounters.Reset(traffic.Rx, traffic.Tx)
+
+		sum.Inc(rx, tx)
+		total.Inc(rx, tx)
+		incDateSwitchRelated(now, rx, tx, counters)
+
+		return
+	}
+
+	// reset OS counters.
+	osCounters.Reset(0, 0)
+	// push zero traffic.
+	incDateSwitchRelated(now, 0, 0, counters)
+}
+
+func handleLastActivity(
+	id string,
+	now time.Time,
+	ausers *int,
+	userInactiveEdge time.Time,
+	lastSeenMap map[string]time.Time,
+	endpointMap map[string]netip.Prefix,
+	lastActivityPoints *LastActivityPoints,
+	endpoints UsersNetworks,
+	lastActivityTotal time.Time,
+) time.Time {
+	// !!! fix Unix zero time bug.
+	if lastActivityPoints.Total.Equal(nullUnixTime) {
+		lastActivityPoints.Total = time.Time{}
+	}
+
+	lastActivity := lastSeenMap[id]
+	lastActivityMark(now, lastActivity, lastActivityPoints)
+
+	if prefix, ok := endpointMap[id]; ok {
+		if prefix.IsValid() {
+			if endpoints[prefix.String()].Before(lastActivity) {
+				endpoints[prefix.String()] = lastActivity
+			}
+		}
+	}
+
+	if lastActivityPoints.Total.After(userInactiveEdge) {
+		*ausers++
+	}
+
+	if lastActivity.After(lastActivityTotal) {
+		return lastActivity
+	}
+
+	return lastActivityTotal
+}
+
 func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsTTL, maxUserInactiveDuration time.Duration, monthlyQuotaRemaining int) error {
 	var (
 		totalTraffic TrafficCountersContainer
@@ -217,7 +291,8 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 		activeWgUsers,
 		activeIPSecUsers,
 		activeOvcUsers,
-		activeOutlineUsers int
+		activeOutlineUsers,
+		activeProto0Users int
 		trafficMap     *vpnapi.WgStatTrafficMap
 		lastSeenMap    *vpnapi.WgStatLastActivityMap
 		endpointMap    *vpnapi.WgStatEndpointMap
@@ -245,85 +320,11 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 		id := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(user.WgPublicKey)
 		sum := RxTx{}
 
-		if traffic, ok := trafficMap.Wg[id]; ok {
-			rx := traffic.Rx
-			tx := traffic.Tx
-
-			if user.Quotas.OSWgCounters.Rx <= traffic.Rx {
-				rx = traffic.Rx - user.Quotas.OSWgCounters.Rx
-			}
-
-			if user.Quotas.OSWgCounters.Tx <= traffic.Tx {
-				tx = traffic.Tx - user.Quotas.OSWgCounters.Tx
-			}
-
-			user.Quotas.OSWgCounters.Rx = traffic.Rx
-			user.Quotas.OSWgCounters.Tx = traffic.Tx
-
-			sum.Inc(rx, tx)
-			totalTraffic.TrafficWg.Inc(rx, tx)
-			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersWg)
-		}
-
-		if traffic, ok := trafficMap.IPSec[id]; ok {
-			rx := traffic.Rx
-			tx := traffic.Tx
-
-			if user.Quotas.OSIPSecCounters.Rx <= traffic.Rx {
-				rx = traffic.Rx - user.Quotas.OSIPSecCounters.Rx
-			}
-
-			if user.Quotas.OSIPSecCounters.Tx <= traffic.Tx {
-				tx = traffic.Tx - user.Quotas.OSIPSecCounters.Tx
-			}
-
-			user.Quotas.OSIPSecCounters.Rx = traffic.Rx
-			user.Quotas.OSIPSecCounters.Tx = traffic.Tx
-
-			sum.Inc(rx, tx)
-			totalTraffic.TrafficIPSec.Inc(rx, tx)
-			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersIPSec)
-		}
-
-		if traffic, ok := trafficMap.Ovc[id]; ok {
-			rx := traffic.Rx
-			tx := traffic.Tx
-
-			if user.Quotas.OSOvcCounters.Rx <= traffic.Rx {
-				rx = traffic.Rx - user.Quotas.OSOvcCounters.Rx
-			}
-
-			if user.Quotas.OSOvcCounters.Tx <= traffic.Tx {
-				tx = traffic.Tx - user.Quotas.OSOvcCounters.Tx
-			}
-
-			user.Quotas.OSOvcCounters.Rx = traffic.Rx
-			user.Quotas.OSOvcCounters.Tx = traffic.Tx
-
-			sum.Inc(rx, tx)
-			totalTraffic.TrafficOvc.Inc(rx, tx)
-			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersOvc)
-		}
-
-		if traffic, ok := trafficMap.Outline[id]; ok {
-			rx := traffic.Rx
-			tx := traffic.Tx
-
-			if user.Quotas.OSOutlineCounters.Rx <= traffic.Rx {
-				rx = traffic.Rx - user.Quotas.OSOutlineCounters.Rx
-			}
-
-			if user.Quotas.OSOutlineCounters.Tx <= traffic.Tx {
-				tx = traffic.Tx - user.Quotas.OSOutlineCounters.Tx
-			}
-
-			user.Quotas.OSOutlineCounters.Rx = traffic.Rx
-			user.Quotas.OSOutlineCounters.Tx = traffic.Tx
-
-			sum.Inc(rx, tx)
-			totalTraffic.TrafficOutline.Inc(rx, tx)
-			incDateSwitchRelated(now, rx, tx, &user.Quotas.CountersOutline)
-		}
+		handleTrafficStat(id, now, trafficMap.Wg, &user.Quotas.OSWgCounters, &sum, &totalTraffic.TrafficWg, &user.Quotas.CountersWg)
+		handleTrafficStat(id, now, trafficMap.IPSec, &user.Quotas.OSIPSecCounters, &sum, &totalTraffic.TrafficIPSec, &user.Quotas.CountersIPSec)
+		handleTrafficStat(id, now, trafficMap.Ovc, &user.Quotas.OSOvcCounters, &sum, &totalTraffic.TrafficOvc, &user.Quotas.CountersOvc)
+		handleTrafficStat(id, now, trafficMap.Outline, &user.Quotas.OSOutlineCounters, &sum, &totalTraffic.TrafficOutline, &user.Quotas.CountersOutline)
+		handleTrafficStat(id, now, trafficMap.Proto0, &user.Quotas.OSProto0Counters, &sum, &totalTraffic.TrafficProto0, &user.Quotas.CountersProto0)
 
 		totalTraffic.TrafficSummary.Inc(sum.Rx, sum.Tx)
 		incDateSwitchRelated(now, sum.Rx, sum.Tx, &user.Quotas.CountersTotal)
@@ -342,83 +343,14 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 			user.Quotas.LimitMonthlyRemaining = 0
 		}
 
-		// !!! fix Unix zero time bug.
-		if user.Quotas.LastWgActivity.Total.Equal(nullUnixTime) {
-			user.Quotas.LastWgActivity.Total = time.Time{}
-		}
-		lastActivityWg := lastSeenMap.Wg[id]
-		lastActivityMark(now, lastActivityWg, &user.Quotas.LastWgActivity)
-
-		if prefix, ok := endpointMap.Wg[id]; ok {
-			if prefix.IsValid() {
-				if data.Endpoints[prefix.String()].Before(lastActivityWg) {
-					data.Endpoints[prefix.String()] = lastActivityWg
-				}
-			}
-		}
-
-		// !!! fix Unix zero time bug.
-		if user.Quotas.LastIPSecActivity.Total.Equal(nullUnixTime) {
-			user.Quotas.LastIPSecActivity.Total = time.Time{}
-		}
-		lastActivityIPSec := lastSeenMap.IPSec[id]
-		lastActivityMark(now, lastActivityIPSec, &user.Quotas.LastIPSecActivity)
-
-		if prefix, ok := endpointMap.IPSec[id]; ok {
-			if prefix.IsValid() {
-				if data.Endpoints[prefix.String()].Before(lastActivityIPSec) {
-					data.Endpoints[prefix.String()] = lastActivityIPSec
-				}
-			}
-		}
-
-		// !!! fix Unix zero time bug.
-		if user.Quotas.LastOvcActivity.Total.Equal(nullUnixTime) {
-			user.Quotas.LastOvcActivity.Total = time.Time{}
-		}
-		lastActivityOvc := lastSeenMap.Ovc[id]
-		lastActivityMark(now, lastActivityOvc, &user.Quotas.LastOvcActivity)
-
-		if prefix, ok := endpointMap.Ovc[id]; ok {
-			if prefix.IsValid() {
-				if data.Endpoints[prefix.String()].Before(lastActivityOvc) {
-					data.Endpoints[prefix.String()] = lastActivityOvc
-				}
-			}
-		}
-
-		// !!! fix Unix zero time bug.
-		if user.Quotas.LastOutlineActivity.Total.Equal(nullUnixTime) {
-			user.Quotas.LastOutlineActivity.Total = time.Time{}
-		}
-		lastActivityOutline := lastSeenMap.Outline[id]
-		lastActivityMark(now, lastActivityOutline, &user.Quotas.LastOutlineActivity)
-
-		if prefix, ok := endpointMap.Outline[id]; ok {
-			if prefix.IsValid() {
-				if data.Endpoints[prefix.String()].Before(lastActivityOutline) {
-					data.Endpoints[prefix.String()] = lastActivityOutline
-				}
-			}
-		}
-
 		lastActivityTotal := user.Quotas.LastActivity.Total
+		userInactiveEdge := now.Add(-maxUserInactiveDuration)
 
-		if lastActivityWg.After(lastActivityTotal) {
-			lastActivityTotal = lastActivityWg
-		}
-
-		if lastActivityIPSec.After(lastActivityTotal) {
-			lastActivityTotal = lastActivityIPSec
-		}
-
-		if lastActivityOvc.After(lastActivityTotal) {
-			lastActivityTotal = lastActivityOvc
-		}
-
-		if lastActivityOutline.After(lastActivityTotal) {
-			lastActivityTotal = lastActivityOutline
-		}
+		lastActivityTotal = handleLastActivity(id, now, &activeUsers, userInactiveEdge, lastSeenMap.Wg, endpointMap.Wg, &user.Quotas.LastWgActivity, data.Endpoints, lastActivityTotal)
+		lastActivityTotal = handleLastActivity(id, now, &activeIPSecUsers, userInactiveEdge, lastSeenMap.IPSec, endpointMap.IPSec, &user.Quotas.LastIPSecActivity, data.Endpoints, lastActivityTotal)
+		lastActivityTotal = handleLastActivity(id, now, &activeOvcUsers, userInactiveEdge, lastSeenMap.Ovc, endpointMap.Ovc, &user.Quotas.LastOvcActivity, data.Endpoints, lastActivityTotal)
+		lastActivityTotal = handleLastActivity(id, now, &activeOutlineUsers, userInactiveEdge, lastSeenMap.Outline, endpointMap.Outline, &user.Quotas.LastOutlineActivity, data.Endpoints, lastActivityTotal)
+		lastActivityTotal = handleLastActivity(id, now, &activeProto0Users, userInactiveEdge, lastSeenMap.Proto0, endpointMap.Proto0, &user.Quotas.LastProto0Activity, data.Endpoints, lastActivityTotal)
 
 		// !!! fix Unix zero time bug.
 		if user.Quotas.LastActivity.Total.Equal(nullUnixTime) {
@@ -430,26 +362,8 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 			throttledUsers++
 		}
 
-		userInactiveEdge := now.Add(-maxUserInactiveDuration)
-
 		if user.Quotas.LastActivity.Total.After(userInactiveEdge) {
 			activeUsers++
-		}
-
-		if user.Quotas.LastWgActivity.Total.After(userInactiveEdge) {
-			activeWgUsers++
-		}
-
-		if user.Quotas.LastIPSecActivity.Total.After(userInactiveEdge) {
-			activeIPSecUsers++
-		}
-
-		if user.Quotas.LastOvcActivity.Total.After(userInactiveEdge) {
-			activeOvcUsers++
-		}
-
-		if user.Quotas.LastOutlineActivity.Total.After(userInactiveEdge) {
-			activeOutlineUsers++
 		}
 	}
 
@@ -460,12 +374,14 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 	data.ActiveIPSecUsersCount = activeIPSecUsers
 	data.ActiveOvcUsersCount = activeOvcUsers
 	data.ActiveOutlineUsersCount = activeOutlineUsers
+	data.ActiveProto0UsersCount = activeProto0Users
 
 	incDateSwitchRelated(now, totalTraffic.TrafficSummary.Rx, totalTraffic.TrafficSummary.Tx, &data.TotalTraffic)
 	incDateSwitchRelated(now, totalTraffic.TrafficWg.Rx, totalTraffic.TrafficWg.Tx, &data.TotalWgTraffic)
 	incDateSwitchRelated(now, totalTraffic.TrafficIPSec.Rx, totalTraffic.TrafficIPSec.Tx, &data.TotalIPSecTraffic)
 	incDateSwitchRelated(now, totalTraffic.TrafficOvc.Rx, totalTraffic.TrafficOvc.Tx, &data.TotalOvcTraffic)
 	incDateSwitchRelated(now, totalTraffic.TrafficOutline.Rx, totalTraffic.TrafficOutline.Tx, &data.TotalOutlineTraffic)
+	incDateSwitchRelated(now, totalTraffic.TrafficProto0.Rx, totalTraffic.TrafficProto0.Tx, &data.TotalProto0Traffic)
 
 	lowLimit := now.Add(-endpointsTTL)
 	for prefix, updated := range data.Endpoints {

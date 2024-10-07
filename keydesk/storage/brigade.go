@@ -13,8 +13,11 @@ type BrigadeWgConfig struct {
 	WgPrivateShufflerEnc []byte
 }
 
+type BrigadeCloakConfig struct {
+	CloakFakeDomain string
+}
+
 type BrigadeOvcConfig struct {
-	OvcFakeDomain          string
 	OvcCACertPemGzipBase64 string
 	OvcRouterCAKey         string
 	OvcShufflerCAKey       string
@@ -30,16 +33,22 @@ type BrigadeOutlineConfig struct {
 	OutlinePort uint16
 }
 
+type BrigadeProto0Config struct {
+	Proto0FakeDomain string
+	Proto0Port       uint16
+}
+
 // CreateBrigade - create brigade config.
 func (db *BrigadeStorage) CreateBrigade(
 	config *BrigadeConfig,
 	wgConf *BrigadeWgConfig,
 	ovcConf *BrigadeOvcConfig,
+	cloakConf *BrigadeCloakConfig,
 	ipcseConf *BrigadeIPSecConfig,
 	outlineConf *BrigadeOutlineConfig,
+	proto0Conf *BrigadeProto0Config,
 	mode Mode,
 	maxUsers uint,
-
 ) error {
 	f, data, err := db.openWithoutReading(config.BrigadeID)
 	if err != nil {
@@ -62,7 +71,7 @@ func (db *BrigadeStorage) CreateBrigade(
 	}
 
 	data.Mode = mode
-	if mode == ModeShuffler {
+	if mode == ModeVGSocket {
 		data.MaxUsers = maxUsers
 	}
 
@@ -80,7 +89,6 @@ func (db *BrigadeStorage) CreateBrigade(
 	data.WgPrivateShufflerEnc = wgConf.WgPrivateShufflerEnc
 
 	if ovcConf != nil {
-		data.CloakFakeDomain = ovcConf.OvcFakeDomain
 		data.OvCAKeyRouterEnc = ovcConf.OvcRouterCAKey
 		data.OvCAKeyShufflerEnc = ovcConf.OvcShufflerCAKey
 		data.OvCACertPemGzipBase64 = ovcConf.OvcCACertPemGzipBase64
@@ -94,6 +102,15 @@ func (db *BrigadeStorage) CreateBrigade(
 
 	if outlineConf != nil {
 		data.OutlinePort = outlineConf.OutlinePort
+	}
+
+	if outlineConf != nil || ovcConf != nil {
+		data.CloakFakeDomain = cloakConf.CloakFakeDomain
+	}
+
+	if proto0Conf != nil {
+		data.Proto0FakeDomain = proto0Conf.Proto0FakeDomain
+		data.Proto0Port = proto0Conf.Proto0Port
 	}
 
 	// if we catch a slowdown problems we need organize queue
@@ -111,6 +128,7 @@ func (db *BrigadeStorage) CreateBrigade(
 		data.OvCAKeyRouterEnc,
 		data.IPSecPSKRouterEnc,
 		data.OutlinePort,
+		data.Proto0FakeDomain,
 	)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)
@@ -168,6 +186,10 @@ func (db *BrigadeStorage) GetVpnConfigs(req *ConfigsImplemented) (*ConfigsImplem
 
 	if data.OutlinePort > 0 {
 		vpnCfgs.NewOutlineConfigs(req.Outline)
+	}
+
+	if data.Proto0FakeDomain != "" && data.Proto0Port > 0 {
+		vpnCfgs.NewProto0Configs(req.Proto0)
 	}
 
 	return vpnCfgs, nil

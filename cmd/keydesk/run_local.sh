@@ -15,13 +15,14 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-DATA_DIR=${DATA_DIR:-"$(dirname "$0")"}
-CONFIG_DIR=${CONFIG_DIR:-"$(dirname "$0")"}
+DATA_DIR=${DATA_DIR:-"$(dirname "$0")/"}
+CONFIG_DIR=${CONFIG_DIR:-"$(dirname "$0")/"}
 WEB_DIR=${WEB_DIR:-"$(dirname "$0")/../../dist/"}
 BRIGADE_ID=${BRIGADE_ID:-"ZBWGQAVTFBFHDIKV4QIB5TZKNM"}
-LISTEN_ADDR=${LISTEN_ADDR:-"127.0.0.1:8080"}
+LISTEN_ADDR=${LISTEN_ADDR:-"127.0.0.1:8090"}
 ADDRESS=${ADDRESS:-"-"}
-LISTEN_MESSAGE=${LISTEN_MESSAGE:-"-"}
+LISTEN_MESSAGE=${LISTEN_MESSAGE:-"$(dirname "$0")/message.sock"}
+LISTEN_SHUFFLER=${LISTEN_SHUFFLER:-"$(dirname "$0")/shuffler.sock"}
 if [ -n "$NO_CORS" ]; then
     CORS=""
 else
@@ -33,4 +34,6 @@ if [ -z "$NO_RANDOM" ]; then
     export VGSTATS_RANDOM_DATA
 fi
 
-go run ./"$(dirname "$0")" -m "${LISTEN_MESSAGE}" -a "${ADDRESS}"  -d "${DATA_DIR}" -c "${CONFIG_DIR}" -id "${BRIGADE_ID}" -l "${LISTEN_ADDR}" ${CORS} -w "${WEB_DIR}"
+echo "go run ./$(dirname "$0") -shuffler ${LISTEN_SHUFFLER} -m ${LISTEN_MESSAGE} -a ${ADDRESS} -d ${DATA_DIR} -c ${CONFIG_DIR} -id ${BRIGADE_ID} -l ${LISTEN_ADDR} ${CORS} -w ${WEB_DIR}"
+
+go run ./"$(dirname "$0")"/ -shuffler "${LISTEN_SHUFFLER}" -m "${LISTEN_MESSAGE}" -l "${LISTEN_ADDR}" -a "${ADDRESS}" -d "${DATA_DIR}" -c "${CONFIG_DIR}" -id "${BRIGADE_ID}" ${CORS} -w "${WEB_DIR}"

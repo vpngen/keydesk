@@ -1,9 +1,11 @@
 package storage
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/netip"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -55,6 +57,8 @@ func (db *BrigadeStorage) CreateUser(
 	ipsecPasswordShufflerEnc string,
 	outlineSecretRouterEnc string,
 	outlineSecretShufflerEnc string,
+	proto0SecretRouterEnc string,
+	proto0SecreShufflerEnc string,
 ) (*UserConfig, error) {
 	f, data, err := db.openWithReading()
 	if err != nil {
@@ -106,11 +110,19 @@ func (db *BrigadeStorage) CreateUser(
 		}
 
 		userconf.OvCACertPem = string(caPem)
-		userconf.CloakFakeDomain = data.CloakFakeDomain
 	}
 
 	if len(vpnCfgs.Outline) > 0 {
 		userconf.OutlinePort = data.OutlinePort
+	}
+
+	if len(vpnCfgs.Outline) > 0 || len(vpnCfgs.Ovc) > 0 {
+		userconf.CloakFakeDomain = data.CloakFakeDomain
+	}
+
+	if len(vpnCfgs.Proto0) > 0 {
+		userconf.Proto0FakeDomain = data.Proto0FakeDomain
+		userconf.Proto0Port = data.Proto0Port
 	}
 
 	// if we catch a slowdown problems we need organize queue
@@ -122,6 +134,7 @@ func (db *BrigadeStorage) CreateUser(
 		ovcCertRequestGzipBase64, cloakBypassUIDRouterEnc,
 		ipsecUsernameRouterEnc, ipsecPasswordRouterEnc,
 		outlineSecretRouterEnc,
+		proto0SecretRouterEnc,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("wg peer add: %w", err)
@@ -160,6 +173,8 @@ func (db *BrigadeStorage) CreateUser(
 		IPSecPasswordShufflerEnc:  ipsecPasswordShufflerEnc,
 		OutlineSecretRouterEnc:    outlineSecretRouterEnc,
 		OutlineSecretShufflerEnc:  outlineSecretShufflerEnc,
+		Proto0SecretRouterEnc:     proto0SecretRouterEnc,
+		Proto0SecretShufflerEnc:   proto0SecreShufflerEnc,
 		Person:                    person,
 		Quotas: Quota{
 			CountersTotal: DateSummaryNetCounters{
@@ -172,6 +187,12 @@ func (db *BrigadeStorage) CreateUser(
 				Ver: DateSummaryNetCountersVersion,
 			},
 			CountersOvc: DateSummaryNetCounters{
+				Ver: DateSummaryNetCountersVersion,
+			},
+			CountersOutline: DateSummaryNetCounters{
+				Ver: DateSummaryNetCountersVersion,
+			},
+			CountersProto0: DateSummaryNetCounters{
 				Ver: DateSummaryNetCountersVersion,
 			},
 			LimitMonthlyRemaining: uint64(db.MonthlyQuotaRemaining),
@@ -188,6 +209,14 @@ func (db *BrigadeStorage) CreateUser(
 	if err := commitBrigade(f, data); err != nil {
 		return nil, fmt.Errorf("save: %w", err)
 	}
+
+	if isBrigadier {
+		fmt.Fprintf(os.Stderr, "Brigadier %s (%s) added\n", userconf.ID, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub))
+
+		return userconf, nil
+	}
+
+	fmt.Fprintf(os.Stderr, "User %s (%s) added\n", userconf.ID, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub))
 
 	return userconf, nil
 }
@@ -300,6 +329,8 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 		return fmt.Errorf("save: %w", err)
 	}
 
+	fmt.Fprintf(os.Stderr, "User %s (%s) removed\n", id, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub))
+
 	return nil
 }
 
@@ -321,6 +352,8 @@ func (db *BrigadeStorage) removeBrigadier(data *Brigade) (string, namesgenerator
 			if err != nil {
 				return "", namesgenerator.Person{}, fmt.Errorf("peer del: %w", err)
 			}
+
+			fmt.Fprintf(os.Stderr, "Brigadier %s (%s) removed\n", user.UserID, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub))
 
 			break
 		}

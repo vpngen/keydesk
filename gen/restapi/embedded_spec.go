@@ -376,6 +376,9 @@ func init() {
         }
       }
     },
+    "VGC": {
+      "type": "string"
+    },
     "error": {
       "type": "object",
       "required": [
@@ -412,6 +415,7 @@ func init() {
     "newuser": {
       "type": "object",
       "required": [
+        "UserID",
         "UserName"
       ],
       "properties": {
@@ -433,6 +437,9 @@ func init() {
               "type": "string"
             }
           }
+        },
+        "Domain": {
+          "type": "string"
         },
         "IPSecL2TPManualConfig": {
           "type": "object",
@@ -468,8 +475,25 @@ func init() {
             }
           }
         },
+        "Proto0Config": {
+          "type": "object",
+          "required": [
+            "AccessKey"
+          ],
+          "properties": {
+            "AccessKey": {
+              "type": "string"
+            }
+          }
+        },
+        "UserID": {
+          "type": "string"
+        },
         "UserName": {
           "type": "string"
+        },
+        "VPNGenConfig": {
+          "$ref": "#/definitions/VGC"
         },
         "WireguardConfig": {
           "type": "object",
@@ -1037,6 +1061,17 @@ func init() {
         }
       }
     },
+    "NewuserProto0Config": {
+      "type": "object",
+      "required": [
+        "AccessKey"
+      ],
+      "properties": {
+        "AccessKey": {
+          "type": "string"
+        }
+      }
+    },
     "NewuserWireguardConfig": {
       "type": "object",
       "required": [
@@ -1102,6 +1137,9 @@ func init() {
         }
       }
     },
+    "VGC": {
+      "type": "string"
+    },
     "error": {
       "type": "object",
       "required": [
@@ -1138,6 +1176,7 @@ func init() {
     "newuser": {
       "type": "object",
       "required": [
+        "UserID",
         "UserName"
       ],
       "properties": {
@@ -1159,6 +1198,9 @@ func init() {
               "type": "string"
             }
           }
+        },
+        "Domain": {
+          "type": "string"
         },
         "IPSecL2TPManualConfig": {
           "type": "object",
@@ -1194,8 +1236,25 @@ func init() {
             }
           }
         },
+        "Proto0Config": {
+          "type": "object",
+          "required": [
+            "AccessKey"
+          ],
+          "properties": {
+            "AccessKey": {
+              "type": "string"
+            }
+          }
+        },
+        "UserID": {
+          "type": "string"
+        },
         "UserName": {
           "type": "string"
+        },
+        "VPNGenConfig": {
+          "$ref": "#/definitions/VGC"
         },
         "WireguardConfig": {
           "type": "object",

@@ -3,6 +3,8 @@ package user
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -55,6 +57,8 @@ func (s Service) deleteUser(brigade *storage.Brigade, id uuid.UUID) error {
 	if err = s.epClient.PeerDel(usrPub, epPub); err != nil {
 		return fmt.Errorf("peer del: %w", err)
 	}
+
+	fmt.Fprintf(os.Stderr, "User %s (%s) deleted\n", user.UserID, usrPub)
 
 	brigade.Users = append(brigade.Users[:idx], brigade.Users[idx+1:]...)
 

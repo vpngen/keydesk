@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
@@ -11,15 +15,9 @@ import (
 	"github.com/vpngen/keydesk/gen/shuffler"
 	authmw "github.com/vpngen/keydesk/internal/auth/swagger3"
 	"github.com/vpngen/keydesk/internal/user"
-	"github.com/vpngen/keydesk/internal/vpn"
-	"github.com/vpngen/keydesk/internal/vpn/ipsec"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/jwt"
 	"github.com/vpngen/vpngine/naclkey"
-	"log"
-	"net/http"
-	"os"
-	"strings"
 )
 
 func SetupServer(db *storage.BrigadeStorage, authorizer jwt.Authorizer, routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) (*echo.Echo, error) {
@@ -77,41 +75,73 @@ func (s server) GetActivity(ctx context.Context, request shuffler.GetActivityReq
 }
 
 func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsRequestObject) (shuffler.PostConfigsResponseObject, error) {
-	protocols := vpn.NewProtocolSetFromString(string(request.Body.Type))
-	if len(protocols.Protocols()) != 1 {
-		return shuffler.PostConfigsdefaultJSONResponse{
-			Body:       fmt.Sprintf("type must exactly one of: %s", strings.Join(protocols.Protocols(), ", ")),
-			StatusCode: http.StatusBadRequest,
-		}, nil
-	}
+	//protocols := vpn.NewProtocolSet(request.Body.Protocols)
+	//if len(protocols.Protocols()) != 1 {
+	//	return shuffler.PostConfigsdefaultJSONResponse{
+	//		Body:       fmt.Sprintf("type must exactly one of: %s", strings.Join(protocols.Protocols(), ", ")),
+	//		StatusCode: http.StatusBadRequest,
+	//	}, nil
+	//}
 
 	domain := ""
 	if request.Body.Domain != nil {
 		domain = *request.Body.Domain
 	}
 
-	userCfg, err := s.service.CreateUser(protocols, domain)
+	userCfg, err := s.service.CreateUser(request.Body.Configs, domain)
 	if err != nil {
 		return shuffler.PostConfigsdefaultJSONResponse{
 			Body:       err.Error(),
 			StatusCode: http.StatusInternalServerError,
 		}, nil
 	}
-
-	protocol := protocols.String()
 
 	res := shuffler.PostConfigs201JSONResponse{
 		FreeSlots: int(userCfg.FreeSlots),
 		Id:        userCfg.UUID,
-		Type:      shuffler.ConfigType(protocol),
+		Name:      userCfg.Name,
+		Domain:    userCfg.Domain,
 	}
 
-	res.Config, err = getVPNConfig(protocol, userCfg.Configs[protocol])
-	if err != nil {
-		return shuffler.PostConfigsdefaultJSONResponse{
-			Body:       err.Error(),
-			StatusCode: http.StatusInternalServerError,
-		}, nil
+	cfgs := userCfg.Configs
+
+	if cfgs.WireGuard != nil {
+		res.Configs.Wireguard = &shuffler.WireGuardConfig{
+			FileContent: cfgs.WireGuard.Content,
+			FileName:    cfgs.WireGuard.FileName,
+			TunnelName:  cfgs.WireGuard.ConfigName,
+		}
+	}
+
+	if cfgs.Amnezia != nil {
+		res.Configs.Amnezia = &shuffler.AmneziaOVCConfig{
+			FileContent: cfgs.Amnezia.Content,
+			FileName:    cfgs.Amnezia.FileName,
+			TunnelName:  cfgs.Amnezia.ConfigName,
+		}
+	}
+
+	if cfgs.Universal != nil {
+		res.Configs.Vgc = cfgs.Universal
+	}
+
+	if cfgs.Outline != nil {
+		res.Configs.Outline = cfgs.Outline
+	}
+
+	if cfgs.Proto0 != nil {
+		res.Configs.Proto0 = &shuffler.Proto0Config{
+			AccessKey: *cfgs.Proto0,
+		}
+	}
+
+	if cfgs.IPSec != nil {
+		res.Configs.Ipsec = &shuffler.IPSecL2TPConfig{
+			Password: cfgs.IPSec.Password,
+			Psk:      cfgs.IPSec.PSK,
+			Server:   cfgs.IPSec.Host,
+			Username: cfgs.IPSec.Username,
+		}
 	}
 
 	return res, nil
@@ -129,96 +159,6 @@ func (s server) DeleteConfigsId(ctx context.Context, request shuffler.DeleteConf
 	}
 
 	return shuffler.DeleteConfigsId200JSONResponse{FreeSlots: int(free)}, nil
-}
-
-func getVPNConfig(protocol string, data any) (shuffler.VPNConfig, error) {
-	switch protocol {
-	default:
-		return shuffler.VPNConfig{}, fmt.Errorf("unsupported protocol: %s", protocol)
-	case vpn.WG:
-		return getWGConfig(data)
-	case vpn.OVC:
-		return getOVCConfig(data)
-	case vpn.IPSec:
-		return getIPSecConfig(data)
-	case vpn.Outline:
-		return getOutlineConfig(data)
-	}
-}
-
-func getWGConfig(data any) (shuffler.VPNConfig, error) {
-	cfg, ok := data.(vpn.FileConfig)
-	if !ok {
-		return shuffler.VPNConfig{}, fmt.Errorf("wg: expected vpn.FileConfig, got %T", data)
-	}
-
-	ret := shuffler.VPNConfig{}
-
-	if err := ret.FromWireGuardConfig(shuffler.WireGuardConfig{
-		FileContent: cfg.Content,
-		FileName:    cfg.FileName,
-		TunnelName:  cfg.ConfigName,
-	}); err != nil {
-		return shuffler.VPNConfig{}, fmt.Errorf("wg: %w", err)
-	}
-
-	return ret, nil
-}
-
-func getOVCConfig(data any) (shuffler.VPNConfig, error) {
-	cfg, ok := data.(vpn.FileConfig)
-	if !ok {
-		return shuffler.VPNConfig{}, fmt.Errorf("ovc: expected vpn.FileConfig, got %T", data)
-	}
-
-	ret := shuffler.VPNConfig{}
-
-	if err := ret.FromAmneziaOVCConfig(shuffler.AmneziaOVCConfig{
-		FileContent: cfg.Content,
-		FileName:    cfg.FileName,
-		TunnelName:  cfg.ConfigName,
-	}); err != nil {
-		return shuffler.VPNConfig{}, fmt.Errorf("ovc: %w", err)
-	}
-
-	return ret, nil
-}
-
-func getIPSecConfig(data any) (shuffler.VPNConfig, error) {
-	cfg, ok := data.(ipsec.ClientConfig)
-	if !ok {
-		return shuffler.VPNConfig{}, fmt.Errorf("ipsec: expected ipsec.ClientConfig, got %T", data)
-	}
-
-	ret := shuffler.VPNConfig{}
-
-	if err := ret.FromIPSecL2TPConfig(shuffler.IPSecL2TPConfig{
-		Password: cfg.Password,
-		Psk:      cfg.PSK,
-		Server:   cfg.Host,
-		Username: cfg.Username,
-	}); err != nil {
-		return shuffler.VPNConfig{}, fmt.Errorf("ipsec: %w", err)
-	}
-
-	return ret, nil
-}
-
-func getOutlineConfig(data any) (shuffler.VPNConfig, error) {
-	cfg, ok := data.(string)
-	if !ok {
-		return shuffler.VPNConfig{}, fmt.Errorf("outline: expected string, got %T", data)
-	}
-
-	ret := shuffler.VPNConfig{}
-
-	if err := ret.FromOutlineConfig(shuffler.OutlineConfig{
-		AccessKey: cfg,
-	}); err != nil {
-		return shuffler.VPNConfig{}, fmt.Errorf("outline: %w", err)
-	}
-
-	return ret, nil
 }
 
 func (s server) GetSlots(ctx context.Context, request shuffler.GetSlotsRequestObject) (shuffler.GetSlotsResponseObject, error) {

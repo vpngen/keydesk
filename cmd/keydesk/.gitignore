@@ -8,4 +8,6 @@ keydesk
 *.crt
 *.lock
 *.old
+*.sock
 created
+testing/

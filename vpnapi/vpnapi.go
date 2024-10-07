@@ -2,7 +2,6 @@ package vpnapi
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -10,7 +9,6 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
-	"sync/atomic"
 	"time"
 )
 
@@ -28,12 +26,9 @@ const TemplatedAddrPort = "0.0.0.0:0"
 
 // APIResponse - GW response type.
 type APIResponse struct {
-	Code  string `json:"code"`
-	Error string `json:"error,omitempty"`
+	Code    string `json:"code"`
+	Message string `json:"error,omitempty"`
 }
-
-// ErrInvalidRespCode - error from endpoint API.
-var ErrInvalidRespCode = errors.New("invalid resp code")
 
 // CalcAPIAddrPort - calc API request address and port.
 func CalcAPIAddrPort(addr netip.Addr) netip.AddrPort {
@@ -43,6 +38,15 @@ func CalcAPIAddrPort(addr netip.Addr) netip.AddrPort {
 	return netip.AddrPortFrom(netip.AddrFrom16(buf), endpointPort)
 }
 
+func (a *APIResponse) Error() string {
+	return fmt.Sprintf("code: %s, error: %s", a.Code, a.Message)
+}
+
+func (a *APIResponse) String() string {
+	return a.Error()
+}
+
+/*
 var serial uint32 = 0
 
 func nextSerial() uint32 {
@@ -59,8 +63,9 @@ func nextSerial() uint32 {
 		return x
 	}
 }
+*/
 
-func getAPIRequest(ident string, actualAddrPort, calculatedAddrPort netip.AddrPort, query string) ([]byte, error) {
+func getAPIRequest(_ string, actualAddrPort, calculatedAddrPort netip.AddrPort, query string) ([]byte, error) {
 	/*
 		if !actualAddrPort.Addr().IsValid() || actualAddrPort.Addr().Compare(calculatedAddrPort.Addr()) != 0 || actualAddrPort.Port() != calculatedAddrPort.Port() {
 			fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", calculatedAddrPort)
@@ -124,7 +129,7 @@ func getAPIRequest(ident string, actualAddrPort, calculatedAddrPort netip.AddrPo
 	}
 
 	if data.Code != "0" {
-		return nil, fmt.Errorf("%w: %s: %s", ErrInvalidRespCode, data.Code, data.Error)
+		return nil, fmt.Errorf("invalid resp code: %w", data)
 	}
 
 	return body, nil

@@ -95,9 +95,12 @@ if [ -z "${brigade_id}" ]; then
         printdef "Brigade ID is required"
 fi
 
-if test -f "${DB_DIR}/${brigade_id}/.maintenance" && test "$(date '+%s')" -lt "$(cat "${DB_DIR}/${brigade_id}/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "${DB_DIR}/${brigade_id}/.maintenance")")"
+DB_DIR=${DB_DIR:-"/home/${brigade_id}"}
+
+if test -f "${DB_DIR}/.maintenance" && test "$(date '+%s')" -lt "$(cat "${DB_DIR}/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "${DB_DIR}/.maintenance")")"
 fi
+
 if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
         fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
 fi
@@ -116,27 +119,28 @@ else
         echo "DEBUG: systemctl -q -f disable ${systemd_vgkeydesk_instance}.service" >&2
 fi
 
-if [ -z "${DEBUG}" ]; then
-        # Remove brigade
-        # shellcheck disable=SC2086
-        if id "${brigade_id}" >/dev/null 2>&1; then
-                sudo -u "${brigade_id}" "${REMOVER_PATH}" -id "${brigade_id}" ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
-        fi
-else
-        DB_DIR=${DB_DIR:-"${STATS_DIR}"}
-        EXECUTABLE_DIR="$(realpath "$(dirname "$0")")"
-        SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}")"
-
-        if [ -x "${REMOVER_PATH}" ]; then
+if [ -s "${DB_DIR}/brigade.json" ]; then
+        if [ -z "${DEBUG}" ]; then
+                # Remove brigade
                 # shellcheck disable=SC2086
-                "${REMOVER_PATH}" -id "${brigade_id}" -d "${DB_DIR}" ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
-        elif [ -s "${SOURCE_DIR}/main.go" ]; then
-                # shellcheck disable=SC2086
-                go run "${SOURCE_DIR}/" -id "${brigade_id}" -d "${DB_DIR}" ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
-        else 
-                echo "ERROR: Can't find ${REMOVER_PATH} or ${SOURCE_DIR}/main.go" >&2
-
-                fatal "500" "Internal server error" "Can't find destroy binary or source code"
+                if id "${brigade_id}" >/dev/null 2>&1; then
+                        sudo -u "${brigade_id}" "${REMOVER_PATH}" -id "${brigade_id}" ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
+                fi
+        else
+                EXECUTABLE_DIR="$(realpath "$(dirname "$0")")"
+                SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}")"
+        
+                if [ -x "${REMOVER_PATH}" ]; then
+                        # shellcheck disable=SC2086
+                        "${REMOVER_PATH}" -id "${brigade_id}" -d "${DB_DIR}" ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
+                elif [ -s "${SOURCE_DIR}/main.go" ]; then
+                        # shellcheck disable=SC2086
+                        go run "${SOURCE_DIR}/" -id "${brigade_id}" -d "${DB_DIR}" ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
+                else 
+                        echo "ERROR: Can't find ${REMOVER_PATH} or ${SOURCE_DIR}/main.go" >&2
+        
+                        fatal "500" "Internal server error" "Can't find destroy binary or source code"
+                fi
         fi
 fi
 

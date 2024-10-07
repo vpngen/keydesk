@@ -3,9 +3,11 @@ package vpnapi
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/netip"
 	"net/url"
+	"os"
 )
 
 type WgStatTrafficIn struct {
@@ -60,6 +62,7 @@ func WgPeerAdd(
 	ipsecUsername string,
 	ipsecPassword string,
 	outlineSecret string,
+	proto0Secret string,
 ) ([]byte, error) {
 	query := fmt.Sprintf("peer_add=%s&wg-public-key=%s&wg-psk-key=%s&allowed-ips=%s",
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub)),
@@ -68,9 +71,14 @@ func WgPeerAdd(
 		url.QueryEscape(localIPv4.String()+","+localIPv6.String()),
 	)
 
-	if ovcCertRequest != "" && cloakBypasUID != "" {
-		query += fmt.Sprintf("&openvpn-client-csr=%s&cloak-uid=%s",
+	if ovcCertRequest != "" {
+		query += fmt.Sprintf("&openvpn-client-csr=%s",
 			url.QueryEscape(ovcCertRequest),
+		)
+	}
+
+	if cloakBypasUID != "" {
+		query += fmt.Sprintf("&cloak-uid=%s",
 			url.QueryEscape(cloakBypasUID),
 		)
 	}
@@ -85,6 +93,12 @@ func WgPeerAdd(
 	if outlineSecret != "" {
 		query += fmt.Sprintf("&outline-ss-password=%s",
 			url.QueryEscape(outlineSecret),
+		)
+	}
+
+	if proto0Secret != "" {
+		query += fmt.Sprintf("&p0-id=%s",
+			url.QueryEscape(proto0Secret),
 		)
 	}
 
@@ -129,6 +143,7 @@ func WgAdd(
 	ovcRouterCAKey string,
 	ipsecPSK string,
 	outlinePort uint16,
+	proto0FakeDomain string,
 ) error {
 	// fmt.Fprintf(os.Stderr, "WgAdd: %d\n", len(wgPriv))
 
@@ -139,11 +154,16 @@ func WgAdd(
 		url.QueryEscape(localNetIPv4.String()+","+localNetIPv6.String()),
 	)
 
+	if ovcFakeDomain != "" {
+		query += fmt.Sprintf("&cloak-domain=%s",
+			url.QueryEscape(ovcFakeDomain),
+		)
+	}
+
 	if ovcCACert != "" && len(ovcRouterCAKey) > 0 {
-		query += fmt.Sprintf("&openvpn-ca-crt=%s&openvpn-ca-key=%s&cloak-domain=%s",
+		query += fmt.Sprintf("&openvpn-ca-crt=%s&openvpn-ca-key=%s",
 			url.QueryEscape(ovcCACert),
 			url.QueryEscape(ovcRouterCAKey),
-			url.QueryEscape(ovcFakeDomain),
 		)
 	}
 
@@ -156,6 +176,12 @@ func WgAdd(
 	if outlinePort != 0 {
 		query += fmt.Sprintf("&outline-ss-port=%d",
 			outlinePort,
+		)
+	}
+
+	if proto0FakeDomain != "" {
+		query += fmt.Sprintf("&p0-domain=%s",
+			url.QueryEscape(proto0FakeDomain),
 		)
 	}
 
@@ -175,6 +201,14 @@ func WgDel(ident string, actualAddrPort, calculatedAddrPort netip.AddrPort, wgIf
 
 	_, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query)
 	if err != nil {
+		apiErr := &APIResponse{}
+
+		if errors.As(err, &apiErr) && apiErr.Code == "128" {
+			fmt.Fprintf(os.Stderr, "WARNING: api: %s\n", apiErr.Message)
+
+			return nil
+		}
+
 		return fmt.Errorf("api: %w", err)
 	}
 

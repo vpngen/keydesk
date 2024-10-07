@@ -53,6 +53,7 @@ type UsersCounters struct {
 	ActiveIPSecUsersCount   int `json:"active_ipsec_users_count"`
 	ActiveOvcUsersCount     int `json:"active_ovc_users_count"`
 	ActiveOutlineUsersCount int `json:"active_outline_users_count"`
+	ActiveProto0UsersCount  int `json:"active_proto0_users_count"`
 	ThrottledUsersCount     int `json:"throttled_users_count"`
 }
 
@@ -63,6 +64,7 @@ type NetCounters struct {
 	TotalIPSecTraffic   RxTx `json:"total_ipsec_traffic"`
 	TotalOvcTraffic     RxTx `json:"total_ovc_traffic"`
 	TotalOutlineTraffic RxTx `json:"total_outline_traffic"`
+	TotalProto0Traffic  RxTx `json:"total_proto0_traffic"`
 }
 
 // BrigadeCounters - brigade counters.
@@ -73,6 +75,7 @@ type BrigadeCounters struct {
 	TotalIPSecTraffic   DateSummaryNetCounters `json:"total_ipsec_traffic"`
 	TotalOvcTraffic     DateSummaryNetCounters `json:"total_ovc_traffic"`
 	TotalOutlineTraffic DateSummaryNetCounters `json:"total_outline_traffic"`
+	TotalProto0Traffic  DateSummaryNetCounters `json:"total_proto0_traffic"`
 	CountersUpdateTime  time.Time              `json:"counters_update_time"`
 }
 
@@ -82,6 +85,7 @@ type TrafficCountersContainer struct {
 	TrafficIPSec   RxTx
 	TrafficOvc     RxTx
 	TrafficOutline RxTx
+	TrafficProto0  RxTx
 }
 
 type StatsCounters struct {
@@ -113,6 +117,7 @@ func (x *StatsCountersStack) Put(counters BrigadeCounters, traffic TrafficCounte
 	stats.NetCounters.TotalIPSecTraffic.Inc(traffic.TrafficIPSec.Rx, traffic.TrafficIPSec.Tx)
 	stats.NetCounters.TotalOvcTraffic.Inc(traffic.TrafficOvc.Rx, traffic.TrafficOvc.Tx)
 	stats.NetCounters.TotalOutlineTraffic.Inc(traffic.TrafficOutline.Rx, traffic.TrafficOutline.Tx)
+	stats.NetCounters.TotalProto0Traffic.Inc(traffic.TrafficProto0.Rx, traffic.TrafficProto0.Tx)
 	stats.CountersUpdateTime = counters.CountersUpdateTime
 }
 
@@ -126,11 +131,13 @@ type Quota struct {
 	OSIPSecCounters       RxTx                   `json:"os_ipsec_counters"`
 	OSOvcCounters         RxTx                   `json:"os_ovc_counters"`
 	OSOutlineCounters     RxTx                   `json:"os_outline_counters"`
+	OSProto0Counters      RxTx                   `json:"os_proto0_counters"`
 	CountersTotal         DateSummaryNetCounters `json:"counters_total"`
 	CountersWg            DateSummaryNetCounters `json:"counters_wg"`
 	CountersIPSec         DateSummaryNetCounters `json:"counters_ipsec"`
 	CountersOvc           DateSummaryNetCounters `json:"counters_ovc"`
 	CountersOutline       DateSummaryNetCounters `json:"counters_outline"`
+	CountersProto0        DateSummaryNetCounters `json:"counters_proto0"`
 	LimitMonthlyRemaining uint64                 `json:"limit_monthly_remaining"`
 	LimitMonthlyResetOn   time.Time              `json:"limit_monthly_reset_on,omitempty"`
 	LastActivity          LastActivityPoints     `json:"last_activity,omitempty"`
@@ -138,6 +145,7 @@ type Quota struct {
 	LastIPSecActivity     LastActivityPoints     `json:"last_ipsec_activity,omitempty"`
 	LastOvcActivity       LastActivityPoints     `json:"last_ovc_activity,omitempty"`
 	LastOutlineActivity   LastActivityPoints     `json:"last_outline_activity,omitempty"`
+	LastProto0Activity    LastActivityPoints     `json:"last_proto0_activity,omitempty"`
 	ThrottlingTill        time.Time              `json:"throttling_till,omitempty"`
 }
 
@@ -166,6 +174,8 @@ type User struct {
 	IPSecPasswordShufflerEnc  string                `json:"ipsec_password_shuffler_enc"`   // IPSec password for shuffler prepared
 	OutlineSecretRouterEnc    string                `json:"outline_secret_router_enc"`     // Outline secret for router prepared
 	OutlineSecretShufflerEnc  string                `json:"outline_secret_shuffler_enc"`   // Outline secret for shuffler prepared
+	Proto0SecretRouterEnc     string                `json:"proto0_secret_router_enc"`      // Protocol0 secret for router prepared
+	Proto0SecretShufflerEnc   string                `json:"proto0_secret_shuffler_enc"`    // Protocol0 secret for shuffler prepared
 	Person                    namesgenerator.Person `json:"person"`
 	Quotas                    Quota                 `json:"quotas"`
 }
@@ -175,13 +185,13 @@ func NewUser(userID uuid.UUID, name string, createdAt time.Time, isBrigadier boo
 }
 
 // BrigadeVersion - json version.
-const BrigadeVersion = 9
+const BrigadeVersion = 10
 
 type Mode = string
 
 const (
 	ModeBrigade  Mode = "brigade"
-	ModeShuffler Mode = "shuffler"
+	ModeVGSocket Mode = "vgsocket"
 	MaxUsers          = uint(255)
 )
 
@@ -209,6 +219,8 @@ type Brigade struct {
 	EndpointDomain        string               `json:"endpoint_domain"`
 	EndpointPort          uint16               `json:"endpoint_port"`
 	OutlinePort           uint16               `json:"outline_port"`
+	Proto0FakeDomain      string               `json:"proto0_fake_domain"` // Protocol0 fake domain
+	Proto0Port            uint16               `json:"proto0_port"`        // Protocol0 port
 	DNSv4                 netip.Addr           `json:"dns4"`
 	DNSv6                 netip.Addr           `json:"dns6"`
 	KeydeskIPv6           netip.Addr           `json:"keydesk_ipv6"`
@@ -222,18 +234,26 @@ type Brigade struct {
 }
 
 func (b Brigade) GetSupportedVPNProtocols() []string {
-	protocols := []string{"wg"} // wg is always supported
+	protocols := []string{"wireguard"} // wg is always supported
 
 	if b.OvCACertPemGzipBase64 != "" && b.OvCAKeyRouterEnc != "" && b.OvCAKeyShufflerEnc != "" {
-		protocols = append(protocols, "ovc")
+		protocols = append(protocols, "openvpn")
 	}
 
 	if b.IPSecPSK != "" && b.IPSecPSKRouterEnc != "" && b.IPSecPSKShufflerEnc != "" {
-		protocols = append(protocols, "ipsec")
+		protocols = append(protocols, "l2tp")
 	}
 
 	if b.OutlinePort > 0 {
-		protocols = append(protocols, "outline")
+		protocols = append(protocols, "shadowsocks")
+	}
+
+	if b.CloakFakeDomain != "" {
+		protocols = append(protocols, "cloak")
+	}
+
+	if b.Proto0FakeDomain != "" && b.Proto0Port > 0 {
+		protocols = append(protocols, "proto0")
 	}
 
 	return protocols
@@ -257,6 +277,10 @@ type UserConfig struct {
 	IPSecUserName    string
 	IPSecPassword    string
 	OutlinePort      uint16
+	Proto0FakeDomain string
+	Proto0Port       uint16
+	Proto0LongID     string
+	Proto0ShortID    string
 }
 
 // BrigadeConfig - new brigade structure.

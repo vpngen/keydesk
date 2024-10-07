@@ -1,15 +1,21 @@
 package main
 
 import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
 	"flag"
 	"fmt"
-	gojwt "github.com/golang-jwt/jwt/v5"
-	"github.com/vpngen/keydesk/pkg/jwt"
-	"github.com/vpngen/keydesk/utils"
 	"log"
 	"os"
 	"strings"
 	"time"
+
+	gojwt "github.com/golang-jwt/jwt/v5"
+	"github.com/vpngen/keydesk/pkg/jwt"
+	"github.com/vpngen/keydesk/utils"
+	"golang.org/x/crypto/ssh"
 )
 
 func main() {
@@ -30,16 +36,39 @@ func main() {
 		log.Fatal("read key file:", err)
 	}
 
-	key, err := utils.ReadECPrivateKey(file)
+	var key crypto.PrivateKey
+
+	key, err = utils.ReadECPrivateKey(file)
 	if err != nil {
-		log.Fatal("read private key:", err)
+		buf, err := os.ReadFile(*keyFile)
+		if err != nil {
+			log.Fatal("read key file:", err)
+		}
+
+		key, err = ssh.ParseRawPrivateKey(buf)
+		if err != nil {
+			log.Fatal("read private key:", err)
+		}
+	}
+
+	var jwtMethod gojwt.SigningMethod
+
+	switch key.(type) {
+	case *ecdsa.PrivateKey:
+		jwtMethod = gojwt.SigningMethodES256
+	case *rsa.PrivateKey:
+		jwtMethod = gojwt.SigningMethodRS256
+	case *ed25519.PrivateKey:
+		jwtMethod = gojwt.SigningMethodEdDSA
+	default:
+		log.Fatal("unsupported key type")
 	}
 
 	issuer := jwt.NewIssuer(key, jwt.Options{
 		Issuer:        *iss,
 		Audience:      strings.Split(*aud, ","),
 		Subject:       *sub,
-		SigningMethod: gojwt.SigningMethodES256,
+		SigningMethod: jwtMethod,
 	})
 
 	ttlD, err := time.ParseDuration(*ttl)

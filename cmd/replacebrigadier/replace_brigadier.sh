@@ -103,6 +103,10 @@ while [ "$#" -gt 0 ]; do
                 outline_configs="-outline $2"
                 shift 2
                 ;;
+        -proto0)
+                proto0_configs="-proto0 $2"
+                shift 2
+                ;;
         *)
                 printdef "Unknown option: $1"
                 ;;
@@ -120,7 +124,7 @@ if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(cat "/.maintenance")";
         fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
 fi
 
-if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ]; then
+if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ] && [ -z "${proto0_configs}" ]; then
         wg_configs="-wg native"
 fi
 
@@ -134,17 +138,17 @@ fi
 
 if [ -z "${DEBUG}" ]; then
         # shellcheck disable=SC2086
-        output="$(sudo -u "${brigade_id}" -g  "${brigade_id}" "${KEYDESK_PATH}" -r ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs})" || (echo "$output"; exit 1)
+        output="$(sudo -u "${brigade_id}" -g  "${brigade_id}" "${KEYDESK_PATH}" -r ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs})" || (echo "$output"; exit 1)
 else
         CONF_DIR="${CONF_DIR:-${DB_DIR}}"
         EXECUTABLE_DIR="$(realpath "$(dirname "$0")")"
         SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}/../keydesk")"
         if [ -x "${KEYDESK_PATH}" ]; then
                 # shellcheck disable=SC2086
-                output="$("${KEYDESK_PATH}" -r -d "${DB_DIR}" -c "${CONF_DIR}" -id "${brigade_id}" ${apiaddr} ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs})" || (echo "$output"; exit 1)
+                output="$("${KEYDESK_PATH}" -r -d "${DB_DIR}" -c "${CONF_DIR}" -id "${brigade_id}" ${apiaddr} ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs})" || (echo "$output"; exit 1)
         elif [ -s "${SOURCE_DIR}/main.go" ]; then
                 # shellcheck disable=SC2086
-                output="$(go run "${SOURCE_DIR}" -r -d "${DB_DIR}" -c "${CONF_DIR}" -id "${brigade_id}" ${apiaddr} ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs})" || (echo "$output"; exit 1)
+                output="$(go run "${SOURCE_DIR}" -r -d "${DB_DIR}" -c "${CONF_DIR}" -id "${brigade_id}" ${apiaddr} ${json} ${chunked} ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs})" || (echo "$output"; exit 1)
         else
                 echo "ERROR: can't find ${KEYDESK_PATH} or ${SOURCE_DIR}/main.go" >&2
                 

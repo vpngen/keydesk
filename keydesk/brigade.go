@@ -6,12 +6,15 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+
 	"github.com/vpngen/keydesk/kdlib"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/vpngine/naclkey"
 	"golang.org/x/crypto/nacl/box"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
+
+const DefaultProto0Port = 443
 
 // CreateBrigade - create brigadier user.
 func CreateBrigade(
@@ -29,7 +32,11 @@ func CreateBrigade(
 
 	// fmt.Fprintf(os.Stderr, "cfgs: %#v\n", vpnCfgs)
 
-	var ovcConf *storage.BrigadeOvcConfig
+	var (
+		ovcConf          *storage.BrigadeOvcConfig
+		proto0FakeDomain string
+	)
+
 	if len(vpnCfgs.Ovc) > 0 {
 		var err error
 
@@ -52,7 +59,25 @@ func CreateBrigade(
 		outlineConf = &storage.BrigadeOutlineConfig{OutlinePort: config.OutlinePort}
 	}
 
-	err = db.CreateBrigade(config, wgConf, ovcConf, ipsecConf, outlineConf, mode, maxUsers)
+	var (
+		cloakConf       *storage.BrigadeCloakConfig
+		cloakFakeDomain string
+	)
+
+	if len(vpnCfgs.Ovc) > 0 || len(vpnCfgs.Outline) > 0 {
+		cloakConf = GenEndpointCloakCreds(proto0FakeDomain)
+	}
+
+	if cloakConf != nil {
+		cloakFakeDomain = cloakConf.CloakFakeDomain
+	}
+
+	var proto0Conf *storage.BrigadeProto0Config
+	if len(vpnCfgs.Proto0) > 0 {
+		proto0Conf = GenEndpointProto0Creds(cloakFakeDomain, 0)
+	}
+
+	err = db.CreateBrigade(config, wgConf, ovcConf, cloakConf, ipsecConf, outlineConf, proto0Conf, mode, maxUsers)
 	if err != nil {
 		return fmt.Errorf("put: %w", err)
 	}
@@ -127,9 +152,41 @@ func GenEndpointOpenVPNoverCloakCreds(routerPubkey, shufflerPubkey *[naclkey.Nac
 	}
 
 	return &storage.BrigadeOvcConfig{
-		OvcFakeDomain:          GetRandomSite(),
 		OvcCACertPemGzipBase64: string(caPemGzipBase64),
 		OvcRouterCAKey:         base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(routerKey),
 		OvcShufflerCAKey:       base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(shufflerKey),
 	}, nil
+}
+
+func GenEndpointCloakCreds(proto0FakeDomain string) *storage.BrigadeCloakConfig {
+	var fakeDomain string
+	for {
+		fakeDomain = GetRandomSite()
+		if fakeDomain != proto0FakeDomain {
+			break
+		}
+	}
+
+	return &storage.BrigadeCloakConfig{
+		CloakFakeDomain: fakeDomain,
+	}
+}
+
+func GenEndpointProto0Creds(domain string, port uint16) *storage.BrigadeProto0Config {
+	var fakeDomain string
+	for {
+		fakeDomain = GetRandomSite()
+		if fakeDomain != domain {
+			break
+		}
+	}
+
+	if port == 0 {
+		port = DefaultProto0Port
+	}
+
+	return &storage.BrigadeProto0Config{
+		Proto0FakeDomain: fakeDomain,
+		Proto0Port:       port,
+	}
 }

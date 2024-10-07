@@ -38,9 +38,6 @@ import (
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
 
-//go:generate go run github.com/go-swagger/go-swagger/cmd/swagger@latest generate server -t ../../gen -f ../../swagger/swagger.yml --exclude-main -A user
-//go:generate go run github.com/go-swagger/go-swagger/cmd/swagger@latest generate client -t ../../gen -f ../../swagger/swagger.yml
-
 // Default web config.
 const (
 	DefaultWebDir    = "/var/www"
@@ -302,7 +299,7 @@ func main() {
 		})
 	}
 
-	if brigade.Mode == storage.ModeShuffler && cfg.shufflerAPISocket != nil {
+	if brigade.Mode == storage.ModeVGSocket && cfg.shufflerAPISocket != nil {
 		echoSrv, err := shflrapp.SetupServer(db, authorizer, routerPublicKey, shufflerPublicKey)
 		if err != nil {
 			errQuit("shuffler server", err)
@@ -411,10 +408,6 @@ func createBrigadier(db *storage.BrigadeStorage,
 
 	if err := enc.Encode(answer); err != nil {
 		return fmt.Errorf("print json: %w", err)
-	}
-
-	if _, err := fmt.Println(); err != nil {
-		return fmt.Errorf("print newline: %w", err)
 	}
 
 	return nil

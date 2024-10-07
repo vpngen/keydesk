@@ -2,17 +2,18 @@ package storage
 
 import (
 	"fmt"
-	"github.com/vpngen/keydesk/utils"
 	"log"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/vpngen/keydesk/utils"
 )
 
 func BrigadeTestMiddleware(db *BrigadeStorage, mw utils.TestMainMiddleware) utils.TestMainMiddleware {
 	return func(m *testing.M) int {
 		tmpdir := fmt.Sprintf("test-%d", time.Now().Unix())
-		if err := os.Mkdir(tmpdir, 0755); err != nil {
+		if err := os.Mkdir(tmpdir, 0o755); err != nil {
 			log.Fatal("failed to create tmpdir:", err)
 		}
 
@@ -26,8 +27,10 @@ func BrigadeTestMiddleware(db *BrigadeStorage, mw utils.TestMainMiddleware) util
 			&BrigadeConfig{BrigadeID: db.BrigadeID},
 			&BrigadeWgConfig{},
 			&BrigadeOvcConfig{},
+			&BrigadeCloakConfig{},
 			&BrigadeIPSecConfig{},
 			&BrigadeOutlineConfig{},
+			&BrigadeProto0Config{},
 			ModeBrigade,
 			0,
 		); err != nil {

@@ -47,6 +47,7 @@ type flags struct {
 	ovcCfgs     *string
 	ipsecCfgs   *string
 	outlineCfgs *string
+	proto0Cfgs  *string
 
 	unixSocketDir    *string
 	messageAPI       *string
@@ -89,6 +90,7 @@ func parseFlags(flagSet *flag.FlagSet, args []string) flags {
 	f.ovcCfgs = flagSet.String("ovc", "", "OpenVPN over Cloak configs ("+storage.ConfigsOvc+")")
 	f.ipsecCfgs = flagSet.String("ipsec", "", "IPSec configs ("+storage.ConfigsIPSec+")")
 	f.outlineCfgs = flagSet.String("outline", "", "Outline configs ("+storage.ConfigsOutline+")")
+	f.proto0Cfgs = flagSet.String("proto0", "", "Protocol0 configs ("+storage.ConfigsProto0+")")
 
 	f.unixSocketDir = flagSet.String("socket-dir", defaultUnixSocketDir, fmt.Sprintf("Unix sockets dir. Default: %s", defaultUnixSocketDir))
 	f.messageAPI = flagSet.String("m", "", fmt.Sprintf("Message API unix socket path. Default: %s/<BrigadeID>/messages.sock '-' to disable", *f.unixSocketDir))
@@ -288,6 +290,10 @@ func parseVPNConfigs(flags flags) *storage.ConfigsImplemented {
 
 	if *flags.outlineCfgs != "" {
 		vpnCfgs.AddOutline(*flags.outlineCfgs)
+	}
+
+	if *flags.proto0Cfgs != "" {
+		vpnCfgs.AddProto0(*flags.proto0Cfgs)
 	}
 
 	return vpnCfgs

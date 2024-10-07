@@ -14,7 +14,6 @@ import (
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/vpnapi"
-	"github.com/vpngen/vpngine/naclkey"
 )
 
 var (
@@ -27,19 +26,10 @@ var (
 )
 
 func main() {
-	var routerPublicKey, shufflerPublicKey [naclkey.NaclBoxKeyLength]byte
-
-	replay, purge, brigadeID, etcDir, dbDir, addr, port, err := parseArgs()
+	replay, purge, brigadeID, dbDir, addr, port, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 		os.Exit(1)
-	}
-
-	if !purge {
-		routerPublicKey, shufflerPublicKey, err = readPubKeys(etcDir)
-		if err != nil {
-			log.Fatalln(err)
-		}
 	}
 
 	fmt.Fprintf(os.Stderr, "Brigade: %s\n", brigadeID)
@@ -68,29 +58,27 @@ func main() {
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 
-	if err = Do(db, replay, purge, port, &routerPublicKey, &shufflerPublicKey); err != nil {
+	if err = Do(db, replay, purge, port); err != nil {
 		log.Fatalf("Can't do: %s\n", err)
 	}
 }
 
-func parseArgs() (bool, bool, string, string, string, netip.AddrPort, uint16, error) {
+func parseArgs() (bool, bool, string, string, netip.AddrPort, uint16, error) {
 	var (
 		id       string
 		dbdir    string
-		etcdir   string
 		err      error
 		addrPort netip.AddrPort
 	)
 
 	sysUser, err := user.Current()
 	if err != nil {
-		return false, false, "", "", "", addrPort, 0, fmt.Errorf("cannot define user: %w", err)
+		return false, false, "", "", addrPort, 0, fmt.Errorf("cannot define user: %w", err)
 	}
 
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
 	addr := flag.String("a", vpnapi.TemplatedAddrPort, "API endpoint address:port")
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
-	etcDir := flag.String("c", "", "Dir for config files (for test). Default: "+keydesk.DefaultEtcDir)
 	replay := flag.Bool("r", false, "Replay brigade")
 	purge := flag.String("p", "", "Purge IPSec (need brigadeID)")
 	port := flag.Uint("op", 0, "Outline port, 0 is random")
@@ -100,21 +88,14 @@ func parseArgs() (bool, bool, string, string, string, netip.AddrPort, uint16, er
 	if *filedbDir != "" {
 		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return false, false, "", "", "", addrPort, 0, fmt.Errorf("dbdir dir: %w", err)
-		}
-	}
-
-	if *etcDir != "" {
-		etcdir, err = filepath.Abs(*etcDir)
-		if err != nil {
-			return false, false, "", "", "", addrPort, 0, fmt.Errorf("etcdir dir: %w", err)
+			return false, false, "", "", addrPort, 0, fmt.Errorf("dbdir dir: %w", err)
 		}
 	}
 
 	if *addr != "-" {
 		addrPort, err = netip.ParseAddrPort(*addr)
 		if err != nil {
-			return false, false, "", "", "", addrPort, 0, fmt.Errorf("addr: %w", err)
+			return false, false, "", "", addrPort, 0, fmt.Errorf("addr: %w", err)
 		}
 	}
 
@@ -124,10 +105,6 @@ func parseArgs() (bool, bool, string, string, string, netip.AddrPort, uint16, er
 
 		if *filedbDir == "" {
 			dbdir = filepath.Join(storage.DefaultHomeDir, id)
-		}
-
-		if *etcDir == "" {
-			etcdir = keydesk.DefaultEtcDir
 		}
 	default:
 		id = *brigadeID
@@ -140,17 +117,13 @@ func parseArgs() (bool, bool, string, string, string, netip.AddrPort, uint16, er
 		if *filedbDir == "" {
 			dbdir = cwd
 		}
-
-		if *etcDir == "" {
-			etcdir = cwd
-		}
 	}
 
-	return *replay, *purge == id, id, etcdir, dbdir, addrPort, uint16(*port), nil
+	return *replay, *purge == id, id, dbdir, addrPort, uint16(*port), nil
 }
 
 // Do - do replay.
-func Do(db *storage.BrigadeStorage, replay, purge bool, port uint16, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) error {
+func Do(db *storage.BrigadeStorage, replay, purge bool, port uint16) error {
 	switch purge {
 	case true:
 		if err := removeOutlineSupport(db); err != nil {
@@ -161,7 +134,7 @@ func Do(db *storage.BrigadeStorage, replay, purge bool, port uint16, routerPubli
 			return fmt.Errorf("remove OVC: %w", err)
 		}
 	default:
-		if err := addOutlineSupport(db, port, routerPublicKey, shufflerPublicKey); err != nil {
+		if err := addOutlineSupport(db, port); err != nil {
 			if errors.Is(err, ErrOutlineAlreadyPresent) {
 				return nil
 			}
@@ -179,7 +152,7 @@ func Do(db *storage.BrigadeStorage, replay, purge bool, port uint16, routerPubli
 	return nil
 }
 
-func addOutlineSupport(db *storage.BrigadeStorage, port uint16, routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) error {
+func addOutlineSupport(db *storage.BrigadeStorage, port uint16) error {
 	f, data, err := db.OpenDbToModify()
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
@@ -223,20 +196,4 @@ func removeOutlineSupport(db *storage.BrigadeStorage) error {
 	f.Commit(data)
 
 	return nil
-}
-
-func readPubKeys(path string) ([naclkey.NaclBoxKeyLength]byte, [naclkey.NaclBoxKeyLength]byte, error) {
-	empty := [naclkey.NaclBoxKeyLength]byte{}
-
-	routerPublicKey, err := naclkey.ReadPublicKeyFile(filepath.Join(path, keydesk.RouterPublicKeyFilename))
-	if err != nil {
-		return empty, empty, fmt.Errorf("router key: %w", err)
-	}
-
-	shufflerPublicKey, err := naclkey.ReadPublicKeyFile(filepath.Join(path, keydesk.ShufflerPublicKeyFilename))
-	if err != nil {
-		return empty, empty, fmt.Errorf("shuffler key: %w", err)
-	}
-
-	return routerPublicKey, shufflerPublicKey, nil
 }

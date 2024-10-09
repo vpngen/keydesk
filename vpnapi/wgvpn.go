@@ -8,7 +8,10 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"time"
 )
+
+const MaxDelAttempts = 3
 
 type WgStatTrafficIn struct {
 	Received string `json:"received"`
@@ -106,7 +109,7 @@ func WgPeerAdd(
 		query += fmt.Sprintf("&control-host=%s", url.QueryEscape(keydeskIPv6.String()))
 	}
 
-	body, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query)
+	body, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query, CallTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("api: %w", err)
 	}
@@ -121,7 +124,7 @@ func WgPeerDel(ident string, actualAddrPort, calculatedAddrPort netip.AddrPort, 
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgIfacePub)),
 	)
 
-	_, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query)
+	_, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query, CallTimeout)
 	if err != nil {
 		return fmt.Errorf("api: %w", err)
 	}
@@ -185,7 +188,7 @@ func WgAdd(
 		)
 	}
 
-	_, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query)
+	_, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query, CallTimeout)
 	if err != nil {
 		return fmt.Errorf("api: %w", err)
 	}
@@ -199,14 +202,24 @@ func WgDel(ident string, actualAddrPort, calculatedAddrPort netip.AddrPort, wgIf
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgIfacePriv)),
 	)
 
-	_, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query)
-	if err != nil {
+	var err error
+
+	if _, err = getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query, CallTimeout); err != nil {
 		apiErr := &APIResponse{}
 
-		if errors.As(err, &apiErr) && apiErr.Code == "128" {
-			fmt.Fprintf(os.Stderr, "WARNING: api: %s\n", apiErr.Message)
+		if errors.As(err, &apiErr) {
+			switch apiErr.Code {
+			case "128":
+				fmt.Fprintf(os.Stderr, "WARNING: api: %s\n", err)
 
-			return nil
+				return nil
+			case "146":
+				fmt.Fprintf(os.Stderr, "WARNING: del attempt: %s\n", err)
+
+				<-time.After(CallTimeout)
+
+				return nil
+			}
 		}
 
 		return fmt.Errorf("api: %w", err)
@@ -221,7 +234,7 @@ func WgStat(ident string, actualAddrPort, calculatedAddrPort netip.AddrPort, wgI
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgIfacePub)),
 	)
 
-	body, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query)
+	body, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query, CallTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("api: %w", err)
 	}

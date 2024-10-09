@@ -16,7 +16,7 @@ const endpointPort = 8080
 
 const (
 	// CallTimeout - timeout for API call.
-	CallTimeout = 120 * time.Second // 60 seconds.
+	CallTimeout = 120 * time.Second // 120 seconds.
 	// ConnTimeout - timeout for API connection.
 	ConnTimeout = 5 * time.Second // 10 seconds.
 )
@@ -65,7 +65,7 @@ func nextSerial() uint32 {
 }
 */
 
-func getAPIRequest(_ string, actualAddrPort, calculatedAddrPort netip.AddrPort, query string) ([]byte, error) {
+func getAPIRequest(_ string, actualAddrPort, calculatedAddrPort netip.AddrPort, query string, callTimeout time.Duration) ([]byte, error) {
 	/*
 		if !actualAddrPort.Addr().IsValid() || actualAddrPort.Addr().Compare(calculatedAddrPort.Addr()) != 0 || actualAddrPort.Port() != calculatedAddrPort.Port() {
 			fmt.Fprintf(os.Stderr, "API endpoint calculated: %s\n", calculatedAddrPort)
@@ -104,7 +104,7 @@ func getAPIRequest(_ string, actualAddrPort, calculatedAddrPort netip.AddrPort, 
 				Timeout: ConnTimeout,
 			}).Dial,
 		},
-		Timeout: CallTimeout,
+		Timeout: callTimeout,
 	}
 
 	resp, err := c.Do(req)

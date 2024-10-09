@@ -80,7 +80,7 @@ func parseArgs() (bool, bool, string, string, netip.AddrPort, string, error) {
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
 	replay := flag.Bool("r", false, "Replay brigade")
 	purge := flag.String("p", "", "Purge Protocol0 (need brigadeID)")
-	domain := flag.String("dn", "", "Fake domain for OpenVPN over Cloak")
+	domain := flag.String("dn", "", "Fake domain for Protocol0")
 
 	flag.Parse()
 
@@ -130,7 +130,7 @@ func Do(db *storage.BrigadeStorage, replay, purge bool, domain string) error {
 				return nil
 			}
 
-			return fmt.Errorf("remove OVC: %w", err)
+			return fmt.Errorf("remove Proto0: %w", err)
 		}
 	default:
 		if err := addProto0Support(db, domain); err != nil {
@@ -138,7 +138,7 @@ func Do(db *storage.BrigadeStorage, replay, purge bool, domain string) error {
 				return nil
 			}
 
-			return fmt.Errorf("apply OVC: %w", err)
+			return fmt.Errorf("apply Proto0: %w", err)
 		}
 	}
 
@@ -171,7 +171,7 @@ func addProto0Support(db *storage.BrigadeStorage, domain string) error {
 		proto0Conf.Proto0FakeDomain = domain
 	}
 
-	data.CloakFakeDomain = proto0Conf.Proto0FakeDomain
+	data.Proto0FakeDomain = proto0Conf.Proto0FakeDomain
 
 	f.Commit(data)
 

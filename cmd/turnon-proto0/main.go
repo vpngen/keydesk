@@ -159,13 +159,17 @@ func addProto0Support(db *storage.BrigadeStorage, domain string) error {
 
 	defer f.Close()
 
-	if data.Proto0FakeDomain != "" && data.Proto0Port > 0 {
+	if data.Proto0FakeDomain != "" && data.Proto0Port > 0 && data.Proto0FakeDomain != data.CloakFakeDomain {
 		fmt.Fprintf(os.Stderr, "Brigade %s already has Proto0\n", db.BrigadeID)
 
 		return ErrProto0AlreadyPresent
 	}
 
-	proto0Conf := keydesk.GenEndpointProto0Creds(data.Proto0FakeDomain, 0)
+	if data.Proto0FakeDomain != "" && data.Proto0FakeDomain == data.CloakFakeDomain {
+		fmt.Fprintf(os.Stderr, "Error: Brigade %s has Proto0 with the same domain as Cloak. Fix it\n", db.BrigadeID)
+	}
+
+	proto0Conf := keydesk.GenEndpointProto0Creds(data.CloakFakeDomain, 0)
 
 	if domain != "" {
 		proto0Conf.Proto0FakeDomain = domain

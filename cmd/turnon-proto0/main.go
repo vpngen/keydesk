@@ -172,6 +172,7 @@ func addProto0Support(db *storage.BrigadeStorage, domain string) error {
 	}
 
 	data.Proto0FakeDomain = proto0Conf.Proto0FakeDomain
+	data.Proto0Port = proto0Conf.Proto0Port
 
 	f.Commit(data)
 

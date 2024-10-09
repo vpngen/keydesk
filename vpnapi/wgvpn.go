@@ -10,6 +10,8 @@ import (
 	"os"
 )
 
+const MaxDelAttempts = 3
+
 type WgStatTrafficIn struct {
 	Received string `json:"received"`
 	Sent     string `json:"sent"`
@@ -106,7 +108,7 @@ func WgPeerAdd(
 		query += fmt.Sprintf("&control-host=%s", url.QueryEscape(keydeskIPv6.String()))
 	}
 
-	body, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query)
+	body, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query, CallTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("api: %w", err)
 	}
@@ -121,7 +123,7 @@ func WgPeerDel(ident string, actualAddrPort, calculatedAddrPort netip.AddrPort, 
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgIfacePub)),
 	)
 
-	_, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query)
+	_, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query, CallTimeout)
 	if err != nil {
 		return fmt.Errorf("api: %w", err)
 	}
@@ -185,7 +187,7 @@ func WgAdd(
 		)
 	}
 
-	_, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query)
+	_, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query, CallTimeout)
 	if err != nil {
 		return fmt.Errorf("api: %w", err)
 	}
@@ -199,20 +201,32 @@ func WgDel(ident string, actualAddrPort, calculatedAddrPort netip.AddrPort, wgIf
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgIfacePriv)),
 	)
 
-	_, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query)
-	if err != nil {
-		apiErr := &APIResponse{}
+	var err error
 
-		if errors.As(err, &apiErr) && apiErr.Code == "128" {
-			fmt.Fprintf(os.Stderr, "WARNING: api: %s\n", apiErr.Message)
+	for i := 0; i < MaxDelAttempts; i++ {
+		if _, err = getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query, CallTimeout); err != nil {
+			apiErr := &APIResponse{}
 
-			return nil
+			if errors.As(err, &apiErr) {
+				switch apiErr.Code {
+				case "128":
+					fmt.Fprintf(os.Stderr, "WARNING: api: %s\n", apiErr.Message)
+
+					return nil
+				case "146":
+					fmt.Fprintf(os.Stderr, "WARNING: del attempt: %d: %s\n", i+1, err)
+
+					continue
+				}
+			}
+
+			return fmt.Errorf("api: %w", err)
 		}
 
-		return fmt.Errorf("api: %w", err)
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("max del attempt exeeded: %d: %w", MaxDelAttempts, err)
 }
 
 // WgStat - stat endpoint API call.
@@ -221,7 +235,7 @@ func WgStat(ident string, actualAddrPort, calculatedAddrPort netip.AddrPort, wgI
 		url.QueryEscape(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgIfacePub)),
 	)
 
-	body, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query)
+	body, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query, CallTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("api: %w", err)
 	}

@@ -20,7 +20,7 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 		// if we catch a slowdown problems we need organize queue
 		err = vpnapi.WgDel(data.BrigadeID, db.actualAddrPort, db.calculatedAddrPort, data.WgPrivateRouterEnc)
 		if err != nil {
-			return fmt.Errorf("wg add: %w", err)
+			return fmt.Errorf("wg del: %w", err)
 		}
 	}
 

@@ -8,6 +8,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"time"
 )
 
 const MaxDelAttempts = 3
@@ -203,30 +204,28 @@ func WgDel(ident string, actualAddrPort, calculatedAddrPort netip.AddrPort, wgIf
 
 	var err error
 
-	for i := 0; i < MaxDelAttempts; i++ {
-		if _, err = getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query, CallTimeout); err != nil {
-			apiErr := &APIResponse{}
+	if _, err = getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query, CallTimeout); err != nil {
+		apiErr := &APIResponse{}
 
-			if errors.As(err, &apiErr) {
-				switch apiErr.Code {
-				case "128":
-					fmt.Fprintf(os.Stderr, "WARNING: api: %s\n", apiErr.Message)
+		if errors.As(err, &apiErr) {
+			switch apiErr.Code {
+			case "128":
+				fmt.Fprintf(os.Stderr, "WARNING: api: %s\n", err)
 
-					return nil
-				case "146":
-					fmt.Fprintf(os.Stderr, "WARNING: del attempt: %d: %s\n", i+1, err)
+				return nil
+			case "146":
+				fmt.Fprintf(os.Stderr, "WARNING: del attempt: %s\n", err)
 
-					continue
-				}
+				<-time.After(CallTimeout)
+
+				return nil
 			}
-
-			return fmt.Errorf("api: %w", err)
 		}
 
-		return nil
+		return fmt.Errorf("api: %w", err)
 	}
 
-	return fmt.Errorf("max del attempt exeeded: %d: %w", MaxDelAttempts, err)
+	return nil
 }
 
 // WgStat - stat endpoint API call.

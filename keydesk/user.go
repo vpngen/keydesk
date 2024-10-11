@@ -267,7 +267,7 @@ func assembleConfig(
 			return "", nil, fmt.Errorf("vgc.Encode: %w", err)
 		}
 
-		redirectURL := fmt.Sprintf("http://%s/%s://%s", endpointHostString, vpnConfigSchema, encoded)
+		redirectURL := fmt.Sprintf("https://%s/%s://%s", endpointHostString, vpnConfigSchema, encoded)
 
 		newuser.VPNGenConfig = models.VGC(redirectURL)
 	}

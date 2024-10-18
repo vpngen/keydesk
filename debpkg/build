@@ -98,6 +98,8 @@ if [ "$1" = "pkg" ]; then
         exit 0
 fi
 
+CONFDIR=${CONFDIR:-$(pwd)/.vpngen}
+
 GOLANG_VER="$(grep -e "^go\s" "$(dirname "$0")"/../go.mod | awk '{print $2}')"
 
 # Get the current branch

@@ -52,6 +52,7 @@ type UsersCounters struct {
 	ActiveWgUsersCount      int `json:"active_wg_users_count"`
 	ActiveIPSecUsersCount   int `json:"active_ipsec_users_count"`
 	ActiveOvcUsersCount     int `json:"active_ovc_users_count"`
+	ActiveOlcUsersCount     int `json:"active_olc_users_count"`
 	ActiveOutlineUsersCount int `json:"active_outline_users_count"`
 	ActiveProto0UsersCount  int `json:"active_proto0_users_count"`
 	ThrottledUsersCount     int `json:"throttled_users_count"`
@@ -122,7 +123,7 @@ func (x *StatsCountersStack) Put(counters BrigadeCounters, traffic TrafficCounte
 }
 
 // QuotaVesrion - json version.
-const QuotaVesrion = 5
+const QuotaVesrion = 6
 
 // Quota - user quota.
 type Quota struct {
@@ -144,6 +145,7 @@ type Quota struct {
 	LastWgActivity        LastActivityPoints     `json:"last_wg_activity,omitempty"`
 	LastIPSecActivity     LastActivityPoints     `json:"last_ipsec_activity,omitempty"`
 	LastOvcActivity       LastActivityPoints     `json:"last_ovc_activity,omitempty"`
+	LastOlcActivity       LastActivityPoints     `json:"last_olc_activity,omitempty"`
 	LastOutlineActivity   LastActivityPoints     `json:"last_outline_activity,omitempty"`
 	LastProto0Activity    LastActivityPoints     `json:"last_proto0_activity,omitempty"`
 	ThrottlingTill        time.Time              `json:"throttling_till,omitempty"`

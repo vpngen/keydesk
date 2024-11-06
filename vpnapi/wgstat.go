@@ -13,6 +13,7 @@ const (
 	wgStatName      = "wireguard"
 	ipsecStatName   = "ipsec"
 	ovcStatName     = "cloak-openvpn"
+	olcStatName     = "cloak-ss"
 	outlineStatName = "outline-ss"
 	proto0StatName  = "proto0"
 )
@@ -45,6 +46,7 @@ type WgStatLastActivityMap struct {
 	Wg      map[string]time.Time
 	IPSec   map[string]time.Time
 	Ovc     map[string]time.Time
+	Olc     map[string]time.Time
 	Outline map[string]time.Time
 	Proto0  map[string]time.Time
 }
@@ -55,6 +57,7 @@ type WgStatEndpointMap struct {
 	Wg      map[string]netip.Prefix
 	IPSec   map[string]netip.Prefix
 	Ovc     map[string]netip.Prefix
+	Olc     map[string]netip.Prefix
 	Outline map[string]netip.Prefix
 	Proto0  map[string]netip.Prefix
 }
@@ -79,6 +82,7 @@ func NewWgStatLastActivityMap() *WgStatLastActivityMap {
 		Wg:      make(map[string]time.Time),
 		IPSec:   make(map[string]time.Time),
 		Ovc:     make(map[string]time.Time),
+		Olc:     make(map[string]time.Time),
 		Outline: make(map[string]time.Time),
 		Proto0:  make(map[string]time.Time),
 	}
@@ -90,6 +94,7 @@ func NewWgStatEndpointMap() *WgStatEndpointMap {
 		Wg:      make(map[string]netip.Prefix),
 		IPSec:   make(map[string]netip.Prefix),
 		Ovc:     make(map[string]netip.Prefix),
+		Olc:     make(map[string]netip.Prefix),
 		Outline: make(map[string]netip.Prefix),
 		Proto0:  make(map[string]netip.Prefix),
 	}
@@ -181,6 +186,8 @@ func WgStatParseLastActivity(lastSeen WgStatLastseenMapIn) (*WgStatLastActivityM
 				m.IPSec[id] = time.Unix(ts, 0).UTC()
 			case ovcStatName:
 				m.Ovc[id] = time.Unix(ts, 0).UTC()
+			case olcStatName:
+				m.Olc[id] = time.Unix(ts, 0).UTC()
 			case outlineStatName:
 				m.Outline[id] = time.Unix(ts, 0).UTC()
 			case proto0StatName:
@@ -219,6 +226,8 @@ func WgStatParseEndpoints(endpoints WgStatEndpointMapIn) (*WgStatEndpointMap, er
 				m.IPSec[id] = prefix
 			case ovcStatName:
 				m.Ovc[id] = prefix
+			case olcStatName:
+				m.Olc[id] = prefix
 			case outlineStatName:
 				m.Outline[id] = prefix
 			case proto0StatName:

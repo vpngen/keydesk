@@ -291,6 +291,7 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 		activeWgUsers,
 		activeIPSecUsers,
 		activeOvcUsers,
+		activeOlcUsers,
 		activeOutlineUsers,
 		activeProto0Users int
 		trafficMap     *vpnapi.WgStatTrafficMap
@@ -349,6 +350,7 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 		lastActivityTotal = handleLastActivity(id, now, &activeUsers, userInactiveEdge, lastSeenMap.Wg, endpointMap.Wg, &user.Quotas.LastWgActivity, data.Endpoints, lastActivityTotal)
 		lastActivityTotal = handleLastActivity(id, now, &activeIPSecUsers, userInactiveEdge, lastSeenMap.IPSec, endpointMap.IPSec, &user.Quotas.LastIPSecActivity, data.Endpoints, lastActivityTotal)
 		lastActivityTotal = handleLastActivity(id, now, &activeOvcUsers, userInactiveEdge, lastSeenMap.Ovc, endpointMap.Ovc, &user.Quotas.LastOvcActivity, data.Endpoints, lastActivityTotal)
+		lastActivityTotal = handleLastActivity(id, now, &activeOlcUsers, userInactiveEdge, lastSeenMap.Olc, endpointMap.Olc, &user.Quotas.LastOlcActivity, data.Endpoints, lastActivityTotal)
 		lastActivityTotal = handleLastActivity(id, now, &activeOutlineUsers, userInactiveEdge, lastSeenMap.Outline, endpointMap.Outline, &user.Quotas.LastOutlineActivity, data.Endpoints, lastActivityTotal)
 		lastActivityTotal = handleLastActivity(id, now, &activeProto0Users, userInactiveEdge, lastSeenMap.Proto0, endpointMap.Proto0, &user.Quotas.LastProto0Activity, data.Endpoints, lastActivityTotal)
 
@@ -373,6 +375,7 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 	data.ActiveWgUsersCount = activeWgUsers
 	data.ActiveIPSecUsersCount = activeIPSecUsers
 	data.ActiveOvcUsersCount = activeOvcUsers
+	data.ActiveOlcUsersCount = activeOlcUsers
 	data.ActiveOutlineUsersCount = activeOutlineUsers
 	data.ActiveProto0UsersCount = activeProto0Users
 

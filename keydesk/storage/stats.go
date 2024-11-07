@@ -347,7 +347,7 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 		lastActivityTotal := user.Quotas.LastActivity.Total
 		userInactiveEdge := now.Add(-maxUserInactiveDuration)
 
-		lastActivityTotal = handleLastActivity(id, now, &activeUsers, userInactiveEdge, lastSeenMap.Wg, endpointMap.Wg, &user.Quotas.LastWgActivity, data.Endpoints, lastActivityTotal)
+		lastActivityTotal = handleLastActivity(id, now, &activeWgUsers, userInactiveEdge, lastSeenMap.Wg, endpointMap.Wg, &user.Quotas.LastWgActivity, data.Endpoints, lastActivityTotal)
 		lastActivityTotal = handleLastActivity(id, now, &activeIPSecUsers, userInactiveEdge, lastSeenMap.IPSec, endpointMap.IPSec, &user.Quotas.LastIPSecActivity, data.Endpoints, lastActivityTotal)
 		lastActivityTotal = handleLastActivity(id, now, &activeOvcUsers, userInactiveEdge, lastSeenMap.Ovc, endpointMap.Ovc, &user.Quotas.LastOvcActivity, data.Endpoints, lastActivityTotal)
 		lastActivityTotal = handleLastActivity(id, now, &activeOlcUsers, userInactiveEdge, lastSeenMap.Olc, endpointMap.Olc, &user.Quotas.LastOlcActivity, data.Endpoints, lastActivityTotal)

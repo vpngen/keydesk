@@ -10,9 +10,9 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-func (s Service) DeleteUser(id uuid.UUID) (free uint, err error) {
+func (s Service) DeleteUser(id uuid.UUID, onlyBlock bool) (free uint, err error) {
 	err = s.db.RunInTransaction(func(brigade *storage.Brigade) error {
-		err = s.deleteUser(brigade, id)
+		err = s.deleteUser(brigade, id, onlyBlock)
 		if err != nil {
 			return fmt.Errorf("delete user %s: %w", id, err)
 		}
@@ -27,7 +27,7 @@ func (s Service) DeleteUser(id uuid.UUID) (free uint, err error) {
 
 var ErrNotFound = errors.New("user not found")
 
-func (s Service) deleteUser(brigade *storage.Brigade, id uuid.UUID) error {
+func (s Service) deleteUser(brigade *storage.Brigade, id uuid.UUID, onlyBlock bool) error {
 	var (
 		user *storage.User
 		idx  int
@@ -44,6 +44,8 @@ func (s Service) deleteUser(brigade *storage.Brigade, id uuid.UUID) error {
 		return ErrNotFound
 	}
 
+	blocked := user.IsBlocked
+
 	usrPub, err := wgtypes.NewKey(user.WgPublicKey)
 	if err != nil {
 		return fmt.Errorf("user public key: %w", err)
@@ -54,11 +56,19 @@ func (s Service) deleteUser(brigade *storage.Brigade, id uuid.UUID) error {
 		return fmt.Errorf("endpoint public key: %w", err)
 	}
 
-	if err = s.epClient.PeerDel(usrPub, epPub); err != nil {
-		return fmt.Errorf("peer del: %w", err)
+	if !blocked {
+		if err = s.epClient.PeerDel(usrPub, epPub); err != nil {
+			return fmt.Errorf("peer del: %w", err)
+		}
 	}
 
 	fmt.Fprintf(os.Stderr, "User %s (%s) deleted\n", user.UserID, usrPub)
+
+	if onlyBlock {
+		user.IsBlocked = true
+
+		return nil
+	}
 
 	brigade.Users = append(brigade.Users[:idx], brigade.Users[idx+1:]...)
 

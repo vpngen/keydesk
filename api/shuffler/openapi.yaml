@@ -48,12 +48,16 @@ paths:
                   free_slots:
                     type: integer
                     description: Number of free VPN slots after creation
+                  total_slots:
+                    type: integer
+                    description: Total number of VPN slots
                 required:
                   - id
                   - configs
                   - name
                   - domain
                   - free_slots
+                  - total_slots
         412:
           description: No free VPN slots
         default:
@@ -71,6 +75,62 @@ paths:
       responses:
         200:
           description: Successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  free_slots:
+                    type: integer
+                required:
+                  - free_slots
+        404:
+          description: User not found
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - JWTAuth: [ configs:delete ]
+  /configs/{id}/block:
+    patch:
+      summary: Block VPN config
+      parameters:
+        - name: id
+          schema:
+            type: string
+            format: uuid
+          in: path
+          required: true
+      responses:
+        200:
+          description: Successfully blocked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  free_slots:
+                    type: integer
+                required:
+                  - free_slots
+        404:
+          description: User not found
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - JWTAuth: [ configs:delete ]
+  /configs/{id}/unblock:
+    patch:
+      summary: Unlock VPN config
+      parameters:
+        - name: id
+          schema:
+            type: string
+            format: uuid
+          in: path
+          required: true
+      responses:
+        200:
+          description: Successfully unblocked
           content:
             application/json:
               schema:

@@ -85,3 +85,19 @@ func newUser(brigade *storage.Brigade, domain string) (storage.User, error) {
 
 	return user, nil
 }
+
+func (s Service) UnblockUser(id uuid.UUID) (free uint, err error) {
+	if err := s.db.UnblockUser(id.String()); err != nil {
+		return 0, fmt.Errorf("unblock user %s: %w", id, err)
+	}
+
+	if err := s.db.RunInTransaction(func(brigade *storage.Brigade) error {
+		free, _ = s.getSlotsInfo(brigade)
+
+		return nil
+	}); err != nil {
+		return 0, fmt.Errorf("run in transaction: %w", err)
+	}
+
+	return
+}

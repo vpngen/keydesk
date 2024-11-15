@@ -26,6 +26,12 @@ type ServerInterface interface {
 	// Delete VPN config
 	// (DELETE /configs/{id})
 	DeleteConfigsId(ctx echo.Context, id openapi_types.UUID) error
+	// Block VPN config
+	// (PATCH /configs/{id}/block)
+	PatchConfigsIdBlock(ctx echo.Context, id openapi_types.UUID) error
+	// Unlock VPN config
+	// (PATCH /configs/{id}/unblock)
+	PatchConfigsIdUnblock(ctx echo.Context, id openapi_types.UUID) error
 	// Get free VPN slots
 	// (GET /slots)
 	GetSlots(ctx echo.Context) error
@@ -76,6 +82,42 @@ func (w *ServerInterfaceWrapper) DeleteConfigsId(ctx echo.Context) error {
 	return err
 }
 
+// PatchConfigsIdBlock converts echo context to params.
+func (w *ServerInterfaceWrapper) PatchConfigsIdBlock(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(JWTAuthScopes, []string{"configs:delete"})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PatchConfigsIdBlock(ctx, id)
+	return err
+}
+
+// PatchConfigsIdUnblock converts echo context to params.
+func (w *ServerInterfaceWrapper) PatchConfigsIdUnblock(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(JWTAuthScopes, []string{"configs:delete"})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PatchConfigsIdUnblock(ctx, id)
+	return err
+}
+
 // GetSlots converts echo context to params.
 func (w *ServerInterfaceWrapper) GetSlots(ctx echo.Context) error {
 	var err error
@@ -118,6 +160,8 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/activity", wrapper.GetActivity)
 	router.POST(baseURL+"/configs", wrapper.PostConfigs)
 	router.DELETE(baseURL+"/configs/:id", wrapper.DeleteConfigsId)
+	router.PATCH(baseURL+"/configs/:id/block", wrapper.PatchConfigsIdBlock)
+	router.PATCH(baseURL+"/configs/:id/unblock", wrapper.PatchConfigsIdUnblock)
 	router.GET(baseURL+"/slots", wrapper.GetSlots)
 
 }
@@ -168,6 +212,9 @@ type PostConfigs201JSONResponse struct {
 	FreeSlots int                `json:"free_slots"`
 	Id        openapi_types.UUID `json:"id"`
 	Name      string             `json:"name"`
+
+	// TotalSlots Total number of VPN slots
+	TotalSlots int `json:"total_slots"`
 }
 
 func (response PostConfigs201JSONResponse) VisitPostConfigsResponse(w http.ResponseWriter) error {
@@ -236,6 +283,84 @@ func (response DeleteConfigsIddefaultJSONResponse) VisitDeleteConfigsIdResponse(
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
+type PatchConfigsIdBlockRequestObject struct {
+	Id openapi_types.UUID `json:"id"`
+}
+
+type PatchConfigsIdBlockResponseObject interface {
+	VisitPatchConfigsIdBlockResponse(w http.ResponseWriter) error
+}
+
+type PatchConfigsIdBlock200JSONResponse struct {
+	FreeSlots int `json:"free_slots"`
+}
+
+func (response PatchConfigsIdBlock200JSONResponse) VisitPatchConfigsIdBlockResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchConfigsIdBlock404Response struct {
+}
+
+func (response PatchConfigsIdBlock404Response) VisitPatchConfigsIdBlockResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type PatchConfigsIdBlockdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response PatchConfigsIdBlockdefaultJSONResponse) VisitPatchConfigsIdBlockResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type PatchConfigsIdUnblockRequestObject struct {
+	Id openapi_types.UUID `json:"id"`
+}
+
+type PatchConfigsIdUnblockResponseObject interface {
+	VisitPatchConfigsIdUnblockResponse(w http.ResponseWriter) error
+}
+
+type PatchConfigsIdUnblock200JSONResponse struct {
+	FreeSlots int `json:"free_slots"`
+}
+
+func (response PatchConfigsIdUnblock200JSONResponse) VisitPatchConfigsIdUnblockResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchConfigsIdUnblock404Response struct {
+}
+
+func (response PatchConfigsIdUnblock404Response) VisitPatchConfigsIdUnblockResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type PatchConfigsIdUnblockdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response PatchConfigsIdUnblockdefaultJSONResponse) VisitPatchConfigsIdUnblockResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
 type GetSlotsRequestObject struct {
 }
 
@@ -275,6 +400,12 @@ type StrictServerInterface interface {
 	// Delete VPN config
 	// (DELETE /configs/{id})
 	DeleteConfigsId(ctx context.Context, request DeleteConfigsIdRequestObject) (DeleteConfigsIdResponseObject, error)
+	// Block VPN config
+	// (PATCH /configs/{id}/block)
+	PatchConfigsIdBlock(ctx context.Context, request PatchConfigsIdBlockRequestObject) (PatchConfigsIdBlockResponseObject, error)
+	// Unlock VPN config
+	// (PATCH /configs/{id}/unblock)
+	PatchConfigsIdUnblock(ctx context.Context, request PatchConfigsIdUnblockRequestObject) (PatchConfigsIdUnblockResponseObject, error)
 	// Get free VPN slots
 	// (GET /slots)
 	GetSlots(ctx context.Context, request GetSlotsRequestObject) (GetSlotsResponseObject, error)
@@ -363,6 +494,56 @@ func (sh *strictHandler) DeleteConfigsId(ctx echo.Context, id openapi_types.UUID
 		return err
 	} else if validResponse, ok := response.(DeleteConfigsIdResponseObject); ok {
 		return validResponse.VisitDeleteConfigsIdResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PatchConfigsIdBlock operation middleware
+func (sh *strictHandler) PatchConfigsIdBlock(ctx echo.Context, id openapi_types.UUID) error {
+	var request PatchConfigsIdBlockRequestObject
+
+	request.Id = id
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.PatchConfigsIdBlock(ctx.Request().Context(), request.(PatchConfigsIdBlockRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PatchConfigsIdBlock")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(PatchConfigsIdBlockResponseObject); ok {
+		return validResponse.VisitPatchConfigsIdBlockResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PatchConfigsIdUnblock operation middleware
+func (sh *strictHandler) PatchConfigsIdUnblock(ctx echo.Context, id openapi_types.UUID) error {
+	var request PatchConfigsIdUnblockRequestObject
+
+	request.Id = id
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.PatchConfigsIdUnblock(ctx.Request().Context(), request.(PatchConfigsIdUnblockRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PatchConfigsIdUnblock")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(PatchConfigsIdUnblockResponseObject); ok {
+		return validResponse.VisitPatchConfigsIdUnblockResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

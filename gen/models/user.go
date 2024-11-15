@@ -19,6 +19,9 @@ import (
 // swagger:model user
 type User struct {
 
+	// blocked
+	Blocked bool `json:"Blocked,omitempty"`
+
 	// created at
 	// Required: true
 	// Format: date-time

@@ -1,19 +1,20 @@
 package server
 
 import (
+	"log"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/vpngen/keydesk/gen/restapi"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
-	"github.com/vpngen/keydesk/internal/auth/go-swagger"
+	go_swagger "github.com/vpngen/keydesk/internal/auth/go-swagger"
 	"github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/jwt"
 	"github.com/vpngen/vpngine/naclkey"
-	"log"
 )
 
 func NewServer(
@@ -53,6 +54,14 @@ func NewServer(
 	})
 	api.GetUsersStatsHandler = operations.GetUsersStatsHandlerFunc(func(params operations.GetUsersStatsParams, principal interface{}) middleware.Responder {
 		return keydesk.GetUsersStats(db, params, principal)
+	})
+
+	api.PatchUserUserIDBlockHandler = operations.PatchUserUserIDBlockHandlerFunc(func(params operations.PatchUserUserIDBlockParams, principal interface{}) middleware.Responder {
+		return keydesk.BlockUserUserID(db, params, principal)
+	})
+
+	api.PatchUserUserIDUnblockHandler = operations.PatchUserUserIDUnblockHandlerFunc(func(params operations.PatchUserUserIDUnblockParams, principal interface{}) middleware.Responder {
+		return keydesk.UnblockUserUserID(db, params, principal)
 	})
 
 	api.GetMessagesHandler = operations.GetMessagesHandlerFunc(func(params operations.GetMessagesParams, principal interface{}) middleware.Responder {

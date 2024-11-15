@@ -133,6 +133,9 @@ func assembleConfig(
 		UserID:   swag.String(user.ID.String()),
 		UserName: &user.Name,
 		Domain:   endpointHostString,
+
+		FreeSlots:  swag.Int64(int64(user.FreeSlots)),
+		TotalSlots: swag.Int64(int64(user.TotalSlots)),
 	}
 
 	wgStyleTunName := kdlib.AssembleWgStyleTunName(user.Name)
@@ -410,7 +413,7 @@ func addUser(
 
 // DelUserUserID - delete user by UserID.
 func DelUserUserID(db *storage.BrigadeStorage, params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
-	err := db.DeleteUser(params.UserID, false)
+	err := db.DeleteUser(params.UserID, false, false)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Delete user: %s :%s\n", params.UserID, err)
 
@@ -420,15 +423,42 @@ func DelUserUserID(db *storage.BrigadeStorage, params operations.DeleteUserUserI
 	return operations.NewDeleteUserUserIDNoContent()
 }
 
+// BlockUserUserID - block user by UserID.
+func BlockUserUserID(db *storage.BrigadeStorage, params operations.PatchUserUserIDBlockParams, principal interface{}) middleware.Responder {
+	err := db.DeleteUser(params.UserID, false, true)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Block user: %s :%s\n", params.UserID, err)
+
+		return operations.NewPatchUserUserIDBlockForbidden()
+	}
+
+	return operations.NewPatchUserUserIDBlockOK()
+}
+
+// UnblockUserUserID - unblock user by UserID.
+func UnblockUserUserID(db *storage.BrigadeStorage, params operations.PatchUserUserIDUnblockParams, principal interface{}) middleware.Responder {
+	err := db.UnblockUser(params.UserID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unblock user: %s :%s\n", params.UserID, err)
+
+		return operations.NewPatchUserUserIDUnblockForbidden()
+	}
+
+	return operations.NewPatchUserUserIDUnblockOK()
+}
+
 func GetUsersStats(db *storage.BrigadeStorage, params operations.GetUsersStatsParams, principal interface{}) middleware.Responder {
-	storageUsersStats, err := db.GetUsersStats()
+	storageUsersStats, total, free, err := db.GetUsersStats()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Stats error: %s\n", err)
 
 		return operations.NewGetUsersStatsDefault(500)
 	}
 
-	stats := &models.Stats{}
+	stats := &models.Stats{
+		TotalSlots: swag.Int64(int64(total)),
+		FreeSlots:  swag.Int64(int64(free)),
+	}
 
 	prevMonth := int64(storageUsersStats[len(storageUsersStats)-1].CountersUpdateTime.Month())
 	for _, monthStat := range storageUsersStats {
@@ -475,6 +505,8 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 			PersonDesc:     user.Person.Desc,
 			PersonDescLink: user.Person.URL,
 			CreatedAt:      (*strfmt.DateTime)(&user.CreatedAt),
+
+			Blocked: user.IsBlocked,
 		}
 
 		if !user.Quotas.ThrottlingTill.IsZero() {

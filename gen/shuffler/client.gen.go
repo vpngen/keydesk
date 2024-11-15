@@ -101,6 +101,12 @@ type ClientInterface interface {
 	// DeleteConfigsId request
 	DeleteConfigsId(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PatchConfigsIdBlock request
+	PatchConfigsIdBlock(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PatchConfigsIdUnblock request
+	PatchConfigsIdUnblock(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetSlots request
 	GetSlots(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
@@ -143,6 +149,30 @@ func (c *Client) PostConfigs(ctx context.Context, body PostConfigsJSONRequestBod
 
 func (c *Client) DeleteConfigsId(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteConfigsIdRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PatchConfigsIdBlock(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchConfigsIdBlockRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PatchConfigsIdUnblock(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchConfigsIdUnblockRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -266,6 +296,74 @@ func NewDeleteConfigsIdRequest(server string, id openapi_types.UUID) (*http.Requ
 	return req, nil
 }
 
+// NewPatchConfigsIdBlockRequest generates requests for PatchConfigsIdBlock
+func NewPatchConfigsIdBlockRequest(server string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/configs/%s/block", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPatchConfigsIdUnblockRequest generates requests for PatchConfigsIdUnblock
+func NewPatchConfigsIdUnblockRequest(server string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/configs/%s/unblock", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetSlotsRequest generates requests for GetSlots
 func NewGetSlotsRequest(server string) (*http.Request, error) {
 	var err error
@@ -347,6 +445,12 @@ type ClientWithResponsesInterface interface {
 	// DeleteConfigsIdWithResponse request
 	DeleteConfigsIdWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteConfigsIdResponse, error)
 
+	// PatchConfigsIdBlockWithResponse request
+	PatchConfigsIdBlockWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PatchConfigsIdBlockResponse, error)
+
+	// PatchConfigsIdUnblockWithResponse request
+	PatchConfigsIdUnblockWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PatchConfigsIdUnblockResponse, error)
+
 	// GetSlotsWithResponse request
 	GetSlotsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetSlotsResponse, error)
 }
@@ -385,6 +489,9 @@ type PostConfigsResponse struct {
 		FreeSlots int                `json:"free_slots"`
 		Id        openapi_types.UUID `json:"id"`
 		Name      string             `json:"name"`
+
+		// TotalSlots Total number of VPN slots
+		TotalSlots int `json:"total_slots"`
 	}
 	JSONDefault *ErrorResponse
 }
@@ -424,6 +531,56 @@ func (r DeleteConfigsIdResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r DeleteConfigsIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PatchConfigsIdBlockResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		FreeSlots int `json:"free_slots"`
+	}
+	JSONDefault *ErrorResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r PatchConfigsIdBlockResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PatchConfigsIdBlockResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PatchConfigsIdUnblockResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		FreeSlots int `json:"free_slots"`
+	}
+	JSONDefault *ErrorResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r PatchConfigsIdUnblockResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PatchConfigsIdUnblockResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -486,6 +643,24 @@ func (c *ClientWithResponses) DeleteConfigsIdWithResponse(ctx context.Context, i
 		return nil, err
 	}
 	return ParseDeleteConfigsIdResponse(rsp)
+}
+
+// PatchConfigsIdBlockWithResponse request returning *PatchConfigsIdBlockResponse
+func (c *ClientWithResponses) PatchConfigsIdBlockWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PatchConfigsIdBlockResponse, error) {
+	rsp, err := c.PatchConfigsIdBlock(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePatchConfigsIdBlockResponse(rsp)
+}
+
+// PatchConfigsIdUnblockWithResponse request returning *PatchConfigsIdUnblockResponse
+func (c *ClientWithResponses) PatchConfigsIdUnblockWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*PatchConfigsIdUnblockResponse, error) {
+	rsp, err := c.PatchConfigsIdUnblock(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePatchConfigsIdUnblockResponse(rsp)
 }
 
 // GetSlotsWithResponse request returning *GetSlotsResponse
@@ -553,6 +728,9 @@ func ParsePostConfigsResponse(rsp *http.Response) (*PostConfigsResponse, error) 
 			FreeSlots int                `json:"free_slots"`
 			Id        openapi_types.UUID `json:"id"`
 			Name      string             `json:"name"`
+
+			// TotalSlots Total number of VPN slots
+			TotalSlots int `json:"total_slots"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -580,6 +758,76 @@ func ParseDeleteConfigsIdResponse(rsp *http.Response) (*DeleteConfigsIdResponse,
 	}
 
 	response := &DeleteConfigsIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			FreeSlots int `json:"free_slots"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePatchConfigsIdBlockResponse parses an HTTP response from a PatchConfigsIdBlockWithResponse call
+func ParsePatchConfigsIdBlockResponse(rsp *http.Response) (*PatchConfigsIdBlockResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PatchConfigsIdBlockResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			FreeSlots int `json:"free_slots"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePatchConfigsIdUnblockResponse parses an HTTP response from a PatchConfigsIdUnblockWithResponse call
+func ParsePatchConfigsIdUnblockResponse(rsp *http.Response) (*PatchConfigsIdUnblockResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PatchConfigsIdUnblockResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

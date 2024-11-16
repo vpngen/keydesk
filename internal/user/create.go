@@ -2,6 +2,7 @@ package user
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -98,6 +99,8 @@ func (s Service) UnblockUser(id uuid.UUID) (free uint, err error) {
 	}); err != nil {
 		return 0, fmt.Errorf("run in transaction: %w", err)
 	}
+
+	fmt.Fprintf(os.Stderr, "User %s unblocked\n", id)
 
 	return
 }

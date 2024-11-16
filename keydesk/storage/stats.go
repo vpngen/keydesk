@@ -42,14 +42,12 @@ func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
 	}
 
 	switch {
-	case lastActivity.IsZero():
+	case lastActivity.IsZero(), lastActivity.Equal(nullUnixTime):
 		if points.Total.IsZero() {
 			return
 		}
 
 		lastActivity = points.Total
-	case lastActivity.Equal(nullUnixTime):
-		return
 	default:
 		points.Total = lastActivity
 	}
@@ -66,41 +64,62 @@ func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
 		return
 	}
 
-	points.Daily = time.Time{}
-
 	lsWeekYear, lsWeek := lastActivity.ISOWeek()
 	weekYear, week := now.ISOWeek()
 
-	if lsWeekYear != weekYear || lsWeek != week {
-		points.Weekly = time.Time{}
+	switch {
+	case lsWeekYear == weekYear && lsWeek == week:
+		points.Weekly = lastActivity
+	case !points.Weekly.IsZero():
+		lsWeekYear, lsWeek := points.Weekly.ISOWeek()
+		if lsWeekYear != weekYear || lsWeek != week {
+			points.Weekly = time.Time{}
+		}
 	}
 
-	if lsYear != year {
-		points.Monthly = time.Time{}
-		points.Yearly = time.Time{}
-
-		_, prevMonth, _ := now.AddDate(0, -1, 0).Date()
-		if lsMonth != prevMonth {
+	prevYear, prevMonth, _ := now.AddDate(0, -1, 0).Date()
+	if !points.PrevMonthly.IsZero() {
+		pmthYear, pmthMonth, _ := points.PrevMonthly.Date()
+		if pmthYear != prevYear || pmthMonth != prevMonth {
 			points.PrevMonthly = time.Time{}
 		}
-
-		points.PrevMonthly = lastActivity
 	}
 
-	points.Yearly = lastActivity
-
-	if lsMonth != month {
-		points.Monthly = time.Time{}
-
-		_, prevMonth, _ := now.AddDate(0, -1, 0).Date()
-		if lsMonth != prevMonth {
-			points.PrevMonthly = time.Time{}
+	if !points.Monthly.IsZero() {
+		mthYear, mthMonth, _ := points.Monthly.Date()
+		if mthMonth != month {
+			if mthYear == prevYear && mthMonth == prevMonth {
+				points.PrevMonthly = points.Monthly
+			}
 		}
-
-		points.PrevMonthly = lastActivity
 	}
 
-	points.Monthly = lastActivity
+	switch {
+	case lsYear == year && lastActivity.After(points.Yearly):
+		points.Yearly = lastActivity
+	case !points.Yearly.IsZero():
+		lsYear, _, _ := points.Yearly.Date()
+		if lsYear != year {
+			points.Yearly = time.Time{}
+		}
+	}
+
+	switch {
+	case lsYear == year && lsMonth == month && lastActivity.After(points.Monthly):
+		points.Monthly = lastActivity
+	case !points.Monthly.IsZero():
+		lsYear, lsMonth, _ := points.Monthly.Date()
+		if lsYear != year || lsMonth != month {
+			points.Monthly = time.Time{}
+		}
+	}
+
+	if !points.Daily.IsZero() {
+		dYear, dMonth, dDay := points.Daily.Date()
+		if dYear != year || dMonth != month || dDay != day {
+			points.Daily = time.Time{}
+		}
+	}
 }
 
 func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *DateSummaryNetCounters) {
@@ -498,12 +517,17 @@ func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename, statsSpinl
 				TotalOutlineTraffic: data.TotalOutlineTraffic.Total,
 				TotalProto0Traffic:  data.TotalProto0Traffic.Total,
 			},
-			Users50gb:          data.Users50gb,
-			Users100gb:         data.Users100gb,
-			Users500gb:         data.Users500gb,
-			Users1000gb:        data.Users1000gb,
+
 			CountersUpdateTime: data.CountersUpdateTime,
 		},
+
+		Users50gb:   data.Users50gb,
+		Users100gb:  data.Users100gb,
+		Users500gb:  data.Users500gb,
+		Users1000gb: data.Users1000gb,
+
+		YesterdayTraffic: data.TotalTraffic.PrevDay,
+
 		BrigadeID:         data.BrigadeID,
 		BrigadeCreatedAt:  data.CreatedAt,
 		KeydeskFirstVisit: data.KeydeskFirstVisit,

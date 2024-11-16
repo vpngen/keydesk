@@ -112,11 +112,6 @@ type StatsCounters struct {
 	UsersCounters
 	NetCounters
 
-	Users50gb   MarkedUsersCounters `json:"users_50_gb"`
-	Users100gb  MarkedUsersCounters `json:"users_100_gb"`
-	Users500gb  MarkedUsersCounters `json:"users_500_gb"`
-	Users1000gb MarkedUsersCounters `json:"users_1000_gb"`
-
 	CountersUpdateTime time.Time `json:"counters_update_time"`
 }
 
@@ -187,6 +182,7 @@ type User struct {
 	CreatedAt                 time.Time             `json:"created_at"`
 	IsBrigadier               bool                  `json:"is_brigadier,omitempty"`
 	IsBlocked                 bool                  `json:"is_blocked,omitempty"`
+	BlockedAt                 time.Time             `json:"blocked_at,omitempty"`
 	IPv4Addr                  netip.Addr            `json:"ipv4_addr"`
 	IPv6Addr                  netip.Addr            `json:"ipv6_addr"`
 	EndpointDomain            string                `json:"endpoint_domain,omitempty"`
@@ -333,6 +329,14 @@ const StatsVersion = 2
 // Stats - statistics.
 type Stats struct {
 	StatsCounters
+
+	Users50gb   MarkedUsersCounters `json:"users_50_gb"`
+	Users100gb  MarkedUsersCounters `json:"users_100_gb"`
+	Users500gb  MarkedUsersCounters `json:"users_500_gb"`
+	Users1000gb MarkedUsersCounters `json:"users_1000_gb"`
+
+	YesterdayTraffic RxTx `json:"yesterday_traffic"`
+
 	Ver               int           `json:"version"`
 	BrigadeID         string        `json:"brigade_id"`
 	UpdateTime        time.Time     `json:"update_time"`

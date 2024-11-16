@@ -707,6 +707,11 @@ func init() {
         "Blocked": {
           "type": "boolean"
         },
+        "BlockedAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
         "CreatedAt": {
           "type": "string",
           "format": "date-time"
@@ -1535,6 +1540,11 @@ func init() {
       "properties": {
         "Blocked": {
           "type": "boolean"
+        },
+        "BlockedAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
         },
         "CreatedAt": {
           "type": "string",

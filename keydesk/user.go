@@ -35,6 +35,7 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt/conv"
 	"github.com/go-openapi/swag"
 
 	"github.com/btcsuite/btcd/btcutil/base58"
@@ -507,6 +508,10 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 			CreatedAt:      (*strfmt.DateTime)(&user.CreatedAt),
 
 			Blocked: user.IsBlocked,
+		}
+
+		if user.IsBlocked && !user.BlockedAt.IsZero() {
+			apiUsers[i].BlockedAt = conv.DateTime(strfmt.DateTime(user.BlockedAt))
 		}
 
 		if !user.Quotas.ThrottlingTill.IsZero() {

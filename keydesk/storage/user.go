@@ -312,41 +312,45 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool, onlyBlock bool) 
 
 	defer f.Close()
 
-	wgPub := []byte{}
-	blocked := false
+	var (
+		user *User
+		idx  int
+	)
+
 	for i, u := range data.Users {
 		if u.UserID.String() == id && u.IsBrigadier == brigadier {
-			wgPub = u.WgPublicKey
-			blocked = u.IsBlocked
-
-			if onlyBlock {
-				u.IsBlocked = true
-
-				break
-			}
-
-			data.Users = append(data.Users[:i], data.Users[i+1:]...)
+			user = u
+			idx = i
 
 			break
 		}
 	}
 
-	if len(wgPub) == 0 {
-		return ErrUserCollision
+	if user == nil {
+		return ErrUserNotFound
 	}
 
-	if !blocked {
+	if !user.IsBlocked {
 		// if we catch a slowdown problems we need organize queue
-		if err := vpnapi.WgPeerDel(data.BrigadeID, db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey); err != nil {
+		if err := vpnapi.WgPeerDel(data.BrigadeID, db.actualAddrPort, db.calculatedAddrPort, user.WgPublicKey, data.WgPublicKey); err != nil {
 			return fmt.Errorf("peer del: %w", err)
 		}
+
+		if !onlyBlock {
+			user.IsBlocked = true
+			user.BlockedAt = time.Now().UTC()
+		}
+	}
+
+	if !onlyBlock {
+		data.Users = append(data.Users[:idx], data.Users[idx+1:]...)
 	}
 
 	if err := commitBrigade(f, data); err != nil {
 		return fmt.Errorf("save: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "User %s (%s) removed (only block: %v)\n", id, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub), onlyBlock)
+	fmt.Fprintf(os.Stderr, "User %s (%s) removed (only block: %v)\n", id, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(user.WgPublicKey), onlyBlock)
 
 	return nil
 }
@@ -366,6 +370,8 @@ func (db *BrigadeStorage) UnblockUser(id string) error {
 			wgPub = user.WgPublicKey
 
 			if !user.IsBlocked {
+				fmt.Fprintf(os.Stderr, "User %s (%s) already unblocked\n", id, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub))
+
 				break
 			}
 
@@ -388,13 +394,14 @@ func (db *BrigadeStorage) UnblockUser(id string) error {
 			}
 
 			user.IsBlocked = false
+			user.BlockedAt = time.Time{}
 
 			break
 		}
 	}
 
 	if len(wgPub) == 0 {
-		return ErrUserCollision
+		return ErrUserNotFound
 	}
 
 	if err := commitBrigade(f, data); err != nil {

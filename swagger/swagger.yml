@@ -370,6 +370,10 @@ definitions:
         type: string
       Blocked:
         type: boolean
+      BlockedAt:
+        type: string
+        format: date-time
+        x-nullable: true
   stats:
     type: object
     required:

@@ -129,7 +129,7 @@ func getAPIRequest(_ string, actualAddrPort, calculatedAddrPort netip.AddrPort, 
 	}
 
 	if data.Code != "0" {
-		return nil, fmt.Errorf("invalid resp code: %w", data)
+		return body, fmt.Errorf("invalid resp code: %w", data)
 	}
 
 	return body, nil

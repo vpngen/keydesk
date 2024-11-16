@@ -149,7 +149,7 @@ func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsReq
 }
 
 func (s server) PatchConfigsIdBlock(ctx context.Context, request shuffler.PatchConfigsIdBlockRequestObject) (shuffler.PatchConfigsIdBlockResponseObject, error) {
-	free, err := s.service.DeleteUser(request.Id, false)
+	free, err := s.service.DeleteUser(request.Id, true)
 	if errors.Is(err, user.ErrNotFound) {
 		return shuffler.PatchConfigsIdBlock404Response{}, nil
 	} else if err != nil {

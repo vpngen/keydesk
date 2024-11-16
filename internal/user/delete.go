@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -44,8 +45,6 @@ func (s Service) deleteUser(brigade *storage.Brigade, id uuid.UUID, onlyBlock bo
 		return ErrNotFound
 	}
 
-	blocked := user.IsBlocked
-
 	usrPub, err := wgtypes.NewKey(user.WgPublicKey)
 	if err != nil {
 		return fmt.Errorf("user public key: %w", err)
@@ -56,17 +55,22 @@ func (s Service) deleteUser(brigade *storage.Brigade, id uuid.UUID, onlyBlock bo
 		return fmt.Errorf("endpoint public key: %w", err)
 	}
 
-	if !blocked {
+	fmt.Fprintf(os.Stderr, "User status: blocked=%v\n", user.IsBlocked)
+
+	if !user.IsBlocked {
 		if err = s.epClient.PeerDel(usrPub, epPub); err != nil {
 			return fmt.Errorf("peer del: %w", err)
 		}
+
+		if onlyBlock {
+			user.IsBlocked = true
+			user.BlockedAt = time.Now().UTC()
+		}
 	}
 
-	fmt.Fprintf(os.Stderr, "User %s (%s) deleted\n", user.UserID, usrPub)
+	fmt.Fprintf(os.Stderr, "User %s (%s) deleted (onlyBlock=%v)\n", user.UserID, usrPub, onlyBlock)
 
 	if onlyBlock {
-		user.IsBlocked = true
-
 		return nil
 	}
 

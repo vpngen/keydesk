@@ -84,6 +84,10 @@ while [ "$#" -gt 0 ]; do
                 apiaddr="-a $2"
                 shift 2
                 ;;
+        -force)
+                FORCE="yes"
+                shift 1
+                ;;
         *)
                 printdef "Unknown option: $1"
                 ;;
@@ -97,7 +101,7 @@ fi
 
 DB_DIR=${DB_DIR:-"/home/${brigade_id}"}
 
-if test -f "${DB_DIR}/.maintenance" && test "$(date '+%s')" -lt "$(cat "${DB_DIR}/.maintenance")"; then
+if [ -z "${FORCE}" ] && test -f "${DB_DIR}/.maintenance" && test "$(date '+%s')" -lt "$(cat "${DB_DIR}/.maintenance")"; then
         fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "${DB_DIR}/.maintenance")")"
 fi
 

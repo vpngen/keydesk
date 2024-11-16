@@ -98,6 +98,61 @@ paths:
           description: error
           schema:
             $ref: "#/definitions/error"
+
+  /user/{UserID}/block:
+    patch:
+      security:
+        - Bearer: [ ]
+      produces:
+        - application/json
+      parameters:
+        - type: string
+          name: UserID
+          in: path
+          required: true
+      responses:
+        200:
+          description: User blocked.
+        403:
+          description: 'You do not have necessary permissions for the resource'
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
+        500:
+          description: 'Internal server error'
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+
+  /user/{UserID}/unblock:
+    patch:
+      security:
+        - Bearer: [ ]
+      produces:
+        - application/json
+      parameters:
+        - type: string
+          name: UserID
+          in: path
+          required: true
+      responses:
+        200:
+          description: User unblocked.
+        403:
+          description: 'You do not have necessary permissions for the resource'
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
+        500:
+          description: 'Internal server error'
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+
   /users/stats:
     get:
       security:
@@ -207,6 +262,8 @@ definitions:
     required:
       - UserID
       - UserName
+      - TotalSlots
+      - FreeSlots
     properties:
       UserID:
         type: string
@@ -272,6 +329,10 @@ definitions:
             type: string
       VPNGenConfig:
         $ref: '#/definitions/VGC'
+      TotalSlots:
+        type: integer
+      FreeSlots:
+        type: integer
   user:
     type: object
     required:
@@ -307,12 +368,20 @@ definitions:
         type: string
       PersonDescLink:
         type: string
+      Blocked:
+        type: boolean
+      BlockedAt:
+        type: string
+        format: date-time
+        x-nullable: true
   stats:
     type: object
     required:
       - TotalUsers
       - ActiveUsers
       - TotalTrafficGB
+      - TotalSlots
+      - FreeSlots
     properties:
       TotalUsers:
         type: array
@@ -351,6 +420,10 @@ definitions:
             Value:
               type: number
               format: float
+      TotalSlots:
+        type: integer
+      FreeSlots:
+        type: integer
   error:
     type: object
     required:

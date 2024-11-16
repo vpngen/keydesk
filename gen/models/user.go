@@ -19,6 +19,13 @@ import (
 // swagger:model user
 type User struct {
 
+	// blocked
+	Blocked bool `json:"Blocked,omitempty"`
+
+	// blocked at
+	// Format: date-time
+	BlockedAt *strfmt.DateTime `json:"BlockedAt,omitempty"`
+
 	// created at
 	// Required: true
 	// Format: date-time
@@ -62,6 +69,10 @@ type User struct {
 func (m *User) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateBlockedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateCreatedAt(formats); err != nil {
 		res = append(res, err)
 	}
@@ -93,6 +104,18 @@ func (m *User) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *User) validateBlockedAt(formats strfmt.Registry) error {
+	if swag.IsZero(m.BlockedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("BlockedAt", "body", "date-time", m.BlockedAt.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 

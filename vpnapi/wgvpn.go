@@ -111,6 +111,17 @@ func WgPeerAdd(
 
 	body, err := getAPIRequest(ident, actualAddrPort, calculatedAddrPort, query, CallTimeout)
 	if err != nil {
+		apiErr := &APIResponse{}
+
+		if errors.As(err, &apiErr) {
+			switch apiErr.Code {
+			case "151":
+				fmt.Fprintf(os.Stderr, "WARNING: api: %s\n", err)
+
+				return body, nil
+			}
+		}
+
 		return nil, fmt.Errorf("api: %w", err)
 	}
 

@@ -25,6 +25,7 @@ type DateSummaryNetCounters struct {
 	Monthly RxTx      `json:"monthly"`
 	Weekly  RxTx      `json:"weekly"`
 	Daily   RxTx      `json:"daily"`
+	PrevDay RxTx      `json:"pday"`
 }
 
 // RxTx - rx/tx counters.
@@ -56,6 +57,18 @@ type UsersCounters struct {
 	ActiveOutlineUsersCount int `json:"active_outline_users_count"`
 	ActiveProto0UsersCount  int `json:"active_proto0_users_count"`
 	ThrottledUsersCount     int `json:"throttled_users_count"`
+	BlockedUsersCount       int `json:"blocked_users_count"`
+}
+
+// MarkedUserCounters - user counters which exeeded certain limit.
+type MarkedUsersCounters struct {
+	TotalUsersCount   int `json:"total_users_count"`
+	WgUsersCount      int `json:"wg_users_count"`
+	IPSecUsersCount   int `json:"ipsec_users_count"`
+	OvcUsersCount     int `json:"ovc_users_count"`
+	OlcUsersCount     int `json:"olc_users_count"`
+	OutlineUsersCount int `json:"outline_users_count"`
+	Proto0UsersCount  int `json:"proto0_users_count"`
 }
 
 // NetCounters - net counters.
@@ -71,6 +84,12 @@ type NetCounters struct {
 // BrigadeCounters - brigade counters.
 type BrigadeCounters struct {
 	UsersCounters
+
+	Users50gb   MarkedUsersCounters `json:"users_50_gb"`
+	Users100gb  MarkedUsersCounters `json:"users_100_gb"`
+	Users500gb  MarkedUsersCounters `json:"users_500_gb"`
+	Users1000gb MarkedUsersCounters `json:"users_1000_gb"`
+
 	TotalTraffic        DateSummaryNetCounters `json:"total_traffic"`
 	TotalWgTraffic      DateSummaryNetCounters `json:"total_wg_traffic"`
 	TotalIPSecTraffic   DateSummaryNetCounters `json:"total_ipsec_traffic"`
@@ -92,6 +111,7 @@ type TrafficCountersContainer struct {
 type StatsCounters struct {
 	UsersCounters
 	NetCounters
+
 	CountersUpdateTime time.Time `json:"counters_update_time"`
 }
 
@@ -152,7 +172,7 @@ type Quota struct {
 }
 
 // UserVersion - json version.
-const UserVersion = 5
+const UserVersion = 6
 
 // User - user structure.
 type User struct {
@@ -161,6 +181,8 @@ type User struct {
 	Name                      string                `json:"name"`
 	CreatedAt                 time.Time             `json:"created_at"`
 	IsBrigadier               bool                  `json:"is_brigadier,omitempty"`
+	IsBlocked                 bool                  `json:"is_blocked,omitempty"`
+	BlockedAt                 time.Time             `json:"blocked_at,omitempty"`
 	IPv4Addr                  netip.Addr            `json:"ipv4_addr"`
 	IPv6Addr                  netip.Addr            `json:"ipv6_addr"`
 	EndpointDomain            string                `json:"endpoint_domain,omitempty"`
@@ -283,6 +305,8 @@ type UserConfig struct {
 	Proto0Port       uint16
 	Proto0LongID     string
 	Proto0ShortID    string
+	FreeSlots        int
+	TotalSlots       int
 }
 
 // BrigadeConfig - new brigade structure.
@@ -305,6 +329,14 @@ const StatsVersion = 2
 // Stats - statistics.
 type Stats struct {
 	StatsCounters
+
+	Users50gb   MarkedUsersCounters `json:"users_50_gb"`
+	Users100gb  MarkedUsersCounters `json:"users_100_gb"`
+	Users500gb  MarkedUsersCounters `json:"users_500_gb"`
+	Users1000gb MarkedUsersCounters `json:"users_1000_gb"`
+
+	YesterdayTraffic RxTx `json:"yesterday_traffic"`
+
 	Ver               int           `json:"version"`
 	BrigadeID         string        `json:"brigade_id"`
 	UpdateTime        time.Time     `json:"update_time"`

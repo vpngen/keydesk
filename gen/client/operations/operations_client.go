@@ -62,6 +62,10 @@ type ClientService interface {
 
 	GetUsersStats(params *GetUsersStatsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetUsersStatsOK, error)
 
+	PatchUserUserIDBlock(params *PatchUserUserIDBlockParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PatchUserUserIDBlockOK, error)
+
+	PatchUserUserIDUnblock(params *PatchUserUserIDUnblockParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PatchUserUserIDUnblockOK, error)
+
 	PostToken(params *PostTokenParams, opts ...ClientOption) (*PostTokenCreated, error)
 
 	PostUser(params *PostUserParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostUserCreated, error)
@@ -184,6 +188,82 @@ func (a *Client) GetUsersStats(params *GetUsersStatsParams, authInfo runtime.Cli
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*GetUsersStatsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+PatchUserUserIDBlock patch user user ID block API
+*/
+func (a *Client) PatchUserUserIDBlock(params *PatchUserUserIDBlockParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PatchUserUserIDBlockOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPatchUserUserIDBlockParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "PatchUserUserIDBlock",
+		Method:             "PATCH",
+		PathPattern:        "/user/{UserID}/block",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PatchUserUserIDBlockReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PatchUserUserIDBlockOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PatchUserUserIDBlockDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+PatchUserUserIDUnblock patch user user ID unblock API
+*/
+func (a *Client) PatchUserUserIDUnblock(params *PatchUserUserIDUnblockParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PatchUserUserIDUnblockOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPatchUserUserIDUnblockParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "PatchUserUserIDUnblock",
+		Method:             "PATCH",
+		PathPattern:        "/user/{UserID}/unblock",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PatchUserUserIDUnblockReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PatchUserUserIDUnblockOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PatchUserUserIDUnblockDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

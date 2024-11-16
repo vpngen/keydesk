@@ -26,6 +26,8 @@ var (
 	ErrUserLimit = errors.New("num user limit exeeded")
 	// ErrUserCollision - user name collision.
 	ErrUserCollision = errors.New("username exists")
+	// ErrUserNotFound - user not found.
+	ErrUserNotFound = errors.New("user not found")
 	// ErrBrigadierCollision - try to add more than one.
 	ErrBrigadierCollision = errors.New("brigadier already exists")
 	// ErrUnknownBrigade - brigade ID mismatch.

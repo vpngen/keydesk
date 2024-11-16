@@ -4,15 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-func (s Service) DeleteUser(id uuid.UUID) (free uint, err error) {
+func (s Service) DeleteUser(id uuid.UUID, onlyBlock bool) (free uint, err error) {
 	err = s.db.RunInTransaction(func(brigade *storage.Brigade) error {
-		err = s.deleteUser(brigade, id)
+		err = s.deleteUser(brigade, id, onlyBlock)
 		if err != nil {
 			return fmt.Errorf("delete user %s: %w", id, err)
 		}
@@ -27,7 +28,7 @@ func (s Service) DeleteUser(id uuid.UUID) (free uint, err error) {
 
 var ErrNotFound = errors.New("user not found")
 
-func (s Service) deleteUser(brigade *storage.Brigade, id uuid.UUID) error {
+func (s Service) deleteUser(brigade *storage.Brigade, id uuid.UUID, onlyBlock bool) error {
 	var (
 		user *storage.User
 		idx  int
@@ -54,11 +55,24 @@ func (s Service) deleteUser(brigade *storage.Brigade, id uuid.UUID) error {
 		return fmt.Errorf("endpoint public key: %w", err)
 	}
 
-	if err = s.epClient.PeerDel(usrPub, epPub); err != nil {
-		return fmt.Errorf("peer del: %w", err)
+	fmt.Fprintf(os.Stderr, "User status: blocked=%v\n", user.IsBlocked)
+
+	if !user.IsBlocked {
+		if err = s.epClient.PeerDel(usrPub, epPub); err != nil {
+			return fmt.Errorf("peer del: %w", err)
+		}
+
+		if onlyBlock {
+			user.IsBlocked = true
+			user.BlockedAt = time.Now().UTC()
+		}
 	}
 
-	fmt.Fprintf(os.Stderr, "User %s (%s) deleted\n", user.UserID, usrPub)
+	fmt.Fprintf(os.Stderr, "User %s (%s) deleted (onlyBlock=%v)\n", user.UserID, usrPub, onlyBlock)
+
+	if onlyBlock {
+		return nil
+	}
 
 	brigade.Users = append(brigade.Users[:idx], brigade.Users[idx+1:]...)
 

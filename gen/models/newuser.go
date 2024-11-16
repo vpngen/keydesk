@@ -25,6 +25,10 @@ type Newuser struct {
 	// domain
 	Domain string `json:"Domain,omitempty"`
 
+	// free slots
+	// Required: true
+	FreeSlots *int64 `json:"FreeSlots"`
+
 	// IP sec l2 t p manual config
 	IPSecL2TPManualConfig *NewuserIPSecL2TPManualConfig `json:"IPSecL2TPManualConfig,omitempty"`
 
@@ -33,6 +37,10 @@ type Newuser struct {
 
 	// proto0 config
 	Proto0Config *NewuserProto0Config `json:"Proto0Config,omitempty"`
+
+	// total slots
+	// Required: true
+	TotalSlots *int64 `json:"TotalSlots"`
 
 	// user ID
 	// Required: true
@@ -57,6 +65,10 @@ func (m *Newuser) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateFreeSlots(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateIPSecL2TPManualConfig(formats); err != nil {
 		res = append(res, err)
 	}
@@ -66,6 +78,10 @@ func (m *Newuser) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateProto0Config(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTotalSlots(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -105,6 +121,15 @@ func (m *Newuser) validateAmnzOvcConfig(formats strfmt.Registry) error {
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *Newuser) validateFreeSlots(formats strfmt.Registry) error {
+
+	if err := validate.Required("FreeSlots", "body", m.FreeSlots); err != nil {
+		return err
 	}
 
 	return nil
@@ -162,6 +187,15 @@ func (m *Newuser) validateProto0Config(formats strfmt.Registry) error {
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *Newuser) validateTotalSlots(formats strfmt.Registry) error {
+
+	if err := validate.Required("TotalSlots", "body", m.TotalSlots); err != nil {
+		return err
 	}
 
 	return nil

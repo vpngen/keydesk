@@ -42,14 +42,12 @@ func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
 	}
 
 	switch {
-	case lastActivity.IsZero():
+	case lastActivity.IsZero(), lastActivity.Equal(nullUnixTime):
 		if points.Total.IsZero() {
 			return
 		}
 
 		lastActivity = points.Total
-	case lastActivity.Equal(nullUnixTime):
-		return
 	default:
 		points.Total = lastActivity
 	}

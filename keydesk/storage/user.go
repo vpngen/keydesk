@@ -336,7 +336,7 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool, onlyBlock bool) 
 			return fmt.Errorf("peer del: %w", err)
 		}
 
-		if !onlyBlock {
+		if onlyBlock {
 			user.IsBlocked = true
 			user.BlockedAt = time.Now().UTC()
 		}

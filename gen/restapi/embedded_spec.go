@@ -286,6 +286,92 @@ func init() {
         }
       }
     },
+    "/user/{UserID}/block": {
+      "patch": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "type": "string",
+            "name": "UserID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User blocked."
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/user/{UserID}/unblock": {
+      "patch": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "type": "string",
+            "name": "UserID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User unblocked."
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/users/stats": {
       "get": {
         "security": [
@@ -416,7 +502,9 @@ func init() {
       "type": "object",
       "required": [
         "UserID",
-        "UserName"
+        "UserName",
+        "TotalSlots",
+        "FreeSlots"
       ],
       "properties": {
         "AmnzOvcConfig": {
@@ -440,6 +528,9 @@ func init() {
         },
         "Domain": {
           "type": "string"
+        },
+        "FreeSlots": {
+          "type": "integer"
         },
         "IPSecL2TPManualConfig": {
           "type": "object",
@@ -486,6 +577,9 @@ func init() {
             }
           }
         },
+        "TotalSlots": {
+          "type": "integer"
+        },
         "UserID": {
           "type": "string"
         },
@@ -521,7 +615,9 @@ func init() {
       "required": [
         "TotalUsers",
         "ActiveUsers",
-        "TotalTrafficGB"
+        "TotalTrafficGB",
+        "TotalSlots",
+        "FreeSlots"
       ],
       "properties": {
         "ActiveUsers": {
@@ -541,6 +637,12 @@ func init() {
               }
             }
           }
+        },
+        "FreeSlots": {
+          "type": "integer"
+        },
+        "TotalSlots": {
+          "type": "integer"
         },
         "TotalTrafficGB": {
           "type": "array",
@@ -602,6 +704,14 @@ func init() {
         "MonthlyQuotaRemainingGB"
       ],
       "properties": {
+        "Blocked": {
+          "type": "boolean"
+        },
+        "BlockedAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
         "CreatedAt": {
           "type": "string",
           "format": "date-time"
@@ -918,6 +1028,92 @@ func init() {
         }
       }
     },
+    "/user/{UserID}/block": {
+      "patch": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "type": "string",
+            "name": "UserID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User blocked."
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/user/{UserID}/unblock": {
+      "patch": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "type": "string",
+            "name": "UserID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User unblocked."
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/users/stats": {
       "get": {
         "security": [
@@ -1177,7 +1373,9 @@ func init() {
       "type": "object",
       "required": [
         "UserID",
-        "UserName"
+        "UserName",
+        "TotalSlots",
+        "FreeSlots"
       ],
       "properties": {
         "AmnzOvcConfig": {
@@ -1201,6 +1399,9 @@ func init() {
         },
         "Domain": {
           "type": "string"
+        },
+        "FreeSlots": {
+          "type": "integer"
         },
         "IPSecL2TPManualConfig": {
           "type": "object",
@@ -1247,6 +1448,9 @@ func init() {
             }
           }
         },
+        "TotalSlots": {
+          "type": "integer"
+        },
         "UserID": {
           "type": "string"
         },
@@ -1282,7 +1486,9 @@ func init() {
       "required": [
         "TotalUsers",
         "ActiveUsers",
-        "TotalTrafficGB"
+        "TotalTrafficGB",
+        "TotalSlots",
+        "FreeSlots"
       ],
       "properties": {
         "ActiveUsers": {
@@ -1290,6 +1496,12 @@ func init() {
           "items": {
             "$ref": "#/definitions/StatsActiveUsersItems0"
           }
+        },
+        "FreeSlots": {
+          "type": "integer"
+        },
+        "TotalSlots": {
+          "type": "integer"
         },
         "TotalTrafficGB": {
           "type": "array",
@@ -1326,6 +1538,14 @@ func init() {
         "MonthlyQuotaRemainingGB"
       ],
       "properties": {
+        "Blocked": {
+          "type": "boolean"
+        },
+        "BlockedAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
         "CreatedAt": {
           "type": "string",
           "format": "date-time"

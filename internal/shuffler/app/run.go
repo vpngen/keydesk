@@ -97,10 +97,11 @@ func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsReq
 	}
 
 	res := shuffler.PostConfigs201JSONResponse{
-		FreeSlots: int(userCfg.FreeSlots),
-		Id:        userCfg.UUID,
-		Name:      userCfg.Name,
-		Domain:    userCfg.Domain,
+		FreeSlots:  int(userCfg.FreeSlots),
+		TotalSlots: int(userCfg.TotalSlots),
+		Id:         userCfg.UUID,
+		Name:       userCfg.Name,
+		Domain:     userCfg.Domain,
 	}
 
 	cfgs := userCfg.Configs
@@ -147,8 +148,36 @@ func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsReq
 	return res, nil
 }
 
+func (s server) PatchConfigsIdBlock(ctx context.Context, request shuffler.PatchConfigsIdBlockRequestObject) (shuffler.PatchConfigsIdBlockResponseObject, error) {
+	free, err := s.service.DeleteUser(request.Id, true)
+	if errors.Is(err, user.ErrNotFound) {
+		return shuffler.PatchConfigsIdBlock404Response{}, nil
+	} else if err != nil {
+		return shuffler.PatchConfigsIdBlockdefaultJSONResponse{
+			Body:       err.Error(),
+			StatusCode: http.StatusInternalServerError,
+		}, nil
+	}
+
+	return shuffler.PatchConfigsIdBlock200JSONResponse{FreeSlots: int(free)}, nil
+}
+
+func (s server) PatchConfigsIdUnblock(ctx context.Context, request shuffler.PatchConfigsIdUnblockRequestObject) (shuffler.PatchConfigsIdUnblockResponseObject, error) {
+	free, err := s.service.UnblockUser(request.Id)
+	if errors.Is(err, user.ErrNotFound) {
+		return shuffler.PatchConfigsIdUnblock404Response{}, nil
+	} else if err != nil {
+		return shuffler.PatchConfigsIdUnblockdefaultJSONResponse{
+			Body:       err.Error(),
+			StatusCode: http.StatusInternalServerError,
+		}, nil
+	}
+
+	return shuffler.PatchConfigsIdUnblock200JSONResponse{FreeSlots: int(free)}, nil
+}
+
 func (s server) DeleteConfigsId(ctx context.Context, request shuffler.DeleteConfigsIdRequestObject) (shuffler.DeleteConfigsIdResponseObject, error) {
-	free, err := s.service.DeleteUser(request.Id)
+	free, err := s.service.DeleteUser(request.Id, false)
 	if errors.Is(err, user.ErrNotFound) {
 		return shuffler.DeleteConfigsId404Response{}, nil
 	} else if err != nil {

@@ -51,6 +51,12 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 		GetUsersStatsHandler: GetUsersStatsHandlerFunc(func(params GetUsersStatsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation GetUsersStats has not yet been implemented")
 		}),
+		PatchUserUserIDBlockHandler: PatchUserUserIDBlockHandlerFunc(func(params PatchUserUserIDBlockParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation PatchUserUserIDBlock has not yet been implemented")
+		}),
+		PatchUserUserIDUnblockHandler: PatchUserUserIDUnblockHandlerFunc(func(params PatchUserUserIDUnblockParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation PatchUserUserIDUnblock has not yet been implemented")
+		}),
 		PostTokenHandler: PostTokenHandlerFunc(func(params PostTokenParams) middleware.Responder {
 			return middleware.NotImplemented("operation PostToken has not yet been implemented")
 		}),
@@ -119,6 +125,10 @@ type UserAPI struct {
 	GetUserHandler GetUserHandler
 	// GetUsersStatsHandler sets the operation handler for the get users stats operation
 	GetUsersStatsHandler GetUsersStatsHandler
+	// PatchUserUserIDBlockHandler sets the operation handler for the patch user user ID block operation
+	PatchUserUserIDBlockHandler PatchUserUserIDBlockHandler
+	// PatchUserUserIDUnblockHandler sets the operation handler for the patch user user ID unblock operation
+	PatchUserUserIDUnblockHandler PatchUserUserIDUnblockHandler
 	// PostTokenHandler sets the operation handler for the post token operation
 	PostTokenHandler PostTokenHandler
 	// PostUserHandler sets the operation handler for the post user operation
@@ -216,6 +226,12 @@ func (o *UserAPI) Validate() error {
 	}
 	if o.GetUsersStatsHandler == nil {
 		unregistered = append(unregistered, "GetUsersStatsHandler")
+	}
+	if o.PatchUserUserIDBlockHandler == nil {
+		unregistered = append(unregistered, "PatchUserUserIDBlockHandler")
+	}
+	if o.PatchUserUserIDUnblockHandler == nil {
+		unregistered = append(unregistered, "PatchUserUserIDUnblockHandler")
 	}
 	if o.PostTokenHandler == nil {
 		unregistered = append(unregistered, "PostTokenHandler")
@@ -338,6 +354,14 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/users/stats"] = NewGetUsersStats(o.context, o.GetUsersStatsHandler)
+	if o.handlers["PATCH"] == nil {
+		o.handlers["PATCH"] = make(map[string]http.Handler)
+	}
+	o.handlers["PATCH"]["/user/{UserID}/block"] = NewPatchUserUserIDBlock(o.context, o.PatchUserUserIDBlockHandler)
+	if o.handlers["PATCH"] == nil {
+		o.handlers["PATCH"] = make(map[string]http.Handler)
+	}
+	o.handlers["PATCH"]["/user/{UserID}/unblock"] = NewPatchUserUserIDUnblock(o.context, o.PatchUserUserIDUnblockHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

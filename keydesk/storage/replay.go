@@ -57,8 +57,12 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 			kd6 = data.KeydeskIPv6
 		}
 
+		if user.IsBlocked {
+			continue
+		}
+
 		// if we catch a slowdown problems we need organize queue
-		_, err = vpnapi.WgPeerAdd(
+		if _, err = vpnapi.WgPeerAdd(
 			data.BrigadeID,
 			db.actualAddrPort, db.calculatedAddrPort,
 			user.WgPublicKey, data.WgPublicKey, user.WgPSKRouterEnc,
@@ -66,8 +70,7 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 			user.OvCSRGzipBase64, user.CloakByPassUIDRouterEnc,
 			user.IPSecUsernameRouterEnc, user.IPSecPasswordRouterEnc,
 			user.OutlineSecretRouterEnc, user.Proto0SecretRouterEnc,
-		)
-		if err != nil {
+		); err != nil {
 			return fmt.Errorf("wg add: %w", err)
 		}
 	}

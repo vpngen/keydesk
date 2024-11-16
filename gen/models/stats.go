@@ -24,6 +24,14 @@ type Stats struct {
 	// Required: true
 	ActiveUsers []*StatsActiveUsersItems0 `json:"ActiveUsers"`
 
+	// free slots
+	// Required: true
+	FreeSlots *int64 `json:"FreeSlots"`
+
+	// total slots
+	// Required: true
+	TotalSlots *int64 `json:"TotalSlots"`
+
 	// total traffic g b
 	// Required: true
 	TotalTrafficGB []*StatsTotalTrafficGBItems0 `json:"TotalTrafficGB"`
@@ -38,6 +46,14 @@ func (m *Stats) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateActiveUsers(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateFreeSlots(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTotalSlots(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -77,6 +93,24 @@ func (m *Stats) validateActiveUsers(formats strfmt.Registry) error {
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *Stats) validateFreeSlots(formats strfmt.Registry) error {
+
+	if err := validate.Required("FreeSlots", "body", m.FreeSlots); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Stats) validateTotalSlots(formats strfmt.Registry) error {
+
+	if err := validate.Required("TotalSlots", "body", m.TotalSlots); err != nil {
+		return err
 	}
 
 	return nil

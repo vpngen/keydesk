@@ -28,6 +28,10 @@ func (db *BrigadeStorage) GetStats(rdata bool, statsFilename, statsSpinlock stri
 }
 
 func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
+	if now.Before(points.Update) {
+		return
+	}
+
 	defer func() {
 		points.Update = now
 	}()
@@ -38,14 +42,12 @@ func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
 	}
 
 	switch {
-	case lastActivity.IsZero():
+	case lastActivity.IsZero(), lastActivity.Equal(nullUnixTime):
 		if points.Total.IsZero() {
 			return
 		}
 
 		lastActivity = points.Total
-	case lastActivity.Equal(nullUnixTime):
-		return
 	default:
 		points.Total = lastActivity
 	}
@@ -62,43 +64,69 @@ func lastActivityMark(now, lastActivity time.Time, points *LastActivityPoints) {
 		return
 	}
 
-	points.Daily = time.Time{}
-
-	if lsYear != year {
-		points.Weekly = time.Time{}
-		points.Monthly = time.Time{}
-		points.PrevMonthly = time.Time{}
-		points.Yearly = time.Time{}
-
-		return
-	}
-
-	points.Yearly = lastActivity
+	lsWeekYear, lsWeek := lastActivity.ISOWeek()
+	weekYear, week := now.ISOWeek()
 
 	switch {
-	case lastActivity.Before(now.Add(-time.Hour * 24 * 7)):
-		points.Weekly = time.Time{}
-	case now.Weekday() < lastActivity.Weekday():
-		points.Weekly = time.Time{}
+	case lsWeekYear == weekYear && lsWeek == week:
+		points.Weekly = lastActivity
+	case !points.Weekly.IsZero():
+		lsWeekYear, lsWeek := points.Weekly.ISOWeek()
+		if lsWeekYear != weekYear || lsWeek != week {
+			points.Weekly = time.Time{}
+		}
 	}
 
-	if lsMonth != month {
-		points.Monthly = time.Time{}
-
-		_, prevMonth, _ := now.AddDate(0, -1, 0).Date()
-		if lsMonth != prevMonth {
+	prevYear, prevMonth, _ := now.AddDate(0, -1, 0).Date()
+	if !points.PrevMonthly.IsZero() {
+		pmthYear, pmthMonth, _ := points.PrevMonthly.Date()
+		if pmthYear != prevYear || pmthMonth != prevMonth {
 			points.PrevMonthly = time.Time{}
 		}
-
-		points.PrevMonthly = lastActivity
-
-		return
 	}
 
-	points.Monthly = lastActivity
+	if !points.Monthly.IsZero() {
+		mthYear, mthMonth, _ := points.Monthly.Date()
+		if mthMonth != month {
+			if mthYear == prevYear && mthMonth == prevMonth {
+				points.PrevMonthly = points.Monthly
+			}
+		}
+	}
+
+	switch {
+	case lsYear == year && lastActivity.After(points.Yearly):
+		points.Yearly = lastActivity
+	case !points.Yearly.IsZero():
+		lsYear, _, _ := points.Yearly.Date()
+		if lsYear != year {
+			points.Yearly = time.Time{}
+		}
+	}
+
+	switch {
+	case lsYear == year && lsMonth == month && lastActivity.After(points.Monthly):
+		points.Monthly = lastActivity
+	case !points.Monthly.IsZero():
+		lsYear, lsMonth, _ := points.Monthly.Date()
+		if lsYear != year || lsMonth != month {
+			points.Monthly = time.Time{}
+		}
+	}
+
+	if !points.Daily.IsZero() {
+		dYear, dMonth, dDay := points.Daily.Date()
+		if dYear != year || dMonth != month || dDay != day {
+			points.Daily = time.Time{}
+		}
+	}
 }
 
 func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *DateSummaryNetCounters) {
+	if now.Before(counters.Update) {
+		return
+	}
+
 	defer func() {
 		counters.Update = now
 	}()
@@ -106,6 +134,7 @@ func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *DateSummaryNet
 	counters.Total.Inc(rx, tx)
 
 	if counters.Update.IsZero() {
+		counters.PrevDay.Reset(0, 0)
 		counters.Daily.Reset(rx, tx)
 		counters.Weekly.Reset(rx, tx)
 		counters.Monthly.Reset(rx, tx)
@@ -129,26 +158,24 @@ func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *DateSummaryNet
 	if prevYear != year {
 		counters.Yearly.Reset(0, 0)
 
-		testYear, _, _ := counters.Update.AddDate(1, 0, 0).Date()
-		if testYear != year {
-			counters.Daily.Reset(0, 0)
-			counters.Weekly.Reset(0, 0)
+		if prevYear+1 != year {
 			counters.Monthly.Reset(0, 0)
-
-			return
+			counters.Weekly.Reset(0, 0)
+			counters.Daily.Reset(0, 0)
+			counters.PrevDay.Reset(0, 0)
 		}
 	}
 
 	counters.Yearly.Inc(rx, tx)
 
-	switch {
-	case counters.Update.Before(now.Add(-time.Hour * 24 * 7)):
-		counters.Weekly.Reset(0, 0)
-	case now.Weekday() < counters.Update.Weekday():
+	prevWeekYear, prevWeek := counters.Update.ISOWeek()
+	weekYear, week := now.ISOWeek()
+
+	if prevWeekYear != weekYear || prevWeek != week {
 		counters.Weekly.Reset(0, 0)
 	}
 
-	counters.Weekly.Reset(rx, tx)
+	counters.Weekly.Inc(rx, tx)
 
 	if prevMonth != month {
 		counters.Monthly.Reset(0, 0)
@@ -156,20 +183,21 @@ func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *DateSummaryNet
 		testYear, testMonth, _ := counters.Update.AddDate(0, 1, 0).Date()
 		if testYear != year || testMonth != month {
 			counters.Daily.Reset(0, 0)
-
-			return
+			counters.PrevDay.Reset(0, 0)
 		}
 	}
 
 	counters.Monthly.Inc(rx, tx)
 
 	if prevDay != day {
-		counters.Daily.Reset(0, 0)
+		counters.PrevDay.Reset(0, 0)
 
-		_, _, testDay := counters.Update.AddDate(0, 0, 1).Date()
-		if testDay != day {
-			return
+		testYear, testMonth, testDay := counters.Update.AddDate(0, 0, 1).Date()
+		if testDay == day && testMonth == month && testYear == year {
+			counters.PrevDay = counters.Daily
 		}
+
+		counters.Daily.Reset(0, 0)
 	}
 
 	counters.Daily.Reset(rx, tx)
@@ -207,6 +235,32 @@ func randomData(data *Brigade, now time.Time) (*vpnapi.WgStatTimestamp, *vpnapi.
 	}
 
 	return ts, trafficMap, lastSeenMap, endpointMap
+}
+
+func handleUserUsageStats(ustats *MarkedUsersCounters, quotas *Quota, limit uint64) {
+	if quotas.CountersTotal.PrevDay.Rx > limit {
+		ustats.TotalUsersCount++
+	}
+
+	if quotas.CountersWg.PrevDay.Rx > limit {
+		ustats.WgUsersCount++
+	}
+
+	if quotas.CountersIPSec.PrevDay.Rx > limit {
+		ustats.IPSecUsersCount++
+	}
+
+	if quotas.CountersOvc.PrevDay.Rx > limit {
+		ustats.OvcUsersCount++
+	}
+
+	if quotas.CountersOutline.PrevDay.Rx > limit {
+		ustats.OutlineUsersCount++
+	}
+
+	if quotas.CountersProto0.PrevDay.Rx > limit {
+		ustats.Proto0UsersCount++
+	}
 }
 
 func handleTrafficStat(
@@ -286,6 +340,13 @@ func handleLastActivity(
 func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsTTL, maxUserInactiveDuration time.Duration, monthlyQuotaRemaining int) error {
 	var (
 		totalTraffic TrafficCountersContainer
+
+		users50gb   MarkedUsersCounters
+		users100gb  MarkedUsersCounters
+		users500gb  MarkedUsersCounters
+		users1000gb MarkedUsersCounters
+
+		blockedUsers,
 		throttledUsers,
 		activeUsers,
 		activeWgUsers,
@@ -294,6 +355,7 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 		activeOlcUsers,
 		activeOutlineUsers,
 		activeProto0Users int
+
 		trafficMap     *vpnapi.WgStatTrafficMap
 		lastSeenMap    *vpnapi.WgStatLastActivityMap
 		endpointMap    *vpnapi.WgStatEndpointMap
@@ -329,6 +391,11 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 
 		totalTraffic.TrafficSummary.Inc(sum.Rx, sum.Tx)
 		incDateSwitchRelated(now, sum.Rx, sum.Tx, &user.Quotas.CountersTotal)
+
+		handleUserUsageStats(&users50gb, &user.Quotas, 50*1024*1024)
+		handleUserUsageStats(&users100gb, &user.Quotas, 100*1024*1024)
+		handleUserUsageStats(&users500gb, &user.Quotas, 500*1024*1024)
+		handleUserUsageStats(&users1000gb, &user.Quotas, 1024*1024*1024)
 
 		if user.Quotas.LimitMonthlyResetOn.Before(now) {
 			// !!! reset monthly throttle ....
@@ -367,10 +434,15 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 		if user.Quotas.LastActivity.Total.After(userInactiveEdge) {
 			activeUsers++
 		}
+
+		if user.IsBlocked {
+			blockedUsers++
+		}
 	}
 
 	data.TotalUsersCount = len(data.Users)
 	data.ThrottledUsersCount = throttledUsers
+	data.BlockedUsersCount = blockedUsers
 	data.ActiveUsersCount = activeUsers
 	data.ActiveWgUsersCount = activeWgUsers
 	data.ActiveIPSecUsersCount = activeIPSecUsers
@@ -385,6 +457,11 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 	incDateSwitchRelated(now, totalTraffic.TrafficOvc.Rx, totalTraffic.TrafficOvc.Tx, &data.TotalOvcTraffic)
 	incDateSwitchRelated(now, totalTraffic.TrafficOutline.Rx, totalTraffic.TrafficOutline.Tx, &data.TotalOutlineTraffic)
 	incDateSwitchRelated(now, totalTraffic.TrafficProto0.Rx, totalTraffic.TrafficProto0.Tx, &data.TotalProto0Traffic)
+
+	data.Users50gb = users50gb
+	data.Users100gb = users100gb
+	data.Users500gb = users500gb
+	data.Users1000gb = users1000gb
 
 	lowLimit := now.Add(-endpointsTTL)
 	for prefix, updated := range data.Endpoints {
@@ -438,9 +515,19 @@ func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename, statsSpinl
 				TotalIPSecTraffic:   data.TotalIPSecTraffic.Total,
 				TotalOvcTraffic:     data.TotalOvcTraffic.Total,
 				TotalOutlineTraffic: data.TotalOutlineTraffic.Total,
+				TotalProto0Traffic:  data.TotalProto0Traffic.Total,
 			},
+
 			CountersUpdateTime: data.CountersUpdateTime,
 		},
+
+		Users50gb:   data.Users50gb,
+		Users100gb:  data.Users100gb,
+		Users500gb:  data.Users500gb,
+		Users1000gb: data.Users1000gb,
+
+		YesterdayTraffic: data.TotalTraffic.PrevDay,
+
 		BrigadeID:         data.BrigadeID,
 		BrigadeCreatedAt:  data.CreatedAt,
 		KeydeskFirstVisit: data.KeydeskFirstVisit,

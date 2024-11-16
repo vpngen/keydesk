@@ -206,6 +206,9 @@ func (db *BrigadeStorage) CreateUser(
 		return data.Users[i].IsBrigadier || !data.Users[j].IsBrigadier && (data.Users[i].UserID.String() > data.Users[j].UserID.String())
 	})
 
+	userconf.FreeSlots = db.MaxUsers - len(data.Users)
+	userconf.TotalSlots = db.MaxUsers
+
 	if err := commitBrigade(f, data); err != nil {
 		return nil, fmt.Errorf("save: %w", err)
 	}
@@ -301,7 +304,59 @@ func assembleUser(data *Brigade, fullname string, isBrigadier bool, maxUsers int
 }
 
 // DeleteUser - remove user from the storage.
-func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
+func (db *BrigadeStorage) DeleteUser(id string, brigadier bool, onlyBlock bool) error {
+	f, data, err := db.openWithReading()
+	if err != nil {
+		return fmt.Errorf("db: %w", err)
+	}
+
+	defer f.Close()
+
+	var (
+		user *User
+		idx  int
+	)
+
+	for i, u := range data.Users {
+		if u.UserID.String() == id && u.IsBrigadier == brigadier {
+			user = u
+			idx = i
+
+			break
+		}
+	}
+
+	if user == nil {
+		return ErrUserNotFound
+	}
+
+	if !user.IsBlocked {
+		// if we catch a slowdown problems we need organize queue
+		if err := vpnapi.WgPeerDel(data.BrigadeID, db.actualAddrPort, db.calculatedAddrPort, user.WgPublicKey, data.WgPublicKey); err != nil {
+			return fmt.Errorf("peer del: %w", err)
+		}
+
+		if !onlyBlock {
+			user.IsBlocked = true
+			user.BlockedAt = time.Now().UTC()
+		}
+	}
+
+	if !onlyBlock {
+		data.Users = append(data.Users[:idx], data.Users[idx+1:]...)
+	}
+
+	if err := commitBrigade(f, data); err != nil {
+		return fmt.Errorf("save: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "User %s (%s) removed (only block: %v)\n", id, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(user.WgPublicKey), onlyBlock)
+
+	return nil
+}
+
+// UnblockUser - remove user from the storage.
+func (db *BrigadeStorage) UnblockUser(id string) error {
 	f, data, err := db.openWithReading()
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
@@ -310,26 +365,50 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool) error {
 	defer f.Close()
 
 	wgPub := []byte{}
-	for i, u := range data.Users {
-		if u.UserID.String() == id && u.IsBrigadier == brigadier {
-			wgPub = u.WgPublicKey
-			data.Users = append(data.Users[:i], data.Users[i+1:]...)
+	for _, user := range data.Users {
+		if user.UserID.String() == id {
+			wgPub = user.WgPublicKey
+
+			if !user.IsBlocked {
+				fmt.Fprintf(os.Stderr, "User %s (%s) already unblocked\n", id, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub))
+
+				break
+			}
+
+			kd6 := netip.Addr{}
+			if user.IsBrigadier {
+				kd6 = data.KeydeskIPv6
+			}
+
+			// if we catch a slowdown problems we need organize queue
+			if _, err = vpnapi.WgPeerAdd(
+				data.BrigadeID,
+				db.actualAddrPort, db.calculatedAddrPort,
+				user.WgPublicKey, data.WgPublicKey, user.WgPSKRouterEnc,
+				user.IPv4Addr, user.IPv6Addr, kd6,
+				user.OvCSRGzipBase64, user.CloakByPassUIDRouterEnc,
+				user.IPSecUsernameRouterEnc, user.IPSecPasswordRouterEnc,
+				user.OutlineSecretRouterEnc, user.Proto0SecretRouterEnc,
+			); err != nil {
+				return fmt.Errorf("wg add: %w", err)
+			}
+
+			user.IsBlocked = false
+			user.BlockedAt = time.Time{}
 
 			break
 		}
 	}
 
-	// if we catch a slowdown problems we need organize queue
-	err = vpnapi.WgPeerDel(data.BrigadeID, db.actualAddrPort, db.calculatedAddrPort, wgPub, data.WgPublicKey)
-	if err != nil {
-		return fmt.Errorf("peer del: %w", err)
+	if len(wgPub) == 0 {
+		return ErrUserNotFound
 	}
 
 	if err := commitBrigade(f, data); err != nil {
 		return fmt.Errorf("save: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "User %s (%s) removed\n", id, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub))
+	fmt.Fprintf(os.Stderr, "User %s (%s) unblocked\n", id, base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wgPub))
 
 	return nil
 }
@@ -382,13 +461,13 @@ func (db *BrigadeStorage) ListUsers() ([]*User, error) {
 	return data.Users, nil
 }
 
-func (db *BrigadeStorage) GetUsersStats() (StatsCountersStack, error) {
+func (db *BrigadeStorage) GetUsersStats() (StatsCountersStack, int, int, error) {
 	f, data, err := db.openWithReading()
 	if err != nil {
-		return StatsCountersStack{}, fmt.Errorf("db: %w", err)
+		return StatsCountersStack{}, 0, 0, fmt.Errorf("db: %w", err)
 	}
 
 	defer f.Close()
 
-	return data.StatsCountersStack, nil
+	return data.StatsCountersStack, db.MaxUsers, db.MaxUsers - len(data.Users), nil
 }

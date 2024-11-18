@@ -135,10 +135,10 @@ func incDateSwitchRelated(now time.Time, rx, tx uint64, counters *DateSummaryNet
 
 	if counters.Update.IsZero() {
 		counters.PrevDay.Reset(0, 0)
-		counters.Daily.Reset(rx, tx)
-		counters.Weekly.Reset(rx, tx)
-		counters.Monthly.Reset(rx, tx)
-		counters.Yearly.Reset(rx, tx)
+		counters.Daily.Reset(0, 0)
+		counters.Weekly.Reset(0, 0)
+		counters.Monthly.Reset(0, 0)
+		counters.Yearly.Reset(0, 0)
 
 		return
 	}
@@ -294,7 +294,7 @@ func handleTrafficStat(
 	}
 
 	// reset OS counters.
-	osCounters.Reset(0, 0)
+	// osCounters.Reset(0, 0)
 	// push zero traffic.
 	incDateSwitchRelated(now, 0, 0, counters)
 }
@@ -392,10 +392,10 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 		totalTraffic.TrafficSummary.Inc(sum.Rx, sum.Tx)
 		incDateSwitchRelated(now, sum.Rx, sum.Tx, &user.Quotas.CountersTotal)
 
-		handleUserUsageStats(&users50gb, &user.Quotas, 50*1024*1024)
-		handleUserUsageStats(&users100gb, &user.Quotas, 100*1024*1024)
-		handleUserUsageStats(&users500gb, &user.Quotas, 500*1024*1024)
-		handleUserUsageStats(&users1000gb, &user.Quotas, 1024*1024*1024)
+		handleUserUsageStats(&users50gb, &user.Quotas, 50*1024*1024*1024)
+		handleUserUsageStats(&users100gb, &user.Quotas, 100*1024*1024*1024)
+		handleUserUsageStats(&users500gb, &user.Quotas, 500*1024*1024*1024)
+		handleUserUsageStats(&users1000gb, &user.Quotas, 1024*1024*1024*1024)
 
 		if user.Quotas.LimitMonthlyResetOn.Before(now) {
 			// !!! reset monthly throttle ....

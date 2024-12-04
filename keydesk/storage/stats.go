@@ -427,6 +427,11 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 		}
 		lastActivityMark(now, lastActivityTotal, &user.Quotas.LastActivity)
 
+		// global last activity.
+		if data.LastActivity.IsZero() || data.LastActivity.Before(lastActivityTotal) {
+			data.LastActivity = lastActivityTotal
+		}
+
 		if !user.Quotas.ThrottlingTill.IsZero() && user.Quotas.ThrottlingTill.After(now) {
 			throttledUsers++
 		}

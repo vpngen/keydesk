@@ -533,6 +533,8 @@ func (db *BrigadeStorage) putStatsStats(data *Brigade, statsFilename, statsSpinl
 
 		YesterdayTraffic: data.TotalTraffic.PrevDay,
 
+		LastActivity: data.LastActivity,
+
 		BrigadeID:         data.BrigadeID,
 		BrigadeCreatedAt:  data.CreatedAt,
 		KeydeskFirstVisit: data.KeydeskFirstVisit,

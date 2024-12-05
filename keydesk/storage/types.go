@@ -340,6 +340,8 @@ type Stats struct {
 
 	YesterdayTraffic RxTx `json:"yesterday_traffic"`
 
+	LastActivity time.Time `json:"last_activity"`
+
 	Ver               int           `json:"version"`
 	BrigadeID         string        `json:"brigade_id"`
 	UpdateTime        time.Time     `json:"update_time"`

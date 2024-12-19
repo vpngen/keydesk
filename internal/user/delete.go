@@ -11,7 +11,7 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-func (s Service) DeleteUser(id uuid.UUID, onlyBlock bool) (free uint, err error) {
+func (s Service) DeleteUser(id uuid.UUID, onlyBlock bool) (free int, err error) {
 	err = s.db.RunInTransaction(func(brigade *storage.Brigade) error {
 		err = s.deleteUser(brigade, id, onlyBlock)
 		if err != nil {

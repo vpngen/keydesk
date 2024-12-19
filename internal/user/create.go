@@ -19,11 +19,18 @@ type User struct {
 
 type createUserResponse struct {
 	User
-	FreeSlots, TotalSlots uint
+	FreeSlots  int
+	TotalSlots uint
 }
+
+var ErrNoFreeSlots = fmt.Errorf("no free slots")
 
 func (s Service) CreateUser(configs []string, domain string) (res createUserResponse, err error) {
 	err = s.db.RunInTransaction(func(brigade *storage.Brigade) error {
+		if len(brigade.Users) >= int(brigade.MaxUsers) {
+			return ErrNoFreeSlots
+		}
+
 		res.User, err = s.createUserWithConfigs(brigade, configs, domain)
 		if err != nil {
 			return fmt.Errorf("create user with configs %s: %w", configs, err)
@@ -87,7 +94,7 @@ func newUser(brigade *storage.Brigade, domain string) (storage.User, error) {
 	return user, nil
 }
 
-func (s Service) UnblockUser(id uuid.UUID) (free uint, err error) {
+func (s Service) UnblockUser(id uuid.UUID) (free int, err error) {
 	if err := s.db.UnblockUser(id.String()); err != nil {
 		return 0, fmt.Errorf("unblock user %s: %w", id, err)
 	}

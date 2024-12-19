@@ -224,11 +224,11 @@ func (response PostConfigs201JSONResponse) VisitPostConfigsResponse(w http.Respo
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostConfigs412Response struct {
+type PostConfigs507Response struct {
 }
 
-func (response PostConfigs412Response) VisitPostConfigsResponse(w http.ResponseWriter) error {
-	w.WriteHeader(412)
+func (response PostConfigs507Response) VisitPostConfigsResponse(w http.ResponseWriter) error {
+	w.WriteHeader(507)
 	return nil
 }
 

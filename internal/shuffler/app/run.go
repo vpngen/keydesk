@@ -90,6 +90,10 @@ func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsReq
 
 	userCfg, err := s.service.CreateUser(request.Body.Configs, domain)
 	if err != nil {
+		if errors.Is(err, user.ErrNoFreeSlots) {
+			return shuffler.PostConfigs507Response{}, nil
+		}
+
 		return shuffler.PostConfigsdefaultJSONResponse{
 			Body:       err.Error(),
 			StatusCode: http.StatusInternalServerError,
@@ -187,7 +191,7 @@ func (s server) DeleteConfigsId(ctx context.Context, request shuffler.DeleteConf
 		}, nil
 	}
 
-	return shuffler.DeleteConfigsId200JSONResponse{FreeSlots: int(free)}, nil
+	return shuffler.DeleteConfigsId200JSONResponse{FreeSlots: free}, nil
 }
 
 func (s server) GetSlots(ctx context.Context, request shuffler.GetSlotsRequestObject) (shuffler.GetSlotsResponseObject, error) {

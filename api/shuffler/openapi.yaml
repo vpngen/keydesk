@@ -58,7 +58,7 @@ paths:
                   - domain
                   - free_slots
                   - total_slots
-        412:
+        507:
           description: No free VPN slots
         default:
           $ref: '#/components/responses/ErrorResponse'

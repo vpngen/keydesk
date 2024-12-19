@@ -342,7 +342,7 @@ func addUser(
 	if len(vpnCfgs.Ovc) > 0 || len(vpnCfgs.Outline) > 0 {
 		var err error
 
-		cloakBypassUID, cloakByPassUIDRouterEnc, CloakByPassUIDShufflerEnc, err = genUserCloakKeys(routerPublicKey, shufflerPublicKey)
+		cloakBypassUID, cloakByPassUIDRouterEnc, CloakByPassUIDShufflerEnc, err = GenUserCloakKeys(routerPublicKey, shufflerPublicKey)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "cloak gen: %s\n", err)
 
@@ -529,6 +529,8 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 		status := UserStatusOK
 
 		switch {
+		case user.IsBlocked:
+			status = UserStatusBlocked
 		case user.Quotas.LastActivity.Total.IsZero():
 			status = UserStatusNeverUsed
 		case user.Quotas.LastActivity.Monthly.IsZero():
@@ -543,7 +545,7 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 	return operations.NewGetUserOK().WithPayload(apiUsers)
 }
 
-func genUserCloakKeys(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, string, error) {
+func GenUserCloakKeys(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) (string, string, string, error) {
 	cloakBypassUID := uuid.New()
 
 	cloakBypassUIDRouterEnc, err := box.SealAnonymous(nil, cloakBypassUID[:], routerPublicKey, rand.Reader)

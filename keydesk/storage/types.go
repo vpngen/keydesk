@@ -96,7 +96,10 @@ type BrigadeCounters struct {
 	TotalOvcTraffic     DateSummaryNetCounters `json:"total_ovc_traffic"`
 	TotalOutlineTraffic DateSummaryNetCounters `json:"total_outline_traffic"`
 	TotalProto0Traffic  DateSummaryNetCounters `json:"total_proto0_traffic"`
-	CountersUpdateTime  time.Time              `json:"counters_update_time"`
+
+	LastActivity time.Time `json:"last_activity"`
+
+	CountersUpdateTime time.Time `json:"counters_update_time"`
 }
 
 type TrafficCountersContainer struct {
@@ -336,6 +339,8 @@ type Stats struct {
 	Users1000gb MarkedUsersCounters `json:"users_1000_gb"`
 
 	YesterdayTraffic RxTx `json:"yesterday_traffic"`
+
+	LastActivity time.Time `json:"last_activity"`
 
 	Ver               int           `json:"version"`
 	BrigadeID         string        `json:"brigade_id"`

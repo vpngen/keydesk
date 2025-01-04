@@ -23,7 +23,6 @@ var topSites= []string{
 	"agrarheute.com",
 	"agriculture.com",
 	"agrocolanta.com",
-	"aia.org",
 	"ajio.com",
 	"ala.org",
 	"alight.com",

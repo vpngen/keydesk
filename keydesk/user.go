@@ -317,7 +317,7 @@ func addUser(
 	routerPublicKey,
 	shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 ) (*storage.UserConfig, []byte, []byte, string, string, string, string, string, string, string, error) {
-	wgPub, wgPriv, wgPSK, wgRouterPSK, wgShufflerPSK, err := genUserWGKeys(routerPublicKey, shufflerPublicKey)
+	wgPub, wgPriv, wgPSK, wgRouterPSK, wgShufflerPSK, err := GenUserWGKeys(routerPublicKey, shufflerPublicKey)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "wg gen: %s\n", err)
 
@@ -394,6 +394,7 @@ func addUser(
 	}
 
 	userconf, err := db.CreateUser(
+		uuid.Nil,
 		vpnCfgs, fullname, person,
 		IsBrigadier, replaceBrigadier,
 		wgPub, wgRouterPSK, wgShufflerPSK,
@@ -588,7 +589,7 @@ func genUserOvcKeys() (string, string, error) {
 		nil
 }
 
-func genUserWGKeys(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) ([]byte, []byte, []byte, []byte, []byte, error) {
+func GenUserWGKeys(routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte) ([]byte, []byte, []byte, []byte, []byte, error) {
 	wgPSK, err := wgtypes.GenerateKey()
 	if err != nil {
 		return nil, nil, nil, nil, nil, fmt.Errorf("psk: %w", err)

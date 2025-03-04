@@ -40,6 +40,7 @@ GH/IDRigAkIBI45wN1CUGzzBjF8/faxNy6XWhcSkFZW7oCRR0MWaL6bn69naej8K
 
 // CreateUser - put user to the storage.
 func (db *BrigadeStorage) CreateUser(
+	uid uuid.UUID,
 	vpnCfgs *ConfigsImplemented,
 	fullname string,
 	person namesgenerator.Person,
@@ -74,7 +75,7 @@ func (db *BrigadeStorage) CreateUser(
 		}
 	}
 
-	id, ipv4, ipv6, name, err := assembleUser(data, fullname, isBrigadier, db.MaxUsers)
+	id, ipv4, ipv6, name, err := assembleUser(uid, data, fullname, isBrigadier, db.MaxUsers)
 	if err != nil {
 		return nil, fmt.Errorf("assemble: %w", err)
 	}
@@ -224,11 +225,10 @@ func (db *BrigadeStorage) CreateUser(
 	return userconf, nil
 }
 
-func assembleUser(data *Brigade, fullname string, isBrigadier bool, maxUsers int) (uuid.UUID, netip.Addr, netip.Addr, string, error) {
-	var (
-		ipv4, ipv6 netip.Addr
-		uid        uuid.UUID
-	)
+var ErrUnresolvableCollision = fmt.Errorf("unresolvable collision")
+
+func assembleUser(uid uuid.UUID, data *Brigade, fullname string, isBrigadier bool, maxUsers int) (uuid.UUID, netip.Addr, netip.Addr, string, error) {
+	var ipv4, ipv6 netip.Addr
 
 	idL := make(map[string]struct{})
 
@@ -261,12 +261,19 @@ func assembleUser(data *Brigade, fullname string, isBrigadier bool, maxUsers int
 		return uid, ipv4, ipv6, "", ErrUserLimit
 	}
 
-	for {
-		id := uuid.New()
-		if _, ok := idL[id.String()]; !ok {
-			uid = id
+	switch uid {
+	case uuid.Nil:
+		for {
+			id := uuid.New()
+			if _, ok := idL[id.String()]; !ok {
+				uid = id
 
-			break
+				break
+			}
+		}
+	default:
+		if _, ok := idL[uid.String()]; ok {
+			return uid, ipv4, ipv6, "", ErrUnresolvableCollision
 		}
 	}
 

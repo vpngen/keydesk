@@ -19,7 +19,7 @@ import (
 var ErrInvalidArgs = errors.New("invalid arguments")
 
 func main() {
-	fresh, bonly, uonly, erase, brigadeID, dbDir, addr, err := parseArgs()
+	fresh, bonly, uonly, erase, delayed, donly, brigadeID, dbDir, addr, err := parseArgs()
 	if err != nil {
 		log.Fatalf("Can't init: %s\n", err)
 		os.Exit(1)
@@ -51,12 +51,12 @@ func main() {
 		log.Fatalf("Storage initialization: %s\n", err)
 	}
 
-	if err = Do(db, fresh, bonly, uonly, erase, addr); err != nil {
+	if err = Do(db, fresh, bonly, uonly, erase, delayed, donly, addr); err != nil {
 		log.Fatalf("Can't do: %s\n", err)
 	}
 }
 
-func parseArgs() (bool, bool, bool, bool, string, string, netip.AddrPort, error) {
+func parseArgs() (bool, bool, bool, bool, bool, bool, string, string, netip.AddrPort, error) {
 	var (
 		id       string
 		dbdir    string
@@ -66,9 +66,11 @@ func parseArgs() (bool, bool, bool, bool, string, string, netip.AddrPort, error)
 
 	sysUser, err := user.Current()
 	if err != nil {
-		return false, false, false, false, "", "", addrPort, fmt.Errorf("cannot define user: %w", err)
+		return false, false, false, false, true, false, "", "", addrPort, fmt.Errorf("cannot define user: %w", err)
 	}
 
+	nodelayed := flag.Bool("nd", false, "no apply delayed actions")
+	donly := flag.Bool("do", false, "delayed actions only, don't use with any other mode flags")
 	bonly := flag.Bool("b", false, "brigades only, don't use with -u or -e flags")
 	uonly := flag.Bool("u", false, "users only, don't use with -b or -r or -e flags")
 	fresh := flag.Bool("r", false, "clean before (with deletion), don't use with -u or -e flags")
@@ -79,21 +81,22 @@ func parseArgs() (bool, bool, bool, bool, string, string, netip.AddrPort, error)
 
 	flag.Parse()
 
-	if (*bonly && *uonly) || (*fresh && *uonly) || (*erase && *uonly) || (*erase && *bonly) || (*fresh && *erase) {
-		return false, false, false, false, "", "", addrPort, ErrInvalidArgs
+	if (*bonly && *uonly) || (*fresh && *uonly) || (*erase && *uonly) || (*erase && *bonly) || (*fresh && *erase) ||
+		(*donly && *uonly) || (*donly && *bonly) || (*donly && *fresh) || (*donly && *erase) || (*donly && *nodelayed) {
+		return false, false, false, false, true, false, "", "", addrPort, ErrInvalidArgs
 	}
 
 	if *filedbDir != "" {
 		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return false, false, false, false, "", "", addrPort, fmt.Errorf("dbdir dir: %w", err)
+			return false, false, false, false, true, false, "", "", addrPort, fmt.Errorf("dbdir dir: %w", err)
 		}
 	}
 
 	if *addr != "-" {
 		addrPort, err = netip.ParseAddrPort(*addr)
 		if err != nil {
-			return false, false, false, false, "", "", addrPort, fmt.Errorf("addr: %w", err)
+			return false, false, false, false, true, false, "", "", addrPort, fmt.Errorf("addr: %w", err)
 		}
 	}
 
@@ -117,11 +120,11 @@ func parseArgs() (bool, bool, bool, bool, string, string, netip.AddrPort, error)
 		}
 	}
 
-	return *fresh, *bonly, *uonly, *erase, id, dbdir, addrPort, nil
+	return *fresh, *bonly, *uonly, *erase, !*nodelayed, *donly, id, dbdir, addrPort, nil
 }
 
 // Do - do replay.
-func Do(db *storage.BrigadeStorage, fresh, bonly, uonly, erase bool, addr netip.AddrPort) error {
+func Do(db *storage.BrigadeStorage, fresh, bonly, uonly, erase, delayed, donly bool, addr netip.AddrPort) error {
 	if erase {
 		if err := db.DestroyBrigade(); err != nil {
 			return fmt.Errorf("destroy brigade: %w", err)
@@ -130,7 +133,7 @@ func Do(db *storage.BrigadeStorage, fresh, bonly, uonly, erase bool, addr netip.
 		return nil
 	}
 
-	if err := db.ReplayBrigade(fresh, bonly, uonly); err != nil {
+	if err := db.ReplayBrigade(fresh, bonly, uonly, delayed, donly); err != nil {
 		return fmt.Errorf("replay brigade: %w", err)
 	}
 

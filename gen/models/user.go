@@ -31,6 +31,9 @@ type User struct {
 	// Format: date-time
 	CreatedAt *strfmt.DateTime `json:"CreatedAt"`
 
+	// daily traffic
+	DailyTraffic int64 `json:"DailyTraffic,omitempty"`
+
 	// last visit hour
 	// Format: date-time
 	LastVisitHour *strfmt.DateTime `json:"LastVisitHour,omitempty"`
@@ -38,6 +41,9 @@ type User struct {
 	// monthly quota remaining g b
 	// Required: true
 	MonthlyQuotaRemainingGB *float32 `json:"MonthlyQuotaRemainingGB"`
+
+	// monthly traffic
+	MonthlyTraffic int64 `json:"MonthlyTraffic,omitempty"`
 
 	// person desc
 	PersonDesc string `json:"PersonDesc,omitempty"`
@@ -48,6 +54,9 @@ type User struct {
 	// person name
 	PersonName string `json:"PersonName,omitempty"`
 
+	// prev day traffic
+	PrevDayTraffic int64 `json:"PrevDayTraffic,omitempty"`
+
 	// status
 	// Required: true
 	Status *string `json:"Status"`
@@ -56,6 +65,9 @@ type User struct {
 	// Format: date-time
 	ThrottlingTill *strfmt.DateTime `json:"ThrottlingTill,omitempty"`
 
+	// total traffic
+	TotalTraffic int64 `json:"TotalTraffic,omitempty"`
+
 	// user ID
 	// Required: true
 	UserID *string `json:"UserID"`
@@ -63,6 +75,12 @@ type User struct {
 	// user name
 	// Required: true
 	UserName *string `json:"UserName"`
+
+	// weekly traffic
+	WeeklyTraffic int64 `json:"WeeklyTraffic,omitempty"`
+
+	// yearly traffic
+	YearlyTraffic int64 `json:"YearlyTraffic,omitempty"`
 }
 
 // Validate validates this user

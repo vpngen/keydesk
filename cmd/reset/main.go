@@ -166,7 +166,7 @@ func Do(db *storage.BrigadeStorage, addr netip.AddrPort, domain string, port int
 			return fmt.Errorf("set port: %w", err)
 		}
 
-		if err := db.ReplayBrigade(true, false, false); err != nil {
+		if err := db.ReplayBrigade(true, false, false, true, false); err != nil {
 			return fmt.Errorf("replay: %w", err)
 		}
 	}

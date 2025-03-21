@@ -8,7 +8,7 @@ import (
 )
 
 // ReplayBrigade - create brigade config.
-func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
+func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly, delayed, donly bool) error {
 	f, data, err := db.openWithReading()
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
@@ -16,39 +16,55 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 
 	defer f.Close()
 
-	if fresh {
-		// if we catch a slowdown problems we need organize queue
-		err = vpnapi.WgDel(data.BrigadeID, db.actualAddrPort, db.calculatedAddrPort, data.WgPrivateRouterEnc)
-		if err != nil {
-			return fmt.Errorf("wg del: %w", err)
+	if !donly {
+		if fresh {
+			// if we catch a slowdown problems we need organize queue
+			err = vpnapi.WgDel(data.BrigadeID, db.actualAddrPort, db.calculatedAddrPort, data.WgPrivateRouterEnc)
+			if err != nil {
+				return fmt.Errorf("wg del: %w", err)
+			}
+		}
+
+		if !uonly {
+			// if we catch a slowdown problems we need organize queue
+			err = vpnapi.WgAdd(
+				data.BrigadeID,
+				db.actualAddrPort,
+				db.calculatedAddrPort,
+				data.WgPrivateRouterEnc,
+				data.EndpointIPv4,
+				data.EndpointPort,
+				data.IPv4CGNAT,
+				data.IPv6ULA,
+				data.CloakFakeDomain,
+				data.OvCACertPemGzipBase64,
+				data.OvCAKeyRouterEnc,
+				data.IPSecPSKRouterEnc,
+				data.OutlinePort,
+				data.Proto0FakeDomain,
+			)
+			if err != nil {
+				return fmt.Errorf("wg add: %w", err)
+			}
+		}
+
+		if bonly {
+			return nil
 		}
 	}
 
-	if !uonly {
-		// if we catch a slowdown problems we need organize queue
-		err = vpnapi.WgAdd(
-			data.BrigadeID,
-			db.actualAddrPort,
-			db.calculatedAddrPort,
-			data.WgPrivateRouterEnc,
-			data.EndpointIPv4,
-			data.EndpointPort,
-			data.IPv4CGNAT,
-			data.IPv6ULA,
-			data.CloakFakeDomain,
-			data.OvCACertPemGzipBase64,
-			data.OvCAKeyRouterEnc,
-			data.IPSecPSKRouterEnc,
-			data.OutlinePort,
-			data.Proto0FakeDomain,
-		)
-		if err != nil {
-			return fmt.Errorf("wg add: %w", err)
-		}
-	}
+	if delayed || donly {
+	OUTER:
+		for {
+			for i, user := range data.Users {
+				if user.DelayedDeletion {
+					data.Users = append(data.Users[:i], data.Users[i+1:]...)
+					continue OUTER
+				}
+			}
 
-	if bonly {
-		return nil
+			break
+		}
 	}
 
 	for _, user := range data.Users {
@@ -57,7 +73,15 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 			kd6 = data.KeydeskIPv6
 		}
 
+		if !donly && !delayed && (user.DelayedCreation || user.DelayedDeletion) {
+			continue
+		}
+
 		if user.IsBlocked {
+			continue
+		}
+
+		if donly && !user.DelayedCreation {
 			continue
 		}
 
@@ -72,6 +96,17 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly bool) error {
 			user.OutlineSecretRouterEnc, user.Proto0SecretRouterEnc,
 		); err != nil {
 			return fmt.Errorf("wg add: %w", err)
+		}
+
+		if (donly || delayed) && user.DelayedCreation {
+			user.DelayedCreation = false
+		}
+	}
+
+	// beacuse we need to save changes only if delayed || donly flags are set
+	if donly || delayed {
+		if err = f.Commit(); err != nil {
+			return fmt.Errorf("commit: %w", err)
 		}
 	}
 

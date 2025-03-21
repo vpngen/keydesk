@@ -716,6 +716,10 @@ func init() {
           "type": "string",
           "format": "date-time"
         },
+        "DailyTraffic": {
+          "type": "number",
+          "format": "integer"
+        },
         "LastVisitHour": {
           "type": "string",
           "format": "date-time",
@@ -724,6 +728,10 @@ func init() {
         "MonthlyQuotaRemainingGB": {
           "type": "number",
           "format": "float"
+        },
+        "MonthlyTraffic": {
+          "type": "number",
+          "format": "integer"
         },
         "PersonDesc": {
           "type": "string"
@@ -734,6 +742,10 @@ func init() {
         "PersonName": {
           "type": "string"
         },
+        "PrevDayTraffic": {
+          "type": "number",
+          "format": "integer"
+        },
         "Status": {
           "type": "string"
         },
@@ -742,11 +754,23 @@ func init() {
           "format": "date-time",
           "x-nullable": true
         },
+        "TotalTraffic": {
+          "type": "number",
+          "format": "integer"
+        },
         "UserID": {
           "type": "string"
         },
         "UserName": {
           "type": "string"
+        },
+        "WeeklyTraffic": {
+          "type": "number",
+          "format": "integer"
+        },
+        "YearlyTraffic": {
+          "type": "number",
+          "format": "integer"
         }
       }
     }
@@ -1550,6 +1574,10 @@ func init() {
           "type": "string",
           "format": "date-time"
         },
+        "DailyTraffic": {
+          "type": "number",
+          "format": "integer"
+        },
         "LastVisitHour": {
           "type": "string",
           "format": "date-time",
@@ -1558,6 +1586,10 @@ func init() {
         "MonthlyQuotaRemainingGB": {
           "type": "number",
           "format": "float"
+        },
+        "MonthlyTraffic": {
+          "type": "number",
+          "format": "integer"
         },
         "PersonDesc": {
           "type": "string"
@@ -1568,6 +1600,10 @@ func init() {
         "PersonName": {
           "type": "string"
         },
+        "PrevDayTraffic": {
+          "type": "number",
+          "format": "integer"
+        },
         "Status": {
           "type": "string"
         },
@@ -1576,11 +1612,23 @@ func init() {
           "format": "date-time",
           "x-nullable": true
         },
+        "TotalTraffic": {
+          "type": "number",
+          "format": "integer"
+        },
         "UserID": {
           "type": "string"
         },
         "UserName": {
           "type": "string"
+        },
+        "WeeklyTraffic": {
+          "type": "number",
+          "format": "integer"
+        },
+        "YearlyTraffic": {
+          "type": "number",
+          "format": "integer"
         }
       }
     }

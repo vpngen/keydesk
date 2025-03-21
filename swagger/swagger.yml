@@ -358,6 +358,24 @@ definitions:
       MonthlyQuotaRemainingGB:
         type: number
         format: float
+      TotalTraffic:
+        type: number
+        format: integer
+      YearlyTraffic:
+        type: number
+        format: integer
+      MonthlyTraffic:
+        type: number
+        format: integer
+      WeeklyTraffic:
+        type: number
+        format: integer
+      DailyTraffic:
+        type: number
+        format: integer
+      PrevDayTraffic:
+        type: number
+        format: integer
       LastVisitHour:
         type: string
         format: date-time

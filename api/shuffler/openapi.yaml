@@ -270,7 +270,16 @@ components:
         total_traffic:
           type: integer
           format: int64
+        yearly_traffic:
+          type: integer
+          format: int64
         monthly_traffic:
+          type: integer
+          format: int64
+        weekly_traffic:
+          type: integer
+          format: int64
+        daily_traffic:
           type: integer
           format: int64
         prev_day_traffic:

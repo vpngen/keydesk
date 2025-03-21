@@ -509,6 +509,13 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 			CreatedAt:      (*strfmt.DateTime)(&user.CreatedAt),
 
 			Blocked: user.IsBlocked,
+
+			TotalTraffic:   int64(user.Quotas.CountersTotal.Total.Tx + user.Quotas.CountersTotal.Total.Rx),
+			YearlyTraffic:  int64(user.Quotas.CountersTotal.Yearly.Tx + user.Quotas.CountersTotal.Yearly.Rx),
+			MonthlyTraffic: int64(user.Quotas.CountersTotal.Monthly.Tx + user.Quotas.CountersTotal.Monthly.Rx),
+			WeeklyTraffic:  int64(user.Quotas.CountersTotal.Weekly.Tx + user.Quotas.CountersTotal.Weekly.Rx),
+			DailyTraffic:   int64(user.Quotas.CountersTotal.Daily.Tx + user.Quotas.CountersTotal.Daily.Rx),
+			PrevDayTraffic: int64(user.Quotas.CountersTotal.PrevDay.Tx + user.Quotas.CountersTotal.PrevDay.Rx),
 		}
 
 		if user.IsBlocked && !user.BlockedAt.IsZero() {

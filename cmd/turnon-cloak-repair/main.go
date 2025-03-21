@@ -173,7 +173,7 @@ func Do(db *storage.BrigadeStorage, replay, purge, rewrite bool, routerPublicKey
 	}
 
 	if replay {
-		if err := db.ReplayBrigade(true, false, false); err != nil {
+		if err := db.ReplayBrigade(true, false, false, true, false); err != nil {
 			return fmt.Errorf("replay brigade: %w", err)
 		}
 	}

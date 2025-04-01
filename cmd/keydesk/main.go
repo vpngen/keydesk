@@ -58,10 +58,11 @@ var (
 	ErrInvalidPersonDesc    = stderrors.New("invalid person desc")
 	ErrInvalidPersonURL     = stderrors.New("invalid person url")
 	ErrStaticDirEmpty       = stderrors.New("empty static dirname")
+	ErrNotAlowedInThisMode  = stderrors.New("not allowed in this mode")
 )
 
 func errQuit(msg string, err error) {
-	_, _ = fmt.Fprintf(os.Stderr, "%s: %s\n", msg, err)
+	fmt.Fprintf(os.Stderr, "%s: %s\n", msg, err)
 	os.Exit(1)
 }
 
@@ -76,8 +77,8 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	_, _ = fmt.Fprintf(os.Stderr, "Etc: %s\n", cfg.etcDir)
-	_, _ = fmt.Fprintf(os.Stderr, "DBDir: %s\n", cfg.dbDir)
+	fmt.Fprintf(os.Stderr, "Etc: %s\n", cfg.etcDir)
+	fmt.Fprintf(os.Stderr, "DBDir: %s\n", cfg.dbDir)
 
 	db := &storage.BrigadeStorage{
 		BrigadeID:       cfg.brigadeID,
@@ -96,15 +97,27 @@ func main() {
 
 	switch {
 	case cfg.addr.IsValid() && cfg.addr.Addr().IsUnspecified():
-		_, _ = fmt.Fprintln(os.Stderr, "Command address:port is COMMON")
+		fmt.Fprintln(os.Stderr, "Command address:port is COMMON")
 	case cfg.addr.IsValid():
-		_, _ = fmt.Fprintf(os.Stderr, "Command address:port: %s\n", cfg.addr)
+		fmt.Fprintf(os.Stderr, "Command address:port: %s\n", cfg.addr)
 	default:
-		_, _ = fmt.Fprintln(os.Stderr, "Command address:port is for DEBUG")
+		fmt.Fprintln(os.Stderr, "Command address:port is for DEBUG")
+	}
+
+	raw, brigade, err := db.OpenDbToModify()
+	if err != nil {
+		errQuit("open db", err)
+	}
+	if err = raw.Close(); err != nil {
+		errQuit("close db", err)
 	}
 
 	// Just create brigadier.
 	if cfg.brigadierName != "" || cfg.replaceBrigadier {
+		if brigade.Mode != storage.ModeBrigade {
+			errQuit("Can't create brigadier", ErrNotAlowedInThisMode)
+		}
+
 		if err := createBrigadier(
 			db,
 			cfg.chunked,
@@ -120,24 +133,24 @@ func main() {
 		return
 	}
 
-	_, _ = fmt.Fprintf(os.Stderr, "Cert Dir: %s\n", cfg.certDir)
-	_, _ = fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", cfg.statsDir)
-	_, _ = fmt.Fprintf(os.Stderr, "Web files: %s\n", cfg.webDir)
-	_, _ = fmt.Fprintf(os.Stderr, "Permessive CORS: %t\n", cfg.enableCORS)
-	_, _ = fmt.Fprintf(os.Stderr, "Starting %s keydesk\n", cfg.brigadeID)
+	fmt.Fprintf(os.Stderr, "Cert Dir: %s\n", cfg.certDir)
+	fmt.Fprintf(os.Stderr, "Stat Dir: %s\n", cfg.statsDir)
+	fmt.Fprintf(os.Stderr, "Web files: %s\n", cfg.webDir)
+	fmt.Fprintf(os.Stderr, "Permessive CORS: %t\n", cfg.enableCORS)
+	fmt.Fprintf(os.Stderr, "Starting %s keydesk\n", cfg.brigadeID)
 
 	allowedAddress := ""
 	calculatedAddrPort, ok := db.CalculatedAPIAddress()
 	if ok {
 		allowedAddress = calculatedAddrPort.String()
-		_, _ = fmt.Fprintf(os.Stderr, "Resqrict requests by address: %s \n", allowedAddress)
+		fmt.Fprintf(os.Stderr, "Resqrict requests by address: %s \n", allowedAddress)
 	}
 
 	//if len(cfg.listeners) == 0 && !cfg.addr.IsValid() {
 	//	errQuit("neither listeners nor address:port specified", nil)
 	//}
 
-	if len(cfg.listeners) == 0 {
+	if brigade.Mode == storage.ModeBrigade && len(cfg.listeners) == 0 {
 		prev := calculatedAddrPort.Prev().String()
 
 		l, err := net.Listen("tcp6", fmt.Sprintf("[%s]:80", prev))
@@ -196,11 +209,14 @@ func main() {
 		case nil:
 			serverTLS = &http.Server{
 				TLSConfig:   &tls.Config{Certificates: []tls.Certificate{cert}},
-				Handler:     handler,
+				Handler:     redirectToHTTPS()(handler),
 				IdleTimeout: 60 * time.Minute,
 			}
 		default:
-			_, _ = fmt.Fprintf(os.Stderr, "Skip TLS: can't open cert/key pair: %s\n", err)
+			fmt.Fprintf(os.Stderr, "Skip TLS: can't open cert/key pair: %s\n", err)
+			if err := cfg.listeners[1].Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Close TLS listener: %s\n", err)
+			}
 		}
 	}
 
@@ -210,10 +226,11 @@ func main() {
 	if len(cfg.listeners) > 0 {
 		r.AddTask("keydesk http", runner.Task{
 			Func: func(ctx context.Context) error {
-				_, _ = fmt.Fprintf(os.Stderr, "Listen HTTP: %s\n", cfg.listeners[0].Addr().String())
+				fmt.Fprintf(os.Stderr, "Listen HTTP: %s\n", cfg.listeners[0].Addr().String())
 				if err := srv.Serve(cfg.listeners[0]); err != nil && !stderrors.Is(err, http.ErrServerClosed) {
 					return err
 				}
+
 				return nil
 			},
 			Shutdown: func(ctx context.Context) error {
@@ -250,15 +267,7 @@ func main() {
 		},
 	})
 
-	raw, brigade, err := db.OpenDbToModify()
-	if err != nil {
-		errQuit("open db", err)
-	}
-	if err = raw.Close(); err != nil {
-		errQuit("close db", err)
-	}
-
-	_, _ = fmt.Fprintf(os.Stderr, "Brigade mode: %s \n", brigade.Mode)
+	fmt.Fprintf(os.Stderr, "Brigade mode: %s \n", brigade.Mode)
 
 	pubFile, err := os.Open(cfg.jwtPublicKeyFile)
 	if err != nil {
@@ -299,7 +308,8 @@ func main() {
 		})
 	}
 
-	if brigade.Mode == storage.ModeVGSocket && cfg.shufflerAPISocket != nil {
+	// start socket interface for any mode to stats access
+	if cfg.shufflerAPISocket != nil {
 		echoSrv, err := shflrapp.SetupServer(db, authorizer, routerPublicKey, shufflerPublicKey)
 		if err != nil {
 			errQuit("shuffler server", err)
@@ -452,7 +462,7 @@ func uiMiddlewareBuilder(dir string, allowedAddr string) middleware.Builder {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			remoteAddrPort, err := netip.ParseAddrPort(r.RemoteAddr)
 			if err != nil {
-				_, _ = fmt.Fprintf(os.Stdout, "Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)
+				fmt.Fprintf(os.Stdout, "Connect From Unparseable: %s: %s\n", r.RemoteAddr, err)
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 
 				return
@@ -461,8 +471,8 @@ func uiMiddlewareBuilder(dir string, allowedAddr string) middleware.Builder {
 			remoteAddr := remoteAddrPort.Addr().String()
 
 			if allowedAddr != "" && remoteAddr != allowedAddr {
-				_, _ = fmt.Fprintf(os.Stdout, "Connect From: %s Restricted\n", r.RemoteAddr)
-				_, _ = fmt.Fprintf(os.Stdout, "Remote: %s Expected:%s\n", remoteAddr, allowedAddr)
+				fmt.Fprintf(os.Stdout, "Connect From: %s Restricted\n", r.RemoteAddr)
+				fmt.Fprintf(os.Stdout, "Remote: %s Expected:%s\n", remoteAddr, allowedAddr)
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 
 				return
@@ -484,7 +494,7 @@ func uiMiddlewareBuilder(dir string, allowedAddr string) middleware.Builder {
 				return
 			}
 
-			_, _ = fmt.Fprintf(os.Stderr, "Connect From: %s\n", r.RemoteAddr)
+			fmt.Fprintf(os.Stderr, "Connect From: %s\n", r.RemoteAddr)
 
 			handler.ServeHTTP(w, r)
 		})
@@ -500,10 +510,25 @@ func maintenanceMiddlewareBuilder(paths ...string) middleware.Builder {
 				w.Header().Set("Retry-After", me.RetryAfter().String())
 				w.WriteHeader(http.StatusServiceUnavailable)
 				if err := json.NewEncoder(w).Encode(me); err != nil {
-					_, _ = fmt.Fprintln(os.Stderr, "encode maintenance error:", err)
+					fmt.Fprintln(os.Stderr, "encode maintenance error:", err)
 				}
 				return
 			}
+			handler.ServeHTTP(w, r)
+		})
+	}
+}
+
+func redirectToHTTPS() middleware.Builder {
+	return func(handler http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Redirect only if the request is not already using HTTPS
+			if r.Header.Get("X-Forwarded-Proto") != "https" && r.TLS == nil {
+				http.Redirect(w, r, "https://"+r.Host+r.RequestURI, http.StatusMovedPermanently)
+
+				return
+			}
+
 			handler.ServeHTTP(w, r)
 		})
 	}

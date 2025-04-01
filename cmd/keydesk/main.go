@@ -58,6 +58,7 @@ var (
 	ErrInvalidPersonDesc    = stderrors.New("invalid person desc")
 	ErrInvalidPersonURL     = stderrors.New("invalid person url")
 	ErrStaticDirEmpty       = stderrors.New("empty static dirname")
+	ErrNotAlowedInThisMode  = stderrors.New("not allowed in this mode")
 )
 
 func errQuit(msg string, err error) {
@@ -76,8 +77,8 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	_, _ = fmt.Fprintf(os.Stderr, "Etc: %s\n", cfg.etcDir)
-	_, _ = fmt.Fprintf(os.Stderr, "DBDir: %s\n", cfg.dbDir)
+	fmt.Fprintf(os.Stderr, "Etc: %s\n", cfg.etcDir)
+	fmt.Fprintf(os.Stderr, "DBDir: %s\n", cfg.dbDir)
 
 	db := &storage.BrigadeStorage{
 		BrigadeID:       cfg.brigadeID,
@@ -103,8 +104,20 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Command address:port is for DEBUG")
 	}
 
+	raw, brigade, err := db.OpenDbToModify()
+	if err != nil {
+		errQuit("open db", err)
+	}
+	if err = raw.Close(); err != nil {
+		errQuit("close db", err)
+	}
+
 	// Just create brigadier.
 	if cfg.brigadierName != "" || cfg.replaceBrigadier {
+		if brigade.Mode != storage.ModeBrigade {
+			errQuit("Can't create brigadier", ErrNotAlowedInThisMode)
+		}
+
 		if err := createBrigadier(
 			db,
 			cfg.chunked,
@@ -130,15 +143,7 @@ func main() {
 	calculatedAddrPort, ok := db.CalculatedAPIAddress()
 	if ok {
 		allowedAddress = calculatedAddrPort.String()
-		_, _ = fmt.Fprintf(os.Stderr, "Resqrict requests by address: %s \n", allowedAddress)
-	}
-
-	raw, brigade, err := db.OpenDbToModify()
-	if err != nil {
-		errQuit("open db", err)
-	}
-	if err = raw.Close(); err != nil {
-		errQuit("close db", err)
+		fmt.Fprintf(os.Stderr, "Resqrict requests by address: %s \n", allowedAddress)
 	}
 
 	//if len(cfg.listeners) == 0 && !cfg.addr.IsValid() {

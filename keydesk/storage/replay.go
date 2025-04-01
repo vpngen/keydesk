@@ -114,7 +114,7 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly, delayed, donly bool
 
 	// beacuse we need to save changes only if delayed || donly flags are set
 	if donly || delayed {
-		if err = f.Commit(); err != nil {
+		if err := commitBrigade(f, data); err != nil {
 			return fmt.Errorf("commit: %w", err)
 		}
 	}

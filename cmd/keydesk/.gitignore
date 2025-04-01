@@ -1,4 +1,5 @@
 keydesk
+*.pem
 *.pub
 *.priv
 *.json

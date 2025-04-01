@@ -94,6 +94,13 @@ func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsReq
 			return shuffler.PostConfigs507Response{}, nil
 		}
 
+		if errors.Is(err, user.ErrNotAllowed) {
+			return shuffler.PostConfigsdefaultJSONResponse{
+				Body:       err.Error(),
+				StatusCode: http.StatusBadRequest,
+			}, nil
+		}
+
 		return shuffler.PostConfigsdefaultJSONResponse{
 			Body:       err.Error(),
 			StatusCode: http.StatusInternalServerError,
@@ -154,9 +161,18 @@ func (s server) PostConfigs(ctx context.Context, request shuffler.PostConfigsReq
 
 func (s server) PatchConfigsIdBlock(ctx context.Context, request shuffler.PatchConfigsIdBlockRequestObject) (shuffler.PatchConfigsIdBlockResponseObject, error) {
 	free, err := s.service.DeleteUser(request.Id, true)
-	if errors.Is(err, user.ErrNotFound) {
-		return shuffler.PatchConfigsIdBlock404Response{}, nil
-	} else if err != nil {
+	if err != nil {
+		if errors.Is(err, user.ErrNotFound) {
+			return shuffler.PatchConfigsIdBlock404Response{}, nil
+		}
+
+		if errors.Is(err, user.ErrNotAllowed) {
+			return shuffler.PatchConfigsIdBlockdefaultJSONResponse{
+				Body:       err.Error(),
+				StatusCode: http.StatusBadRequest,
+			}, nil
+		}
+
 		return shuffler.PatchConfigsIdBlockdefaultJSONResponse{
 			Body:       err.Error(),
 			StatusCode: http.StatusInternalServerError,
@@ -168,9 +184,18 @@ func (s server) PatchConfigsIdBlock(ctx context.Context, request shuffler.PatchC
 
 func (s server) PatchConfigsIdUnblock(ctx context.Context, request shuffler.PatchConfigsIdUnblockRequestObject) (shuffler.PatchConfigsIdUnblockResponseObject, error) {
 	free, err := s.service.UnblockUser(request.Id)
-	if errors.Is(err, user.ErrNotFound) {
-		return shuffler.PatchConfigsIdUnblock404Response{}, nil
-	} else if err != nil {
+	if err != nil {
+		if errors.Is(err, user.ErrNotFound) {
+			return shuffler.PatchConfigsIdUnblock404Response{}, nil
+		}
+
+		if errors.Is(err, user.ErrNotAllowed) {
+			return shuffler.PatchConfigsIdUnblockdefaultJSONResponse{
+				Body:       err.Error(),
+				StatusCode: http.StatusBadRequest,
+			}, nil
+		}
+
 		return shuffler.PatchConfigsIdUnblockdefaultJSONResponse{
 			Body:       err.Error(),
 			StatusCode: http.StatusInternalServerError,
@@ -182,9 +207,18 @@ func (s server) PatchConfigsIdUnblock(ctx context.Context, request shuffler.Patc
 
 func (s server) DeleteConfigsId(ctx context.Context, request shuffler.DeleteConfigsIdRequestObject) (shuffler.DeleteConfigsIdResponseObject, error) {
 	free, err := s.service.DeleteUser(request.Id, false)
-	if errors.Is(err, user.ErrNotFound) {
-		return shuffler.DeleteConfigsId404Response{}, nil
-	} else if err != nil {
+	if err != nil {
+		if errors.Is(err, user.ErrNotFound) {
+			return shuffler.DeleteConfigsId404Response{}, nil
+		}
+
+		if errors.Is(err, user.ErrNotAllowed) {
+			return shuffler.DeleteConfigsIddefaultJSONResponse{
+				Body:       err.Error(),
+				StatusCode: http.StatusBadRequest,
+			}, nil
+		}
+
 		return shuffler.DeleteConfigsIddefaultJSONResponse{
 			Body:       err.Error(),
 			StatusCode: http.StatusInternalServerError,

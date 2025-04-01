@@ -58,7 +58,16 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly, delayed, donly bool
 		for {
 			for i, user := range data.Users {
 				if user.DelayedDeletion {
+					if err = vpnapi.WgPeerDel(
+						data.BrigadeID,
+						db.actualAddrPort, db.calculatedAddrPort,
+						user.WgPublicKey, data.WgPublicKey,
+					); err != nil {
+						return fmt.Errorf("wg del: %w", err)
+					}
+
 					data.Users = append(data.Users[:i], data.Users[i+1:]...)
+
 					continue OUTER
 				}
 			}
@@ -105,7 +114,7 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly, delayed, donly bool
 
 	// beacuse we need to save changes only if delayed || donly flags are set
 	if donly || delayed {
-		if err = f.Commit(); err != nil {
+		if err := commitBrigade(f, data); err != nil {
 			return fmt.Errorf("commit: %w", err)
 		}
 	}

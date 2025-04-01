@@ -13,6 +13,10 @@ import (
 
 func (s Service) DeleteUser(id uuid.UUID, onlyBlock bool) (free int, err error) {
 	err = s.db.RunInTransaction(func(brigade *storage.Brigade) error {
+		if brigade.Mode == storage.ModeBrigade {
+			return ErrNotAllowed
+		}
+
 		err = s.deleteUser(brigade, id, onlyBlock)
 		if err != nil {
 			return fmt.Errorf("delete user %s: %w", id, err)

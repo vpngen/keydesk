@@ -1,13 +1,13 @@
 package user
 
 import (
-	"fmt"
+	"log"
+
 	"github.com/vpngen/keydesk/internal/vpn"
 	"github.com/vpngen/keydesk/internal/vpn/endpoint"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/utils"
 	"github.com/vpngen/vpngine/naclkey"
-	"log"
 )
 
 type Service struct {
@@ -26,9 +26,10 @@ func New(db *storage.BrigadeStorage, routerPub, shufflerPub [naclkey.NaclBoxKeyL
 	//		RealClient: endpoint.NewClient(db.GetCalculatedAddrPort(), nil),
 	//	}
 	//}
-	if !db.GetActualAddrPort().IsValid() {
-		return Service{}, fmt.Errorf("invalid address: %s", db.GetActualAddrPort())
-	}
+	//if !db.GetActualAddrPort().IsValid() {
+	//	return Service{}, fmt.Errorf("invalid address: %s", db.GetActualAddrPort())
+	//}
+
 	client := endpoint.NewClient(db.GetActualAddrPort(), logger)
 	return Service{
 		db:       db,

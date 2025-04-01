@@ -35,5 +35,8 @@ if [ -z "$NO_RANDOM" ]; then
 fi
 
 echo "go run ./$(dirname "$0") -shuffler ${LISTEN_SHUFFLER} -m ${LISTEN_MESSAGE} -a ${ADDRESS} -d ${DATA_DIR} -c ${CONFIG_DIR} -id ${BRIGADE_ID} -l ${LISTEN_ADDR} ${CORS} -w ${WEB_DIR}"
-
 go run ./"$(dirname "$0")"/ -shuffler "${LISTEN_SHUFFLER}" -m "${LISTEN_MESSAGE}" -l "${LISTEN_ADDR}" -a "${ADDRESS}" -d "${DATA_DIR}" -c "${CONFIG_DIR}" -id "${BRIGADE_ID}" ${CORS} -w "${WEB_DIR}"
+
+#echo "go run ./$(dirname "$0") -shuffler ${LISTEN_SHUFFLER} -m ${LISTEN_MESSAGE} -a ${ADDRESS} -d ${DATA_DIR} -c ${CONFIG_DIR} -id ${BRIGADE_ID}"
+#go run ./"$(dirname "$0")"/ -shuffler "${LISTEN_SHUFFLER}" -m "${LISTEN_MESSAGE}" -a "${ADDRESS}" -d "${DATA_DIR}" -c "${CONFIG_DIR}" -id "${BRIGADE_ID}"
+

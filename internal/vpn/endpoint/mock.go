@@ -3,8 +3,9 @@ package endpoint
 import (
 	"encoding/base64"
 	"fmt"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"os"
+
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 const testCert = `-----BEGIN CERTIFICATE-----

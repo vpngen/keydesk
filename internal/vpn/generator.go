@@ -181,12 +181,17 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 
 		case Universal:
 			sscfg := protocolsObj.Shadowsocks
+			if sscfg != nil {
+				sscfg.Outline.Prefix = outline.Prefix
+			}
+
 			ck, err := protocolsObj.Cloak.GetVGC(cloak.ProxyBook{
 				Shadowsocks: ss.NewSSProxyBook(sscfg.Cipher, sscfg.Password),
 			})
 			if err != nil {
 				return Configs{}, "", fmt.Errorf("get cloak config: %w", err)
 			}
+
 			proto0 := protocolsObj.Proto0
 
 			cfg := vgc.NewV1(sname, user.EndpointDomain, protocolsObj.WireGuard.GetVGC(), ck, sscfg, proto0, 0)
@@ -194,6 +199,7 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 			if err != nil {
 				return Configs{}, "", fmt.Errorf("encode: %w", err)
 			}
+
 			ret.Universal = &enc
 
 		case Outline:
@@ -201,6 +207,7 @@ func (g Generator) GenerateConfigs(brigade *storage.Brigade, user *storage.User,
 			if err != nil {
 				return Configs{}, "", fmt.Errorf("outline: %w", err)
 			}
+
 			ret.Outline = &cfg
 
 		case Proto0:

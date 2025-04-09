@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/vpngen/keydesk/internal/vpn/cloak"
+	"github.com/vpngen/keydesk/internal/vpn/outline"
 	"github.com/vpngen/keydesk/internal/vpn/proto0"
 	ss2 "github.com/vpngen/keydesk/internal/vpn/ss"
 	"github.com/vpngen/keydesk/internal/vpn/vgc"
@@ -108,8 +109,6 @@ func AddBrigadier(db *storage.BrigadeStorage, fullname string, person namesgener
 	return wgconf, kdlib.AssembleWgStyleTunName(user.Name) + ".conf", confJson, nil
 }
 
-const OutlinePrefix = "%16%03%01%00%C2%A8%01%01"
-
 func assembleConfig(
 	user *storage.UserConfig,
 	isBrigadier int,
@@ -193,7 +192,7 @@ func assembleConfig(
 			fmt.Appendf([]byte{}, "chacha20-ietf-poly1305:%s", outlineSecret),
 		) +
 			"@" + fmt.Sprintf("%s:%d", endpointHostString, user.OutlinePort) +
-			"/?outline=1&prefix=" + OutlinePrefix +
+			"/?outline=1&prefix=" + outline.Prefix +
 			"#" + strings.ReplaceAll(url.QueryEscape(user.Name), "+", "%20")
 		newuser.OutlineConfig = &models.NewuserOutlineConfig{
 			AccessKey: &accessKey,

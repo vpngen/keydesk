@@ -52,6 +52,10 @@ func (s Service) CreateUser(configs []string, domain string) (res createUserResp
 }
 
 func (s Service) createUserWithConfigs(brigade *storage.Brigade, configs []string, domain string) (User, error) {
+	if domain == "" {
+		domain = brigade.EndpointDomain
+	}
+
 	dbUser, err := newUser(brigade, domain)
 	if err != nil {
 		return User{}, fmt.Errorf("new user: %w", err)
@@ -64,12 +68,9 @@ func (s Service) createUserWithConfigs(brigade *storage.Brigade, configs []strin
 
 	brigade.Users = append(brigade.Users, &dbUser)
 
-	endpointHostString := dbUser.EndpointDomain
+	endpointHostString := domain
 	if endpointHostString == "" {
-		endpointHostString = brigade.EndpointDomain
-		if endpointHostString == "" {
-			endpointHostString = brigade.EndpointIPv4.String()
-		}
+		endpointHostString = brigade.EndpointIPv4.String()
 	}
 
 	return User{

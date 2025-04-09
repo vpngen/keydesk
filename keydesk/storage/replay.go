@@ -82,15 +82,41 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly, delayed, donly bool
 			kd6 = data.KeydeskIPv6
 		}
 
-		if !donly && !delayed && (user.DelayedCreation || user.DelayedDeletion) {
+		if !donly && !delayed && (user.DelayedCreation || user.DelayedDeletion || user.DelayedReplay || user.DelayedBlocking) {
 			continue
+		}
+
+		if donly || delayed {
+			switch {
+			case user.DelayedBlocking:
+				user.DelayedBlocking = false
+
+				if err = vpnapi.WgPeerDel(
+					data.BrigadeID,
+					db.actualAddrPort, db.calculatedAddrPort,
+					user.WgPublicKey, data.WgPublicKey,
+				); err != nil {
+					return fmt.Errorf("wg del: %w", err)
+				}
+			case user.DelayedReplay:
+				user.DelayedReplay = false
+				user.DelayedCreation = true
+
+				if err = vpnapi.WgPeerDel(
+					data.BrigadeID,
+					db.actualAddrPort, db.calculatedAddrPort,
+					user.WgPublicKey, data.WgPublicKey,
+				); err != nil {
+					return fmt.Errorf("wg del: %w", err)
+				}
+			}
 		}
 
 		if user.IsBlocked {
 			continue
 		}
 
-		if donly && !user.DelayedCreation {
+		if donly && (!user.DelayedCreation && !user.DelayedReplay && !user.DelayedBlocking) {
 			continue
 		}
 

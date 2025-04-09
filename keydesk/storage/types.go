@@ -188,6 +188,8 @@ type User struct {
 	BlockedAt                 time.Time             `json:"blocked_at,omitempty"`
 	DelayedDeletion           bool                  `json:"delayed_deletion,omitempty"` // if blocked just delete user
 	DelayedCreation           bool                  `json:"delayed_creation,omitempty"` // if blocked just create record
+	DelayedBlocking           bool                  `json:"delayed_blocking,omitempty"` // if blocked just block user
+	DelayedReplay             bool                  `json:"delayed_reply,omitempty"`    // if blocked just reply to user
 	IPv4Addr                  netip.Addr            `json:"ipv4_addr"`
 	IPv6Addr                  netip.Addr            `json:"ipv6_addr"`
 	EndpointDomain            string                `json:"endpoint_domain,omitempty"`

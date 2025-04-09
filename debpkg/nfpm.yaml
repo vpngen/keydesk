@@ -58,6 +58,12 @@ contents:
     mode: 0005
     owner: root
     group: root
+- src: bin/patch
+  dst: /opt/vgkeydesk/patch
+  file_info:
+    mode: 0005
+    owner: root
+    group: root
 - src: bin/reset
   dst: /opt/vgkeydesk/reset
   file_info:

@@ -212,12 +212,14 @@ func (s server) DeleteConfigsId(ctx context.Context, request shuffler.DeleteConf
 			return shuffler.DeleteConfigsId404Response{}, nil
 		}
 
+		/* TODO: !!!!!!!
 		if errors.Is(err, user.ErrNotAllowed) {
 			return shuffler.DeleteConfigsIddefaultJSONResponse{
 				Body:       err.Error(),
 				StatusCode: http.StatusBadRequest,
 			}, nil
 		}
+		*/
 
 		return shuffler.DeleteConfigsIddefaultJSONResponse{
 			Body:       err.Error(),

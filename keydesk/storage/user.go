@@ -160,6 +160,7 @@ func (db *BrigadeStorage) CreateUser(
 		Name:                      userconf.Name,
 		CreatedAt:                 ts, // creazy but can be data.KeydeskLastVisit
 		IsBrigadier:               isBrigadier,
+		IsSocket:                  false,
 		IPv4Addr:                  userconf.IPv4,
 		IPv6Addr:                  userconf.IPv6,
 		WgPublicKey:               wgPub,

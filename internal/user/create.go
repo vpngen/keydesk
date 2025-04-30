@@ -30,9 +30,9 @@ var (
 
 func (s Service) CreateUser(configs []string, domain string) (res createUserResponse, err error) {
 	err = s.db.RunInTransaction(func(brigade *storage.Brigade) error {
-		if brigade.Mode == storage.ModeBrigade {
-			return ErrNotAllowed
-		}
+		//if brigade.Mode == storage.ModeBrigade {
+		//	return ErrNotAllowed
+		//} TODO!!!
 
 		if len(brigade.Users) >= int(brigade.MaxUsers) {
 			return ErrNoFreeSlots
@@ -94,7 +94,7 @@ func newUser(brigade *storage.Brigade, domain string) (storage.User, error) {
 	ip6 := getUniqueAddr6(brigade.IPv6ULA, ips6)
 	name = blurIP4(name, brigade.BrigadeID, ip4, brigade.IPv4CGNAT)
 
-	user := storage.NewUser(uid, name, time.Now(), false, ip4, ip6, person)
+	user := storage.NewUser(uid, name, time.Now(), false, true, ip4, ip6, person)
 	if domain != "" {
 		user.EndpointDomain = domain
 	}
@@ -104,9 +104,9 @@ func newUser(brigade *storage.Brigade, domain string) (storage.User, error) {
 
 func (s Service) UnblockUser(id uuid.UUID) (free int, err error) {
 	if err := s.db.RunInTransaction(func(brigade *storage.Brigade) error {
-		if brigade.Mode == storage.ModeBrigade {
-			return ErrNotAllowed
-		}
+		//if brigade.Mode == storage.ModeBrigade {
+		//	return ErrNotAllowed
+		//}
 
 		return nil
 	}); err != nil {

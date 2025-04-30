@@ -184,6 +184,7 @@ type User struct {
 	Name                      string                `json:"name"`
 	CreatedAt                 time.Time             `json:"created_at"`
 	IsBrigadier               bool                  `json:"is_brigadier,omitempty"`
+	IsSocket                  bool                  `json:"is_socket,omitempty"`
 	IsBlocked                 bool                  `json:"is_blocked,omitempty"`
 	BlockedAt                 time.Time             `json:"blocked_at,omitempty"`
 	DelayedDeletion           bool                  `json:"delayed_deletion,omitempty"` // if blocked just delete user
@@ -211,8 +212,8 @@ type User struct {
 	Quotas                    Quota                 `json:"quotas"`
 }
 
-func NewUser(userID uuid.UUID, name string, createdAt time.Time, isBrigadier bool, IPv4Addr netip.Addr, IPv6Addr netip.Addr, person namesgenerator.Person) User {
-	return User{UserID: userID, Name: name, CreatedAt: createdAt, IsBrigadier: isBrigadier, IPv4Addr: IPv4Addr, IPv6Addr: IPv6Addr, Person: person}
+func NewUser(userID uuid.UUID, name string, createdAt time.Time, isBrigadier, isSocket bool, IPv4Addr netip.Addr, IPv6Addr netip.Addr, person namesgenerator.Person) User {
+	return User{UserID: userID, Name: name, CreatedAt: createdAt, IsBrigadier: isBrigadier, IsSocket: isSocket, IPv4Addr: IPv4Addr, IPv6Addr: IPv6Addr, Person: person}
 }
 
 // BrigadeVersion - json version.

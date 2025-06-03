@@ -91,14 +91,16 @@ if [ "$1" = "pkg" ]; then
         
         constract_version "keydesk"
 
+        go build -C keydesk/keydesk/cmd/fakesitelist
+
         if [ -s "/etc/__vpngen__/sites.lst" ]; then
                 cp -f "/etc/__vpngen__/sites.lst" "keydesk/keydesk/cmd/fakesitelist/sites.lst"
-                cp -f "/etc/__vpngen__/sites0.lst" "keydesk/keydesk/cmd/fakesitelist/sites0.lst"
+                keydesk/keydesk/cmd/fakesitelist/fakesitelist > keydesk/keydesk/topsite.go
+        fi
 
-                go build -C keydesk/keydesk/cmd/fakesitelist
-                
-                keydesk/keydesk/cmd/fakesitelist/fakesitelist > keydesk/keydesk/topsites.go
-                keydesk/keydesk/cmd/fakesitelist/fakesitelist -0 > keydesk/keydesk/topsites0.go
+        if [ -s "/etc/__vpngen__/sites0.lst" ]; then
+                cp -f "/etc/__vpngen__/sites0.lst" "keydesk/keydesk/cmd/fakesitelist/sites0.lst"
+                keydesk/keydesk/cmd/fakesitelist/fakesitelist -0 > keydesk/keydesk/topsite0.go
         fi
 
         keydesk/debpkg/src/build.sh

@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"net/netip"
+	"strings"
 
 	"github.com/vpngen/keydesk/vpnapi"
 )
@@ -25,6 +26,15 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly, delayed, donly bool
 			}
 		}
 
+		proto0Decoy := []string{}
+		if data.Proto0FakeDomain != "" {
+			proto0Decoy = append(proto0Decoy, data.Proto0FakeDomain)
+		}
+
+		if len(data.Proto0FakeDomains) > 0 {
+			proto0Decoy = append(proto0Decoy, data.Proto0FakeDomains...)
+		}
+
 		if !uonly {
 			// if we catch a slowdown problems we need organize queue
 			err = vpnapi.WgAdd(
@@ -41,7 +51,7 @@ func (db *BrigadeStorage) ReplayBrigade(fresh, bonly, uonly, delayed, donly bool
 				data.OvCAKeyRouterEnc,
 				data.IPSecPSKRouterEnc,
 				data.OutlinePort,
-				data.Proto0FakeDomain,
+				strings.Join(proto0Decoy, ","),
 			)
 			if err != nil {
 				return fmt.Errorf("wg add: %w", err)

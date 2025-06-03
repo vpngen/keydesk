@@ -159,23 +159,14 @@ func addProto0Support(db *storage.BrigadeStorage, domain string) error {
 
 	defer f.Close()
 
-	if data.Proto0FakeDomain != "" && data.Proto0Port > 0 && data.Proto0FakeDomain != data.CloakFakeDomain {
+	if (data.Proto0FakeDomain != "" || len(data.Proto0FakeDomains) > 0) && data.Proto0Port > 0 {
 		fmt.Fprintf(os.Stderr, "Brigade %s already has Proto0\n", db.BrigadeID)
 
 		return ErrProto0AlreadyPresent
 	}
 
-	if data.Proto0FakeDomain != "" && data.Proto0FakeDomain == data.CloakFakeDomain {
-		fmt.Fprintf(os.Stderr, "Error: Brigade %s has Proto0 with the same domain as Cloak. Fix it\n", db.BrigadeID)
-	}
-
-	proto0Conf := keydesk.GenEndpointProto0Creds(data.CloakFakeDomain, 0)
-
-	if domain != "" {
-		proto0Conf.Proto0FakeDomain = domain
-	}
-
-	data.Proto0FakeDomain = proto0Conf.Proto0FakeDomain
+	proto0Conf := keydesk.GenEndpointProto0Creds(domain, 0)
+	data.Proto0FakeDomains = proto0Conf.Proto0FakeDomains
 	data.Proto0Port = proto0Conf.Proto0Port
 
 	f.Commit(data)
@@ -191,13 +182,14 @@ func removeProto0Support(db *storage.BrigadeStorage) error {
 
 	defer f.Close()
 
-	if data.Proto0FakeDomain == "" || data.Proto0Port <= 0 {
+	if (data.Proto0FakeDomain == "" && len(data.Proto0FakeDomains) == 0) || data.Proto0Port <= 0 {
 		fmt.Fprintf(os.Stderr, "Brigade %s already hasn't Proto0\n", db.BrigadeID)
 
 		return ErrProto0AlreadyAbsent
 	}
 
 	data.Proto0FakeDomain = ""
+	data.Proto0FakeDomains = []string{}
 	data.Proto0Port = 0
 
 	f.Commit(data)

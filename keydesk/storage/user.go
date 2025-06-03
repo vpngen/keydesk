@@ -1,9 +1,11 @@
 package storage
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/netip"
 	"os"
 	"sort"
@@ -122,7 +124,18 @@ func (db *BrigadeStorage) CreateUser(
 	}
 
 	if len(vpnCfgs.Proto0) > 0 {
-		userconf.Proto0FakeDomain = data.Proto0FakeDomain
+		switch len(data.Proto0FakeDomains) {
+		case 0:
+			userconf.Proto0FakeDomain = data.Proto0FakeDomain
+		default:
+			x, err := rand.Int(rand.Reader, big.NewInt(int64(len(data.Proto0FakeDomains))))
+			if err != nil {
+				panic(err)
+			}
+
+			userconf.Proto0FakeDomain = data.Proto0FakeDomains[x.Int64()]
+		}
+
 		userconf.Proto0Port = data.Proto0Port
 	}
 
@@ -175,6 +188,7 @@ func (db *BrigadeStorage) CreateUser(
 		IPSecPasswordShufflerEnc:  ipsecPasswordShufflerEnc,
 		OutlineSecretRouterEnc:    outlineSecretRouterEnc,
 		OutlineSecretShufflerEnc:  outlineSecretShufflerEnc,
+		Proto0UserFakeDomain:      userconf.Proto0FakeDomain,
 		Proto0SecretRouterEnc:     proto0SecretRouterEnc,
 		Proto0SecretShufflerEnc:   proto0SecreShufflerEnc,
 		Person:                    person,

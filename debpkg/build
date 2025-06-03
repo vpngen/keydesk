@@ -91,10 +91,22 @@ if [ "$1" = "pkg" ]; then
         
         constract_version "keydesk"
 
+        if [ -s "/etc/__vpngen__/sites.lst" ]; then
+                cp -f "/etc/__vpngen__/sites.lst" "keydesk/keydesk/cmd/fakesitelist/sites.lst"
+                cp -f "/etc/__vpngen__/sites0.lst" "keydesk/keydesk/cmd/fakesitelist/sites0.lst"
+
+                go build -C keydesk/keydesk/cmd/fakesitelist
+                
+                keydesk/keydesk/cmd/fakesitelist/fakesitelist > keydesk/keydesk/topsites.go
+                keydesk/keydesk/cmd/fakesitelist/fakesitelist -0 > keydesk/keydesk/topsites0.go
+        fi
+
         keydesk/debpkg/src/build.sh
 
         exit 0
 fi
+
+CONFDIR=${CONFDIR:-$(pwd)/.vpngen}
 
 GOLANG_VER="$(grep -e "^go\s" "$(dirname "$0")"/../go.mod | awk '{print $2}')"
 
@@ -115,6 +127,7 @@ docker run --rm \
         -e VERMETADATA="${VERMETADATA}" \
         -e GIT_USER="${GIT_USER}" \
         -e GIT_PASSWORD="${GIT_PASSWORD}" \
+        -v "${CONFDIR}":/etc/__vpngen__ \
         -v "${PWD}":"${SHARED_BASE}" \
         golang:"${GOLANG_VER}" "${SHARED_BASE}/build" pkg
 

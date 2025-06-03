@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/vpngen/keydesk/vpnapi"
 )
@@ -34,8 +35,9 @@ type BrigadeOutlineConfig struct {
 }
 
 type BrigadeProto0Config struct {
-	Proto0FakeDomain string
-	Proto0Port       uint16
+	Proto0FakeDomains []string // can be empty
+	Proto0FakeDomain  string
+	Proto0Port        uint16
 }
 
 // CreateBrigade - create brigade config.
@@ -110,7 +112,17 @@ func (db *BrigadeStorage) CreateBrigade(
 
 	if proto0Conf != nil {
 		data.Proto0FakeDomain = proto0Conf.Proto0FakeDomain
+		data.Proto0FakeDomains = proto0Conf.Proto0FakeDomains
 		data.Proto0Port = proto0Conf.Proto0Port
+	}
+
+	proto0Decoy := []string{}
+	if data.Proto0FakeDomain != "" {
+		proto0Decoy = append(proto0Decoy, data.Proto0FakeDomain)
+	}
+
+	if len(data.Proto0FakeDomains) > 0 {
+		proto0Decoy = append(proto0Decoy, data.Proto0FakeDomains...)
 	}
 
 	// if we catch a slowdown problems we need organize queue
@@ -128,7 +140,7 @@ func (db *BrigadeStorage) CreateBrigade(
 		data.OvCAKeyRouterEnc,
 		data.IPSecPSKRouterEnc,
 		data.OutlinePort,
-		data.Proto0FakeDomain,
+		strings.Join(proto0Decoy, ","),
 	)
 	if err != nil {
 		return fmt.Errorf("wg add: %w", err)
@@ -188,7 +200,7 @@ func (db *BrigadeStorage) GetVpnConfigs(req *ConfigsImplemented) (*ConfigsImplem
 		vpnCfgs.NewOutlineConfigs(req.Outline)
 	}
 
-	if data.Proto0FakeDomain != "" && data.Proto0Port > 0 {
+	if (data.Proto0FakeDomain != "" || len(data.Proto0FakeDomains) > 0) && data.Proto0Port > 0 {
 		vpnCfgs.NewProto0Configs(req.Proto0)
 	}
 

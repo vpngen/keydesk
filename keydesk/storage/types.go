@@ -206,6 +206,7 @@ type User struct {
 	IPSecPasswordShufflerEnc  string                `json:"ipsec_password_shuffler_enc"`   // IPSec password for shuffler prepared
 	OutlineSecretRouterEnc    string                `json:"outline_secret_router_enc"`     // Outline secret for router prepared
 	OutlineSecretShufflerEnc  string                `json:"outline_secret_shuffler_enc"`   // Outline secret for shuffler prepared
+	Proto0UserFakeDomain      string                `json:"proto0_user_fake_domain"`       // Protocol0 user fake domain
 	Proto0SecretRouterEnc     string                `json:"proto0_secret_router_enc"`      // Protocol0 secret for router prepared
 	Proto0SecretShufflerEnc   string                `json:"proto0_secret_shuffler_enc"`    // Protocol0 secret for shuffler prepared
 	Person                    namesgenerator.Person `json:"person"`
@@ -217,7 +218,7 @@ func NewUser(userID uuid.UUID, name string, createdAt time.Time, isBrigadier, is
 }
 
 // BrigadeVersion - json version.
-const BrigadeVersion = 10
+const BrigadeVersion = 11
 
 type Mode = string
 
@@ -251,8 +252,9 @@ type Brigade struct {
 	EndpointDomain        string               `json:"endpoint_domain"`
 	EndpointPort          uint16               `json:"endpoint_port"`
 	OutlinePort           uint16               `json:"outline_port"`
-	Proto0FakeDomain      string               `json:"proto0_fake_domain"` // Protocol0 fake domain
-	Proto0Port            uint16               `json:"proto0_port"`        // Protocol0 port
+	Proto0FakeDomain      string               `json:"proto0_fake_domain"`  // Protocol0 fake domain
+	Proto0FakeDomains     []string             `json:"proto0_fake_domains"` // Protocol0 fake domains
+	Proto0Port            uint16               `json:"proto0_port"`         // Protocol0 port
 	DNSv4                 netip.Addr           `json:"dns4"`
 	DNSv6                 netip.Addr           `json:"dns6"`
 	KeydeskIPv6           netip.Addr           `json:"keydesk_ipv6"`
@@ -284,7 +286,7 @@ func (b Brigade) GetSupportedVPNProtocols() []string {
 		protocols = append(protocols, "cloak")
 	}
 
-	if b.Proto0FakeDomain != "" && b.Proto0Port > 0 {
+	if (b.Proto0FakeDomain != "" || len(b.Proto0FakeDomains) > 0) && b.Proto0Port > 0 {
 		protocols = append(protocols, "proto0")
 	}
 

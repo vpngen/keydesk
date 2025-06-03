@@ -95,18 +95,18 @@ if [ "$1" = "pkg" ]; then
         if [ -s "/etc/__vpngen__/sites.lst" ] &&  [ -s "/etc/__vpngen__/sites0.lst" ]; then
                 echo "Copying sites.lst and sites0.lst to keydesk/cmd/fakesitelist"
                 cp -f "/etc/__vpngen__/sites.lst" "keydesk/keydesk/cmd/fakesitelist/sites.lst"
-                
+
                 echo "Copying sites0.lst to keydesk/cmd/fakesitelist"
                 cp -f "/etc/__vpngen__/sites0.lst" "keydesk/keydesk/cmd/fakesitelist/sites0.lst"
 
                 echo "Building fakesitelist"
                 go build -C keydesk/keydesk/cmd/fakesitelist
 
-                echo "Generating topsite.go from /etc/__vpngen__/sites.lst"
-                keydesk/keydesk/cmd/fakesitelist/fakesitelist -0 > keydesk/keydesk/topsite0.go
+                echo "Generating topsites.go from /etc/__vpngen__/sites.lst"
+                keydesk/keydesk/cmd/fakesitelist/fakesitelist -0 > keydesk/keydesk/topsites0.go
 
-                echo "Generating topsite0.go from /etc/__vpngen__/sites0.lst"
-                keydesk/keydesk/cmd/fakesitelist/fakesitelist > keydesk/keydesk/topsite.go
+                echo "Generating topsites0.go from /etc/__vpngen__/sites0.lst"
+                keydesk/keydesk/cmd/fakesitelist/fakesitelist > keydesk/keydesk/topsites.go
         else
                 echo "No /etc/__vpngen__/sites0.lst or /etc/__vpngen__/sites.lst found, skipping topsite generation"
         fi

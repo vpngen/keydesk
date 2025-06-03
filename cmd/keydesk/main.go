@@ -108,6 +108,15 @@ func main() {
 	if err != nil {
 		errQuit("open db", err)
 	}
+
+	if brigade.Ver < 11 && brigade.Proto0Port != 0 && len(brigade.Proto0FakeDomains) == 0 {
+		brigade.Proto0FakeDomains = keydesk.GetRandomSites0()
+
+		if err := raw.Commit(brigade); err != nil {
+			errQuit("commit db", err)
+		}
+	}
+
 	if err = raw.Close(); err != nil {
 		errQuit("close db", err)
 	}

@@ -10,7 +10,9 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"slices"
 	"sort"
+	"strings"
 
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -258,6 +260,9 @@ func patchBrigadeCommon(fresh, old *storage.Brigade) (*storage.Brigade, error) {
 		return newdata.Users[i].IsBrigadier || !newdata.Users[j].IsBrigadier && (newdata.Users[i].UserID.String() > newdata.Users[j].UserID.String())
 	})
 
+	slices.Sort(old.Proto0FakeDomains)
+	slices.Sort(fresh.Proto0FakeDomains)
+
 	if string(old.WgPublicKey) != string(fresh.WgPublicKey) ||
 		string(old.WgPrivateShufflerEnc) != string(fresh.WgPrivateShufflerEnc) ||
 
@@ -277,6 +282,7 @@ func patchBrigadeCommon(fresh, old *storage.Brigade) (*storage.Brigade, error) {
 
 		old.Proto0FakeDomain != fresh.Proto0FakeDomain ||
 		old.Proto0Port != fresh.Proto0Port ||
+		strings.Join(old.Proto0FakeDomains, " ") != strings.Join(fresh.Proto0FakeDomains, " ") ||
 
 		old.KeydeskIPv6 != fresh.KeydeskIPv6 ||
 

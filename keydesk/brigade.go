@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"slices"
 
 	"github.com/vpngen/keydesk/kdlib"
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -59,22 +60,15 @@ func CreateBrigade(
 		outlineConf = &storage.BrigadeOutlineConfig{OutlinePort: config.OutlinePort}
 	}
 
-	var (
-		cloakConf       *storage.BrigadeCloakConfig
-		cloakFakeDomain string
-	)
+	var cloakConf *storage.BrigadeCloakConfig
 
 	if len(vpnCfgs.Ovc) > 0 || len(vpnCfgs.Outline) > 0 {
 		cloakConf = GenEndpointCloakCreds(proto0FakeDomain)
 	}
 
-	if cloakConf != nil {
-		cloakFakeDomain = cloakConf.CloakFakeDomain
-	}
-
 	var proto0Conf *storage.BrigadeProto0Config
 	if len(vpnCfgs.Proto0) > 0 {
-		proto0Conf = GenEndpointProto0Creds(cloakFakeDomain, 0)
+		proto0Conf = GenEndpointProto0Creds(proto0FakeDomain, 0)
 	}
 
 	err = db.CreateBrigade(config, wgConf, ovcConf, cloakConf, ipsecConf, outlineConf, proto0Conf, mode, maxUsers)
@@ -173,20 +167,18 @@ func GenEndpointCloakCreds(proto0FakeDomain string) *storage.BrigadeCloakConfig 
 }
 
 func GenEndpointProto0Creds(domain string, port uint16) *storage.BrigadeProto0Config {
-	var fakeDomain string
-	for {
-		fakeDomain = GetRandomSite()
-		if fakeDomain != domain {
-			break
-		}
-	}
-
 	if port == 0 {
 		port = DefaultProto0Port
 	}
 
+	list := GetRandomSites0()
+
+	if domain != "" && !slices.Contains(list, domain) {
+		list = append(list, domain)
+	}
+
 	return &storage.BrigadeProto0Config{
-		Proto0FakeDomain: fakeDomain,
-		Proto0Port:       port,
+		Proto0FakeDomains: list,
+		Proto0Port:        port,
 	}
 }

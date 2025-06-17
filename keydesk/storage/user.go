@@ -349,7 +349,7 @@ func (db *BrigadeStorage) DeleteUser(id string, brigadier bool, onlyBlock bool) 
 	}
 
 	if user == nil {
-		return ErrUserNotFound
+		return nil
 	}
 
 	if !user.IsBlocked {

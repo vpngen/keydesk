@@ -118,6 +118,12 @@ contents:
     mode: 0500
     owner: root
     group: root
+- src: keydesk/cmd/repair_brigade/repair_brigade.sh
+  dst: /opt/vgkeydesk/repair_brigade.sh
+  file_info:
+    mode: 0500
+    owner: root
+    group: root
 - src: keydesk/cmd/sshcmd/ssh_spawner_command.sh
   dst: /opt/vgkeydesk/ssh_spawner_command.sh
   file_info:

@@ -12,3 +12,17 @@ type Options struct {
 
 	SigningMethod jwt.SigningMethod
 }
+
+type KeydeskTokenOptions struct {
+	// if Issuer is empty, all issuers are allowed
+	Issuer string
+	// if Subject is empty, all subjects are allowed
+	Subject string
+	// if Audience is empty, all audiences are allowed
+	Audience []string
+
+	// My IP address, used to verify the token
+	ExternalIP string
+
+	SigningMethod jwt.SigningMethod
+}

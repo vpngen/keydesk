@@ -175,17 +175,6 @@ func main() {
 		cfg.listeners = append(cfg.listeners, l)
 	}
 
-	jwtOpts := jwtsvc.Options{
-		Issuer:        "keydesk",
-		Subject:       db.BrigadeID,
-		Audience:      []string{"keydesk"},
-		SigningMethod: jwt.SigningMethodHS256,
-	}
-	jwtKey, err := utils.GenHMACKey()
-	if err != nil {
-		errQuit("JWT key error", err)
-	}
-
 	handler := initSwaggerAPI(
 		db,
 		&routerPublicKey,
@@ -193,8 +182,8 @@ func main() {
 		cfg.enableCORS,
 		cfg.webDir,
 		allowedAddress,
-		jwtsvc.NewIssuer(jwtKey, jwtOpts),
-		jwtsvc.NewAuthorizer(jwtKey, jwtOpts),
+		cfg.jwtKeydeskIssuer,
+		cfg.jwtKeydesAuthorizer,
 	)
 
 	// On signal, gracefully shut down the server and wait 5
@@ -278,7 +267,7 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "Brigade mode: %s \n", brigade.Mode)
 
-	pubFile, err := os.Open(cfg.jwtPublicKeyFile)
+	pubFile, err := os.Open(cfg.jwtMessagePubkeyFilename)
 	if err != nil {
 		errQuit("read jwt public key", err)
 	}
@@ -439,8 +428,8 @@ func initSwaggerAPI(
 	pcors bool,
 	webDir string,
 	allowedAddr string,
-	issuer jwtsvc.Issuer,
-	authorizer jwtsvc.Authorizer,
+	issuer jwtsvc.KeydeskTokenIssuer,
+	authorizer jwtsvc.KeydeskTokenAuthorizer,
 ) http.Handler {
 	api := server.NewServer(
 		db,

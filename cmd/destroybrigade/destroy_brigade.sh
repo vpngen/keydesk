@@ -101,12 +101,12 @@ fi
 
 DB_DIR=${DB_DIR:-"/home/${brigade_id}"}
 
-if [ -z "${FORCE}" ] && test -f "${DB_DIR}/.maintenance" && test "$(date '+%s')" -lt "$(cat "${DB_DIR}/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "${DB_DIR}/.maintenance")")"
+if [ -z "${FORCE}" ] && test -f "${DB_DIR}/.maintenance" && test "$(date '+%s')" -lt "$(head -n 1 "${DB_DIR}/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(head -n 1 "${DB_DIR}/.maintenance")")"
 fi
 
-if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
+if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(head -n 1 "/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(head -n 1 /.maintenance)")"
 fi
 
 systemd_vgkeydesk_instance="vgkeydesk@${brigade_id}"

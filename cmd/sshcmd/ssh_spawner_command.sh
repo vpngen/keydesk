@@ -23,6 +23,10 @@ elif [ "${cmd}" = "replace" ]; then
     sudo -u root -g root "${basedir}/replace_brigadier.sh" "$@"
 elif [ "${cmd}" = "destroy" ]; then
     sudo -u root -g root "${basedir}/destroy_brigade.sh" "$@"
+elif [ "${cmd}" = "vipon" ]; then
+    sudo -u root -g root "${basedir}/turnon-vip on"
+elif [ "${cmd}" = "vipoff" ]; then
+    sudo -u root -g root "${basedir}/turnon-vip off"
 else
     echo "Unknown command: ${cmd}"
     printdef

@@ -20,7 +20,7 @@ import (
 	"github.com/vpngen/vpngine/naclkey"
 )
 
-func SetupServer(db *storage.BrigadeStorage, authorizer jwt.Authorizer, routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) (*echo.Echo, error) {
+func SetupServer(db *storage.BrigadeStorage, authorizer jwt.MessagesJwtAuthorizer, routerPub, shufflerPub [naclkey.NaclBoxKeyLength]byte) (*echo.Echo, error) {
 	swagger, err := shuffler.GetSwagger()
 	if err != nil {
 		return nil, fmt.Errorf("get swagger: %s", err.Error())

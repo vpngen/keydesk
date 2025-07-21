@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/cors"
 	goSwaggerAuth "github.com/vpngen/keydesk/internal/auth/go-swagger"
 	"github.com/vpngen/keydesk/internal/maintenance"
@@ -33,7 +32,6 @@ import (
 	"github.com/vpngen/keydesk/keydesk/storage"
 	jwtsvc "github.com/vpngen/keydesk/pkg/jwt"
 	"github.com/vpngen/keydesk/pkg/runner"
-	"github.com/vpngen/keydesk/utils"
 	"github.com/vpngen/vpngine/naclkey"
 	"github.com/vpngen/wordsgens/namesgenerator"
 )
@@ -175,17 +173,6 @@ func main() {
 		cfg.listeners = append(cfg.listeners, l)
 	}
 
-	jwtOpts := jwtsvc.Options{
-		Issuer:        "keydesk",
-		Subject:       db.BrigadeID,
-		Audience:      []string{"keydesk"},
-		SigningMethod: jwt.SigningMethodHS256,
-	}
-	jwtKey, err := utils.GenHMACKey()
-	if err != nil {
-		errQuit("JWT key error", err)
-	}
-
 	handler := initSwaggerAPI(
 		db,
 		&routerPublicKey,
@@ -193,8 +180,8 @@ func main() {
 		cfg.enableCORS,
 		cfg.webDir,
 		allowedAddress,
-		jwtsvc.NewIssuer(jwtKey, jwtOpts),
-		jwtsvc.NewAuthorizer(jwtKey, jwtOpts),
+		cfg.jwtKeydeskIssuer,
+		cfg.jwtKeydesAuthorizer,
 	)
 
 	// On signal, gracefully shut down the server and wait 5
@@ -278,24 +265,10 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "Brigade mode: %s \n", brigade.Mode)
 
-	pubFile, err := os.Open(cfg.jwtPublicKeyFile)
-	if err != nil {
-		errQuit("read jwt public key", err)
-	}
-
-	ecPub, err := utils.ReadECPublicKey(pubFile)
-	if err != nil {
-		errQuit("decode jwt public key", err)
-	}
-
-	authorizer := jwtsvc.NewAuthorizer(ecPub, jwtsvc.Options{
-		Issuer:        "dc-mgmt",
-		Audience:      []string{"keydesk"},
-		SigningMethod: jwt.SigningMethodES256,
-	})
-
-	if brigade.Mode == storage.ModeBrigade && cfg.messageAPISocket != nil {
-		echoSrv, err := msgapp.SetupServer(db, authorizer)
+	if brigade.Mode == storage.ModeBrigade &&
+		cfg.messageAPISocket != nil &&
+		!cfg.jwtMsgAuthorizer.IsNil() {
+		echoSrv, err := msgapp.SetupServer(db, cfg.jwtMsgAuthorizer)
 		if err != nil {
 			errQuit("message server", err)
 		}
@@ -319,7 +292,7 @@ func main() {
 
 	// start socket interface for any mode to stats access
 	if cfg.shufflerAPISocket != nil {
-		echoSrv, err := shflrapp.SetupServer(db, authorizer, routerPublicKey, shufflerPublicKey)
+		echoSrv, err := shflrapp.SetupServer(db, cfg.jwtMsgAuthorizer, routerPublicKey, shufflerPublicKey)
 		if err != nil {
 			errQuit("shuffler server", err)
 		}
@@ -439,8 +412,8 @@ func initSwaggerAPI(
 	pcors bool,
 	webDir string,
 	allowedAddr string,
-	issuer jwtsvc.Issuer,
-	authorizer jwtsvc.Authorizer,
+	issuer jwtsvc.KeydeskTokenIssuer,
+	authorizer jwtsvc.KeydeskTokenAuthorizer,
 ) http.Handler {
 	api := server.NewServer(
 		db,

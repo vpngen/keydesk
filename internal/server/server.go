@@ -9,7 +9,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/vpngen/keydesk/gen/restapi"
 	"github.com/vpngen/keydesk/gen/restapi/operations"
-	go_swagger "github.com/vpngen/keydesk/internal/auth/go-swagger"
+	goSwagger "github.com/vpngen/keydesk/internal/auth/go-swagger"
 	"github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
@@ -20,8 +20,8 @@ import (
 func NewServer(
 	db *storage.BrigadeStorage,
 	msgSvc service.Service,
-	issuer jwt.Issuer,
-	goSwaggerAuth go_swagger.Service,
+	issuer jwt.KeydeskTokenIssuer,
+	goSwaggerAuth goSwagger.Service,
 	routerPublicKey, shufflerPublicKey *[naclkey.NaclBoxKeyLength]byte,
 	tokenTTL int64,
 ) *operations.UserAPI {
@@ -41,7 +41,7 @@ func NewServer(
 
 	api.JSONProducer = runtime.JSONProducer()
 
-	api.PostTokenHandler = operations.PostTokenHandlerFunc(keydesk.CreateToken(issuer, tokenTTL))
+	api.PostTokenHandler = operations.PostTokenHandlerFunc(keydesk.CreateToken(db, issuer, tokenTTL))
 
 	api.PostUserHandler = operations.PostUserHandlerFunc(func(params operations.PostUserParams, principal interface{}) middleware.Responder {
 		return keydesk.AddUser(db, params, principal, routerPublicKey, shufflerPublicKey)
@@ -94,9 +94,11 @@ func NewServer(
 	//})
 	//api.SendPushHandler = operations.SendPushHandlerFunc(pushSvc.SendPushHandler)
 
-	api.APIKeyAuthenticator = goSwaggerAuth.APIKeyAuthenticator
+	// api.APIKeyAuthenticator = goSwaggerAuth.APIKeyAuthenticator
+
 	api.BearerAuth = goSwaggerAuth.BearerAuth
-	api.APIAuthorizer = runtime.AuthorizerFunc(goSwaggerAuth.Authorize)
+
+	// api.APIAuthorizer = runtime.AuthorizerFunc(goSwaggerAuth.Authorize)
 
 	return api
 }

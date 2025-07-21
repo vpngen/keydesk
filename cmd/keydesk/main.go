@@ -107,6 +107,9 @@ func main() {
 		errQuit("open db", err)
 	}
 
+	ip := brigade.EndpointIPv4.String()
+	cfg.jwtKeydeskIssuer.SetExternalIP(ip)
+
 	if brigade.Ver < 11 && brigade.Proto0Port != 0 && len(brigade.Proto0FakeDomains) == 0 {
 		brigade.Proto0FakeDomains = keydesk.GetRandomSites0()
 

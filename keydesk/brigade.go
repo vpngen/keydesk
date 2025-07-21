@@ -25,6 +25,7 @@ func CreateBrigade(
 	routerPubkey, shufflerPubkey *[naclkey.NaclBoxKeyLength]byte,
 	mode storage.Mode,
 	maxUsers uint,
+	vip bool,
 ) error {
 	wgConf, err := genEndpointWGKeys(routerPubkey, shufflerPubkey)
 	if err != nil {
@@ -71,7 +72,7 @@ func CreateBrigade(
 		proto0Conf = GenEndpointProto0Creds(proto0FakeDomain, 0)
 	}
 
-	err = db.CreateBrigade(config, wgConf, ovcConf, cloakConf, ipsecConf, outlineConf, proto0Conf, mode, maxUsers)
+	err = db.CreateBrigade(config, wgConf, ovcConf, cloakConf, ipsecConf, outlineConf, proto0Conf, mode, maxUsers, vip)
 	if err != nil {
 		return fmt.Errorf("put: %w", err)
 	}

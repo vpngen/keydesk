@@ -51,6 +51,7 @@ func (db *BrigadeStorage) CreateBrigade(
 	proto0Conf *BrigadeProto0Config,
 	mode Mode,
 	maxUsers uint,
+	vip bool,
 ) error {
 	f, data, err := db.openWithoutReading(config.BrigadeID)
 	if err != nil {
@@ -75,6 +76,10 @@ func (db *BrigadeStorage) CreateBrigade(
 	data.Mode = mode
 	if mode == ModeVGSocket {
 		data.MaxUsers = maxUsers
+	}
+
+	if vip {
+		data.VIP = 1
 	}
 
 	data.IPv4CGNAT = config.IPv4CGNAT

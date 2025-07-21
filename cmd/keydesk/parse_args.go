@@ -66,6 +66,7 @@ const (
 	jwtPubKeyFileName         = "jwt-pub-msg.pem"
 	msgJwtPubkeyFilename      = "msg-jwt.pub"
 	keydeskJwtPrivkeyFileName = "keydesk-jwt.key"
+	etcSubdir                 = "vg-keydesk"
 )
 
 func parseFlags(flagSet *flag.FlagSet, args []string) flags {
@@ -245,7 +246,7 @@ func parseArgs2(flags flags) (config, error) {
 
 		vipPrivkeyFn := *flags.keydeskJwtPrivkeyFilename
 		if vipPrivkeyFn == "" {
-			vipPrivkeyFn = filepath.Join(cfg.etcDir, keydeskJwtPrivkeyFileName)
+			vipPrivkeyFn = filepath.Join(cfg.etcDir, etcSubdir, keydeskJwtPrivkeyFileName)
 		}
 
 		_, err := os.Stat(vipPrivkeyFn)

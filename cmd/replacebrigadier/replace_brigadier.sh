@@ -117,11 +117,11 @@ if [ -z "${brigade_id}" ]; then
         printdef "Brigade ID is required"
 fi
 
-if test -f "${DB_DIR}/${brigade_id}/.maintenance" && test "$(date '+%s')" -lt "$(cat "${DB_DIR}/${brigade_id}/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat "${DB_DIR}/${brigade_id}/.maintenance")")"
+if test -f "${DB_DIR}/${brigade_id}/.maintenance" && test "$(date '+%s')" -lt "$(head -n 1 "${DB_DIR}/${brigade_id}/.maintenance")"; then
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(head -n 1 "${DB_DIR}/${brigade_id}/.maintenance")")"
 fi
 if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(cat "/.maintenance")"; then
-        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(cat /.maintenance)")"
+        fatal 503 "Service is not available" "On maintenance till $(date -d "@$(head -n 1 /.maintenance)")"
 fi
 
 if [ -z "${wg_configs}" ] && [ -z "${ipsec_configs}" ] && [ -z "${ovc_configs}" ] && [ -z "${outline_configs}" ] && [ -z "${proto0_configs}" ]; then

@@ -5,10 +5,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/vpngen/keydesk/utils"
 	"testing"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/vpngen/keydesk/utils"
 )
 
 func TestJWT(t *testing.T) {
@@ -35,21 +36,21 @@ func TestJWT(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			options := Options{
+			options := MessagesJwtOptions{
 				Issuer:        "issuer",
 				Subject:       "subject",
 				Audience:      []string{"audience"},
 				SigningMethod: tc.method,
 			}
 
-			issuer := NewIssuer(tc.key, options)
+			issuer := NewMessagesJwtIssuer(tc.key, options)
 			claims := issuer.CreateToken(time.Hour, "scope1", "scope2", "scope3")
 			token, err := issuer.Sign(claims)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			authorizer := NewAuthorizer(tc.pub, options)
+			authorizer := NewMessagesJwtAuthorizer(tc.pub, options)
 			parsedClaims, err := authorizer.Validate(token)
 			if err != nil {
 				t.Fatal(err)

@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
@@ -14,7 +15,7 @@ import (
 	"github.com/vpngen/keydesk/pkg/jwt"
 )
 
-func SetupServer(db *storage.BrigadeStorage, authorizer jwt.Authorizer) (*echo.Echo, error) {
+func SetupServer(db *storage.BrigadeStorage, authorizer jwt.MessagesJwtAuthorizer) (*echo.Echo, error) {
 	swagger, err := messages.GetSwagger()
 	if err != nil {
 		return nil, fmt.Errorf("get swagger: %s", err.Error())

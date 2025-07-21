@@ -52,19 +52,20 @@ type flags struct {
 	outlineCfgs *string
 	proto0Cfgs  *string
 
-	unixSocketDir         *string
-	messageAPI            *string
-	shufflerAPI           *string
-	jwtMsgPubkeyFilename  *string
-	jwtVipPrivkeyFilename *string
+	unixSocketDir             *string
+	messageAPI                *string
+	shufflerAPI               *string
+	msgJwtPubkeyFilename      *string
+	keydeskJwtPrivkeyFilename *string
 }
 
 const (
-	defaultUnixSocketDir  = "/var/lib/dcapi"
-	defaultMessageSocket  = "messages.sock"
-	defaultShufflerSocket = "shuffler.sock"
-	jwtPubKeyFileName     = "jwt-pub-msg.pem"
-	jwtVipPrivKeyFileName = "jwt-vip-priv.pem"
+	defaultUnixSocketDir      = "/var/lib/dcapi"
+	defaultMessageSocket      = "messages.sock"
+	defaultShufflerSocket     = "shuffler.sock"
+	jwtPubKeyFileName         = "jwt-pub-msg.pem"
+	msgJwtPubkeyFilename      = "msg-jwt.pub"
+	keydeskJwtPrivkeyFileName = "keydesk-jwt.key"
 )
 
 func parseFlags(flagSet *flag.FlagSet, args []string) flags {
@@ -100,8 +101,8 @@ func parseFlags(flagSet *flag.FlagSet, args []string) flags {
 	f.unixSocketDir = flagSet.String("socket-dir", defaultUnixSocketDir, fmt.Sprintf("Unix sockets dir. Default: %s", defaultUnixSocketDir))
 	f.messageAPI = flagSet.String("m", "", fmt.Sprintf("Message API unix socket path. Default: %s/<BrigadeID>/messages.sock '-' to disable", *f.unixSocketDir))
 	f.shufflerAPI = flagSet.String("shuffler", "", fmt.Sprintf("Shuffler API unix socket path. Default: %s/<BrigadeID>/shuffler.sock '-' to disable", *f.unixSocketDir))
-	f.jwtMsgPubkeyFilename = flagSet.String("jwtpub", "", fmt.Sprintf("Path to JWT public key file. Default: %s/%s", keydesk.DefaultEtcDir, jwtPubKeyFileName))
-	f.jwtVipPrivkeyFilename = flagSet.String("jwtvip", "", fmt.Sprintf("Path to JWT VIP private key file. Default: %s/%s", keydesk.DefaultEtcDir, jwtVipPrivKeyFileName))
+	f.msgJwtPubkeyFilename = flagSet.String("msgjwt", "", fmt.Sprintf("Path to Messages JWT public key file. Default: %s/%s", keydesk.DefaultEtcDir, jwtPubKeyFileName))
+	f.keydeskJwtPrivkeyFilename = flagSet.String("kdjwt", "", fmt.Sprintf("Path to Keydesk JWT private key file. Default: %s/%s", keydesk.DefaultEtcDir, keydeskJwtPrivkeyFileName))
 
 	// ignore errors, see original flag.Parse() func
 	_ = flagSet.Parse(args)
@@ -110,29 +111,28 @@ func parseFlags(flagSet *flag.FlagSet, args []string) flags {
 }
 
 type config struct {
-	chunked                  bool
-	jsonOut                  bool
-	enableCORS               bool
-	listeners                []net.Listener
-	addr                     netip.AddrPort
-	brigadeID                string
-	brigadeUUIDofbs          string
-	etcDir                   string
-	webDir                   string
-	dbDir                    string
-	certDir                  string
-	statsDir                 string
-	brigadierName            string
-	person                   namesgenerator.Person
-	replaceBrigadier         bool
-	vpnConfigs               *storage.ConfigsImplemented
-	unixSocketDir            string
-	messageAPISocket         net.Listener
-	shufflerAPISocket        net.Listener
-	jwtMessagePubkeyFilename string
-	jwtKeydeskIssuer         jwtsvc.KeydeskTokenIssuer
-	jwtKeydesAuthorizer      jwtsvc.KeydeskTokenAuthorizer
-	jwtMsgAuthorizer         jwtsvc.Authorizer
+	chunked             bool
+	jsonOut             bool
+	enableCORS          bool
+	listeners           []net.Listener
+	addr                netip.AddrPort
+	brigadeID           string
+	brigadeUUIDofbs     string
+	etcDir              string
+	webDir              string
+	dbDir               string
+	certDir             string
+	statsDir            string
+	brigadierName       string
+	person              namesgenerator.Person
+	replaceBrigadier    bool
+	vpnConfigs          *storage.ConfigsImplemented
+	unixSocketDir       string
+	messageAPISocket    net.Listener
+	shufflerAPISocket   net.Listener
+	jwtKeydeskIssuer    jwtsvc.KeydeskTokenIssuer
+	jwtKeydesAuthorizer jwtsvc.KeydeskTokenAuthorizer
+	jwtMsgAuthorizer    jwtsvc.MessagesJwtAuthorizer
 }
 
 func parseArgs2(flags flags) (config, error) {
@@ -177,12 +177,16 @@ func parseArgs2(flags flags) (config, error) {
 	}
 
 	obfsKey := os.Getenv("OBFS_UUID")
+	fmt.Fprintf(os.Stderr, "obfs uuid: %s\n", obfsKey)
 	obfsUUID, err := uuid.Parse(obfsKey)
 	if err == nil {
+		fmt.Fprintf(os.Stderr, "obfs uuid parsed: %s\n", obfsUUID)
 		var brigadeUUIDofbs uuid.UUID
 		for i := range 16 {
 			brigadeUUIDofbs[i] = brigadeUUID[i] ^ obfsUUID[i]
 		}
+
+		fmt.Fprintf(os.Stderr, "obfs brigade uuid: %s\n", brigadeUUIDofbs)
 
 		cfg.brigadeUUIDofbs = brigadeUUIDofbs.String()
 	}
@@ -204,20 +208,51 @@ func parseArgs2(flags flags) (config, error) {
 	}
 
 	if *flags.brigadierName == "" {
-		if *flags.jwtMsgPubkeyFilename == "" {
-			cfg.jwtMessagePubkeyFilename = filepath.Join(cfg.etcDir, jwtPubKeyFileName)
+		if *flags.messageAPI != "-" {
+			opts := jwtsvc.MessagesJwtOptions{
+				Issuer:   "dc-mgmt",
+				Audience: []string{"keydesk"},
+			}
+
+			fn := *flags.msgJwtPubkeyFilename
+			if fn == "" {
+				fn = filepath.Join(cfg.etcDir, jwtPubKeyFileName)
+				if _, err := os.Stat(fn); !os.IsNotExist(err) {
+					if file, err := os.Open(fn); err == nil {
+						if key, err := utils.ReadECPublicKey(file); err == nil {
+							opts.SigningMethod = jwt.SigningMethodES256
+							cfg.jwtMsgAuthorizer = jwtsvc.NewMessagesJwtAuthorizer(key, opts)
+						}
+					}
+				}
+
+				fn = filepath.Join(cfg.etcDir, msgJwtPubkeyFilename)
+				if _, err := os.Stat(fn); !os.IsNotExist(err) {
+					if _, err := os.Stat(fn); !os.IsNotExist(err) {
+						method, key, err := jwtsvc.ReadPublicSSHKey(fn)
+						if err == nil {
+							opts.SigningMethod = method
+							cfg.jwtMsgAuthorizer = jwtsvc.NewMessagesJwtAuthorizer(key, opts)
+						}
+					}
+				}
+			}
+
+			if cfg.jwtMsgAuthorizer.IsNil() {
+				return cfg, fmt.Errorf("cannot read jwt messages public key from %s", fn)
+			}
 		}
 
-		vipPrivkeyFn := *flags.jwtVipPrivkeyFilename
+		vipPrivkeyFn := *flags.keydeskJwtPrivkeyFilename
 		if vipPrivkeyFn == "" {
-			vipPrivkeyFn = filepath.Join(cfg.etcDir, jwtVipPrivKeyFileName)
+			vipPrivkeyFn = filepath.Join(cfg.etcDir, keydeskJwtPrivkeyFileName)
 		}
 
 		_, err := os.Stat(vipPrivkeyFn)
 		exists := !os.IsNotExist(err)
 
 		switch {
-		case *flags.jwtVipPrivkeyFilename == "" && !exists:
+		case *flags.keydeskJwtPrivkeyFilename == "" && !exists:
 			secret, err := utils.GenHMACKey()
 			if err != nil {
 				return cfg, fmt.Errorf("generate jwt vip secret: %w", err)
@@ -230,10 +265,12 @@ func parseArgs2(flags flags) (config, error) {
 				SigningMethod: jwt.SigningMethodHS256,
 			}
 
-			cfg.jwtKeydeskIssuer = jwtsvc.NewKeydeskTokenIssuer(secret, jwtopts)
 			cfg.jwtKeydesAuthorizer = jwtsvc.NewKeydeskTokenAuthorizer(secret, jwtopts)
+
+			jwtopts.Audience = append(jwtopts.Audience, "socket")
+			cfg.jwtKeydeskIssuer = jwtsvc.NewKeydeskTokenIssuer(secret, "random", jwtopts)
 		case exists:
-			signingMethod, jwtVipPubkey, err := utils.JWTReadPrivateSSHKey(vipPrivkeyFn)
+			signingMethod, jwtKeydeskPrivkey, jwtKeydeskPubkey, keyId, err := jwtsvc.ReadPrivateSSHKey(vipPrivkeyFn)
 			if err != nil {
 				return cfg, fmt.Errorf("read jwt vip private key: %w", err)
 			}
@@ -245,8 +282,10 @@ func parseArgs2(flags flags) (config, error) {
 				SigningMethod: signingMethod,
 			}
 
-			cfg.jwtKeydeskIssuer = jwtsvc.NewKeydeskTokenIssuer(jwtVipPubkey, jwtopts)
-			cfg.jwtKeydesAuthorizer = jwtsvc.NewKeydeskTokenAuthorizer(jwtVipPubkey, jwtopts)
+			cfg.jwtKeydesAuthorizer = jwtsvc.NewKeydeskTokenAuthorizer(jwtKeydeskPubkey, jwtopts)
+
+			jwtopts.Audience = append(jwtopts.Audience, "socket")
+			cfg.jwtKeydeskIssuer = jwtsvc.NewKeydeskTokenIssuer(jwtKeydeskPrivkey, keyId, jwtopts)
 		default:
 			return cfg, fmt.Errorf("jwt vip private key file %s set but does not exist", vipPrivkeyFn)
 		}

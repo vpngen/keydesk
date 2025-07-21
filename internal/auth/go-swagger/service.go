@@ -2,6 +2,9 @@ package go_swagger
 
 import (
 	errors2 "errors"
+	"fmt"
+	"os"
+	"strings"
 
 	"github.com/go-openapi/errors"
 	"github.com/golang-jwt/jwt/v5"
@@ -20,8 +23,19 @@ func NewService(authorizer jwtsvc.KeydeskTokenAuthorizer) Service {
 	return s.authorizeFunc(request, i.(authCtx))
 }*/
 
-func (s Service) BearerAuth(token string) (any, error) {
-	return s.authenticateBearerFunc(token)
+func (s Service) BearerAuth(authString string) (any, error) {
+	token := strings.TrimPrefix(authString, "Bearer ")
+
+	fmt.Fprintf(os.Stderr, "auth token: %s\n", token)
+
+	claims, err := s.authorizer.Validate(token)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "validate token: %s\n", err)
+
+		return jwtsvc.KeydeskTokenClaims{}, wrapError(err)
+	}
+
+	return claims, nil
 }
 
 /*type authCtx struct {
@@ -36,15 +50,6 @@ func (s Service) BearerAuth(token string) (any, error) {
 
 	return nil
 }*/
-
-func (s Service) authenticateBearerFunc(tokenStr string) (jwtsvc.KeydeskTokenClaims, error) {
-	claims, err := s.authorizer.KeydeskTokenValidate(tokenStr)
-	if err != nil {
-		return jwtsvc.KeydeskTokenClaims{}, wrapError(err)
-	}
-
-	return claims, nil
-}
 
 /*func (s Service) APIKeyAuthenticator(name, _ string, authenticate security.TokenAuthentication) runtime.Authenticator {
 	return runtime.AuthenticatorFunc(func(i interface{}) (bool, interface{}, error) {

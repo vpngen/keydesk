@@ -503,7 +503,7 @@ func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddlewar
 		api := NewServer(
 			db,
 			service.New(db),
-			jwt.NewKeydeskTokenIssuer(key, opts),
+			jwt.NewKeydeskTokenIssuer(key, "id", opts),
 			goSwagger.NewService(jwt.NewKeydeskTokenAuthorizer(key, opts)),
 			rpk,
 			spk,

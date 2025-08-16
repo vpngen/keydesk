@@ -12,7 +12,7 @@ import (
 	client2 "github.com/go-openapi/runtime/client"
 	jwt2 "github.com/golang-jwt/jwt/v5"
 	"github.com/vpngen/keydesk/gen/client"
-	go_swagger "github.com/vpngen/keydesk/internal/auth/go-swagger"
+	goSwagger "github.com/vpngen/keydesk/internal/auth/go-swagger"
 	"github.com/vpngen/keydesk/internal/messages/service"
 	"github.com/vpngen/keydesk/keydesk/storage"
 	"github.com/vpngen/keydesk/pkg/jwt"
@@ -493,7 +493,7 @@ func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddlewar
 			log.Fatal(err)
 		}
 
-		opts := jwt.Options{
+		opts := jwt.KeydeskTokenOptions{
 			Issuer:        "test",
 			Subject:       db.BrigadeID,
 			Audience:      []string{"test"},
@@ -503,8 +503,8 @@ func serverTestMiddleware(db *storage.BrigadeStorage, mw utils.TestMainMiddlewar
 		api := NewServer(
 			db,
 			service.New(db),
-			jwt.NewIssuer(key, opts),
-			go_swagger.NewService(jwt.NewAuthorizer(key, opts)),
+			jwt.NewKeydeskTokenIssuer(key, "id", opts),
+			goSwagger.NewService(jwt.NewKeydeskTokenAuthorizer(key, opts)),
 			rpk,
 			spk,
 			3600,

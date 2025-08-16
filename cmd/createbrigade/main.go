@@ -34,7 +34,7 @@ var (
 	ErrOutlineAndWgPort    = errors.New("outline and wg port must be different")
 )
 
-func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.AddrPort, string, string, storage.Mode, uint, error) {
+func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.AddrPort, string, string, storage.Mode, uint, bool, error) {
 	var (
 		config        = &storage.BrigadeConfig{}
 		dbdir, etcdir string
@@ -44,7 +44,7 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 
 	sysUser, err := user.Current()
 	if err != nil {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("cannot define user: %w", err)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("cannot define user: %w", err)
 	}
 
 	endpointIPv4 := flag.String("ep4", "", "endpointIPv4")
@@ -68,6 +68,8 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	ipsecCfgs := flag.String("ipsec", "", "IPSec configs (text,mobileconfig,ps)")
 	outlineCfgs := flag.String("outline", "", "Outline configs (access_key)")
 	proto0Cfgs := flag.String("proto0", "", "Protocol0 configs (access_key)")
+
+	vip := flag.Bool("vip", false, "VIP brigade")
 
 	mode := flag.String("mode", storage.ModeBrigade, "mode (brigade or vgsocket)")
 	maxUsers := flag.Uint("maxusers", storage.MaxUsers, "max users, only valid in vgsocket mode")
@@ -97,7 +99,7 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	}
 
 	if *port != 0 && *port == *outlinePort {
-		return nil, nil, addrPort, "", "", "", 0, ErrOutlineAndWgPort
+		return nil, nil, addrPort, "", "", "", 0, false, ErrOutlineAndWgPort
 	}
 
 	config.EndpointPort = uint16(*port)
@@ -116,25 +118,25 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	}
 
 	if config.EndpointPort <= keydesk.LowLimitPort {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("port: %d: %w", config.EndpointPort, ErrInvalidPort)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("port: %d: %w", config.EndpointPort, ErrInvalidPort)
 	}
 
 	config.EndpointDomain = *domainName
 	if config.EndpointDomain != "" && !kdlib.IsDomainNameValid(config.EndpointDomain) {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("domain: %s: %w", config.EndpointDomain, ErrInvalidDomainName)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("domain: %s: %w", config.EndpointDomain, ErrInvalidDomainName)
 	}
 
 	if *filedbDir != "" {
 		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("dbdir dir: %w", err)
+			return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("dbdir dir: %w", err)
 		}
 	}
 
 	if *etcDir != "" {
 		etcdir, err = filepath.Abs(*etcDir)
 		if err != nil {
-			return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("etcdir dir: %w", err)
+			return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("etcdir dir: %w", err)
 		}
 	}
 
@@ -171,12 +173,12 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	// brigadeID must be base32 decodable.
 	binID, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(id)
 	if err != nil {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("id base32: %s: %w", id, err)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("id base32: %s: %w", id, err)
 	}
 
 	_, err = uuid.FromBytes(binID)
 	if err != nil {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("id uuid: %s: %w", id, err)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("id uuid: %s: %w", id, err)
 	}
 
 	config.BrigadeID = id
@@ -184,11 +186,11 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	// endpointIPv4 must be v4 and Global Unicast IP.
 	ip, err := netip.ParseAddr(*endpointIPv4)
 	if err != nil {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("ep4: %s: %w", *endpointIPv4, err)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("ep4: %s: %w", *endpointIPv4, err)
 	}
 
 	if !ip.Is4() || !ip.IsGlobalUnicast() {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("ep4 ip4: %s: %w", ip, ErrInvalidEndpointIPv4)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("ep4 ip4: %s: %w", ip, ErrInvalidEndpointIPv4)
 	}
 
 	config.EndpointIPv4 = ip
@@ -196,11 +198,11 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	// dnsIPv4 must be v4 IP
 	ip, err = netip.ParseAddr(*dnsIPv4)
 	if err != nil {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("dns4: %s: %w", *dnsIPv4, err)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("dns4: %s: %w", *dnsIPv4, err)
 	}
 
 	if !ip.Is4() {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("dns4 ip4: %s: %w", ip, ErrInvalidDNS4)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("dns4 ip4: %s: %w", ip, ErrInvalidDNS4)
 	}
 
 	config.DNSIPv4 = ip
@@ -208,11 +210,11 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	// dnsIPv6 must be v6 IP
 	ip, err = netip.ParseAddr(*dnsIPv6)
 	if err != nil {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("dns6: %s: %w", *dnsIPv6, err)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("dns6: %s: %w", *dnsIPv6, err)
 	}
 
 	if !ip.Is6() {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("dns6 ip6: %s: %w", ip, ErrInvalidDNS6)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("dns6 ip6: %s: %w", ip, ErrInvalidDNS6)
 	}
 
 	config.DNSIPv6 = ip
@@ -222,11 +224,11 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	// IPv4CGNAT must be v4 and private Network.
 	pref, err := netip.ParsePrefix(*IPv4CGNAT)
 	if err != nil {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("int4: %s: %w", *IPv4CGNAT, err)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("int4: %s: %w", *IPv4CGNAT, err)
 	}
 
 	if cgnatPrefix.Bits() < pref.Bits() && !cgnatPrefix.Overlaps(pref) {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("int4 ip4: %s: %w", ip, ErrInvalidNetCGNAT)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("int4 ip4: %s: %w", ip, ErrInvalidNetCGNAT)
 	}
 
 	config.IPv4CGNAT = pref
@@ -236,11 +238,11 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	// IPv6ULA must be v6 and private Network.
 	pref, err = netip.ParsePrefix(*IPv6ULA)
 	if err != nil {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("int6: %s: %w", *IPv6ULA, err)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("int6: %s: %w", *IPv6ULA, err)
 	}
 
 	if ulaPrefix.Bits() < pref.Bits() && !ulaPrefix.Overlaps(pref) {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("int6 ip6: %s: %w", ip, ErrInvalidNetULA)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("int6 ip6: %s: %w", ip, ErrInvalidNetULA)
 	}
 
 	config.IPv6ULA = pref
@@ -248,11 +250,11 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	// keydeskIPv6 must be v6 and private Network.
 	ip, err = netip.ParseAddr(*keydeskIPv6)
 	if err != nil {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("kd6: %s: %w", *keydeskIPv6, err)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("kd6: %s: %w", *keydeskIPv6, err)
 	}
 
 	if !ulaPrefix.Contains(ip) {
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("kd6 ip6: %s: %w", ip, ErrInvalidKeydeskIPv6)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("kd6 ip6: %s: %w", ip, ErrInvalidKeydeskIPv6)
 	}
 
 	config.KeydeskIPv6 = ip
@@ -260,7 +262,7 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	if *addr != "-" {
 		addrPort, err = netip.ParseAddrPort(*addr)
 		if err != nil {
-			return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("api addr: %w", err)
+			return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("api addr: %w", err)
 		}
 	}
 
@@ -268,17 +270,17 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	case storage.ModeBrigade:
 	case storage.ModeVGSocket:
 		if *maxUsers > storage.MaxUsers {
-			return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("max users is %d", storage.MaxUsers)
+			return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("max users is %d", storage.MaxUsers)
 		}
 	default:
-		return nil, nil, addrPort, "", "", "", 0, fmt.Errorf("invalid mode %q", *mode)
+		return nil, nil, addrPort, "", "", "", 0, false, fmt.Errorf("invalid mode %q", *mode)
 	}
 
-	return vpnCfgs, config, addrPort, etcdir, dbdir, *mode, *maxUsers, nil
+	return vpnCfgs, config, addrPort, etcdir, dbdir, *mode, *maxUsers, *vip, nil
 }
 
 func main() {
-	vpnCfgs, config, addr, etcDir, dbDir, mode, maxUsers, err := parseArgs()
+	vpnCfgs, config, addr, etcDir, dbDir, mode, maxUsers, vip, err := parseArgs()
 	if err != nil {
 		flag.PrintDefaults()
 		log.Fatalf("Can't parse args: %s", err)
@@ -305,7 +307,7 @@ func main() {
 	}
 
 	// just do it.
-	if err := keydesk.CreateBrigade(db, vpnCfgs, config, &routerPublicKey, &shufflerPublicKey, mode, maxUsers); err != nil {
+	if err := keydesk.CreateBrigade(db, vpnCfgs, config, &routerPublicKey, &shufflerPublicKey, mode, maxUsers, vip); err != nil {
 		log.Fatalf("Can't create brigade: %s\n", err)
 	}
 }

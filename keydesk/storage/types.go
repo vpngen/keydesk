@@ -218,7 +218,7 @@ func NewUser(userID uuid.UUID, name string, createdAt time.Time, isBrigadier, is
 }
 
 // BrigadeVersion - json version.
-const BrigadeVersion = 11
+const BrigadeVersion = 12
 
 type Mode = string
 
@@ -233,6 +233,7 @@ type Brigade struct {
 	BrigadeCounters
 	StatsCountersStack    `json:"counters_stack"`
 	Ver                   int                  `json:"version"`
+	VIP                   int64                `json:"vip"` // is vip brigade
 	BrigadeID             string               `json:"brigade_id"`
 	CreatedAt             time.Time            `json:"created_at"`
 	Mode                  Mode                 `json:"mode"`

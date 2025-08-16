@@ -33,6 +33,7 @@ func BrigadeTestMiddleware(db *BrigadeStorage, mw utils.TestMainMiddleware) util
 			&BrigadeProto0Config{},
 			ModeBrigade,
 			0,
+			false, // vip
 		); err != nil {
 			log.Fatal("failed to create brigade:", err)
 		}

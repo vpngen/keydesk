@@ -14,6 +14,8 @@ depends:
 - vgkeydesk-shuffler-key
 - vgkeydesk-router
 - vgkeydesk-messages-access
+- vgkeydesk-jwt-key
+- vgkeydesk-obfs-uuid
 
 maintainer: "Ingmund Ollson <ingmund@proton.me>"
 description: VPNGen keydesk backend
@@ -94,6 +96,12 @@ contents:
     mode: 0005
     owner: root
     group: root
+- src: bin/turnon-vip
+  dst: /opt/vgkeydesk/turnon-vip
+  file_info:
+    mode: 0005
+    owner: root
+    group: root
 - src: bin/fetchstats
   dst: /opt/vgkeydesk/fetchstats
   file_info:
@@ -141,8 +149,6 @@ contents:
 
 overrides:
   deb:
-    conflicts:
-    - vgkeydesk (>= 1.0.0)
     scripts:
       preinstall: /data/src/preinstall.sh
       postinstall: /data/src/postinstall.sh

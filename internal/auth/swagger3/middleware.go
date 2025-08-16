@@ -3,12 +3,13 @@ package jwt
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/vpngen/keydesk/pkg/jwt"
-	"strings"
 )
 
-func AuthFuncFactory(authorizer jwt.Authorizer) openapi3filter.AuthenticationFunc {
+func AuthFuncFactory(authorizer jwt.MessagesJwtAuthorizer) openapi3filter.AuthenticationFunc {
 	return func(ctx context.Context, input *openapi3filter.AuthenticationInput) error {
 		switch input.SecuritySchemeName {
 		case "JWTAuth":

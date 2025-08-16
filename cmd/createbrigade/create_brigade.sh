@@ -212,6 +212,10 @@ while [ "$#" -gt 0 ]; do
                 maxusers="$2"
                 shift 2
                 ;;
+        -vip)
+                vip="-vip"
+                shift 1
+                ;;
         *)
                 printdef "Unknown option: $1"
                 ;;
@@ -328,6 +332,7 @@ if [ -z "${DEBUG}" ]; then
                 ${wg_configs} ${ipsec_configs} ${ovc_configs} ${outline_configs} ${proto0_configs} \
                 -mode "${mode}" \
                 -maxusers "${maxusers}" \
+                ${vip} \
                 >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
 else
         if [ -s "${BRIGADE_SOURCE_DIR}/main.go" ]; then
@@ -348,6 +353,7 @@ else
                         ${apiaddr} \
                         -mode "${mode}" \
                         -maxusers "${maxusers}" \
+                        ${vip} \
                         >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
         elif [ -x "${BRIGADE_MAKER_APP_PATH}" ]; then
                 # shellcheck disable=SC2086
@@ -367,6 +373,7 @@ else
                         ${apiaddr} \
                         -mode "${mode}" \
                         -maxusers "${maxusers}" \
+                        ${vip} \
                         >&2 || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
         else
                 echo "ERROR: Can't find ${BRIGADE_MAKER_APP_PATH} or ${BRIGADE_SOURCE_DIR}/main.go" >&2

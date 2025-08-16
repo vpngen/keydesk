@@ -64,7 +64,7 @@ func main() {
 		log.Fatal("unsupported key type")
 	}
 
-	issuer := jwt.NewIssuer(key, jwt.Options{
+	issuer := jwt.NewMessagesJwtIssuer(key, jwt.MessagesJwtOptions{
 		Issuer:        *iss,
 		Audience:      strings.Split(*aud, ","),
 		Subject:       *sub,

@@ -2,61 +2,65 @@ package go_swagger
 
 import (
 	errors2 "errors"
-	"github.com/go-openapi/errors"
-	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/security"
-	jwt2 "github.com/golang-jwt/jwt/v5"
-	"github.com/vpngen/keydesk/pkg/jwt"
-	"net/http"
+	"fmt"
+	"os"
 	"strings"
+
+	"github.com/go-openapi/errors"
+	"github.com/golang-jwt/jwt/v5"
+	jwtsvc "github.com/vpngen/keydesk/pkg/jwt"
 )
 
 type Service struct {
-	authorizer jwt.Authorizer
+	authorizer jwtsvc.KeydeskTokenAuthorizer
 }
 
-func NewService(authorizer jwt.Authorizer) Service {
+func NewService(authorizer jwtsvc.KeydeskTokenAuthorizer) Service {
 	return Service{authorizer: authorizer}
 }
 
-func (s Service) Authorize(request *http.Request, i interface{}) error {
+/*func (s Service) Authorize(request *http.Request, i any) error {
 	return s.authorizeFunc(request, i.(authCtx))
-}
+}*/
 
-func (s Service) BearerAuth(token string) (interface{}, error) {
-	return s.authenticateBearerFunc(token)
-}
+func (s Service) BearerAuth(authString string) (any, error) {
+	token := strings.TrimPrefix(authString, "Bearer ")
 
-type authCtx struct {
-	claims  jwt.Claims
-	authReq *security.ScopedAuthRequest
-}
+	fmt.Fprintf(os.Stderr, "auth token: %s\n", token)
 
-func (s Service) authorizeFunc(_ *http.Request, authCtx authCtx) error {
-	if err := s.authorizer.Authorize(authCtx.claims, authCtx.authReq.RequiredScopes...); err != nil {
-		return wrapError(err)
-	}
-	return nil
-}
-
-func (s Service) authenticateBearerFunc(tokenStr string) (jwt.Claims, error) {
-	claims, err := s.authorizer.Validate(tokenStr)
+	claims, err := s.authorizer.Validate(token)
 	if err != nil {
-		return jwt.Claims{}, wrapError(err)
+		fmt.Fprintf(os.Stderr, "validate token: %s\n", err)
+
+		return jwtsvc.KeydeskTokenClaims{}, wrapError(err)
 	}
+
 	return claims, nil
 }
 
-func (s Service) APIKeyAuthenticator(name, _ string, authenticate security.TokenAuthentication) runtime.Authenticator {
+/*type authCtx struct {
+	claims  jwtsvc.KeydeskTokenClaims
+	authReq *security.ScopedAuthRequest
+}*/
+
+/*func (s Service) authorizeFunc(_ *http.Request, authCtx authCtx) error {
+	if err := s.authorizer.Authorize(authCtx.claims); err != nil {
+		return wrapError(err)
+	}
+
+	return nil
+}*/
+
+/*func (s Service) APIKeyAuthenticator(name, _ string, authenticate security.TokenAuthentication) runtime.Authenticator {
 	return runtime.AuthenticatorFunc(func(i interface{}) (bool, interface{}, error) {
 		authReq := i.(*security.ScopedAuthRequest)
 		claims, err := authenticate(strings.TrimPrefix(authReq.Request.Header.Get(name), "Bearer "))
 		if err != nil {
 			return false, nil, err
 		}
-		return true, authCtx{claims: claims.(jwt.Claims), authReq: authReq}, nil
+		return true, authCtx{claims: claims.(jwtsvc.Claims), authReq: authReq}, nil
 	})
-}
+}*/
 
 var (
 	ErrTokenExpired                 = errors.New(403, "token expired")
@@ -68,17 +72,21 @@ var (
 )
 
 func wrapError(err error) error {
-	if errors2.Is(err, jwt2.ErrTokenSignatureInvalid) {
+	if errors2.Is(err, jwt.ErrTokenSignatureInvalid) {
 		return ErrTokenUnexpectedSigningMethod
 	}
-	if errors2.Is(err, jwt.ErrTokenInvalid) {
+
+	if errors2.Is(err, jwtsvc.ErrTokenInvalid) {
 		return ErrTokenInvalid
 	}
-	if errors2.Is(err, jwt.ErrUserUnknown) {
+
+	if errors2.Is(err, jwtsvc.ErrUserUnknown) {
 		return ErrUserUnknown
 	}
-	if errors2.Is(err, jwt.ErrMissingScopes) {
+
+	if errors2.Is(err, jwtsvc.ErrMissingScopes) {
 		return ErrMissingScopes
 	}
+
 	return err
 }

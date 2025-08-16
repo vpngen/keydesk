@@ -66,6 +66,8 @@ const (
 	jwtPubKeyFileName         = "jwt-pub-msg.pem"
 	msgJwtPubkeyFilename      = "msg-jwt.pub"
 	keydeskJwtPrivkeyFileName = "keydesk-jwt.key"
+	etcSubdir                 = "vg-keydesk"
+	defaultVipEndpoint        = "vip.vpn.works"
 )
 
 func parseFlags(flagSet *flag.FlagSet, args []string) flags {
@@ -176,6 +178,11 @@ func parseArgs2(flags flags) (config, error) {
 		return cfg, err
 	}
 
+	vipEndpoint := os.Getenv("VIP_ENDPOINT")
+	if vipEndpoint == "" {
+		vipEndpoint = defaultVipEndpoint
+	}
+
 	obfsKey := os.Getenv("OBFS_UUID")
 	fmt.Fprintf(os.Stderr, "obfs uuid: %s\n", obfsKey)
 	obfsUUID, err := uuid.Parse(obfsKey)
@@ -245,7 +252,7 @@ func parseArgs2(flags flags) (config, error) {
 
 		vipPrivkeyFn := *flags.keydeskJwtPrivkeyFilename
 		if vipPrivkeyFn == "" {
-			vipPrivkeyFn = filepath.Join(cfg.etcDir, keydeskJwtPrivkeyFileName)
+			vipPrivkeyFn = filepath.Join(cfg.etcDir, etcSubdir, keydeskJwtPrivkeyFileName)
 		}
 
 		_, err := os.Stat(vipPrivkeyFn)
@@ -263,6 +270,7 @@ func parseArgs2(flags flags) (config, error) {
 				Subject:       cfg.brigadeUUIDofbs,
 				Audience:      []string{"keydesk"},
 				SigningMethod: jwt.SigningMethodHS256,
+				VipURL:        vipEndpoint,
 			}
 
 			cfg.jwtKeydesAuthorizer = jwtsvc.NewKeydeskTokenAuthorizer(secret, jwtopts)
@@ -280,6 +288,7 @@ func parseArgs2(flags flags) (config, error) {
 				Subject:       cfg.brigadeUUIDofbs,
 				Audience:      []string{"keydesk"},
 				SigningMethod: signingMethod,
+				VipURL:        vipEndpoint,
 			}
 
 			cfg.jwtKeydesAuthorizer = jwtsvc.NewKeydeskTokenAuthorizer(jwtKeydeskPubkey, jwtopts)

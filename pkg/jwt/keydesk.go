@@ -22,6 +22,9 @@ type KeydeskTokenOptions struct {
 	// My IP address, used to verify the token
 	ExternalIP string
 
+	// URL to the VIP service, used to verify the token
+	VipURL string
+
 	SigningMethod jwt.SigningMethod
 }
 
@@ -34,8 +37,10 @@ type KeydeskTokenIssuer struct {
 
 type KeydeskTokenClaims struct {
 	jwt.RegisteredClaims
+
 	Vip        bool   `json:"vip"`
 	ExternalIP string `json:"external_ip,omitempty"`
+	VipURL     string `json:"vip_url,omitempty"`
 }
 
 var (
@@ -70,7 +75,13 @@ func (i KeydeskTokenIssuer) CreateToken(ttl time.Duration, vip bool) KeydeskToke
 		},
 		ExternalIP: i.options.ExternalIP,
 		Vip:        vip,
+		VipURL:     i.options.VipURL,
 	}
+}
+
+func (i KeydeskTokenIssuer) SetExternalIP(externalIP string) KeydeskTokenIssuer {
+	i.options.ExternalIP = externalIP
+	return i
 }
 
 func (i KeydeskTokenIssuer) Sign(claims KeydeskTokenClaims) (string, error) {

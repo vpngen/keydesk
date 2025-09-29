@@ -9,6 +9,7 @@ release: ${PACKAGE_RELEASE}
 provides:
 - vgkeydesk
 depends:
+- jq
 - cert-vpn-works
 - vgkeydesk-web
 - vgkeydesk-shuffler-key
@@ -106,6 +107,12 @@ contents:
   dst: /opt/vgkeydesk/fetchstats
   file_info:
     mode: 0005
+    owner: root
+    group: root
+- src: keydesk/cmd/createbrigade/turnon_vip.sh
+  dst: /opt/vgkeydesk/turnon_vip.sh
+  file_info:
+    mode: 0500
     owner: root
     group: root
 - src: keydesk/cmd/createbrigade/create_brigade.sh

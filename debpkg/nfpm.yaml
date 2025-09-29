@@ -109,7 +109,7 @@ contents:
     mode: 0005
     owner: root
     group: root
-- src: keydesk/cmd/createbrigade/turnon_vip.sh
+- src: keydesk/cmd/turnon-vip/turnon_vip.sh
   dst: /opt/vgkeydesk/turnon_vip.sh
   file_info:
     mode: 0500

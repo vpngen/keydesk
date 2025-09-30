@@ -105,8 +105,12 @@ if [ -z "${FORCE}" ] && test -f "${DB_DIR}/.maintenance" && test "$(date '+%s')"
         fatal 503 "Service is not available" "On maintenance till $(date -d "@$(head -n 1 "${DB_DIR}/.maintenance")")"
 fi
 
-if test -f "/.maintenance" && test "$(date '+%s')" -lt "$(head -n 1 "/.maintenance")"; then
+if [ -z "${FORCE}" ] && test -f "/.maintenance" && test "$(date '+%s')" -lt "$(head -n 1 "/.maintenance")"; then
         fatal 503 "Service is not available" "On maintenance till $(date -d "@$(head -n 1 /.maintenance)")"
+fi
+
+if [ -z "${FORCE}" ] && test -f "${DB_DIR}/.vip" ; then
+        fatal 403 "Forbidden" "Brigade ${brigade_id} is VIP, disable VIP before destroy"
 fi
 
 systemd_vgkeydesk_instance="vgkeydesk@${brigade_id}"

@@ -8,14 +8,16 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"strings"
 
 	"github.com/vpngen/keydesk/keydesk"
 	"github.com/vpngen/keydesk/keydesk/storage"
 )
 
-// ErrInvalidArgs - invalid arguments.
-var ErrInvalidArgs = errors.New("invalid arguments")
+var (
+	// ErrInvalidArgs - invalid arguments.
+	ErrInvalidArgs   = errors.New("invalid arguments")
+	ErrOnlyOneAction = errors.New("only one action must be specified")
+)
 
 func main() {
 	on, off, brigadeID, dbDir, err := parseArgs()
@@ -60,16 +62,13 @@ func parseArgs() (bool, bool, string, string, error) {
 
 	brigadeID := flag.String("id", "", "BrigadeID (for test)")
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
+	actionOn := flag.Bool("on", false, "Turn VIP on")
+	actionOff := flag.Bool("off", false, "Turn VIP off")
 
 	flag.Parse()
 
-	if flag.NArg() != 1 {
-		return false, false, "", "", ErrInvalidArgs
-	}
-
-	arg := strings.ToLower(flag.Arg(0))
-	if arg != "on" && arg != "off" {
-		return false, false, "", "", fmt.Errorf("invalid argument: %s, expected 'on' or 'off'", arg)
+	if (*actionOn && *actionOff) || (!*actionOn && !*actionOff) {
+		return false, false, "", "", ErrOnlyOneAction
 	}
 
 	if *filedbDir != "" {
@@ -99,7 +98,7 @@ func parseArgs() (bool, bool, string, string, error) {
 		}
 	}
 
-	return arg == "on", arg == "off", id, dbdir, nil
+	return *actionOn, *actionOff, id, dbdir, nil
 }
 
 // Do - do replay.

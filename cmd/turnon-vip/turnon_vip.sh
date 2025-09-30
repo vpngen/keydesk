@@ -60,7 +60,7 @@ while [ "$#" -gt 0 ]; do
                 DB_DIR="$2"
                 shift 2
                 ;;
-        on|off)
+        -on|-off)
                 action="$1"
                 shift 1
                 ;;
@@ -82,7 +82,7 @@ if test -f "${DB_DIR}/.maintenance" && test "$(date '+%s')" -lt "$(head -n 1 "${
 fi
 
 if [ -d "${DB_DIR}" ]; then
-        if [ "${action}" = "on" ];  then
+        if [ "${action}" = "-on" ];  then
                 touch "${DB_DIR}/.vip" || fatal "500" "Internal server error" "Can't create .vip file"
         fi
 
@@ -106,7 +106,7 @@ if [ -d "${DB_DIR}" ]; then
                 fi
         fi
 
-        if [ "${action}" = "off" ]; then
+        if [ "${action}" = "-off" ]; then
                 rm -f "${DB_DIR}/.vip" || fatal "500" "Internal server error" "Can't remove .vip file"
         fi
 else

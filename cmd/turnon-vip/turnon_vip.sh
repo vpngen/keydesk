@@ -88,7 +88,7 @@ if [ -d "${DB_DIR}" ]; then
 
         if [ -z "${DEBUG}" ]; then
                 if id "${brigade_id}" >/dev/null 2>&1; then
-                        sudo -u "${brigade_id}" "${EXECUTABLE_PATH}" -id "${brigade_id}" "${action}" >&2 || fatal "500" "Internal server error" "Can't viparize brigade"
+                        sudo -u "${brigade_id}" "${EXECUTABLE_PATH}" "${action}" >&2 || fatal "500" "Internal server error" "Can't viparize brigade"
                 fi
         else
                 SOURCE_DIR="$(realpath "$(realpath "$(dirname "$0")")")"

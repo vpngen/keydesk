@@ -188,6 +188,10 @@ func parseArgs2(flags flags) (config, error) {
 	obfsUUID, err := uuid.Parse(obfsKey)
 	if err == nil {
 		fmt.Fprintf(os.Stderr, "obfs uuid parsed: %s\n", obfsUUID)
+
+		obfsUUID[6] &= 0x0F
+		obfsUUID[8] &= 0x3F
+
 		var brigadeUUIDofbs uuid.UUID
 		for i := range 16 {
 			brigadeUUIDofbs[i] = brigadeUUID[i] ^ obfsUUID[i]

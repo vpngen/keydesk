@@ -22,6 +22,8 @@ set -e
 STATS_DIR="/var/lib/vgstats"
 ROUTER_SOCKETS_DIR="/var/lib/dcapi"
 REMOVER_PATH="/opt/vgkeydesk/destroybrigade"
+REVIPER_PATH="/opt/vgkeydesk/turnon_vip.sh"
+EXECUTABLE_DIR="$(realpath "$(dirname "$0")")"
 
 if [ "root" != "$(whoami)" ]; then
         echo "DEBUG EXECUTION" >&2
@@ -30,15 +32,23 @@ fi
 
 
 fatal() {
-        cat << EOF | awk -v chunked="${chunked}" 'BEGIN {ORS=""; if (chunked != "") print length($0) "\r\n" $0 "\r\n0\r\n\r\n"; else print $0}'
+        fcode="$1"
+        fdesc="$2"
+        fmsg="$3"
+
+        cat << EOF | awk -v chunked="${chunked}" 'BEGIN {ORS=""} {buf = buf $0 ORS} END {if (chunked != "") print length(buf) "\r\n" buf "\r\n0\r\n\r\n"; else print buf}'
 {
-        "code": $1,
-        "desc": "$2"
+        "code": ${fcode},
+        "desc": "${fdesc}",
         "status": "error",
-        "message": "$3"
+        "message": "${fmsg}"
 }
 EOF
-        exit 1
+        if [ "${fcode}" = "403" ]; then
+                exit 2
+        else 
+                exit 1
+        fi
 }
 
 printdef () {
@@ -109,8 +119,17 @@ if [ -z "${FORCE}" ] && test -f "/.maintenance" && test "$(date '+%s')" -lt "$(h
         fatal 503 "Service is not available" "On maintenance till $(date -d "@$(head -n 1 /.maintenance)")"
 fi
 
-if [ -z "${FORCE}" ] && test -f "${DB_DIR}/.vip" ; then
-        fatal 403 "Forbidden" "Brigade ${brigade_id} is VIP, disable VIP before destroy"
+if test -f "${DB_DIR}/.vip" ; then
+        if [ -z "${FORCE}" ]; then
+                fatal 403 "Forbidden" "Brigade ${brigade_id} is VIP, disable VIP before destroy"
+        fi
+
+        if [ -z "${DEBUG}" ]; then
+                # Disable VIP
+                "${REVIPER_PATH}" "-off" -id "${brigade_id}" || fatal "500" "Internal server error" "Can't disable VIP"
+        else
+                echo "DEBUG: ${REVIPER_PATH} -off -id ${brigade_id}" >&2
+        fi
 fi
 
 systemd_vgkeydesk_instance="vgkeydesk@${brigade_id}"
@@ -135,7 +154,6 @@ if [ -s "${DB_DIR}/brigade.json" ]; then
                         sudo -u "${brigade_id}" "${REMOVER_PATH}" -id "${brigade_id}" ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
                 fi
         else
-                EXECUTABLE_DIR="$(realpath "$(dirname "$0")")"
                 SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}")"
         
                 if [ -x "${REMOVER_PATH}" ]; then

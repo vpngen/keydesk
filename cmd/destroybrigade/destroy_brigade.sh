@@ -22,7 +22,7 @@ set -e
 STATS_DIR="/var/lib/vgstats"
 ROUTER_SOCKETS_DIR="/var/lib/dcapi"
 REMOVER_PATH="/opt/vgkeydesk/destroybrigade"
-REVIPER_PATH="/opt/vgkeydesk/turnon_vip.sh"
+REVIPER_PATH="/opt/vgkeydesk/turnon-vip"
 EXECUTABLE_DIR="$(realpath "$(dirname "$0")")"
 
 if [ "root" != "$(whoami)" ]; then
@@ -125,11 +125,14 @@ if test -f "${DB_DIR}/.vip" ; then
         fi
 
         if [ -z "${DEBUG}" ]; then
-                # Disable VIP
-                "${REVIPER_PATH}" "-off" -id "${brigade_id}" || fatal "500" "Internal server error" "Can't disable VIP"
+                if id "${brigade_id}" >/dev/null 2>&1; then
+                        sudo -u "${brigade_id}" "${REVIPER_PATH}" "-off" >&2 || fatal "500" "Internal server error" "Can't viparize brigade"
+                fi
         else
                 echo "DEBUG: ${REVIPER_PATH} -off -id ${brigade_id}" >&2
         fi
+
+        rm -f "${DB_DIR}/.vip" || fatal "500" "Internal server error" "Can't remove .vip file"
 fi
 
 systemd_vgkeydesk_instance="vgkeydesk@${brigade_id}"

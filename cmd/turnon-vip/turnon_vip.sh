@@ -22,15 +22,23 @@ fi
 
 
 fatal() {
-        cat << EOF | awk -v chunked="${chunked}" 'BEGIN {ORS=""; if (chunked != "") print length($0) "\r\n" $0 "\r\n0\r\n\r\n"; else print $0}'
+        fcode="$1"
+        fdesc="$2"
+        fmsg="$3"
+
+        cat << EOF | awk -v chunked="${chunked}" 'BEGIN {ORS=""} {buf = buf $0 ORS} END {if (chunked != "") print length(buf) "\r\n" buf "\r\n0\r\n\r\n"; else print buf}'
 {
-        "code": $1,
-        "desc": "$2"
+        "code": ${fcode},
+        "desc": "${fdesc}",
         "status": "error",
-        "message": "$3"
+        "message": "${fmsg}"
 }
 EOF
-        exit 1
+        if [ "${fcode}" = "403" ]; then
+                exit 2
+        else 
+                exit 1
+        fi
 }
 
 printdef () {

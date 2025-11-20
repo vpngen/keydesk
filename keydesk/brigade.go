@@ -83,7 +83,7 @@ func CreateBrigade(
 var ErrDestroyVIP = fmt.Errorf("destroy VIP brigade")
 
 // DestroyBrigade - destroy brigadier user.
-func DestroyBrigade(db *storage.BrigadeStorage) error {
+func DestroyBrigade(db *storage.BrigadeStorage, force bool) error {
 	if db.IsVIP() {
 		return fmt.Errorf("%w: %s", ErrDestroyVIP, db.BrigadeID)
 	}

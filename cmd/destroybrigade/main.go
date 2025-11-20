@@ -16,7 +16,7 @@ import (
 	"github.com/vpngen/keydesk/vpnapi"
 )
 
-func parseArgs() (netip.AddrPort, string, string, error) {
+func parseArgs() (netip.AddrPort, string, string, bool, error) {
 	var (
 		addrPort netip.AddrPort
 		dbdir    string
@@ -25,12 +25,13 @@ func parseArgs() (netip.AddrPort, string, string, error) {
 
 	sysUser, err := user.Current()
 	if err != nil {
-		return addrPort, "", "", fmt.Errorf("cannot define user: %w", err)
+		return addrPort, "", "", false, fmt.Errorf("cannot define user: %w", err)
 	}
 
 	// is id only for debug?
 	brigadeID := flag.String("id", "", "brigadier_id")
 	filedbDir := flag.String("d", "", "Dir for db files (for test). Default: "+storage.DefaultHomeDir+"/<BrigadeID>")
+	force := flag.Bool("f", false, "force destroy VIP brigade")
 
 	addr := flag.String("a", vpnapi.TemplatedAddrPort, "API endpoint address:port")
 
@@ -39,7 +40,7 @@ func parseArgs() (netip.AddrPort, string, string, error) {
 	if *filedbDir != "" {
 		dbdir, err = filepath.Abs(*filedbDir)
 		if err != nil {
-			return addrPort, "", "", fmt.Errorf("dbdir dir: %w", err)
+			return addrPort, "", "", false, fmt.Errorf("dbdir dir: %w", err)
 		}
 	}
 
@@ -67,26 +68,26 @@ func parseArgs() (netip.AddrPort, string, string, error) {
 	// brigadeID must be base32 decodable.
 	binID, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(id)
 	if err != nil {
-		return addrPort, "", "", fmt.Errorf("id base32: %s: %w", id, err)
+		return addrPort, "", "", false, fmt.Errorf("id base32: %s: %w", id, err)
 	}
 
 	_, err = uuid.FromBytes(binID)
 	if err != nil {
-		return addrPort, "", "", fmt.Errorf("id uuid: %s: %w", id, err)
+		return addrPort, "", "", false, fmt.Errorf("id uuid: %s: %w", id, err)
 	}
 
 	if *addr != "-" {
 		addrPort, err = netip.ParseAddrPort(*addr)
 		if err != nil {
-			return addrPort, "", "", fmt.Errorf("api addr: %w", err)
+			return addrPort, "", "", false, fmt.Errorf("api addr: %w", err)
 		}
 	}
 
-	return addrPort, id, dbdir, nil
+	return addrPort, id, dbdir, *force, nil
 }
 
 func main() {
-	addr, brigadeID, dbDir, err := parseArgs()
+	addr, brigadeID, dbDir, force, err := parseArgs()
 	if err != nil {
 		flag.PrintDefaults()
 		log.Fatalf("Can't parse args: %s", err)
@@ -108,7 +109,7 @@ func main() {
 	}
 
 	// just do it.
-	if err := keydesk.DestroyBrigade(db); err != nil {
+	if err := keydesk.DestroyBrigade(db, force); err != nil {
 		log.Fatalf("Can't destroy brigade: %s\n", err)
 	}
 }

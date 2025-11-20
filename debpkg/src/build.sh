@@ -17,7 +17,7 @@ go build -C keydesk/cmd/turnon-vip -o ../../../bin/turnon-vip
 go build -C keydesk/cmd/destroybrigade -o ../../../bin/destroybrigade
 go build -C keydesk/cmd/fetchstats -o ../../../bin/fetchstats
 
-go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.43.1
 
 nfpm package --config "keydesk/debpkg/nfpm.yaml" --target "${SHARED_BASE}/pkg" --packager deb
 

@@ -95,7 +95,7 @@ while [ "$#" -gt 0 ]; do
                 shift 2
                 ;;
         -force)
-                FORCE="yes"
+                FORCE="-f"
                 shift 1
                 ;;
         *)
@@ -154,17 +154,17 @@ if [ -s "${DB_DIR}/brigade.json" ]; then
                 # Remove brigade
                 # shellcheck disable=SC2086
                 if id "${brigade_id}" >/dev/null 2>&1; then
-                        sudo -u "${brigade_id}" "${REMOVER_PATH}" -id "${brigade_id}" ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
+                        sudo -u "${brigade_id}" "${REMOVER_PATH}" -id "${brigade_id}" ${FORCE} ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
                 fi
         else
                 SOURCE_DIR="$(realpath "${EXECUTABLE_DIR}")"
         
                 if [ -x "${REMOVER_PATH}" ]; then
                         # shellcheck disable=SC2086
-                        "${REMOVER_PATH}" -id "${brigade_id}" -d "${DB_DIR}" ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
+                        "${REMOVER_PATH}" -id "${brigade_id}" -d "${DB_DIR}" ${FORCE} ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
                 elif [ -s "${SOURCE_DIR}/main.go" ]; then
                         # shellcheck disable=SC2086
-                        go run "${SOURCE_DIR}/" -id "${brigade_id}" -d "${DB_DIR}" ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
+                        go run "${SOURCE_DIR}/" -id "${brigade_id}" -d "${DB_DIR}" ${FORCE} ${apiaddr} >&2 || fatal "500" "Internal server error" "Can't remove brigade"
                 else 
                         echo "ERROR: Can't find ${REMOVER_PATH} or ${SOURCE_DIR}/main.go" >&2
         

@@ -159,7 +159,8 @@ func addProto0Support(db *storage.BrigadeStorage, domain string) error {
 
 	defer f.Close()
 
-	if (data.Proto0FakeDomain != "" || len(data.Proto0FakeDomains) > 0) && data.Proto0Port > 0 {
+	if (data.Proto0FakeDomain != "" && data.Proto0Port > 0 && domain != "") ||
+		(len(data.Proto0FakeDomains) > 0 && data.Proto0Port > 0) {
 		fmt.Fprintf(os.Stderr, "Brigade %s already has Proto0\n", db.BrigadeID)
 
 		return ErrProto0AlreadyPresent

@@ -94,7 +94,7 @@ while [ "$#" -gt 0 ]; do
                 apiaddr="-a $2"
                 shift 2
                 ;;
-        -force)
+        -force|-f)
                 FORCE="-f"
                 shift 1
                 ;;

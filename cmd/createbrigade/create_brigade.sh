@@ -316,14 +316,14 @@ if [ -z "${DEBUG}" ]; then
                 install -o "${brigade_id}" -g "${brigade_id}" -m 0700 -d "${DB_DIR}" >&2
                 install -o "${brigade_id}" -g "${VGSTATS_GROUP}" -m 0710 -d "${STATS_DIR}/${brigade_id}" >&2
                 install -o "${brigade_id}" -g "${VGROUTER_GROUP}" -m 2710 -d "${ROUTER_SOCKETS_DIR}/${brigade_id}" >&2
-                [ -n "${vip}" ] && touch "${DB_DIR}/.vip"
+                [ -n "${vip}" ] && touch "${DB_DIR}/.vip" ||: >&2
         } || fatal "500" "Internal server error" "Can't create brigade ${brigade_id}"
 else
         echo "DEBUG: useradd -p '*' -G ${VGCERT_GROUP} -M -s /usr/sbin/nologin -d ${DB_DIR} ${brigade_id}" >&2
         echo "DEBUG: install -o ${brigade_id} -g ${brigade_id} -m 0700 -d ${DB_DIR}" >&2
         echo "DEBUG: install -o ${brigade_id} -g ${VGSTATS_GROUP} -m 0710 -d ${STATS_DIR}/${brigade_id}" >&2
         echo "DEBUG: install -o ${brigade_id} -g ${VGROUTER_GROUP} -m 2710 -d ${ROUTER_SOCKETS_DIR}/${brigade_id}" >&2
-        echo "DEBUG: [ -n \"${vip}\" ] && touch ${DB_DIR}/.vip" >&2
+        echo "DEBUG: [ -n \"${vip}\" ] && touch ${DB_DIR}/.vip ||:" >&2
 fi
 
 if [ -z "${DEBUG}" ]; then

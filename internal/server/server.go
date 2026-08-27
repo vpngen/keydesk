@@ -77,6 +77,18 @@ func NewServer(
 		return keydesk.ExtendUser(db, params, principal)
 	})
 
+	api.GetProBillingHandler = operations.GetProBillingHandlerFunc(func(params operations.GetProBillingParams, principal interface{}) middleware.Responder {
+		return keydesk.GetProBilling(db, params, principal)
+	})
+
+	api.GetProInvoicesHandler = operations.GetProInvoicesHandlerFunc(func(params operations.GetProInvoicesParams, principal interface{}) middleware.Responder {
+		return keydesk.GetProInvoices(db, params, principal)
+	})
+
+	api.PostProInvoicesCurrentPayHandler = operations.PostProInvoicesCurrentPayHandlerFunc(func(params operations.PostProInvoicesCurrentPayParams, principal interface{}) middleware.Responder {
+		return keydesk.PayProInvoice(db, params, principal)
+	})
+
 	api.GetMessagesHandler = operations.GetMessagesHandlerFunc(func(params operations.GetMessagesParams, principal interface{}) middleware.Responder {
 		return keydesk.GetMessages(
 			msgSvc,

@@ -399,7 +399,9 @@ func mergeStats(data *Brigade, wgStats *vpnapi.WGStatsIn, rdata bool, endpointsT
 
 		if user.Quotas.LimitMonthlyResetOn.Before(now) {
 			// !!! reset monthly throttle ....
-			user.Quotas.LimitMonthlyRemaining = uint64(monthlyQuotaRemaining)
+			// PRO "unlim" keys get an effectively unlimited quota; everyone
+			// else keeps the brigade default (no change for free/VIP).
+			user.Quotas.LimitMonthlyRemaining = ProMonthlyQuotaFor(user, uint64(monthlyQuotaRemaining))
 			user.Quotas.LimitMonthlyResetOn = kdlib.NextMonthlyResetOn(now)
 		}
 

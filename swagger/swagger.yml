@@ -263,6 +263,80 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
+  /pro/billing:
+    get:
+      security:
+        - Bearer: [ ]
+      produces:
+        - application/json
+      responses:
+        200:
+          description: PRO billing state.
+          schema:
+            $ref: "#/definitions/pro_billing"
+        403:
+          description: 'You do not have necessary permissions for the resource'
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
+        500:
+          description: 'Internal server error'
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+
+  /pro/invoices:
+    get:
+      security:
+        - Bearer: [ ]
+      produces:
+        - application/json
+      responses:
+        200:
+          description: A list of PRO invoices.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/pro_invoice"
+        403:
+          description: 'You do not have necessary permissions for the resource'
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
+        500:
+          description: 'Internal server error'
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+
+  /pro/invoices/current/pay:
+    post:
+      security:
+        - Bearer: [ ]
+      produces:
+        - application/json
+      responses:
+        200:
+          description: The current invoice is paid.
+          schema:
+            $ref: "#/definitions/pro_billing"
+        403:
+          description: 'You do not have necessary permissions for the resource'
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
+        500:
+          description: 'Internal server error'
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+
   /users/stats:
     get:
       security:
@@ -514,6 +588,8 @@ definitions:
         type: string
       SoldForCents:
         type: integer
+      ProBlockReason:
+        type: string
   user_pro_patch:
     type: object
     properties:
@@ -564,6 +640,62 @@ definitions:
         type: string
         format: date-time
         x-nullable: true
+  pro_billing:
+    type: object
+    required:
+      - State
+    properties:
+      State:
+        type: string
+        enum:
+          - paid
+          - issued
+          - overdue
+          - suspended
+      InvoiceID:
+        type: string
+      IssuedAt:
+        type: string
+        format: date-time
+        x-nullable: true
+      DueAt:
+        type: string
+        format: date-time
+        x-nullable: true
+      SuspendAt:
+        type: string
+        format: date-time
+        x-nullable: true
+      TotalCents:
+        type: integer
+  pro_invoice:
+    type: object
+    required:
+      - ID
+      - Status
+      - TotalCents
+      - KeysCount
+    properties:
+      ID:
+        type: string
+      Status:
+        type: string
+      CreatedAt:
+        type: string
+        format: date-time
+        x-nullable: true
+      DueAt:
+        type: string
+        format: date-time
+        x-nullable: true
+      PaidAt:
+        type: string
+        format: date-time
+        x-nullable: true
+      KeysCount:
+        type: integer
+      TotalCents:
+        type: integer
   stats:
     type: object
     required:

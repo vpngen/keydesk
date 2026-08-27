@@ -46,6 +46,20 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 			return middleware.NotImplemented("operation DeleteUserUserID has not yet been implemented")
 		}),
 
+		GetProBillingHandler: GetProBillingHandlerFunc(func(params GetProBillingParams, principal any) middleware.Responder {
+			_ = params
+			_ = principal
+
+			return middleware.NotImplemented("operation GetProBilling has not yet been implemented")
+		}),
+
+		GetProInvoicesHandler: GetProInvoicesHandlerFunc(func(params GetProInvoicesParams, principal any) middleware.Responder {
+			_ = params
+			_ = principal
+
+			return middleware.NotImplemented("operation GetProInvoices has not yet been implemented")
+		}),
+
 		GetUserHandler: GetUserHandlerFunc(func(params GetUserParams, principal any) middleware.Responder {
 			_ = params
 			_ = principal
@@ -79,6 +93,13 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 			_ = principal
 
 			return middleware.NotImplemented("operation PatchUserUserIDUnblock has not yet been implemented")
+		}),
+
+		PostProInvoicesCurrentPayHandler: PostProInvoicesCurrentPayHandlerFunc(func(params PostProInvoicesCurrentPayParams, principal any) middleware.Responder {
+			_ = params
+			_ = principal
+
+			return middleware.NotImplemented("operation PostProInvoicesCurrentPay has not yet been implemented")
 		}),
 
 		PostTokenHandler: PostTokenHandlerFunc(func(params PostTokenParams) middleware.Responder {
@@ -175,6 +196,10 @@ type UserAPI struct {
 
 	// DeleteUserUserIDHandler sets the operation handler for the delete user user ID operation
 	DeleteUserUserIDHandler DeleteUserUserIDHandler
+	// GetProBillingHandler sets the operation handler for the get pro billing operation
+	GetProBillingHandler GetProBillingHandler
+	// GetProInvoicesHandler sets the operation handler for the get pro invoices operation
+	GetProInvoicesHandler GetProInvoicesHandler
 	// GetUserHandler sets the operation handler for the get user operation
 	GetUserHandler GetUserHandler
 	// GetUsersStatsHandler sets the operation handler for the get users stats operation
@@ -185,6 +210,8 @@ type UserAPI struct {
 	PatchUserUserIDProHandler PatchUserUserIDProHandler
 	// PatchUserUserIDUnblockHandler sets the operation handler for the patch user user ID unblock operation
 	PatchUserUserIDUnblockHandler PatchUserUserIDUnblockHandler
+	// PostProInvoicesCurrentPayHandler sets the operation handler for the post pro invoices current pay operation
+	PostProInvoicesCurrentPayHandler PostProInvoicesCurrentPayHandler
 	// PostTokenHandler sets the operation handler for the post token operation
 	PostTokenHandler PostTokenHandler
 	// PostUserHandler sets the operation handler for the post user operation
@@ -281,6 +308,12 @@ func (o *UserAPI) Validate() error {
 	if o.DeleteUserUserIDHandler == nil {
 		unregistered = append(unregistered, "DeleteUserUserIDHandler")
 	}
+	if o.GetProBillingHandler == nil {
+		unregistered = append(unregistered, "GetProBillingHandler")
+	}
+	if o.GetProInvoicesHandler == nil {
+		unregistered = append(unregistered, "GetProInvoicesHandler")
+	}
 	if o.GetUserHandler == nil {
 		unregistered = append(unregistered, "GetUserHandler")
 	}
@@ -295,6 +328,9 @@ func (o *UserAPI) Validate() error {
 	}
 	if o.PatchUserUserIDUnblockHandler == nil {
 		unregistered = append(unregistered, "PatchUserUserIDUnblockHandler")
+	}
+	if o.PostProInvoicesCurrentPayHandler == nil {
+		unregistered = append(unregistered, "PostProInvoicesCurrentPayHandler")
 	}
 	if o.PostTokenHandler == nil {
 		unregistered = append(unregistered, "PostTokenHandler")
@@ -419,6 +455,14 @@ func (o *UserAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/pro/billing"] = NewGetProBilling(o.context, o.GetProBillingHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/pro/invoices"] = NewGetProInvoices(o.context, o.GetProInvoicesHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/user"] = NewGetUser(o.context, o.GetUserHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
@@ -436,6 +480,10 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
 	o.handlers["PATCH"]["/user/{UserID}/unblock"] = NewPatchUserUserIDUnblock(o.context, o.PatchUserUserIDUnblockHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/pro/invoices/current/pay"] = NewPostProInvoicesCurrentPay(o.context, o.PostProInvoicesCurrentPayHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

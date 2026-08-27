@@ -527,6 +527,7 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 		apiUsers[i].ProLabel = user.ProLabel
 		apiUsers[i].ProNote = user.ProNote
 		apiUsers[i].SoldForCents = user.ProSoldFor
+		apiUsers[i].ProBlockReason = user.ProBlockReason
 
 		if !user.ProPaidUntil.IsZero() {
 			apiUsers[i].PaidUntil = (*strfmt.DateTime)(&user.ProPaidUntil)

@@ -59,6 +59,14 @@ type ClientService interface {
 
 	DeleteUserUserIDContext(ctx context.Context, params *DeleteUserUserIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteUserUserIDNoContent, error)
 
+	GetProBilling(params *GetProBillingParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProBillingOK, error)
+
+	GetProBillingContext(ctx context.Context, params *GetProBillingParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProBillingOK, error)
+
+	GetProInvoices(params *GetProInvoicesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProInvoicesOK, error)
+
+	GetProInvoicesContext(ctx context.Context, params *GetProInvoicesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProInvoicesOK, error)
+
 	GetUser(params *GetUserParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetUserOK, error)
 
 	GetUserContext(ctx context.Context, params *GetUserParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetUserOK, error)
@@ -78,6 +86,10 @@ type ClientService interface {
 	PatchUserUserIDUnblock(params *PatchUserUserIDUnblockParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PatchUserUserIDUnblockOK, error)
 
 	PatchUserUserIDUnblockContext(ctx context.Context, params *PatchUserUserIDUnblockParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PatchUserUserIDUnblockOK, error)
+
+	PostProInvoicesCurrentPay(params *PostProInvoicesCurrentPayParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostProInvoicesCurrentPayOK, error)
+
+	PostProInvoicesCurrentPayContext(ctx context.Context, params *PostProInvoicesCurrentPayParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostProInvoicesCurrentPayOK, error)
 
 	PostToken(params *PostTokenParams, opts ...ClientOption) (*PostTokenCreated, error)
 
@@ -168,6 +180,130 @@ func (a *Client) DeleteUserUserIDContext(ctx context.Context, params *DeleteUser
 	//
 	// a default response is provided: fill this and return an error
 	unexpectedSuccess := result.(*DeleteUserUserIDDefault)
+
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+// GetProBilling get pro billing API.
+//
+// This method does not support injected context.
+// However, timeout and opentracing contexts are honored whenever enabled.
+//
+// If you need to pass a specific context, use [Client.GetProBillingContext] instead.
+func (a *Client) GetProBilling(params *GetProBillingParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProBillingOK, error) {
+	var ctx context.Context
+	if params != nil && params.inner.ctx != nil {
+		ctx = params.inner.ctx
+	} else {
+		ctx = context.Background()
+	}
+
+	return a.GetProBillingContext(ctx, params, authInfo, opts...)
+}
+
+// GetProBillingContext get pro billing API.
+//
+// Do not use the deprecated [GetProBillingParams.Context] with this method: it would be ignored.
+func (a *Client) GetProBillingContext(ctx context.Context, params *GetProBillingParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProBillingOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewGetProBillingParams()
+	}
+
+	op := &runtime.ClientOperation{
+		ID:                 "GetProBilling",
+		Method:             "GET",
+		PathPattern:        "/pro/billing",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetProBillingReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Client:             params.HTTPClient,
+	}
+
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.SubmitContext(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*GetProBillingOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+	//
+	// a default response is provided: fill this and return an error
+	unexpectedSuccess := result.(*GetProBillingDefault)
+
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+// GetProInvoices get pro invoices API.
+//
+// This method does not support injected context.
+// However, timeout and opentracing contexts are honored whenever enabled.
+//
+// If you need to pass a specific context, use [Client.GetProInvoicesContext] instead.
+func (a *Client) GetProInvoices(params *GetProInvoicesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProInvoicesOK, error) {
+	var ctx context.Context
+	if params != nil && params.inner.ctx != nil {
+		ctx = params.inner.ctx
+	} else {
+		ctx = context.Background()
+	}
+
+	return a.GetProInvoicesContext(ctx, params, authInfo, opts...)
+}
+
+// GetProInvoicesContext get pro invoices API.
+//
+// Do not use the deprecated [GetProInvoicesParams.Context] with this method: it would be ignored.
+func (a *Client) GetProInvoicesContext(ctx context.Context, params *GetProInvoicesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProInvoicesOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewGetProInvoicesParams()
+	}
+
+	op := &runtime.ClientOperation{
+		ID:                 "GetProInvoices",
+		Method:             "GET",
+		PathPattern:        "/pro/invoices",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetProInvoicesReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Client:             params.HTTPClient,
+	}
+
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.SubmitContext(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*GetProInvoicesOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+	//
+	// a default response is provided: fill this and return an error
+	unexpectedSuccess := result.(*GetProInvoicesDefault)
 
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
@@ -478,6 +614,68 @@ func (a *Client) PatchUserUserIDUnblockContext(ctx context.Context, params *Patc
 	//
 	// a default response is provided: fill this and return an error
 	unexpectedSuccess := result.(*PatchUserUserIDUnblockDefault)
+
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+// PostProInvoicesCurrentPay post pro invoices current pay API.
+//
+// This method does not support injected context.
+// However, timeout and opentracing contexts are honored whenever enabled.
+//
+// If you need to pass a specific context, use [Client.PostProInvoicesCurrentPayContext] instead.
+func (a *Client) PostProInvoicesCurrentPay(params *PostProInvoicesCurrentPayParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostProInvoicesCurrentPayOK, error) {
+	var ctx context.Context
+	if params != nil && params.inner.ctx != nil {
+		ctx = params.inner.ctx
+	} else {
+		ctx = context.Background()
+	}
+
+	return a.PostProInvoicesCurrentPayContext(ctx, params, authInfo, opts...)
+}
+
+// PostProInvoicesCurrentPayContext post pro invoices current pay API.
+//
+// Do not use the deprecated [PostProInvoicesCurrentPayParams.Context] with this method: it would be ignored.
+func (a *Client) PostProInvoicesCurrentPayContext(ctx context.Context, params *PostProInvoicesCurrentPayParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostProInvoicesCurrentPayOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewPostProInvoicesCurrentPayParams()
+	}
+
+	op := &runtime.ClientOperation{
+		ID:                 "PostProInvoicesCurrentPay",
+		Method:             "POST",
+		PathPattern:        "/pro/invoices/current/pay",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PostProInvoicesCurrentPayReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Client:             params.HTTPClient,
+	}
+
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.SubmitContext(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*PostProInvoicesCurrentPayOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+	//
+	// a default response is provided: fill this and return an error
+	unexpectedSuccess := result.(*PostProInvoicesCurrentPayDefault)
 
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }

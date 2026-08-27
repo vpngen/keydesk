@@ -69,7 +69,8 @@ func SetUserTier(db *storage.BrigadeStorage, params operations.PostUserUserIDTie
 		return operations.NewPostUserUserIDTierBadRequest()
 	}
 
-	if err := db.SetUserProTerm(params.UserID, tier, paidUntil); err != nil {
+	prev, err := db.GetUserProState(params.UserID)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "Set user tier: %s: %s\n", params.UserID, err)
 
 		if errors.Is(err, storage.ErrUserNotFound) {
@@ -78,6 +79,14 @@ func SetUserTier(db *storage.BrigadeStorage, params operations.PostUserUserIDTie
 
 		return operations.NewPostUserUserIDTierInternalServerError()
 	}
+
+	if err := db.SetUserProTerm(params.UserID, tier, paidUntil); err != nil {
+		fmt.Fprintf(os.Stderr, "Set user tier: %s: %s\n", params.UserID, err)
+
+		return operations.NewPostUserUserIDTierInternalServerError()
+	}
+
+	reviveProUser(db, params.UserID, prev, paidUntil)
 
 	return operations.NewPostUserUserIDTierOK().WithPayload(proTermPayload(tier, paidUntil))
 }
@@ -89,7 +98,7 @@ func ExtendUser(db *storage.BrigadeStorage, params operations.PostUserUserIDExte
 		return operations.NewPostUserUserIDExtendForbidden()
 	}
 
-	tier, paidUntil, err := db.GetUserProTerm(params.UserID)
+	prev, err := db.GetUserProState(params.UserID)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Extend user: %s: %s\n", params.UserID, err)
 
@@ -100,24 +109,39 @@ func ExtendUser(db *storage.BrigadeStorage, params operations.PostUserUserIDExte
 		return operations.NewPostUserUserIDExtendInternalServerError()
 	}
 
-	if !storage.IsValidProTier(tier) {
+	if !storage.IsValidProTier(prev.Tier) {
 		return operations.NewPostUserUserIDExtendBadRequest()
 	}
 
-	base := paidUntil
-	if base.IsZero() {
+	base := prev.PaidUntil
+	if base.IsZero() || base.Before(time.Now().UTC()) {
 		base = time.Now().UTC()
 	}
 
-	paidUntil = base.AddDate(0, int(swag.Int64Value(params.Body.Months)), 0)
+	paidUntil := base.AddDate(0, int(swag.Int64Value(params.Body.Months)), 0)
 
-	if err := db.SetUserProTerm(params.UserID, tier, paidUntil); err != nil {
+	if err := db.SetUserProTerm(params.UserID, prev.Tier, paidUntil); err != nil {
 		fmt.Fprintf(os.Stderr, "Extend user: %s: %s\n", params.UserID, err)
 
 		return operations.NewPostUserUserIDExtendInternalServerError()
 	}
 
-	return operations.NewPostUserUserIDExtendOK().WithPayload(proTermPayload(tier, paidUntil))
+	reviveProUser(db, params.UserID, prev, paidUntil)
+
+	return operations.NewPostUserUserIDExtendOK().WithPayload(proTermPayload(prev.Tier, paidUntil))
+}
+
+// reviveProUser - if the key was blocked because its paid period had expired
+// and the new period reaches into the future, unblock it. Manual and billing
+// blocks are left alone.
+func reviveProUser(db *storage.BrigadeStorage, id string, prev storage.UserProState, paidUntil time.Time) {
+	if !prev.Blocked || prev.BlockReason != storage.ProBlockExpired || !paidUntil.After(time.Now().UTC()) {
+		return
+	}
+
+	if err := db.UnblockUserPro(id); err != nil {
+		fmt.Fprintf(os.Stderr, "Revive pro user: %s: %s\n", id, err)
+	}
 }
 
 func proTermPayload(tier string, paidUntil time.Time) *models.UserProTerm {
@@ -139,4 +163,116 @@ func proTierAPIValue(tier string) string {
 	}
 
 	return tier
+}
+
+// ——— Billing (local stub invoices) ———
+
+// GetProBilling - billing state of the PRO brigade.
+func GetProBilling(db *storage.BrigadeStorage, params operations.GetProBillingParams, principal interface{}) middleware.Responder {
+	if !db.IsPRO() {
+		return operations.NewGetProBillingForbidden()
+	}
+
+	info, err := db.GetProBilling()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Get pro billing: %s\n", err)
+
+		return operations.NewGetProBillingInternalServerError()
+	}
+
+	return operations.NewGetProBillingOK().WithPayload(proBillingPayload(info))
+}
+
+// GetProInvoices - the invoice history of the PRO brigade.
+func GetProInvoices(db *storage.BrigadeStorage, params operations.GetProInvoicesParams, principal interface{}) middleware.Responder {
+	if !db.IsPRO() {
+		return operations.NewGetProInvoicesForbidden()
+	}
+
+	info, err := db.GetProBilling()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Get pro invoices: %s\n", err)
+
+		return operations.NewGetProInvoicesInternalServerError()
+	}
+
+	payload := make([]*models.ProInvoice, 0, len(info.Invoices))
+	for i := len(info.Invoices) - 1; i >= 0; i-- {
+		payload = append(payload, proInvoicePayload(info.Invoices[i]))
+	}
+
+	return operations.NewGetProInvoicesOK().WithPayload(payload)
+}
+
+// PayProInvoice - stub payment of the current invoice: marks it paid and
+// brings the keys blocked over billing back to life.
+func PayProInvoice(db *storage.BrigadeStorage, params operations.PostProInvoicesCurrentPayParams, principal interface{}) middleware.Responder {
+	if !db.IsPRO() {
+		return operations.NewPostProInvoicesCurrentPayForbidden()
+	}
+
+	toUnblock, err := db.PayProInvoice(time.Now().UTC())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Pay pro invoice: %s\n", err)
+
+		return operations.NewPostProInvoicesCurrentPayInternalServerError()
+	}
+
+	for _, id := range toUnblock {
+		if err := db.UnblockUserPro(id); err != nil {
+			fmt.Fprintf(os.Stderr, "Pay pro invoice: unblock %s: %s\n", id, err)
+		}
+	}
+
+	info, err := db.GetProBilling()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Pay pro invoice: %s\n", err)
+
+		return operations.NewPostProInvoicesCurrentPayInternalServerError()
+	}
+
+	return operations.NewPostProInvoicesCurrentPayOK().WithPayload(proBillingPayload(info))
+}
+
+func proBillingPayload(info storage.ProBillingInfo) *models.ProBilling {
+	state := info.State
+	if state == storage.ProBillingPaid {
+		state = "paid"
+	}
+
+	payload := &models.ProBilling{
+		State: swag.String(state),
+	}
+
+	if info.Current != nil {
+		payload.InvoiceID = info.Current.ID
+		payload.TotalCents = info.Current.TotalCents
+		payload.IssuedAt = (*strfmt.DateTime)(&info.Current.CreatedAt)
+		payload.DueAt = (*strfmt.DateTime)(&info.Current.DueAt)
+		suspendAt := info.Current.CreatedAt.AddDate(0, 0, storage.ProInvoiceGraceDays)
+		payload.SuspendAt = (*strfmt.DateTime)(&suspendAt)
+	}
+
+	return payload
+}
+
+func proInvoicePayload(invoice storage.ProInvoice) *models.ProInvoice {
+	payload := &models.ProInvoice{
+		ID:         swag.String(invoice.ID),
+		Status:     swag.String(invoice.Status),
+		KeysCount:  swag.Int64(int64(invoice.KeysCount)),
+		TotalCents: swag.Int64(invoice.TotalCents),
+	}
+
+	createdAt := invoice.CreatedAt
+	dueAt := invoice.DueAt
+	payload.CreatedAt = (*strfmt.DateTime)(&createdAt)
+	payload.DueAt = (*strfmt.DateTime)(&dueAt)
+
+	if !invoice.PaidAt.IsZero() {
+		paidAt := invoice.PaidAt
+		payload.PaidAt = (*strfmt.DateTime)(&paidAt)
+	}
+
+	return payload
 }

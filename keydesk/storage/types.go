@@ -214,11 +214,13 @@ type User struct {
 
 	// PRO per-key attributes (see pro.go); zero values mean a regular free key,
 	// so free and VIP brigades are not affected by these fields.
-	ProTier      string    `json:"pro_tier,omitempty"`       // "" (free) | "basic" | "unlim"
-	ProPaidUntil time.Time `json:"pro_paid_until,omitempty"` // paid period end (zero for free keys)
-	ProLabel     string    `json:"pro_label,omitempty"`      // brigadier's display label for the key
-	ProNote      string    `json:"pro_note,omitempty"`       // brigadier's private comment
-	ProSoldFor   int64     `json:"pro_sold_for,omitempty"`   // brigadier's sale price, euro cents
+	ProTier        string    `json:"pro_tier,omitempty"`         // "" (free) | "basic" | "unlim"
+	ProPaidUntil   time.Time `json:"pro_paid_until,omitempty"`   // paid period end (zero for free keys)
+	ProTierSetAt   time.Time `json:"pro_tier_set_at,omitempty"`  // when the current paid tier started (for proration)
+	ProLabel       string    `json:"pro_label,omitempty"`        // brigadier's display label for the key
+	ProNote        string    `json:"pro_note,omitempty"`         // brigadier's private comment
+	ProSoldFor     int64     `json:"pro_sold_for,omitempty"`     // brigadier's sale price, euro cents
+	ProBlockReason string    `json:"pro_block_reason,omitempty"` // why the key is blocked: "expired" | "billing"; "" = manual block
 }
 
 func NewUser(userID uuid.UUID, name string, createdAt time.Time, isBrigadier, isSocket bool, IPv4Addr netip.Addr, IPv6Addr netip.Addr, person namesgenerator.Person) User {
@@ -243,6 +245,8 @@ type Brigade struct {
 	Ver                   int                  `json:"version"`
 	VIP                   int64                `json:"vip"` // is vip brigade
 	PRO                   int64                `json:"pro"` // is pro brigade
+	ProBillingState       string               `json:"pro_billing_state,omitempty"` // "" (paid) | "issued" | "overdue" | "suspended"
+	ProInvoices           []ProInvoice         `json:"pro_invoices,omitempty"`      // local invoice history (stub billing)
 	BrigadeID             string               `json:"brigade_id"`
 	CreatedAt             time.Time            `json:"created_at"`
 	Mode                  Mode                 `json:"mode"`

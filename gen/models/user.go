@@ -59,6 +59,9 @@ type User struct {
 	// prev day traffic
 	PrevDayTraffic int64 `json:"PrevDayTraffic,omitempty"`
 
+	// pro block reason
+	ProBlockReason string `json:"ProBlockReason,omitempty"`
+
 	// pro label
 	ProLabel string `json:"ProLabel,omitempty"`
 

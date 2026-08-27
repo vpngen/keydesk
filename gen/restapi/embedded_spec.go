@@ -133,6 +133,123 @@ func init() {
         ]
       }
     },
+    "/pro/billing": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "PRO billing state.",
+            "schema": {
+              "$ref": "#/definitions/pro_billing"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/pro/invoices": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of PRO invoices.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/pro_invoice"
+              }
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/pro/invoices/current/pay": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "The current invoice is paid.",
+            "schema": {
+              "$ref": "#/definitions/pro_billing"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/token": {
       "post": {
         "produces": [
@@ -781,6 +898,82 @@ func init() {
         }
       }
     },
+    "pro_billing": {
+      "type": "object",
+      "required": [
+        "State"
+      ],
+      "properties": {
+        "DueAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "InvoiceID": {
+          "type": "string"
+        },
+        "IssuedAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "State": {
+          "type": "string",
+          "enum": [
+            "paid",
+            "issued",
+            "overdue",
+            "suspended"
+          ]
+        },
+        "SuspendAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "TotalCents": {
+          "type": "integer"
+        }
+      }
+    },
+    "pro_invoice": {
+      "type": "object",
+      "required": [
+        "ID",
+        "Status",
+        "TotalCents",
+        "KeysCount"
+      ],
+      "properties": {
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "DueAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "ID": {
+          "type": "string"
+        },
+        "KeysCount": {
+          "type": "integer"
+        },
+        "PaidAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "Status": {
+          "type": "string"
+        },
+        "TotalCents": {
+          "type": "integer"
+        }
+      }
+    },
     "stats": {
       "type": "object",
       "required": [
@@ -921,6 +1114,9 @@ func init() {
         "PrevDayTraffic": {
           "type": "number",
           "format": "integer"
+        },
+        "ProBlockReason": {
+          "type": "string"
         },
         "ProLabel": {
           "type": "string"
@@ -1144,6 +1340,123 @@ func init() {
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/pro/billing": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "PRO billing state.",
+            "schema": {
+              "$ref": "#/definitions/pro_billing"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/pro/invoices": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of PRO invoices.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/pro_invoice"
+              }
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/pro/invoices/current/pay": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "The current invoice is paid.",
+            "schema": {
+              "$ref": "#/definitions/pro_billing"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
           },
           "default": {
             "description": "error",
@@ -1936,6 +2249,82 @@ func init() {
         }
       }
     },
+    "pro_billing": {
+      "type": "object",
+      "required": [
+        "State"
+      ],
+      "properties": {
+        "DueAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "InvoiceID": {
+          "type": "string"
+        },
+        "IssuedAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "State": {
+          "type": "string",
+          "enum": [
+            "paid",
+            "issued",
+            "overdue",
+            "suspended"
+          ]
+        },
+        "SuspendAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "TotalCents": {
+          "type": "integer"
+        }
+      }
+    },
+    "pro_invoice": {
+      "type": "object",
+      "required": [
+        "ID",
+        "Status",
+        "TotalCents",
+        "KeysCount"
+      ],
+      "properties": {
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "DueAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "ID": {
+          "type": "string"
+        },
+        "KeysCount": {
+          "type": "integer"
+        },
+        "PaidAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "Status": {
+          "type": "string"
+        },
+        "TotalCents": {
+          "type": "integer"
+        }
+      }
+    },
     "stats": {
       "type": "object",
       "required": [
@@ -2039,6 +2428,9 @@ func init() {
         "PrevDayTraffic": {
           "type": "number",
           "format": "integer"
+        },
+        "ProBlockReason": {
+          "type": "string"
         },
         "ProLabel": {
           "type": "string"

@@ -25,6 +25,7 @@ import (
 	"github.com/vpngen/keydesk/internal/maintenance"
 	msgapp "github.com/vpngen/keydesk/internal/messages/app"
 	msgsvc "github.com/vpngen/keydesk/internal/messages/service"
+	"github.com/vpngen/keydesk/internal/probilling"
 	"github.com/vpngen/keydesk/internal/server"
 	shflrapp "github.com/vpngen/keydesk/internal/shuffler/app"
 	"github.com/vpngen/keydesk/internal/stat"
@@ -191,6 +192,7 @@ func main() {
 	// seconds for current connections to stop.
 
 	statDone := make(chan struct{})
+	proDone := make(chan struct{})
 
 	srv := &http.Server{
 		Handler:     handler,
@@ -262,6 +264,19 @@ func main() {
 		},
 		Shutdown: func(ctx context.Context) error {
 			statDone <- struct{}{}
+			return nil
+		},
+	})
+
+	// Обслуживание PRO-бригад (блокировка истёкших платных ключей и, позже,
+	// жизненный цикл инвойсов). Для не-PRO бригад каждый проход — no-op.
+	r.AddTask("pro sweep", runner.Task{
+		Func: func(ctx context.Context) error {
+			probilling.RunSweep(db, proDone)
+			return nil
+		},
+		Shutdown: func(ctx context.Context) error {
+			proDone <- struct{}{}
 			return nil
 		},
 	})

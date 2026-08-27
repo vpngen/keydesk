@@ -183,6 +183,10 @@ func parseArgs2(flags flags) (config, error) {
 		vipEndpoint = defaultVipEndpoint
 	}
 
+	// No default: PRO has no dedicated service yet, an empty value keeps the
+	// pro_url claim out of the token.
+	proEndpoint := os.Getenv("PRO_ENDPOINT")
+
 	obfsKey := os.Getenv("OBFS_UUID")
 	fmt.Fprintf(os.Stderr, "obfs uuid: %s\n", obfsKey)
 	obfsUUID, err := uuid.Parse(obfsKey)
@@ -275,6 +279,7 @@ func parseArgs2(flags flags) (config, error) {
 				Audience:      []string{"keydesk"},
 				SigningMethod: jwt.SigningMethodHS256,
 				VipURL:        vipEndpoint,
+				ProURL:        proEndpoint,
 			}
 
 			cfg.jwtKeydesAuthorizer = jwtsvc.NewKeydeskTokenAuthorizer(secret, jwtopts)
@@ -293,6 +298,7 @@ func parseArgs2(flags flags) (config, error) {
 				Audience:      []string{"keydesk"},
 				SigningMethod: signingMethod,
 				VipURL:        vipEndpoint,
+				ProURL:        proEndpoint,
 			}
 
 			cfg.jwtKeydesAuthorizer = jwtsvc.NewKeydeskTokenAuthorizer(jwtKeydeskPubkey, jwtopts)

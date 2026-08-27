@@ -64,6 +64,19 @@ func NewServer(
 		return keydesk.UnblockUserUserID(db, params, principal)
 	})
 
+	// PRO per-key operations (no-op for free and VIP brigades: guarded by db.IsPRO()).
+	api.PatchUserUserIDProHandler = operations.PatchUserUserIDProHandlerFunc(func(params operations.PatchUserUserIDProParams, principal interface{}) middleware.Responder {
+		return keydesk.UpdateUserPro(db, params, principal)
+	})
+
+	api.PostUserUserIDTierHandler = operations.PostUserUserIDTierHandlerFunc(func(params operations.PostUserUserIDTierParams, principal interface{}) middleware.Responder {
+		return keydesk.SetUserTier(db, params, principal)
+	})
+
+	api.PostUserUserIDExtendHandler = operations.PostUserUserIDExtendHandlerFunc(func(params operations.PostUserUserIDExtendParams, principal interface{}) middleware.Responder {
+		return keydesk.ExtendUser(db, params, principal)
+	})
+
 	api.GetMessagesHandler = operations.GetMessagesHandlerFunc(func(params operations.GetMessagesParams, principal interface{}) middleware.Responder {
 		return keydesk.GetMessages(
 			msgSvc,

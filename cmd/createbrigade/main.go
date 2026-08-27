@@ -21,6 +21,10 @@ import (
 	"github.com/vpngen/vpngine/naclkey"
 )
 
+// proFlag - registered in parseArgs, applied in main after the brigade is
+// created, so the CreateBrigade path itself stays untouched.
+var proFlag *bool
+
 // Args errors.
 var (
 	ErrInvalidEndpointIPv4 = errors.New("invalid ip4 endpoint")
@@ -70,6 +74,7 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	proto0Cfgs := flag.String("proto0", "", "Protocol0 configs (access_key)")
 
 	vip := flag.Bool("vip", false, "VIP brigade")
+	proFlag = flag.Bool("pro", false, "PRO brigade")
 
 	mode := flag.String("mode", storage.ModeBrigade, "mode (brigade or vgsocket)")
 	maxUsers := flag.Uint("maxusers", storage.MaxUsers, "max users, only valid in vgsocket mode")
@@ -309,6 +314,14 @@ func main() {
 	// just do it.
 	if err := keydesk.CreateBrigade(db, vpnCfgs, config, &routerPublicKey, &shufflerPublicKey, mode, maxUsers, vip); err != nil {
 		log.Fatalf("Can't create brigade: %s\n", err)
+	}
+
+	// Kept out of CreateBrigade on purpose: PRO is an add-on flag, the
+	// creation path stays identical for free/VIP brigades.
+	if proFlag != nil && *proFlag {
+		if err := db.SetPRO(true); err != nil {
+			log.Fatalf("Can't set PRO: %s\n", err)
+		}
 	}
 }
 

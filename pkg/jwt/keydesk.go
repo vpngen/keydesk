@@ -25,6 +25,9 @@ type KeydeskTokenOptions struct {
 	// URL to the VIP service, used to verify the token
 	VipURL string
 
+	// URL to the PRO service, carried in the token for PRO brigades
+	ProURL string
+
 	SigningMethod jwt.SigningMethod
 }
 
@@ -39,8 +42,10 @@ type KeydeskTokenClaims struct {
 	jwt.RegisteredClaims
 
 	Vip        bool   `json:"vip"`
+	Pro        bool   `json:"pro,omitempty"`
 	ExternalIP string `json:"external_ip,omitempty"`
 	VipURL     string `json:"vip_url,omitempty"`
+	ProURL     string `json:"pro_url,omitempty"`
 }
 
 var (
@@ -77,6 +82,18 @@ func (i KeydeskTokenIssuer) CreateToken(ttl time.Duration, vip bool) KeydeskToke
 		Vip:        vip,
 		VipURL:     i.options.VipURL,
 	}
+}
+
+// CreateTokenWithPro - same as CreateToken, but also carries the PRO tier flag.
+// Kept as a separate method so existing CreateToken callers stay untouched.
+func (i KeydeskTokenIssuer) CreateTokenWithPro(ttl time.Duration, vip, pro bool) KeydeskTokenClaims {
+	claims := i.CreateToken(ttl, vip)
+	claims.Pro = pro
+	if pro {
+		claims.ProURL = i.options.ProURL
+	}
+
+	return claims
 }
 
 func (i KeydeskTokenIssuer) SetExternalIP(externalIP string) KeydeskTokenIssuer {

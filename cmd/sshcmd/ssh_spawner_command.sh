@@ -27,6 +27,10 @@ elif [ "${cmd}" = "vipon" ]; then
     sudo -u root -g root "${basedir}/turnon_vip.sh" "$@" "-on"
 elif [ "${cmd}" = "vipoff" ]; then
     sudo -u root -g root "${basedir}/turnon_vip.sh" "$@" "-off"
+elif [ "${cmd}" = "proon" ]; then
+    sudo -u root -g root "${basedir}/turnon_pro.sh" "$@" "-on"
+elif [ "${cmd}" = "prooff" ]; then
+    sudo -u root -g root "${basedir}/turnon_pro.sh" "$@" "-off"
 else
     echo "Unknown command: ${cmd}"
     printdef

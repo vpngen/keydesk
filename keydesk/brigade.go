@@ -80,12 +80,20 @@ func CreateBrigade(
 	return nil
 }
 
-var ErrDestroyVIP = fmt.Errorf("destroy VIP brigade")
+var (
+	ErrDestroyVIP = fmt.Errorf("destroy VIP brigade")
+	ErrDestroyPRO = fmt.Errorf("destroy PRO brigade")
+)
 
 // DestroyBrigade - destroy brigadier user.
 func DestroyBrigade(db *storage.BrigadeStorage, force bool) error {
 	if db.IsVIP() && !force {
 		return fmt.Errorf("%w: %s", ErrDestroyVIP, db.BrigadeID)
+	}
+
+	// PRO brigades get the same deletion protection as VIP ones.
+	if db.IsPRO() && !force {
+		return fmt.Errorf("%w: %s", ErrDestroyPRO, db.BrigadeID)
 	}
 
 	if err := db.DestroyBrigade(); err != nil {

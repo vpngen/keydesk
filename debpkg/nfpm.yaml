@@ -103,6 +103,12 @@ contents:
     mode: 0005
     owner: root
     group: root
+- src: bin/turnon-pro
+  dst: /opt/vgkeydesk/turnon-pro
+  file_info:
+    mode: 0005
+    owner: root
+    group: root
 - src: bin/fetchstats
   dst: /opt/vgkeydesk/fetchstats
   file_info:
@@ -111,6 +117,12 @@ contents:
     group: root
 - src: keydesk/cmd/turnon-vip/turnon_vip.sh
   dst: /opt/vgkeydesk/turnon_vip.sh
+  file_info:
+    mode: 0500
+    owner: root
+    group: root
+- src: keydesk/cmd/turnon-pro/turnon_pro.sh
+  dst: /opt/vgkeydesk/turnon_pro.sh
   file_info:
     mode: 0500
     owner: root

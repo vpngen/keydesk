@@ -153,6 +153,116 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
+  /user/{UserID}/pro:
+    patch:
+      security:
+        - Bearer: [ ]
+      produces:
+        - application/json
+      parameters:
+        - type: string
+          name: UserID
+          in: path
+          required: true
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/user_pro_patch"
+      responses:
+        200:
+          description: User PRO annotations updated.
+        403:
+          description: 'You do not have necessary permissions for the resource'
+        404:
+          description: 'User not found'
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
+        500:
+          description: 'Internal server error'
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+
+  /user/{UserID}/tier:
+    post:
+      security:
+        - Bearer: [ ]
+      produces:
+        - application/json
+      parameters:
+        - type: string
+          name: UserID
+          in: path
+          required: true
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/user_pro_tier"
+      responses:
+        200:
+          description: User tier changed.
+          schema:
+            $ref: "#/definitions/user_pro_term"
+        400:
+          description: 'Invalid tier or term'
+        403:
+          description: 'You do not have necessary permissions for the resource'
+        404:
+          description: 'User not found'
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
+        500:
+          description: 'Internal server error'
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+
+  /user/{UserID}/extend:
+    post:
+      security:
+        - Bearer: [ ]
+      produces:
+        - application/json
+      parameters:
+        - type: string
+          name: UserID
+          in: path
+          required: true
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/user_pro_extend"
+      responses:
+        200:
+          description: User paid period extended.
+          schema:
+            $ref: "#/definitions/user_pro_term"
+        400:
+          description: 'Invalid term or not a paid key'
+        403:
+          description: 'You do not have necessary permissions for the resource'
+        404:
+          description: 'User not found'
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
+        500:
+          description: 'Internal server error'
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+
   /users/stats:
     get:
       security:
@@ -389,6 +499,68 @@ definitions:
       Blocked:
         type: boolean
       BlockedAt:
+        type: string
+        format: date-time
+        x-nullable: true
+      Tier:
+        type: string
+      PaidUntil:
+        type: string
+        format: date-time
+        x-nullable: true
+      ProLabel:
+        type: string
+      ProNote:
+        type: string
+      SoldForCents:
+        type: integer
+  user_pro_patch:
+    type: object
+    properties:
+      Label:
+        type: string
+        maxLength: 60
+        x-nullable: true
+      Note:
+        type: string
+        maxLength: 400
+        x-nullable: true
+      SoldForCents:
+        type: integer
+        minimum: 0
+        x-nullable: true
+  user_pro_tier:
+    type: object
+    required:
+      - Tier
+    properties:
+      Tier:
+        type: string
+        enum:
+          - free
+          - basic
+          - unlim
+      Months:
+        type: integer
+        minimum: 1
+        maximum: 36
+  user_pro_extend:
+    type: object
+    required:
+      - Months
+    properties:
+      Months:
+        type: integer
+        minimum: 1
+        maximum: 36
+  user_pro_term:
+    type: object
+    required:
+      - Tier
+    properties:
+      Tier:
+        type: string
+      PaidUntil:
         type: string
         format: date-time
         x-nullable: true

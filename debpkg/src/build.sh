@@ -14,6 +14,7 @@ go build -C keydesk/cmd/turnon-ipsec -o ../../../bin/turnon-ipsec
 go build -C keydesk/cmd/turnon-outline -o ../../../bin/turnon-outline
 go build -C keydesk/cmd/turnon-proto0 -o ../../../bin/turnon-proto0
 go build -C keydesk/cmd/turnon-vip -o ../../../bin/turnon-vip
+go build -C keydesk/cmd/turnon-pro -o ../../../bin/turnon-pro
 go build -C keydesk/cmd/destroybrigade -o ../../../bin/destroybrigade
 go build -C keydesk/cmd/fetchstats -o ../../../bin/fetchstats
 

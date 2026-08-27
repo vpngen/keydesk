@@ -521,6 +521,17 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 			apiUsers[i].BlockedAt = conv.DateTime(strfmt.DateTime(user.BlockedAt))
 		}
 
+		// PRO per-key attributes; zero values on free/VIP brigades keep the
+		// response shape unchanged (all fields are omitempty).
+		apiUsers[i].Tier = user.ProTier
+		apiUsers[i].ProLabel = user.ProLabel
+		apiUsers[i].ProNote = user.ProNote
+		apiUsers[i].SoldForCents = user.ProSoldFor
+
+		if !user.ProPaidUntil.IsZero() {
+			apiUsers[i].PaidUntil = (*strfmt.DateTime)(&user.ProPaidUntil)
+		}
+
 		if !user.Quotas.ThrottlingTill.IsZero() {
 			apiUsers[i].ThrottlingTill = (*strfmt.DateTime)(&user.Quotas.ThrottlingTill)
 		}

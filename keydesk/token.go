@@ -15,7 +15,7 @@ import (
 // CreateToken - create JWT.
 func CreateToken(db *storage.BrigadeStorage, issuer jwtsvc.KeydeskTokenIssuer, ttlSeconds int64) func(operations.PostTokenParams) middleware.Responder {
 	return func(params operations.PostTokenParams) middleware.Responder {
-		claims := issuer.CreateToken(time.Duration(ttlSeconds)*time.Second, db.IsVIP())
+		claims := issuer.CreateTokenWithPro(time.Duration(ttlSeconds)*time.Second, db.IsVIP(), db.IsPRO())
 
 		token, err := issuer.Sign(claims)
 		if err != nil {

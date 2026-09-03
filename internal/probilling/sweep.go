@@ -19,6 +19,12 @@ const (
 	DefaultJitterValue = 60
 )
 
+// EnforcementEnabled - PRO-lite switch. While false, invoices are still
+// issued (informational) but nothing is ever blocked: expired paid keys keep
+// working and an unpaid invoice has no consequences. Flip to true when real
+// payments arrive.
+const EnforcementEnabled = false
+
 // RunSweep - periodic PRO maintenance loop (same shape as stat.CollectingData).
 func RunSweep(db *storage.BrigadeStorage, kill <-chan struct{}) {
 	jit := rand.Int63n(DefaultJitterValue) + 1
@@ -45,16 +51,18 @@ func RunSweep(db *storage.BrigadeStorage, kill <-chan struct{}) {
 // over, issue the monthly invoice and advance the billing lifecycle
 // (issued → overdue → suspended).
 func Sweep(db *storage.BrigadeStorage, now time.Time) error {
-	expired, err := db.ListProExpired(now)
-	if err != nil {
-		return fmt.Errorf("list expired: %w", err)
-	}
+	if EnforcementEnabled {
+		expired, err := db.ListProExpired(now)
+		if err != nil {
+			return fmt.Errorf("list expired: %w", err)
+		}
 
-	for _, id := range expired {
-		_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: paid period is over, blocking %s\n", id)
+		for _, id := range expired {
+			_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: paid period is over, blocking %s\n", id)
 
-		if err := db.BlockUserPro(id, storage.ProBlockExpired); err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: block %s: %s\n", id, err)
+			if err := db.BlockUserPro(id, storage.ProBlockExpired); err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: block %s: %s\n", id, err)
+			}
 		}
 	}
 
@@ -65,6 +73,10 @@ func Sweep(db *storage.BrigadeStorage, now time.Time) error {
 
 	if issued {
 		_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: invoice %s issued\n", now.Format("2006-01"))
+	}
+
+	if !EnforcementEnabled {
+		return nil
 	}
 
 	toBlock, err := db.SweepProBilling(now)

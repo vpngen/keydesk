@@ -590,6 +590,10 @@ definitions:
         type: integer
       ProBlockReason:
         type: string
+      ProConfigs:
+        type: object
+        additionalProperties:
+          type: string
   user_pro_patch:
     type: object
     properties:

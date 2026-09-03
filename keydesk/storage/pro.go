@@ -544,3 +544,31 @@ func currentUnpaidProInvoice(data *Brigade) *ProInvoice {
 
 	return nil
 }
+
+// SetUserProConfigs - persist the ready-to-use access strings of a key
+// (called at creation time, PRO brigades only).
+func (db *BrigadeStorage) SetUserProConfigs(id string, configs map[string]string) error {
+	if len(configs) == 0 {
+		return nil
+	}
+
+	f, data, err := db.openWithReading()
+	if err != nil {
+		return fmt.Errorf("db: %w", err)
+	}
+
+	defer f.Close()
+
+	user := findUserByID(data, id)
+	if user == nil {
+		return fmt.Errorf("%w: %s", ErrUserNotFound, id)
+	}
+
+	user.ProConfigs = configs
+
+	if err := commitBrigade(f, data); err != nil {
+		return fmt.Errorf("save: %w", err)
+	}
+
+	return nil
+}

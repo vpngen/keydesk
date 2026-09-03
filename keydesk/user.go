@@ -74,6 +74,25 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 		return operations.NewPostUserInternalServerError()
 	}
 
+	// PRO brigades keep the ready access strings so the brigadier can copy
+	// them from the key card at any time (deliberate trade-off; free and VIP
+	// brigades keep the store-nothing behavior).
+	if db.IsPRO() {
+		proConfigs := map[string]string{}
+
+		if confJson.Proto0Config != nil && confJson.Proto0Config.AccessKey != nil {
+			proConfigs["vless"] = *confJson.Proto0Config.AccessKey
+		}
+
+		if confJson.OutlineConfig != nil && confJson.OutlineConfig.AccessKey != nil {
+			proConfigs["outline"] = *confJson.OutlineConfig.AccessKey
+		}
+
+		if err := db.SetUserProConfigs(user.ID.String(), proConfigs); err != nil {
+			fmt.Fprintf(os.Stderr, "save pro configs: %s: %s\n", user.ID, err)
+		}
+	}
+
 	return operations.NewPostUserCreated().WithPayload(confJson)
 }
 
@@ -528,6 +547,7 @@ func GetUsers(db *storage.BrigadeStorage, params operations.GetUserParams, princ
 		apiUsers[i].ProNote = user.ProNote
 		apiUsers[i].SoldForCents = user.ProSoldFor
 		apiUsers[i].ProBlockReason = user.ProBlockReason
+		apiUsers[i].ProConfigs = user.ProConfigs
 
 		if !user.ProPaidUntil.IsZero() {
 			apiUsers[i].PaidUntil = (*strfmt.DateTime)(&user.ProPaidUntil)

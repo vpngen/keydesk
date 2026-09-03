@@ -1118,6 +1118,12 @@ func init() {
         "ProBlockReason": {
           "type": "string"
         },
+        "ProConfigs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "ProLabel": {
           "type": "string"
         },
@@ -2431,6 +2437,12 @@ func init() {
         },
         "ProBlockReason": {
           "type": "string"
+        },
+        "ProConfigs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         },
         "ProLabel": {
           "type": "string"

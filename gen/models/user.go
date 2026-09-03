@@ -62,6 +62,9 @@ type User struct {
 	// pro block reason
 	ProBlockReason string `json:"ProBlockReason,omitempty"`
 
+	// pro configs
+	ProConfigs map[string]string `json:"ProConfigs,omitempty"`
+
 	// pro label
 	ProLabel string `json:"ProLabel,omitempty"`
 

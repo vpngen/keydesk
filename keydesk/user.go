@@ -88,6 +88,12 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 			proConfigs["outline"] = *confJson.OutlineConfig.AccessKey
 		}
 
+		// The VPNGen config page link (the one the regular UI shows once in
+		// the creation dialog) - shown for the «ссылка» format on the card.
+		if confJson.VPNGenConfig != "" {
+			proConfigs["link"] = string(confJson.VPNGenConfig)
+		}
+
 		if err := db.SetUserProConfigs(user.ID.String(), proConfigs); err != nil {
 			fmt.Fprintf(os.Stderr, "save pro configs: %s: %s\n", user.ID, err)
 		}

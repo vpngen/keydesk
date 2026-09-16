@@ -54,7 +54,7 @@ func TestBuildProInvoiceProratesByDays(t *testing.T) {
 	a := paidUser(TierBasic, d(2026, time.September, 25)) // prepaid to Oct 25 -> 27 billed days
 	b := paidUser(TierUnlim, d(2026, time.November, 6))   // created in the cycle, not prepaid -> 15 days
 	c := paidUser(TierBasic, d(2026, time.October, 1))
-	c.IsBlocked = true // deactivated: not billed
+	c.IsBlocked = true                                   // deactivated: not billed
 	e := paidUser(TierUnlim, d(2026, time.November, 11)) // basic from Oct 1 (prepaid to Nov 1), unlim from Nov 11
 	free := &User{UserID: uuid.New(), Name: "free"}
 

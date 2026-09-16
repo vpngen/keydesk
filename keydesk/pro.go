@@ -237,6 +237,12 @@ func GetProBilling(db *storage.BrigadeStorage, params operations.GetProBillingPa
 		fmt.Fprintf(os.Stderr, "Get pro billing: ensure pro since: %s\n", err)
 	}
 
+	// The estimate takes prepaid periods from the ledger, so backfill it
+	// before the first calculation instead of waiting for a key event.
+	if err := db.EnsureProLedger(); err != nil {
+		fmt.Fprintf(os.Stderr, "Get pro billing: ensure ledger: %s\n", err)
+	}
+
 	info, err := db.GetProBilling()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Get pro billing: %s\n", err)

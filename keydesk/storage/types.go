@@ -250,8 +250,9 @@ type Brigade struct {
 	StatsCountersStack    `json:"counters_stack"`
 	Ver                   int                  `json:"version"`
 	VIP                   int64                `json:"vip"` // is vip brigade
-	PRO                   int64                `json:"pro"` // is pro brigade
-	ProBillingState       string               `json:"pro_billing_state,omitempty"` // "" (paid) | "issued" | "overdue" | "suspended"
+	PRO                   int64                `json:"pro"`                         // is pro brigade
+	ProSince              time.Time            `json:"pro_since,omitempty"`         // PRO activation: anchor of the monthly billing cycle
+	ProBillingState       string               `json:"pro_billing_state,omitempty"` // "" (paid) | "issued" | "overdue"
 	ProInvoices           []ProInvoice         `json:"pro_invoices,omitempty"`      // local invoice history (stub billing)
 	BrigadeID             string               `json:"brigade_id"`
 	CreatedAt             time.Time            `json:"created_at"`

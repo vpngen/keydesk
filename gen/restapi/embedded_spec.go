@@ -1026,15 +1026,53 @@ func init() {
         "State"
       ],
       "properties": {
+        "CycleEnd": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "CycleIndex": {
+          "type": "integer"
+        },
+        "CycleStart": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
         "DueAt": {
           "type": "string",
           "format": "date-time",
           "x-nullable": true
         },
+        "EstimateCents": {
+          "type": "integer"
+        },
+        "EstimateKeys": {
+          "type": "integer"
+        },
+        "EstimateLines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pro_invoice_line"
+          }
+        },
+        "ImmediateCharges": {
+          "type": "boolean"
+        },
         "InvoiceID": {
           "type": "string"
         },
         "IssuedAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "NextInvoiceAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "ProSince": {
           "type": "string",
           "format": "date-time",
           "x-nullable": true
@@ -1047,11 +1085,6 @@ func init() {
             "overdue",
             "suspended"
           ]
-        },
-        "SuspendAt": {
-          "type": "string",
-          "format": "date-time",
-          "x-nullable": true
         },
         "TotalCents": {
           "type": "integer"
@@ -1083,7 +1116,23 @@ func init() {
         "KeysCount": {
           "type": "integer"
         },
+        "Lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pro_invoice_line"
+          }
+        },
         "PaidAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "PeriodFrom": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "PeriodTo": {
           "type": "string",
           "format": "date-time",
           "x-nullable": true
@@ -1093,6 +1142,31 @@ func init() {
         },
         "TotalCents": {
           "type": "integer"
+        }
+      }
+    },
+    "pro_invoice_line": {
+      "type": "object",
+      "required": [
+        "Tier",
+        "Qty",
+        "AmountCents"
+      ],
+      "properties": {
+        "AmountCents": {
+          "type": "integer"
+        },
+        "Days": {
+          "type": "integer"
+        },
+        "PriceCents": {
+          "type": "integer"
+        },
+        "Qty": {
+          "type": "integer"
+        },
+        "Tier": {
+          "type": "string"
         }
       }
     },
@@ -2530,15 +2604,53 @@ func init() {
         "State"
       ],
       "properties": {
+        "CycleEnd": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "CycleIndex": {
+          "type": "integer"
+        },
+        "CycleStart": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
         "DueAt": {
           "type": "string",
           "format": "date-time",
           "x-nullable": true
         },
+        "EstimateCents": {
+          "type": "integer"
+        },
+        "EstimateKeys": {
+          "type": "integer"
+        },
+        "EstimateLines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pro_invoice_line"
+          }
+        },
+        "ImmediateCharges": {
+          "type": "boolean"
+        },
         "InvoiceID": {
           "type": "string"
         },
         "IssuedAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "NextInvoiceAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "ProSince": {
           "type": "string",
           "format": "date-time",
           "x-nullable": true
@@ -2551,11 +2663,6 @@ func init() {
             "overdue",
             "suspended"
           ]
-        },
-        "SuspendAt": {
-          "type": "string",
-          "format": "date-time",
-          "x-nullable": true
         },
         "TotalCents": {
           "type": "integer"
@@ -2587,7 +2694,23 @@ func init() {
         "KeysCount": {
           "type": "integer"
         },
+        "Lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pro_invoice_line"
+          }
+        },
         "PaidAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "PeriodFrom": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "PeriodTo": {
           "type": "string",
           "format": "date-time",
           "x-nullable": true
@@ -2597,6 +2720,31 @@ func init() {
         },
         "TotalCents": {
           "type": "integer"
+        }
+      }
+    },
+    "pro_invoice_line": {
+      "type": "object",
+      "required": [
+        "Tier",
+        "Qty",
+        "AmountCents"
+      ],
+      "properties": {
+        "AmountCents": {
+          "type": "integer"
+        },
+        "Days": {
+          "type": "integer"
+        },
+        "PriceCents": {
+          "type": "integer"
+        },
+        "Qty": {
+          "type": "integer"
+        },
+        "Tier": {
+          "type": "string"
         }
       }
     },

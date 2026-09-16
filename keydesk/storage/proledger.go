@@ -33,6 +33,7 @@ const (
 	ProEvDeleted       = "deleted"
 	ProEvInvoiceIssued = "invoice_issued"
 	ProEvInvoicePaid   = "invoice_paid"
+	ProEvDowngraded    = "downgraded" // unpaid invoice: brigade back to free
 )
 
 // Kinds of a charge.

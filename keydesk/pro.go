@@ -231,6 +231,12 @@ func GetProBilling(db *storage.BrigadeStorage, params operations.GetProBillingPa
 		return operations.NewGetProBillingForbidden()
 	}
 
+	// Brigades activated before the cycle model get their anchor here as well
+	// as in the sweep, so the first request after an update already has it.
+	if err := db.EnsureProSince(time.Now().UTC()); err != nil {
+		fmt.Fprintf(os.Stderr, "Get pro billing: ensure pro since: %s\n", err)
+	}
+
 	info, err := db.GetProBilling()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Get pro billing: %s\n", err)
@@ -269,17 +275,10 @@ func PayProInvoice(db *storage.BrigadeStorage, params operations.PostProInvoices
 		return operations.NewPostProInvoicesCurrentPayForbidden()
 	}
 
-	toUnblock, err := db.PayProInvoice(time.Now().UTC())
-	if err != nil {
+	if _, err := db.PayProInvoice(time.Now().UTC()); err != nil {
 		fmt.Fprintf(os.Stderr, "Pay pro invoice: %s\n", err)
 
 		return operations.NewPostProInvoicesCurrentPayInternalServerError()
-	}
-
-	for _, id := range toUnblock {
-		if err := db.UnblockUserPro(id); err != nil {
-			fmt.Fprintf(os.Stderr, "Pay pro invoice: unblock %s: %s\n", id, err)
-		}
 	}
 
 	info, err := db.GetProBilling()
@@ -393,7 +392,23 @@ func proBillingPayload(info storage.ProBillingInfo) *models.ProBilling {
 	}
 
 	payload := &models.ProBilling{
-		State: swag.String(state),
+		State:            swag.String(state),
+		ImmediateCharges: info.ImmediateCharges,
+		CycleIndex:       int64(info.Cycle.Index),
+		EstimateCents:    info.Estimate.TotalCents,
+		EstimateKeys:     int64(info.Estimate.KeysCount),
+		EstimateLines:    proInvoiceLines(info.Estimate.Lines),
+	}
+
+	if !info.Since.IsZero() {
+		since := info.Since
+		cycleStart := info.Cycle.Start
+		cycleEnd := info.Cycle.End
+		nextAt := info.NextInvoiceAt
+		payload.ProSince = (*strfmt.DateTime)(&since)
+		payload.CycleStart = (*strfmt.DateTime)(&cycleStart)
+		payload.CycleEnd = (*strfmt.DateTime)(&cycleEnd)
+		payload.NextInvoiceAt = (*strfmt.DateTime)(&nextAt)
 	}
 
 	if info.Current != nil {
@@ -401,11 +416,21 @@ func proBillingPayload(info storage.ProBillingInfo) *models.ProBilling {
 		payload.TotalCents = info.Current.TotalCents
 		payload.IssuedAt = (*strfmt.DateTime)(&info.Current.CreatedAt)
 		payload.DueAt = (*strfmt.DateTime)(&info.Current.DueAt)
-		suspendAt := info.Current.CreatedAt.AddDate(0, 0, storage.ProInvoiceGraceDays)
-		payload.SuspendAt = (*strfmt.DateTime)(&suspendAt)
 	}
 
 	return payload
+}
+
+func proInvoiceLines(lines []storage.ProInvoiceLine) []*models.ProInvoiceLine {
+	out := make([]*models.ProInvoiceLine, 0, len(lines))
+	for _, l := range lines {
+		out = append(out, &models.ProInvoiceLine{
+			Tier: swag.String(l.Tier), Qty: swag.Int64(int64(l.Qty)), Days: l.Days,
+			PriceCents: l.PriceCents, AmountCents: swag.Int64(l.AmountCents),
+		})
+	}
+
+	return out
 }
 
 func proInvoicePayload(invoice storage.ProInvoice) *models.ProInvoice {
@@ -420,6 +445,14 @@ func proInvoicePayload(invoice storage.ProInvoice) *models.ProInvoice {
 	dueAt := invoice.DueAt
 	payload.CreatedAt = (*strfmt.DateTime)(&createdAt)
 	payload.DueAt = (*strfmt.DateTime)(&dueAt)
+	payload.Lines = proInvoiceLines(invoice.Lines)
+
+	if !invoice.PeriodFrom.IsZero() {
+		from := invoice.PeriodFrom
+		to := invoice.PeriodTo
+		payload.PeriodFrom = (*strfmt.DateTime)(&from)
+		payload.PeriodTo = (*strfmt.DateTime)(&to)
+	}
 
 	if !invoice.PaidAt.IsZero() {
 		paidAt := invoice.PaidAt

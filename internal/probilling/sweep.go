@@ -1,6 +1,6 @@
-// Package probilling - background maintenance of PRO brigades: expiry of
-// paid keys now, invoice lifecycle later. Every pass is a no-op for free
-// and VIP brigades (guarded by the PRO flag inside the storage calls).
+// Package probilling - background maintenance of PRO brigades: the sliding
+// monthly billing cycle (see storage/procycle.go). Every pass is a no-op for
+// free and VIP brigades (guarded by the PRO flag inside the storage calls).
 package probilling
 
 import (
@@ -19,10 +19,9 @@ const (
 	DefaultJitterValue = 60
 )
 
-// EnforcementEnabled - PRO-lite switch. While false, invoices are still
-// issued (informational) but nothing is ever blocked: expired paid keys keep
-// working and an unpaid invoice has no consequences. Flip to true when real
-// payments arrive.
+// EnforcementEnabled - while false, invoices are issued and shown but an
+// unpaid one has no consequence. Flip to true when real payments arrive:
+// then an invoice unpaid past its due date downgrades the brigade to free.
 const EnforcementEnabled = false
 
 // RunSweep - periodic PRO maintenance loop (same shape as stat.CollectingData).
@@ -47,23 +46,12 @@ func RunSweep(db *storage.BrigadeStorage, kill <-chan struct{}) {
 	}
 }
 
-// Sweep - one PRO maintenance pass: block paid keys whose paid period is
-// over, issue the monthly invoice and advance the billing lifecycle
-// (issued → overdue → suspended).
+// Sweep - one PRO maintenance pass: make sure the brigade has its cycle
+// anchor, issue invoices for finished cycles, mark overdue ones and (with
+// enforcement on) downgrade the brigade.
 func Sweep(db *storage.BrigadeStorage, now time.Time) error {
-	if EnforcementEnabled {
-		expired, err := db.ListProExpired(now)
-		if err != nil {
-			return fmt.Errorf("list expired: %w", err)
-		}
-
-		for _, id := range expired {
-			_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: paid period is over, blocking %s\n", id)
-
-			if err := db.BlockUserPro(id, storage.ProBlockExpired); err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: block %s: %s\n", id, err)
-			}
-		}
+	if err := db.EnsureProSince(now); err != nil {
+		return fmt.Errorf("ensure pro since: %w", err)
 	}
 
 	issued, err := db.GenerateProInvoice(now)
@@ -71,15 +59,13 @@ func Sweep(db *storage.BrigadeStorage, now time.Time) error {
 		return fmt.Errorf("generate invoice: %w", err)
 	}
 
-	if issued {
-		_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: invoice %s issued\n", now.Format("2006-01"))
+	for _, invoice := range issued {
+		_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: invoice %s issued (%d keys, %d cents)\n", invoice.ID, invoice.KeysCount, invoice.TotalCents)
 
-		if info, err := db.GetProBilling(); err == nil && info.Current != nil {
-			ev := storage.ProLedgerEvent{Type: storage.ProEvInvoiceIssued, Invoice: info.Current.ID, Cents: info.Current.TotalCents, Keys: info.Current.KeysCount}
-			if err := db.EnsureProLedger(); err == nil {
-				if err := db.AppendProLedger(ev); err != nil {
-					_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: ledger: %s\n", err)
-				}
+		if err := db.EnsureProLedger(); err == nil {
+			ev := storage.ProLedgerEvent{Type: storage.ProEvInvoiceIssued, Invoice: invoice.ID, Cents: invoice.TotalCents, Keys: invoice.KeysCount}
+			if err := db.AppendProLedger(ev); err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: ledger: %s\n", err)
 			}
 		}
 	}
@@ -88,16 +74,20 @@ func Sweep(db *storage.BrigadeStorage, now time.Time) error {
 		return nil
 	}
 
-	toBlock, err := db.SweepProBilling(now)
+	overdue, err := db.SweepProBilling(now)
 	if err != nil {
 		return fmt.Errorf("billing: %w", err)
 	}
 
-	for _, id := range toBlock {
-		_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: billing suspended, blocking %s\n", id)
+	if overdue {
+		_, _ = fmt.Fprintln(os.Stderr, "PRO sweep: invoice unpaid past due, brigade downgraded to free")
 
-		if err := db.BlockUserPro(id, storage.ProBlockBilling); err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: block %s: %s\n", id, err)
+		if err := db.AppendProLedger(storage.ProLedgerEvent{Type: storage.ProEvDowngraded}); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: ledger: %s\n", err)
+		}
+
+		if err := db.SetPRO(false); err != nil {
+			return fmt.Errorf("downgrade: %w", err)
 		}
 	}
 

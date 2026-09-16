@@ -5,6 +5,8 @@ package models
 import (
 	"context"
 	"encoding/json"
+	stderrors "errors"
+	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -18,9 +20,32 @@ import (
 // swagger:model pro_billing
 type ProBilling struct {
 
+	// cycle end
+	// Format: date-time
+	CycleEnd *strfmt.DateTime `json:"CycleEnd,omitempty"`
+
+	// cycle index
+	CycleIndex int64 `json:"CycleIndex,omitempty"`
+
+	// cycle start
+	// Format: date-time
+	CycleStart *strfmt.DateTime `json:"CycleStart,omitempty"`
+
 	// due at
 	// Format: date-time
 	DueAt *strfmt.DateTime `json:"DueAt,omitempty"`
+
+	// estimate cents
+	EstimateCents int64 `json:"EstimateCents,omitempty"`
+
+	// estimate keys
+	EstimateKeys int64 `json:"EstimateKeys,omitempty"`
+
+	// estimate lines
+	EstimateLines []*ProInvoiceLine `json:"EstimateLines"`
+
+	// immediate charges
+	ImmediateCharges bool `json:"ImmediateCharges,omitempty"`
 
 	// invoice ID
 	InvoiceID string `json:"InvoiceID,omitempty"`
@@ -29,14 +54,18 @@ type ProBilling struct {
 	// Format: date-time
 	IssuedAt *strfmt.DateTime `json:"IssuedAt,omitempty"`
 
+	// next invoice at
+	// Format: date-time
+	NextInvoiceAt *strfmt.DateTime `json:"NextInvoiceAt,omitempty"`
+
+	// pro since
+	// Format: date-time
+	ProSince *strfmt.DateTime `json:"ProSince,omitempty"`
+
 	// state
 	// Required: true
 	// Enum: ["paid","issued","overdue","suspended"]
 	State *string `json:"State"`
-
-	// suspend at
-	// Format: date-time
-	SuspendAt *strfmt.DateTime `json:"SuspendAt,omitempty"`
 
 	// total cents
 	TotalCents int64 `json:"TotalCents,omitempty"`
@@ -46,7 +75,19 @@ type ProBilling struct {
 func (m *ProBilling) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateCycleEnd(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateCycleStart(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateDueAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateEstimateLines(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -54,17 +95,45 @@ func (m *ProBilling) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateState(formats); err != nil {
+	if err := m.validateNextInvoiceAt(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateSuspendAt(formats); err != nil {
+	if err := m.validateProSince(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateState(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *ProBilling) validateCycleEnd(formats strfmt.Registry) error {
+	if typeutils.IsZero(m.CycleEnd) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("CycleEnd", "body", "date-time", m.CycleEnd.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProBilling) validateCycleStart(formats strfmt.Registry) error {
+	if typeutils.IsZero(m.CycleStart) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("CycleStart", "body", "date-time", m.CycleStart.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -80,12 +149,66 @@ func (m *ProBilling) validateDueAt(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *ProBilling) validateEstimateLines(formats strfmt.Registry) error {
+	if typeutils.IsZero(m.EstimateLines) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.EstimateLines); i++ {
+		if typeutils.IsZero(m.EstimateLines[i]) { // not required
+			continue
+		}
+
+		if m.EstimateLines[i] != nil {
+			if err := m.EstimateLines[i].Validate(formats); err != nil {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
+					return ve.ValidateName("EstimateLines" + "." + strconv.Itoa(i))
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
+					return ce.ValidateName("EstimateLines" + "." + strconv.Itoa(i))
+				}
+
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
 func (m *ProBilling) validateIssuedAt(formats strfmt.Registry) error {
 	if typeutils.IsZero(m.IssuedAt) { // not required
 		return nil
 	}
 
 	if err := validate.FormatOf("IssuedAt", "body", "date-time", m.IssuedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProBilling) validateNextInvoiceAt(formats strfmt.Registry) error {
+	if typeutils.IsZero(m.NextInvoiceAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("NextInvoiceAt", "body", "date-time", m.NextInvoiceAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProBilling) validateProSince(formats strfmt.Registry) error {
+	if typeutils.IsZero(m.ProSince) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("ProSince", "body", "date-time", m.ProSince.String(), formats); err != nil {
 		return err
 	}
 
@@ -141,20 +264,46 @@ func (m *ProBilling) validateState(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ProBilling) validateSuspendAt(formats strfmt.Registry) error {
-	if typeutils.IsZero(m.SuspendAt) { // not required
-		return nil
+// ContextValidate validate this pro billing based on the context it is used
+func (m *ProBilling) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateEstimateLines(ctx, formats); err != nil {
+		res = append(res, err)
 	}
 
-	if err := validate.FormatOf("SuspendAt", "body", "date-time", m.SuspendAt.String(), formats); err != nil {
-		return err
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
 	}
-
 	return nil
 }
 
-// ContextValidate validates this pro billing based on context it is used
-func (m *ProBilling) ContextValidate(_ context.Context, _ strfmt.Registry) error {
+func (m *ProBilling) contextValidateEstimateLines(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.EstimateLines); i++ {
+
+		if m.EstimateLines[i] != nil {
+
+			if typeutils.IsZero(m.EstimateLines[i]) { // not required
+				return nil
+			}
+
+			if err := m.EstimateLines[i].ContextValidate(ctx, formats); err != nil {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
+					return ve.ValidateName("EstimateLines" + "." + strconv.Itoa(i))
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
+					return ce.ValidateName("EstimateLines" + "." + strconv.Itoa(i))
+				}
+
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 

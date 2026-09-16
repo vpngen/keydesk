@@ -4,6 +4,8 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
+	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -33,9 +35,20 @@ type ProInvoice struct {
 	// Required: true
 	KeysCount *int64 `json:"KeysCount"`
 
+	// lines
+	Lines []*ProInvoiceLine `json:"Lines"`
+
 	// paid at
 	// Format: date-time
 	PaidAt *strfmt.DateTime `json:"PaidAt,omitempty"`
+
+	// period from
+	// Format: date-time
+	PeriodFrom *strfmt.DateTime `json:"PeriodFrom,omitempty"`
+
+	// period to
+	// Format: date-time
+	PeriodTo *strfmt.DateTime `json:"PeriodTo,omitempty"`
 
 	// status
 	// Required: true
@@ -66,7 +79,19 @@ func (m *ProInvoice) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateLines(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validatePaidAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePeriodFrom(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePeriodTo(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -126,12 +151,66 @@ func (m *ProInvoice) validateKeysCount(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *ProInvoice) validateLines(formats strfmt.Registry) error {
+	if typeutils.IsZero(m.Lines) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Lines); i++ {
+		if typeutils.IsZero(m.Lines[i]) { // not required
+			continue
+		}
+
+		if m.Lines[i] != nil {
+			if err := m.Lines[i].Validate(formats); err != nil {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
+					return ve.ValidateName("Lines" + "." + strconv.Itoa(i))
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
+					return ce.ValidateName("Lines" + "." + strconv.Itoa(i))
+				}
+
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
 func (m *ProInvoice) validatePaidAt(formats strfmt.Registry) error {
 	if typeutils.IsZero(m.PaidAt) { // not required
 		return nil
 	}
 
 	if err := validate.FormatOf("PaidAt", "body", "date-time", m.PaidAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProInvoice) validatePeriodFrom(formats strfmt.Registry) error {
+	if typeutils.IsZero(m.PeriodFrom) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("PeriodFrom", "body", "date-time", m.PeriodFrom.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProInvoice) validatePeriodTo(formats strfmt.Registry) error {
+	if typeutils.IsZero(m.PeriodTo) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("PeriodTo", "body", "date-time", m.PeriodTo.String(), formats); err != nil {
 		return err
 	}
 
@@ -156,8 +235,46 @@ func (m *ProInvoice) validateTotalCents(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validates this pro invoice based on context it is used
-func (m *ProInvoice) ContextValidate(_ context.Context, _ strfmt.Registry) error {
+// ContextValidate validate this pro invoice based on the context it is used
+func (m *ProInvoice) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateLines(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ProInvoice) contextValidateLines(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Lines); i++ {
+
+		if m.Lines[i] != nil {
+
+			if typeutils.IsZero(m.Lines[i]) { // not required
+				return nil
+			}
+
+			if err := m.Lines[i].ContextValidate(ctx, formats); err != nil {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
+					return ve.ValidateName("Lines" + "." + strconv.Itoa(i))
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
+					return ce.ValidateName("Lines" + "." + strconv.Itoa(i))
+				}
+
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 

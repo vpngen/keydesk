@@ -694,11 +694,52 @@ definitions:
         type: string
         format: date-time
         x-nullable: true
-      SuspendAt:
+      TotalCents:
+        type: integer
+      ProSince:
         type: string
         format: date-time
         x-nullable: true
-      TotalCents:
+      CycleIndex:
+        type: integer
+      CycleStart:
+        type: string
+        format: date-time
+        x-nullable: true
+      CycleEnd:
+        type: string
+        format: date-time
+        x-nullable: true
+      ImmediateCharges:
+        type: boolean
+      NextInvoiceAt:
+        type: string
+        format: date-time
+        x-nullable: true
+      EstimateCents:
+        type: integer
+      EstimateKeys:
+        type: integer
+      EstimateLines:
+        type: array
+        items:
+          $ref: "#/definitions/pro_invoice_line"
+  pro_invoice_line:
+    type: object
+    required:
+      - Tier
+      - Qty
+      - AmountCents
+    properties:
+      Tier:
+        type: string
+      Qty:
+        type: integer
+      Days:
+        type: integer
+      PriceCents:
+        type: integer
+      AmountCents:
         type: integer
   pro_analytics:
     type: object
@@ -785,6 +826,18 @@ definitions:
         x-nullable: true
       KeysCount:
         type: integer
+      PeriodFrom:
+        type: string
+        format: date-time
+        x-nullable: true
+      PeriodTo:
+        type: string
+        format: date-time
+        x-nullable: true
+      Lines:
+        type: array
+        items:
+          $ref: "#/definitions/pro_invoice_line"
       TotalCents:
         type: integer
   stats:

@@ -28,18 +28,17 @@ const ProUnlimMonthlyQuota = uint64(1) << 50
 
 // Billing states of a PRO brigade (Brigade.ProBillingState; "" means paid).
 const (
-	ProBillingPaid      = ""
-	ProBillingIssued    = "issued"
-	ProBillingOverdue   = "overdue"
-	ProBillingSuspended = "suspended"
+	ProBillingPaid    = ""
+	ProBillingIssued  = "issued"
+	ProBillingOverdue = "overdue" // unpaid past the due date: the brigade is downgraded to free
 )
 
-// Billing timeline: the invoice is issued on the 1st, is due in 2 days and
-// after 7 days of grace the paid keys get suspended (per the PRO design).
+// Billing timeline (sliding monthly cycle anchored at PRO activation, see
+// procycle.go): the invoice for a finished cycle is issued on the cycle
+// boundary and is due in 7 days.
 const (
-	ProInvoiceDueDays   = 2
-	ProInvoiceGraceDays = 7
-	proInvoiceIDLayout  = "2006-01"
+	ProInvoiceDueDays  = 7
+	proInvoiceIDLayout = "2006-01-02"
 )
 
 // ProTierPriceCents - monthly price per paid tier, euro cents.
@@ -48,18 +47,22 @@ var ProTierPriceCents = map[string]int64{
 	TierUnlim: 500,
 }
 
-// ProInvoiceLine - one aggregated line of a local PRO invoice.
+// ProInvoiceLine - one aggregated line of a local PRO invoice: keys of one
+// tier, billed by the days they were used and not prepaid within the cycle.
 type ProInvoiceLine struct {
-	Kind        string `json:"kind"` // "full" (month ahead) | "prorate" (days of the previous month)
+	Kind        string `json:"kind"` // "days"
 	Tier        string `json:"tier"`
-	Qty         int    `json:"qty"`
+	Qty         int    `json:"qty"`  // keys
+	Days        int64  `json:"days"` // billed key-days in total
 	PriceCents  int64  `json:"price_cents"`
 	AmountCents int64  `json:"amount_cents"`
 }
 
-// ProInvoice - a locally generated PRO invoice (stub billing v1).
+// ProInvoice - a locally generated PRO invoice for one finished cycle.
 type ProInvoice struct {
-	ID         string           `json:"id"` // YYYY-MM
+	ID         string           `json:"id"` // cycle end date, YYYY-MM-DD
+	PeriodFrom time.Time        `json:"period_from,omitempty"`
+	PeriodTo   time.Time        `json:"period_to,omitempty"`
 	CreatedAt  time.Time        `json:"created_at"`
 	DueAt      time.Time        `json:"due_at"`
 	PaidAt     time.Time        `json:"paid_at,omitempty"`
@@ -95,6 +98,12 @@ func (db *BrigadeStorage) SetPRO(pro bool) error {
 
 	switch pro {
 	case true:
+		// (Re)activation starts a new billing cycle anchored at this moment.
+		if atomic.LoadInt64(&brigade.PRO) == 0 || brigade.ProSince.IsZero() {
+			brigade.ProSince = time.Now().UTC()
+			brigade.ProBillingState = ProBillingPaid
+		}
+
 		atomic.StoreInt64(&brigade.PRO, 1)
 	default:
 		atomic.StoreInt64(&brigade.PRO, 0)
@@ -352,148 +361,6 @@ func proActivePaidUser(user *User) bool {
 	return true
 }
 
-// GenerateProInvoice - issue the invoice for the current month if it was not
-// issued yet: a full-month line per paid key that stays paid into the month,
-// plus prorated lines for keys whose paid tier started during the previous
-// month. Returns true when a new invoice was actually issued.
-func (db *BrigadeStorage) GenerateProInvoice(now time.Time) (bool, error) {
-	f, data, err := db.openWithReading()
-	if err != nil {
-		return false, fmt.Errorf("db: %w", err)
-	}
-
-	defer f.Close()
-
-	if data.PRO == 0 {
-		return false, nil
-	}
-
-	id := now.Format(proInvoiceIDLayout)
-	for i := range data.ProInvoices {
-		if data.ProInvoices[i].ID == id {
-			return false, nil
-		}
-	}
-
-	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	prevStart := monthStart.AddDate(0, -1, 0)
-	prevDays := int64(monthStart.Sub(prevStart).Hours() / 24)
-
-	full := map[string]int{}
-	prorate := map[string]int64{}
-	prorateQty := map[string]int{}
-	keys := 0
-
-	for _, user := range data.Users {
-		if !proActivePaidUser(user) || !user.ProPaidUntil.After(now) {
-			continue
-		}
-
-		keys++
-		full[user.ProTier]++
-
-		// The key went paid during the previous month: charge the days from
-		// the tier start to the end of that month.
-		if user.ProTierSetAt.After(prevStart) && user.ProTierSetAt.Before(monthStart) {
-			days := prevDays - int64(user.ProTierSetAt.Day()) + 1
-			prorate[user.ProTier] += ProTierPriceCents[user.ProTier] * days / prevDays
-			prorateQty[user.ProTier]++
-		}
-	}
-
-	invoice := ProInvoice{
-		ID:        id,
-		CreatedAt: now,
-		DueAt:     now.AddDate(0, 0, ProInvoiceDueDays),
-		Status:    ProBillingIssued,
-		KeysCount: keys,
-	}
-
-	for _, tier := range []string{TierBasic, TierUnlim} {
-		if full[tier] > 0 {
-			amount := ProTierPriceCents[tier] * int64(full[tier])
-			invoice.Lines = append(invoice.Lines, ProInvoiceLine{
-				Kind: "full", Tier: tier, Qty: full[tier],
-				PriceCents: ProTierPriceCents[tier], AmountCents: amount,
-			})
-			invoice.TotalCents += amount
-		}
-
-		if prorate[tier] > 0 {
-			invoice.Lines = append(invoice.Lines, ProInvoiceLine{
-				Kind: "prorate", Tier: tier, Qty: prorateQty[tier],
-				PriceCents: ProTierPriceCents[tier], AmountCents: prorate[tier],
-			})
-			invoice.TotalCents += prorate[tier]
-		}
-	}
-
-	if invoice.TotalCents == 0 {
-		return false, nil
-	}
-
-	data.ProInvoices = append(data.ProInvoices, invoice)
-	data.ProBillingState = ProBillingIssued
-
-	if err := commitBrigade(f, data); err != nil {
-		return false, fmt.Errorf("save: %w", err)
-	}
-
-	return true, nil
-}
-
-// SweepProBilling - advance the billing state: issued → overdue after the due
-// date, → suspended after the grace period. Returns ids of the paid keys to
-// block when the brigade just got suspended (the caller blocks them outside
-// of the storage lock).
-func (db *BrigadeStorage) SweepProBilling(now time.Time) ([]string, error) {
-	f, data, err := db.openWithReading()
-	if err != nil {
-		return nil, fmt.Errorf("db: %w", err)
-	}
-
-	defer f.Close()
-
-	if data.PRO == 0 {
-		return nil, nil
-	}
-
-	invoice := currentUnpaidProInvoice(data)
-	if invoice == nil {
-		return nil, nil
-	}
-
-	changed := false
-
-	if invoice.Status == ProBillingIssued && now.After(invoice.DueAt) {
-		invoice.Status = ProBillingOverdue
-		data.ProBillingState = ProBillingOverdue
-		changed = true
-	}
-
-	var toBlock []string
-
-	if data.ProBillingState != ProBillingSuspended &&
-		now.After(invoice.CreatedAt.AddDate(0, 0, ProInvoiceGraceDays)) {
-		data.ProBillingState = ProBillingSuspended
-		changed = true
-
-		for _, user := range data.Users {
-			if proActivePaidUser(user) && !user.IsBlocked {
-				toBlock = append(toBlock, user.UserID.String())
-			}
-		}
-	}
-
-	if changed {
-		if err := commitBrigade(f, data); err != nil {
-			return nil, fmt.Errorf("save: %w", err)
-		}
-	}
-
-	return toBlock, nil
-}
-
 // PayProInvoice - stub payment: mark the current unpaid invoice as paid and
 // return ids of the keys blocked over billing (the caller unblocks them
 // outside of the storage lock).
@@ -518,30 +385,30 @@ func (db *BrigadeStorage) PayProInvoice(now time.Time) ([]string, error) {
 	invoice.PaidAt = now
 	data.ProBillingState = ProBillingPaid
 
-	var toUnblock []string
-
-	for _, user := range data.Users {
-		if user.IsBlocked && user.ProBlockReason == ProBlockBilling {
-			toUnblock = append(toUnblock, user.UserID.String())
-		}
-	}
-
 	if err := commitBrigade(f, data); err != nil {
 		return nil, fmt.Errorf("save: %w", err)
 	}
 
-	return toUnblock, nil
+	return nil, nil
 }
 
-// ProBillingInfo - billing state and invoice history of the brigade.
+// ProBillingInfo - billing state, cycle position, the preliminary calculation
+// of the next invoice and the invoice history of the brigade.
 type ProBillingInfo struct {
-	State    string
-	Current  *ProInvoice
-	Invoices []ProInvoice
+	State            string
+	Since            time.Time
+	Cycle            ProCycle
+	ImmediateCharges bool // cycle 0: paid keys are charged at purchase
+	NextInvoiceAt    time.Time
+	Estimate         ProInvoice // what the next invoice would contain if the keys stay as they are
+	Current          *ProInvoice
+	Invoices         []ProInvoice
 }
 
-// GetProBilling - read the billing state and invoices.
+// GetProBilling - read the billing state, the cycle and the invoices.
 func (db *BrigadeStorage) GetProBilling() (ProBillingInfo, error) {
+	now := time.Now().UTC()
+
 	f, data, err := db.openWithReading()
 	if err != nil {
 		return ProBillingInfo{}, fmt.Errorf("db: %w", err)
@@ -551,6 +418,7 @@ func (db *BrigadeStorage) GetProBilling() (ProBillingInfo, error) {
 
 	info := ProBillingInfo{
 		State:    data.ProBillingState,
+		Since:    data.ProSince,
 		Invoices: append([]ProInvoice(nil), data.ProInvoices...),
 	}
 
@@ -558,6 +426,25 @@ func (db *BrigadeStorage) GetProBilling() (ProBillingInfo, error) {
 		copied := *cur
 		info.Current = &copied
 	}
+
+	if data.ProSince.IsZero() {
+		return info, nil
+	}
+
+	info.Cycle = ProCycleAt(data.ProSince, now)
+	info.ImmediateCharges = info.Cycle.Index == 0
+
+	// The first invoice closes cycle 1, so during cycle 0 the next invoice
+	// date is the end of the following cycle.
+	billed := info.Cycle
+	if billed.Index == 0 {
+		billed = ProCycle{Index: 1, Start: billed.End, End: addMonthsClamped(data.ProSince, 2)}
+	}
+
+	info.NextInvoiceAt = billed.End
+
+	ledger, _ := db.ReadProLedger()
+	info.Estimate = buildProInvoice(data, ledger, billed, now)
 
 	return info, nil
 }

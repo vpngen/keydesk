@@ -293,9 +293,8 @@ func PayProInvoice(db *storage.BrigadeStorage, params operations.PostProInvoices
 	return operations.NewPostProInvoicesCurrentPayOK().WithPayload(proBillingPayload(info))
 }
 
-// logInvoicePaid - ledger: the invoice itself plus one monthly charge per paid
-// key it covered (the invoice keeps only per-tier totals; the keys that take
-// part in billing are the ones that were charged).
+// logInvoicePaid - ledger: the invoice itself plus one monthly charge per key
+// it covered, with the key's prorated amount and the invoice period.
 func logInvoicePaid(db *storage.BrigadeStorage, info storage.ProBillingInfo) {
 	if len(info.Invoices) == 0 {
 		return
@@ -311,18 +310,13 @@ func logInvoicePaid(db *storage.BrigadeStorage, info storage.ProBillingInfo) {
 		At: now, Type: storage.ProEvInvoicePaid, Invoice: last.ID, Cents: last.TotalCents, Keys: last.KeysCount,
 	}}
 
-	paid, err := db.ListProPaidUsers(now)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "pro ledger: list paid users: %s\n", err)
-	}
+	from := last.PeriodFrom
+	to := last.PeriodTo
 
-	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	to := from.AddDate(0, 1, 0)
-
-	for id, tier := range paid {
+	for _, item := range last.Items {
 		events = append(events, storage.ProLedgerEvent{
-			At: now, Type: storage.ProEvCharged, UserID: id, Tier: tier, Kind: storage.ProChargeMonthly,
-			Cents: storage.ProTierPriceCents[tier], PeriodFrom: &from, PeriodTo: &to, Invoice: last.ID,
+			At: now, Type: storage.ProEvCharged, UserID: item.UserID, Tier: item.Tier, Kind: storage.ProChargeMonthly,
+			Cents: item.AmountCents, PeriodFrom: &from, PeriodTo: &to, Invoice: last.ID,
 		})
 	}
 

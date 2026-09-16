@@ -133,6 +133,8 @@ func buildProInvoice(data *Brigade, events []ProLedgerEvent, cycle ProCycle, now
 	perTier := map[string]*acc{}
 	keys := 0
 
+	var items []ProInvoiceItem
+
 	for _, user := range data.Users {
 		if !proActivePaidUser(user) || user.IsBlocked {
 			continue
@@ -156,6 +158,8 @@ func buildProInvoice(data *Brigade, events []ProLedgerEvent, cycle ProCycle, now
 		}
 
 		billedKey := false
+		keyDays := int64(0)
+		keyCents := int64(0)
 
 		for i, seg := range segs {
 			if !IsValidProTier(seg.tier) {
@@ -191,21 +195,22 @@ func buildProInvoice(data *Brigade, events []ProLedgerEvent, cycle ProCycle, now
 				perTier[seg.tier] = a
 			}
 
+			cents := int64(float64(ProTierPriceCents[seg.tier])*float64(days)/cycleDays + 0.5)
 			a.days += days
-			a.cents += int64(float64(ProTierPriceCents[seg.tier])*float64(days)/cycleDays + 0.5)
+			a.cents += cents
+			keyDays += days
+			keyCents += cents
 			billedKey = true
 		}
 
 		if billedKey {
 			keys++
-			for _, seg := range segs {
-				if seg.tier == user.ProTier && perTier[seg.tier] != nil {
-					break
-				}
-			}
+
 			if a := perTier[user.ProTier]; a != nil {
 				a.qty++
 			}
+
+			items = append(items, ProInvoiceItem{UserID: id, Tier: user.ProTier, Days: keyDays, AmountCents: keyCents})
 		}
 	}
 
@@ -217,6 +222,7 @@ func buildProInvoice(data *Brigade, events []ProLedgerEvent, cycle ProCycle, now
 		DueAt:      cycle.End.AddDate(0, 0, ProInvoiceDueDays),
 		Status:     ProBillingIssued,
 		KeysCount:  keys,
+		Items:      items,
 	}
 
 	for _, tier := range []string{TierBasic, TierUnlim} {

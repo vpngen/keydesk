@@ -58,6 +58,15 @@ type ProInvoiceLine struct {
 	AmountCents int64  `json:"amount_cents"`
 }
 
+// ProInvoiceItem - one key on an invoice (what the ledger records as the
+// key's monthly charge once the invoice is paid).
+type ProInvoiceItem struct {
+	UserID      string `json:"user_id"`
+	Tier        string `json:"tier"`
+	Days        int64  `json:"days"`
+	AmountCents int64  `json:"amount_cents"`
+}
+
 // ProInvoice - a locally generated PRO invoice for one finished cycle.
 type ProInvoice struct {
 	ID         string           `json:"id"` // cycle end date, YYYY-MM-DD
@@ -70,6 +79,7 @@ type ProInvoice struct {
 	KeysCount  int              `json:"keys_count"`
 	TotalCents int64            `json:"total_cents"`
 	Lines      []ProInvoiceLine `json:"lines,omitempty"`
+	Items      []ProInvoiceItem `json:"items,omitempty"`
 }
 
 // ProMonthlyQuotaFor - the monthly quota for a user given the tier:

@@ -340,7 +340,33 @@ func (db *BrigadeStorage) EnsureProSince(now time.Time) error {
 
 	defer f.Close()
 
-	if data.PRO == 0 || !data.ProSince.IsZero() {
+	if data.PRO == 0 {
+		return nil
+	}
+
+	// Invoices of the retired calendar-month model (ids «YYYY-MM») are not
+	// payable anymore: cancel the unpaid ones so the state goes back to paid.
+	migrated := false
+
+	for i := range data.ProInvoices {
+		inv := &data.ProInvoices[i]
+		if len(inv.ID) == len("2006-01") && (inv.Status == ProBillingIssued || inv.Status == ProBillingOverdue) {
+			inv.Status = "cancelled"
+			migrated = true
+		}
+	}
+
+	if migrated && currentUnpaidProInvoice(data) == nil {
+		data.ProBillingState = ProBillingPaid
+	}
+
+	if !data.ProSince.IsZero() {
+		if migrated {
+			if err := commitBrigade(f, data); err != nil {
+				return fmt.Errorf("save: %w", err)
+			}
+		}
+
 		return nil
 	}
 

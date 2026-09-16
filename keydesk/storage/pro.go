@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"os"
 	"sync/atomic"
 	"time"
 )
@@ -260,7 +261,13 @@ func (db *BrigadeStorage) BlockUserPro(id, reason string) error {
 		return fmt.Errorf("block: %w", err)
 	}
 
-	return db.setProBlockReason(id, reason)
+	if err := db.setProBlockReason(id, reason); err != nil {
+		return err
+	}
+
+	db.logProLedgerEvent(ProLedgerEvent{Type: ProEvBlocked, UserID: id, Reason: reason})
+
+	return nil
 }
 
 // UnblockUserPro - undo a PRO block and clear its reason.
@@ -269,7 +276,27 @@ func (db *BrigadeStorage) UnblockUserPro(id string) error {
 		return fmt.Errorf("unblock: %w", err)
 	}
 
-	return db.setProBlockReason(id, "")
+	if err := db.setProBlockReason(id, ""); err != nil {
+		return err
+	}
+
+	db.logProLedgerEvent(ProLedgerEvent{Type: ProEvUnblocked, UserID: id})
+
+	return nil
+}
+
+// logProLedgerEvent - best-effort ledger write from inside the storage
+// (called with no lock held); errors only go to stderr.
+func (db *BrigadeStorage) logProLedgerEvent(ev ProLedgerEvent) {
+	if err := db.EnsureProLedger(); err != nil {
+		fmt.Fprintf(os.Stderr, "pro ledger: ensure: %s\n", err)
+
+		return
+	}
+
+	if err := db.AppendProLedger(ev); err != nil {
+		fmt.Fprintf(os.Stderr, "pro ledger: append: %s\n", err)
+	}
 }
 
 // ListProExpired - ids of paid keys whose paid period is over and which are

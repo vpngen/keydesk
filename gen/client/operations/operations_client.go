@@ -59,6 +59,10 @@ type ClientService interface {
 
 	DeleteUserUserIDContext(ctx context.Context, params *DeleteUserUserIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteUserUserIDNoContent, error)
 
+	GetProAnalytics(params *GetProAnalyticsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProAnalyticsOK, error)
+
+	GetProAnalyticsContext(ctx context.Context, params *GetProAnalyticsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProAnalyticsOK, error)
+
 	GetProBilling(params *GetProBillingParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProBillingOK, error)
 
 	GetProBillingContext(ctx context.Context, params *GetProBillingParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProBillingOK, error)
@@ -180,6 +184,68 @@ func (a *Client) DeleteUserUserIDContext(ctx context.Context, params *DeleteUser
 	//
 	// a default response is provided: fill this and return an error
 	unexpectedSuccess := result.(*DeleteUserUserIDDefault)
+
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+// GetProAnalytics get pro analytics API.
+//
+// This method does not support injected context.
+// However, timeout and opentracing contexts are honored whenever enabled.
+//
+// If you need to pass a specific context, use [Client.GetProAnalyticsContext] instead.
+func (a *Client) GetProAnalytics(params *GetProAnalyticsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProAnalyticsOK, error) {
+	var ctx context.Context
+	if params != nil && params.inner.ctx != nil {
+		ctx = params.inner.ctx
+	} else {
+		ctx = context.Background()
+	}
+
+	return a.GetProAnalyticsContext(ctx, params, authInfo, opts...)
+}
+
+// GetProAnalyticsContext get pro analytics API.
+//
+// Do not use the deprecated [GetProAnalyticsParams.Context] with this method: it would be ignored.
+func (a *Client) GetProAnalyticsContext(ctx context.Context, params *GetProAnalyticsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetProAnalyticsOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewGetProAnalyticsParams()
+	}
+
+	op := &runtime.ClientOperation{
+		ID:                 "GetProAnalytics",
+		Method:             "GET",
+		PathPattern:        "/pro/analytics",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetProAnalyticsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Client:             params.HTTPClient,
+	}
+
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.SubmitContext(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*GetProAnalyticsOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+	//
+	// a default response is provided: fill this and return an error
+	unexpectedSuccess := result.(*GetProAnalyticsDefault)
 
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }

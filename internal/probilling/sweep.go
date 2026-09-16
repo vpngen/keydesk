@@ -73,6 +73,15 @@ func Sweep(db *storage.BrigadeStorage, now time.Time) error {
 
 	if issued {
 		_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: invoice %s issued\n", now.Format("2006-01"))
+
+		if info, err := db.GetProBilling(); err == nil && info.Current != nil {
+			ev := storage.ProLedgerEvent{Type: storage.ProEvInvoiceIssued, Invoice: info.Current.ID, Cents: info.Current.TotalCents, Keys: info.Current.KeysCount}
+			if err := db.EnsureProLedger(); err == nil {
+				if err := db.AppendProLedger(ev); err != nil {
+					_, _ = fmt.Fprintf(os.Stderr, "PRO sweep: ledger: %s\n", err)
+				}
+			}
+		}
 	}
 
 	if !EnforcementEnabled {

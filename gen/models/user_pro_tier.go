@@ -18,6 +18,10 @@ import (
 // swagger:model user_pro_tier
 type UserProTier struct {
 
+	// charged cents
+	// Minimum: 0
+	ChargedCents *int64 `json:"ChargedCents,omitempty"`
+
 	// months
 	// Maximum: 36
 	// Minimum: 1
@@ -33,6 +37,10 @@ type UserProTier struct {
 func (m *UserProTier) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateChargedCents(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateMonths(formats); err != nil {
 		res = append(res, err)
 	}
@@ -44,6 +52,18 @@ func (m *UserProTier) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *UserProTier) validateChargedCents(formats strfmt.Registry) error {
+	if typeutils.IsZero(m.ChargedCents) { // not required
+		return nil
+	}
+
+	if err := validate.MinimumInt("ChargedCents", "body", *m.ChargedCents, 0, false); err != nil {
+		return err
+	}
+
 	return nil
 }
 

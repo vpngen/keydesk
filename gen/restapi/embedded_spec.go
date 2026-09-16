@@ -133,6 +133,44 @@ func init() {
         ]
       }
     },
+    "/pro/analytics": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "PRO analytics folded from the ledger.",
+            "schema": {
+              "$ref": "#/definitions/pro_analytics"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/pro/billing": {
       "get": {
         "produces": [
@@ -898,6 +936,90 @@ func init() {
         }
       }
     },
+    "pro_analytics": {
+      "type": "object",
+      "required": [
+        "Month",
+        "PayingKeys",
+        "MRRCents",
+        "NewPaying",
+        "StoppedPaying",
+        "NetGrowth",
+        "Renewals",
+        "Months"
+      ],
+      "properties": {
+        "LedgerSince": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "MRRCents": {
+          "type": "integer"
+        },
+        "Month": {
+          "type": "string"
+        },
+        "Months": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "Month",
+              "Available"
+            ],
+            "properties": {
+              "Available": {
+                "type": "boolean"
+              },
+              "ChargedCents": {
+                "type": "integer"
+              },
+              "ExpectedCents": {
+                "type": "integer"
+              },
+              "Month": {
+                "type": "string"
+              },
+              "Paying": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "NetGrowth": {
+          "type": "integer"
+        },
+        "NewPaying": {
+          "type": "integer"
+        },
+        "PayingKeys": {
+          "type": "integer"
+        },
+        "Renewals": {
+          "type": "integer"
+        },
+        "Retention": {
+          "type": "object",
+          "required": [
+            "Base",
+            "Kept"
+          ],
+          "properties": {
+            "Base": {
+              "type": "integer"
+            },
+            "Kept": {
+              "type": "integer"
+            }
+          },
+          "x-nullable": true
+        },
+        "StoppedPaying": {
+          "type": "integer"
+        }
+      }
+    },
     "pro_billing": {
       "type": "object",
       "required": [
@@ -1192,6 +1314,7 @@ func init() {
         },
         "SoldForCents": {
           "type": "integer",
+          "minimum": 0,
           "x-nullable": true
         }
       }
@@ -1218,6 +1341,11 @@ func init() {
         "Tier"
       ],
       "properties": {
+        "ChargedCents": {
+          "type": "integer",
+          "minimum": 0,
+          "x-nullable": true
+        },
         "Months": {
           "type": "integer",
           "maximum": 36,
@@ -1346,6 +1474,44 @@ func init() {
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/pro/analytics": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "PRO analytics folded from the ledger.",
+            "schema": {
+              "$ref": "#/definitions/pro_analytics"
+            }
+          },
+          "403": {
+            "description": "You do not have necessary permissions for the resource"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
           },
           "default": {
             "description": "error",
@@ -2061,6 +2227,46 @@ func init() {
         }
       }
     },
+    "ProAnalyticsMonthsItems0": {
+      "type": "object",
+      "required": [
+        "Month",
+        "Available"
+      ],
+      "properties": {
+        "Available": {
+          "type": "boolean"
+        },
+        "ChargedCents": {
+          "type": "integer"
+        },
+        "ExpectedCents": {
+          "type": "integer"
+        },
+        "Month": {
+          "type": "string"
+        },
+        "Paying": {
+          "type": "integer"
+        }
+      }
+    },
+    "ProAnalyticsRetention": {
+      "type": "object",
+      "required": [
+        "Base",
+        "Kept"
+      ],
+      "properties": {
+        "Base": {
+          "type": "integer"
+        },
+        "Kept": {
+          "type": "integer"
+        }
+      },
+      "x-nullable": true
+    },
     "StatsActiveUsersItems0": {
       "type": "object",
       "required": [
@@ -2252,6 +2458,69 @@ func init() {
               "type": "string"
             }
           }
+        }
+      }
+    },
+    "pro_analytics": {
+      "type": "object",
+      "required": [
+        "Month",
+        "PayingKeys",
+        "MRRCents",
+        "NewPaying",
+        "StoppedPaying",
+        "NetGrowth",
+        "Renewals",
+        "Months"
+      ],
+      "properties": {
+        "LedgerSince": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "MRRCents": {
+          "type": "integer"
+        },
+        "Month": {
+          "type": "string"
+        },
+        "Months": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProAnalyticsMonthsItems0"
+          }
+        },
+        "NetGrowth": {
+          "type": "integer"
+        },
+        "NewPaying": {
+          "type": "integer"
+        },
+        "PayingKeys": {
+          "type": "integer"
+        },
+        "Renewals": {
+          "type": "integer"
+        },
+        "Retention": {
+          "type": "object",
+          "required": [
+            "Base",
+            "Kept"
+          ],
+          "properties": {
+            "Base": {
+              "type": "integer"
+            },
+            "Kept": {
+              "type": "integer"
+            }
+          },
+          "x-nullable": true
+        },
+        "StoppedPaying": {
+          "type": "integer"
         }
       }
     },
@@ -2539,6 +2808,11 @@ func init() {
         "Tier"
       ],
       "properties": {
+        "ChargedCents": {
+          "type": "integer",
+          "minimum": 0,
+          "x-nullable": true
+        },
         "Months": {
           "type": "integer",
           "maximum": 36,

@@ -46,6 +46,13 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 			return middleware.NotImplemented("operation DeleteUserUserID has not yet been implemented")
 		}),
 
+		GetProAnalyticsHandler: GetProAnalyticsHandlerFunc(func(params GetProAnalyticsParams, principal any) middleware.Responder {
+			_ = params
+			_ = principal
+
+			return middleware.NotImplemented("operation GetProAnalytics has not yet been implemented")
+		}),
+
 		GetProBillingHandler: GetProBillingHandlerFunc(func(params GetProBillingParams, principal any) middleware.Responder {
 			_ = params
 			_ = principal
@@ -196,6 +203,8 @@ type UserAPI struct {
 
 	// DeleteUserUserIDHandler sets the operation handler for the delete user user ID operation
 	DeleteUserUserIDHandler DeleteUserUserIDHandler
+	// GetProAnalyticsHandler sets the operation handler for the get pro analytics operation
+	GetProAnalyticsHandler GetProAnalyticsHandler
 	// GetProBillingHandler sets the operation handler for the get pro billing operation
 	GetProBillingHandler GetProBillingHandler
 	// GetProInvoicesHandler sets the operation handler for the get pro invoices operation
@@ -307,6 +316,9 @@ func (o *UserAPI) Validate() error {
 
 	if o.DeleteUserUserIDHandler == nil {
 		unregistered = append(unregistered, "DeleteUserUserIDHandler")
+	}
+	if o.GetProAnalyticsHandler == nil {
+		unregistered = append(unregistered, "GetProAnalyticsHandler")
 	}
 	if o.GetProBillingHandler == nil {
 		unregistered = append(unregistered, "GetProBillingHandler")
@@ -452,6 +464,10 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/user/{UserID}"] = NewDeleteUserUserID(o.context, o.DeleteUserUserIDHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/pro/analytics"] = NewGetProAnalytics(o.context, o.GetProAnalyticsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

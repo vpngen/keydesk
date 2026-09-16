@@ -97,6 +97,8 @@ func AddUser(db *storage.BrigadeStorage, params operations.PostUserParams, princ
 		if err := db.SetUserProConfigs(user.ID.String(), proConfigs); err != nil {
 			fmt.Fprintf(os.Stderr, "save pro configs: %s: %s\n", user.ID, err)
 		}
+
+		logProLedger(db, storage.ProLedgerEvent{Type: storage.ProEvKeyCreated, UserID: user.ID.String(), Tier: "free"})
 	}
 
 	return operations.NewPostUserCreated().WithPayload(confJson)
@@ -439,11 +441,24 @@ func addUser(
 
 // DelUserUserID - delete user by UserID.
 func DelUserUserID(db *storage.BrigadeStorage, params operations.DeleteUserUserIDParams, principal interface{}) middleware.Responder {
+	// PRO ledger: the key vanishes from brigade.json, so capture its tier and
+	// price before deleting (analytics counts it as «stopped paying»).
+	var deleted *storage.ProLedgerEvent
+	if db.IsPRO() {
+		if sold, tier, _, err := db.ProSoldAndTier(params.UserID); err == nil {
+			deleted = &storage.ProLedgerEvent{Type: storage.ProEvDeleted, UserID: params.UserID, Tier: proTierAPIValue(tier), HadPrice: sold > 0, Cents: sold}
+		}
+	}
+
 	err := db.DeleteUser(params.UserID, false, false)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Delete user: %s :%s\n", params.UserID, err)
 
 		return operations.NewDeleteUserUserIDForbidden()
+	}
+
+	if deleted != nil {
+		logProLedger(db, *deleted)
 	}
 
 	return operations.NewDeleteUserUserIDNoContent()
@@ -458,6 +473,10 @@ func BlockUserUserID(db *storage.BrigadeStorage, params operations.PatchUserUser
 		return operations.NewPatchUserUserIDBlockForbidden()
 	}
 
+	if db.IsPRO() {
+		logProLedger(db, storage.ProLedgerEvent{Type: storage.ProEvBlocked, UserID: params.UserID, Reason: storage.ProBlockManual})
+	}
+
 	return operations.NewPatchUserUserIDBlockOK()
 }
 
@@ -468,6 +487,10 @@ func UnblockUserUserID(db *storage.BrigadeStorage, params operations.PatchUserUs
 		fmt.Fprintf(os.Stderr, "Unblock user: %s :%s\n", params.UserID, err)
 
 		return operations.NewPatchUserUserIDUnblockForbidden()
+	}
+
+	if db.IsPRO() {
+		logProLedger(db, storage.ProLedgerEvent{Type: storage.ProEvUnblocked, UserID: params.UserID})
 	}
 
 	return operations.NewPatchUserUserIDUnblockOK()

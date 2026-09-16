@@ -287,6 +287,30 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
+  /pro/analytics:
+    get:
+      security:
+        - Bearer: [ ]
+      produces:
+        - application/json
+      responses:
+        200:
+          description: PRO analytics folded from the ledger.
+          schema:
+            $ref: "#/definitions/pro_analytics"
+        403:
+          description: 'You do not have necessary permissions for the resource'
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
+        500:
+          description: 'Internal server error'
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+
   /pro/invoices:
     get:
       security:
@@ -624,6 +648,10 @@ definitions:
         type: integer
         minimum: 1
         maximum: 36
+      ChargedCents:
+        type: integer
+        minimum: 0
+        x-nullable: true
   user_pro_extend:
     type: object
     required:
@@ -672,6 +700,65 @@ definitions:
         x-nullable: true
       TotalCents:
         type: integer
+  pro_analytics:
+    type: object
+    required:
+      - Month
+      - PayingKeys
+      - MRRCents
+      - NewPaying
+      - StoppedPaying
+      - NetGrowth
+      - Renewals
+      - Months
+    properties:
+      Month:
+        type: string
+      PayingKeys:
+        type: integer
+      MRRCents:
+        type: integer
+      NewPaying:
+        type: integer
+      StoppedPaying:
+        type: integer
+      NetGrowth:
+        type: integer
+      Renewals:
+        type: integer
+      Retention:
+        type: object
+        x-nullable: true
+        required:
+          - Base
+          - Kept
+        properties:
+          Base:
+            type: integer
+          Kept:
+            type: integer
+      LedgerSince:
+        type: string
+        format: date-time
+        x-nullable: true
+      Months:
+        type: array
+        items:
+          type: object
+          required:
+            - Month
+            - Available
+          properties:
+            Month:
+              type: string
+            Available:
+              type: boolean
+            Paying:
+              type: integer
+            ExpectedCents:
+              type: integer
+            ChargedCents:
+              type: integer
   pro_invoice:
     type: object
     required:

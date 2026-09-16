@@ -89,6 +89,10 @@ func NewServer(
 		return keydesk.PayProInvoice(db, params, principal)
 	})
 
+	api.GetProAnalyticsHandler = operations.GetProAnalyticsHandlerFunc(func(params operations.GetProAnalyticsParams, principal interface{}) middleware.Responder {
+		return keydesk.GetProAnalytics(db, params, principal)
+	})
+
 	api.GetMessagesHandler = operations.GetMessagesHandlerFunc(func(params operations.GetMessagesParams, principal interface{}) middleware.Responder {
 		return keydesk.GetMessages(
 			msgSvc,

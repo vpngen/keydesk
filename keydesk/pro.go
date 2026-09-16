@@ -17,6 +17,20 @@ import (
 // PRO per-key operations. All of them are allowed only for PRO brigades, so
 // free and VIP brigades are not affected by this API surface at all.
 
+// logProLedger - record PRO events in the brigade ledger. Never fails the
+// request: the ledger feeds analytics, not the key itself.
+func logProLedger(db *storage.BrigadeStorage, events ...storage.ProLedgerEvent) {
+	if err := db.EnsureProLedger(); err != nil {
+		fmt.Fprintf(os.Stderr, "pro ledger: ensure: %s\n", err)
+
+		return
+	}
+
+	if err := db.AppendProLedger(events...); err != nil {
+		fmt.Fprintf(os.Stderr, "pro ledger: append: %s\n", err)
+	}
+}
+
 // UpdateUserPro - partial update of the brigadier's key annotations
 // (label / note / sold-for).
 func UpdateUserPro(db *storage.BrigadeStorage, params operations.PatchUserUserIDProParams, principal interface{}) middleware.Responder {
@@ -30,6 +44,16 @@ func UpdateUserPro(db *storage.BrigadeStorage, params operations.PatchUserUserID
 		SoldFor: params.Body.SoldForCents,
 	}
 
+	// The sale price is the «paying user» signal for analytics: remember the
+	// previous value to log only real changes.
+	var prevSold int64
+	if meta.SoldFor != nil {
+		sold, _, _, err := db.ProSoldAndTier(params.UserID)
+		if err == nil {
+			prevSold = sold
+		}
+	}
+
 	if err := db.UpdateUserProMeta(params.UserID, meta); err != nil {
 		fmt.Fprintf(os.Stderr, "Update user pro meta: %s: %s\n", params.UserID, err)
 
@@ -38,6 +62,14 @@ func UpdateUserPro(db *storage.BrigadeStorage, params operations.PatchUserUserID
 		}
 
 		return operations.NewPatchUserUserIDProInternalServerError()
+	}
+
+	if meta.SoldFor != nil && *meta.SoldFor != prevSold {
+		if *meta.SoldFor > 0 {
+			logProLedger(db, storage.ProLedgerEvent{Type: storage.ProEvPriceSet, UserID: params.UserID, Cents: *meta.SoldFor})
+		} else {
+			logProLedger(db, storage.ProLedgerEvent{Type: storage.ProEvPriceCleared, UserID: params.UserID})
+		}
 	}
 
 	return operations.NewPatchUserUserIDProOK()
@@ -87,6 +119,32 @@ func SetUserTier(db *storage.BrigadeStorage, params operations.PostUserUserIDTie
 	}
 
 	reviveProUser(db, params.UserID, prev, paidUntil)
+
+	// Ledger: the tier change and, for paid tiers, the amount the payment
+	// step charged (the frontend passes it; nil = no charge recorded).
+	now := time.Now().UTC()
+	events := []storage.ProLedgerEvent{{
+		At: now, Type: storage.ProEvTierChanged, UserID: params.UserID,
+		From: proTierAPIValue(prev.Tier), Tier: proTierAPIValue(tier),
+	}}
+
+	if !paidUntil.IsZero() {
+		events[0].PeriodTo = &paidUntil
+	}
+
+	if storage.IsValidProTier(tier) && params.Body.ChargedCents != nil {
+		kind := storage.ProChargePurchase
+		if storage.IsValidProTier(prev.Tier) {
+			kind = storage.ProChargeUpgrade
+		}
+
+		events = append(events, storage.ProLedgerEvent{
+			At: now, Type: storage.ProEvCharged, UserID: params.UserID, Tier: tier,
+			Kind: kind, Cents: *params.Body.ChargedCents, PeriodFrom: &now, PeriodTo: &paidUntil,
+		})
+	}
+
+	logProLedger(db, events...)
 
 	return operations.NewPostUserUserIDTierOK().WithPayload(proTermPayload(tier, paidUntil))
 }
@@ -231,7 +289,101 @@ func PayProInvoice(db *storage.BrigadeStorage, params operations.PostProInvoices
 		return operations.NewPostProInvoicesCurrentPayInternalServerError()
 	}
 
+	logInvoicePaid(db, info)
+
 	return operations.NewPostProInvoicesCurrentPayOK().WithPayload(proBillingPayload(info))
+}
+
+// logInvoicePaid - ledger: the invoice itself plus one monthly charge per paid
+// key it covered (the invoice keeps only per-tier totals; the keys that take
+// part in billing are the ones that were charged).
+func logInvoicePaid(db *storage.BrigadeStorage, info storage.ProBillingInfo) {
+	if len(info.Invoices) == 0 {
+		return
+	}
+
+	last := info.Invoices[len(info.Invoices)-1]
+	if last.Status != "paid" {
+		return
+	}
+
+	now := time.Now().UTC()
+	events := []storage.ProLedgerEvent{{
+		At: now, Type: storage.ProEvInvoicePaid, Invoice: last.ID, Cents: last.TotalCents, Keys: last.KeysCount,
+	}}
+
+	paid, err := db.ListProPaidUsers(now)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "pro ledger: list paid users: %s\n", err)
+	}
+
+	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	to := from.AddDate(0, 1, 0)
+
+	for id, tier := range paid {
+		events = append(events, storage.ProLedgerEvent{
+			At: now, Type: storage.ProEvCharged, UserID: id, Tier: tier, Kind: storage.ProChargeMonthly,
+			Cents: storage.ProTierPriceCents[tier], PeriodFrom: &from, PeriodTo: &to, Invoice: last.ID,
+		})
+	}
+
+	logProLedger(db, events...)
+}
+
+// GetProAnalytics - paying audience, MRR, churn and retention folded from the
+// ledger. Backfills the ledger from the current state on first call.
+func GetProAnalytics(db *storage.BrigadeStorage, params operations.GetProAnalyticsParams, principal interface{}) middleware.Responder {
+	if !db.IsPRO() {
+		return operations.NewGetProAnalyticsForbidden()
+	}
+
+	if err := db.EnsureProLedger(); err != nil {
+		fmt.Fprintf(os.Stderr, "Get pro analytics: ensure ledger: %s\n", err)
+
+		return operations.NewGetProAnalyticsInternalServerError()
+	}
+
+	stats, err := db.ProAnalytics(time.Now().UTC())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Get pro analytics: %s\n", err)
+
+		return operations.NewGetProAnalyticsInternalServerError()
+	}
+
+	payload := &models.ProAnalytics{
+		Month:         swag.String(stats.Month),
+		PayingKeys:    swag.Int64(int64(stats.PayingKeys)),
+		MRRCents:      swag.Int64(stats.MRRCents),
+		NewPaying:     swag.Int64(int64(stats.NewPaying)),
+		StoppedPaying: swag.Int64(int64(stats.StoppedPaying)),
+		NetGrowth:     swag.Int64(int64(stats.NetGrowth)),
+		Renewals:      swag.Int64(int64(stats.Renewals)),
+		Months:        make([]*models.ProAnalyticsMonthsItems0, 0, len(stats.Months)),
+	}
+
+	if stats.RetentionAvailable {
+		payload.Retention = &models.ProAnalyticsRetention{
+			Base: swag.Int64(int64(stats.RetentionBase)),
+			Kept: swag.Int64(int64(stats.RetentionKept)),
+		}
+	}
+
+	if !stats.LedgerSince.IsZero() {
+		since := stats.LedgerSince
+		payload.LedgerSince = (*strfmt.DateTime)(&since)
+	}
+
+	for _, m := range stats.Months {
+		payload.Months = append(payload.Months, &models.ProAnalyticsMonthsItems0{
+			Month:         swag.String(m.Month),
+			Available:     swag.Bool(m.Available),
+			Paying:        int64(m.Paying),
+			ExpectedCents: m.ExpectedCents,
+			ChargedCents:  m.ChargedCents,
+		})
+	}
+
+	return operations.NewGetProAnalyticsOK().WithPayload(payload)
 }
 
 func proBillingPayload(info storage.ProBillingInfo) *models.ProBilling {

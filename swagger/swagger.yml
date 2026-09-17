@@ -744,39 +744,118 @@ definitions:
   pro_analytics:
     type: object
     required:
-      - Month
-      - PayingKeys
-      - MRRCents
-      - NewPaying
-      - StoppedPaying
-      - NetGrowth
+      - Period
+      - Economics
+      - PaidUsers
       - Renewals
+      - Recommendations
+      - Thresholds
       - Months
     properties:
-      Month:
-        type: string
-      PayingKeys:
-        type: integer
-      MRRCents:
-        type: integer
-      NewPaying:
-        type: integer
-      StoppedPaying:
-        type: integer
-      NetGrowth:
-        type: integer
-      Renewals:
-        type: integer
-      Retention:
+      Period:
         type: object
-        x-nullable: true
         required:
-          - Base
-          - Kept
+          - Start
+          - End
+          - Index
         properties:
-          Base:
+          Start:
+            type: string
+            format: date-time
+          End:
+            type: string
+            format: date-time
+          Index:
             type: integer
-          Kept:
+      Economics:
+        type: object
+        required:
+          - ExpectedRevenueCents
+          - ForecastKeyCostCents
+          - ForecastProfitCents
+        properties:
+          ExpectedRevenueCents:
+            type: integer
+          ForecastKeyCostCents:
+            type: integer
+          ForecastProfitCents:
+            type: integer
+      PaidUsers:
+        type: object
+        required:
+          - Active
+          - New
+          - StoppedPaying
+          - NetGrowth
+          - Priced
+          - Basic
+          - Unlim
+        properties:
+          Active:
+            type: integer
+          New:
+            type: integer
+          StoppedPaying:
+            type: integer
+          NetGrowth:
+            type: integer
+          Priced:
+            type: integer
+          Basic:
+            $ref: "#/definitions/pro_tier_group"
+          Unlim:
+            $ref: "#/definitions/pro_tier_group"
+      Renewals:
+        type: object
+        required:
+          - Status
+          - Eligible
+          - Renewed
+          - RatePct
+          - Good
+        properties:
+          Status:
+            type: string
+            enum: [no_data, calculating, final]
+          Eligible:
+            type: integer
+          Renewed:
+            type: integer
+          RatePct:
+            type: integer
+          ChangePp:
+            type: integer
+            x-nullable: true
+          Good:
+            type: boolean
+      Recommendations:
+        type: object
+        required:
+          - NotRenewed
+          - BasicHighUsage
+          - BasicAtLimit
+          - InactivePaid
+        properties:
+          NotRenewed:
+            $ref: "#/definitions/pro_recommendation"
+          BasicHighUsage:
+            $ref: "#/definitions/pro_recommendation"
+          BasicAtLimit:
+            $ref: "#/definitions/pro_recommendation"
+          InactivePaid:
+            $ref: "#/definitions/pro_recommendation"
+      Thresholds:
+        type: object
+        required:
+          - BasicHighUsagePct
+          - InactiveDays
+          - GoodRenewalPct
+        properties:
+          BasicHighUsagePct:
+            type: integer
+          InactiveDays:
+            type: integer
+          GoodRenewalPct:
             type: integer
       LedgerSince:
         type: string
@@ -794,12 +873,41 @@ definitions:
               type: string
             Available:
               type: boolean
-            Paying:
-              type: integer
+            Reconstructed:
+              type: boolean
             ExpectedCents:
               type: integer
-            ChargedCents:
+            CostCents:
               type: integer
+            ProfitCents:
+              type: integer
+  pro_tier_group:
+    type: object
+    required:
+      - Count
+      - Priced
+      - SharePct
+      - AverageSellingCents
+    properties:
+      Count:
+        type: integer
+      Priced:
+        type: integer
+      SharePct:
+        type: integer
+      AverageSellingCents:
+        type: integer
+  pro_recommendation:
+    type: object
+    required:
+      - Count
+    properties:
+      Count:
+        type: integer
+      IDs:
+        type: array
+        items:
+          type: string
   pro_invoice:
     type: object
     required:

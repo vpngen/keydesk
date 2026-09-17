@@ -88,6 +88,7 @@ func main() {
 			MaxUsers:               keydesk.MaxUsers,
 			MonthlyQuotaRemaining:  keydesk.MonthlyQuotaRemaining,
 			MaxUserInctivityPeriod: keydesk.DefaultMaxUserInactivityPeriod,
+			ProAnalyticsThresholds: storage.ProAnalyticsConfigFromEnv(os.Getenv),
 		},
 	}
 	if err := db.SelfCheckAndInit(); err != nil {

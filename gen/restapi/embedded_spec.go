@@ -939,26 +939,38 @@ func init() {
     "pro_analytics": {
       "type": "object",
       "required": [
-        "Month",
-        "PayingKeys",
-        "MRRCents",
-        "NewPaying",
-        "StoppedPaying",
-        "NetGrowth",
+        "Period",
+        "Economics",
+        "PaidUsers",
         "Renewals",
+        "Recommendations",
+        "Thresholds",
         "Months"
       ],
       "properties": {
+        "Economics": {
+          "type": "object",
+          "required": [
+            "ExpectedRevenueCents",
+            "ForecastKeyCostCents",
+            "ForecastProfitCents"
+          ],
+          "properties": {
+            "ExpectedRevenueCents": {
+              "type": "integer"
+            },
+            "ForecastKeyCostCents": {
+              "type": "integer"
+            },
+            "ForecastProfitCents": {
+              "type": "integer"
+            }
+          }
+        },
         "LedgerSince": {
           "type": "string",
           "format": "date-time",
           "x-nullable": true
-        },
-        "MRRCents": {
-          "type": "integer"
-        },
-        "Month": {
-          "type": "string"
         },
         "Months": {
           "type": "array",
@@ -972,7 +984,7 @@ func init() {
               "Available": {
                 "type": "boolean"
               },
-              "ChargedCents": {
+              "CostCents": {
                 "type": "integer"
               },
               "ExpectedCents": {
@@ -981,42 +993,148 @@ func init() {
               "Month": {
                 "type": "string"
               },
-              "Paying": {
+              "ProfitCents": {
                 "type": "integer"
+              },
+              "Reconstructed": {
+                "type": "boolean"
               }
             }
           }
         },
-        "NetGrowth": {
-          "type": "integer"
-        },
-        "NewPaying": {
-          "type": "integer"
-        },
-        "PayingKeys": {
-          "type": "integer"
-        },
-        "Renewals": {
-          "type": "integer"
-        },
-        "Retention": {
+        "PaidUsers": {
           "type": "object",
           "required": [
-            "Base",
-            "Kept"
+            "Active",
+            "New",
+            "StoppedPaying",
+            "NetGrowth",
+            "Priced",
+            "Basic",
+            "Unlim"
           ],
           "properties": {
-            "Base": {
+            "Active": {
               "type": "integer"
             },
-            "Kept": {
+            "Basic": {
+              "$ref": "#/definitions/pro_tier_group"
+            },
+            "NetGrowth": {
+              "type": "integer"
+            },
+            "New": {
+              "type": "integer"
+            },
+            "Priced": {
+              "type": "integer"
+            },
+            "StoppedPaying": {
+              "type": "integer"
+            },
+            "Unlim": {
+              "$ref": "#/definitions/pro_tier_group"
+            }
+          }
+        },
+        "Period": {
+          "type": "object",
+          "required": [
+            "Start",
+            "End",
+            "Index"
+          ],
+          "properties": {
+            "End": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "Index": {
+              "type": "integer"
+            },
+            "Start": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "Recommendations": {
+          "type": "object",
+          "required": [
+            "NotRenewed",
+            "BasicHighUsage",
+            "BasicAtLimit",
+            "InactivePaid"
+          ],
+          "properties": {
+            "BasicAtLimit": {
+              "$ref": "#/definitions/pro_recommendation"
+            },
+            "BasicHighUsage": {
+              "$ref": "#/definitions/pro_recommendation"
+            },
+            "InactivePaid": {
+              "$ref": "#/definitions/pro_recommendation"
+            },
+            "NotRenewed": {
+              "$ref": "#/definitions/pro_recommendation"
+            }
+          }
+        },
+        "Renewals": {
+          "type": "object",
+          "required": [
+            "Status",
+            "Eligible",
+            "Renewed",
+            "RatePct",
+            "Good"
+          ],
+          "properties": {
+            "ChangePp": {
+              "type": "integer",
+              "x-nullable": true
+            },
+            "Eligible": {
+              "type": "integer"
+            },
+            "Good": {
+              "type": "boolean"
+            },
+            "RatePct": {
+              "type": "integer"
+            },
+            "Renewed": {
+              "type": "integer"
+            },
+            "Status": {
+              "type": "string",
+              "enum": [
+                "no_data",
+                "calculating",
+                "final"
+              ]
+            }
+          }
+        },
+        "Thresholds": {
+          "type": "object",
+          "required": [
+            "BasicHighUsagePct",
+            "InactiveDays",
+            "GoodRenewalPct"
+          ],
+          "properties": {
+            "BasicHighUsagePct": {
+              "type": "integer"
+            },
+            "GoodRenewalPct": {
+              "type": "integer"
+            },
+            "InactiveDays": {
               "type": "integer"
             }
-          },
-          "x-nullable": true
-        },
-        "StoppedPaying": {
-          "type": "integer"
+          }
         }
       }
     },
@@ -1167,6 +1285,46 @@ func init() {
         },
         "Tier": {
           "type": "string"
+        }
+      }
+    },
+    "pro_recommendation": {
+      "type": "object",
+      "required": [
+        "Count"
+      ],
+      "properties": {
+        "Count": {
+          "type": "integer"
+        },
+        "IDs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "pro_tier_group": {
+      "type": "object",
+      "required": [
+        "Count",
+        "Priced",
+        "SharePct",
+        "AverageSellingCents"
+      ],
+      "properties": {
+        "AverageSellingCents": {
+          "type": "integer"
+        },
+        "Count": {
+          "type": "integer"
+        },
+        "Priced": {
+          "type": "integer"
+        },
+        "SharePct": {
+          "type": "integer"
         }
       }
     },
@@ -2301,6 +2459,25 @@ func init() {
         }
       }
     },
+    "ProAnalyticsEconomics": {
+      "type": "object",
+      "required": [
+        "ExpectedRevenueCents",
+        "ForecastKeyCostCents",
+        "ForecastProfitCents"
+      ],
+      "properties": {
+        "ExpectedRevenueCents": {
+          "type": "integer"
+        },
+        "ForecastKeyCostCents": {
+          "type": "integer"
+        },
+        "ForecastProfitCents": {
+          "type": "integer"
+        }
+      }
+    },
     "ProAnalyticsMonthsItems0": {
       "type": "object",
       "required": [
@@ -2311,7 +2488,7 @@ func init() {
         "Available": {
           "type": "boolean"
         },
-        "ChargedCents": {
+        "CostCents": {
           "type": "integer"
         },
         "ExpectedCents": {
@@ -2320,26 +2497,147 @@ func init() {
         "Month": {
           "type": "string"
         },
-        "Paying": {
+        "ProfitCents": {
           "type": "integer"
+        },
+        "Reconstructed": {
+          "type": "boolean"
         }
       }
     },
-    "ProAnalyticsRetention": {
+    "ProAnalyticsPaidUsers": {
       "type": "object",
       "required": [
-        "Base",
-        "Kept"
+        "Active",
+        "New",
+        "StoppedPaying",
+        "NetGrowth",
+        "Priced",
+        "Basic",
+        "Unlim"
       ],
       "properties": {
-        "Base": {
+        "Active": {
           "type": "integer"
         },
-        "Kept": {
+        "Basic": {
+          "$ref": "#/definitions/pro_tier_group"
+        },
+        "NetGrowth": {
+          "type": "integer"
+        },
+        "New": {
+          "type": "integer"
+        },
+        "Priced": {
+          "type": "integer"
+        },
+        "StoppedPaying": {
+          "type": "integer"
+        },
+        "Unlim": {
+          "$ref": "#/definitions/pro_tier_group"
+        }
+      }
+    },
+    "ProAnalyticsPeriod": {
+      "type": "object",
+      "required": [
+        "Start",
+        "End",
+        "Index"
+      ],
+      "properties": {
+        "End": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "Index": {
+          "type": "integer"
+        },
+        "Start": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "ProAnalyticsRecommendations": {
+      "type": "object",
+      "required": [
+        "NotRenewed",
+        "BasicHighUsage",
+        "BasicAtLimit",
+        "InactivePaid"
+      ],
+      "properties": {
+        "BasicAtLimit": {
+          "$ref": "#/definitions/pro_recommendation"
+        },
+        "BasicHighUsage": {
+          "$ref": "#/definitions/pro_recommendation"
+        },
+        "InactivePaid": {
+          "$ref": "#/definitions/pro_recommendation"
+        },
+        "NotRenewed": {
+          "$ref": "#/definitions/pro_recommendation"
+        }
+      }
+    },
+    "ProAnalyticsRenewals": {
+      "type": "object",
+      "required": [
+        "Status",
+        "Eligible",
+        "Renewed",
+        "RatePct",
+        "Good"
+      ],
+      "properties": {
+        "ChangePp": {
+          "type": "integer",
+          "x-nullable": true
+        },
+        "Eligible": {
+          "type": "integer"
+        },
+        "Good": {
+          "type": "boolean"
+        },
+        "RatePct": {
+          "type": "integer"
+        },
+        "Renewed": {
+          "type": "integer"
+        },
+        "Status": {
+          "type": "string",
+          "enum": [
+            "no_data",
+            "calculating",
+            "final"
+          ]
+        }
+      }
+    },
+    "ProAnalyticsThresholds": {
+      "type": "object",
+      "required": [
+        "BasicHighUsagePct",
+        "InactiveDays",
+        "GoodRenewalPct"
+      ],
+      "properties": {
+        "BasicHighUsagePct": {
+          "type": "integer"
+        },
+        "GoodRenewalPct": {
+          "type": "integer"
+        },
+        "InactiveDays": {
           "type": "integer"
         }
-      },
-      "x-nullable": true
+      }
     },
     "StatsActiveUsersItems0": {
       "type": "object",
@@ -2538,26 +2836,38 @@ func init() {
     "pro_analytics": {
       "type": "object",
       "required": [
-        "Month",
-        "PayingKeys",
-        "MRRCents",
-        "NewPaying",
-        "StoppedPaying",
-        "NetGrowth",
+        "Period",
+        "Economics",
+        "PaidUsers",
         "Renewals",
+        "Recommendations",
+        "Thresholds",
         "Months"
       ],
       "properties": {
+        "Economics": {
+          "type": "object",
+          "required": [
+            "ExpectedRevenueCents",
+            "ForecastKeyCostCents",
+            "ForecastProfitCents"
+          ],
+          "properties": {
+            "ExpectedRevenueCents": {
+              "type": "integer"
+            },
+            "ForecastKeyCostCents": {
+              "type": "integer"
+            },
+            "ForecastProfitCents": {
+              "type": "integer"
+            }
+          }
+        },
         "LedgerSince": {
           "type": "string",
           "format": "date-time",
           "x-nullable": true
-        },
-        "MRRCents": {
-          "type": "integer"
-        },
-        "Month": {
-          "type": "string"
         },
         "Months": {
           "type": "array",
@@ -2565,36 +2875,139 @@ func init() {
             "$ref": "#/definitions/ProAnalyticsMonthsItems0"
           }
         },
-        "NetGrowth": {
-          "type": "integer"
-        },
-        "NewPaying": {
-          "type": "integer"
-        },
-        "PayingKeys": {
-          "type": "integer"
-        },
-        "Renewals": {
-          "type": "integer"
-        },
-        "Retention": {
+        "PaidUsers": {
           "type": "object",
           "required": [
-            "Base",
-            "Kept"
+            "Active",
+            "New",
+            "StoppedPaying",
+            "NetGrowth",
+            "Priced",
+            "Basic",
+            "Unlim"
           ],
           "properties": {
-            "Base": {
+            "Active": {
               "type": "integer"
             },
-            "Kept": {
+            "Basic": {
+              "$ref": "#/definitions/pro_tier_group"
+            },
+            "NetGrowth": {
+              "type": "integer"
+            },
+            "New": {
+              "type": "integer"
+            },
+            "Priced": {
+              "type": "integer"
+            },
+            "StoppedPaying": {
+              "type": "integer"
+            },
+            "Unlim": {
+              "$ref": "#/definitions/pro_tier_group"
+            }
+          }
+        },
+        "Period": {
+          "type": "object",
+          "required": [
+            "Start",
+            "End",
+            "Index"
+          ],
+          "properties": {
+            "End": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "Index": {
+              "type": "integer"
+            },
+            "Start": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "Recommendations": {
+          "type": "object",
+          "required": [
+            "NotRenewed",
+            "BasicHighUsage",
+            "BasicAtLimit",
+            "InactivePaid"
+          ],
+          "properties": {
+            "BasicAtLimit": {
+              "$ref": "#/definitions/pro_recommendation"
+            },
+            "BasicHighUsage": {
+              "$ref": "#/definitions/pro_recommendation"
+            },
+            "InactivePaid": {
+              "$ref": "#/definitions/pro_recommendation"
+            },
+            "NotRenewed": {
+              "$ref": "#/definitions/pro_recommendation"
+            }
+          }
+        },
+        "Renewals": {
+          "type": "object",
+          "required": [
+            "Status",
+            "Eligible",
+            "Renewed",
+            "RatePct",
+            "Good"
+          ],
+          "properties": {
+            "ChangePp": {
+              "type": "integer",
+              "x-nullable": true
+            },
+            "Eligible": {
+              "type": "integer"
+            },
+            "Good": {
+              "type": "boolean"
+            },
+            "RatePct": {
+              "type": "integer"
+            },
+            "Renewed": {
+              "type": "integer"
+            },
+            "Status": {
+              "type": "string",
+              "enum": [
+                "no_data",
+                "calculating",
+                "final"
+              ]
+            }
+          }
+        },
+        "Thresholds": {
+          "type": "object",
+          "required": [
+            "BasicHighUsagePct",
+            "InactiveDays",
+            "GoodRenewalPct"
+          ],
+          "properties": {
+            "BasicHighUsagePct": {
+              "type": "integer"
+            },
+            "GoodRenewalPct": {
+              "type": "integer"
+            },
+            "InactiveDays": {
               "type": "integer"
             }
-          },
-          "x-nullable": true
-        },
-        "StoppedPaying": {
-          "type": "integer"
+          }
         }
       }
     },
@@ -2745,6 +3158,46 @@ func init() {
         },
         "Tier": {
           "type": "string"
+        }
+      }
+    },
+    "pro_recommendation": {
+      "type": "object",
+      "required": [
+        "Count"
+      ],
+      "properties": {
+        "Count": {
+          "type": "integer"
+        },
+        "IDs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "pro_tier_group": {
+      "type": "object",
+      "required": [
+        "Count",
+        "Priced",
+        "SharePct",
+        "AverageSellingCents"
+      ],
+      "properties": {
+        "AverageSellingCents": {
+          "type": "integer"
+        },
+        "Count": {
+          "type": "integer"
+        },
+        "Priced": {
+          "type": "integer"
+        },
+        "SharePct": {
+          "type": "integer"
         }
       }
     },

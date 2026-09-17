@@ -4,6 +4,7 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 	stderrors "errors"
 	"strconv"
 
@@ -19,59 +20,48 @@ import (
 // swagger:model pro_analytics
 type ProAnalytics struct {
 
+	// economics
+	// Required: true
+	Economics *ProAnalyticsEconomics `json:"Economics"`
+
 	// ledger since
 	// Format: date-time
 	LedgerSince *strfmt.DateTime `json:"LedgerSince,omitempty"`
-
-	// m r r cents
-	// Required: true
-	MRRCents *int64 `json:"MRRCents"`
-
-	// month
-	// Required: true
-	Month *string `json:"Month"`
 
 	// months
 	// Required: true
 	Months []*ProAnalyticsMonthsItems0 `json:"Months"`
 
-	// net growth
+	// paid users
 	// Required: true
-	NetGrowth *int64 `json:"NetGrowth"`
+	PaidUsers *ProAnalyticsPaidUsers `json:"PaidUsers"`
 
-	// new paying
+	// period
 	// Required: true
-	NewPaying *int64 `json:"NewPaying"`
+	Period *ProAnalyticsPeriod `json:"Period"`
 
-	// paying keys
+	// recommendations
 	// Required: true
-	PayingKeys *int64 `json:"PayingKeys"`
+	Recommendations *ProAnalyticsRecommendations `json:"Recommendations"`
 
 	// renewals
 	// Required: true
-	Renewals *int64 `json:"Renewals"`
+	Renewals *ProAnalyticsRenewals `json:"Renewals"`
 
-	// retention
-	Retention *ProAnalyticsRetention `json:"Retention,omitempty"`
-
-	// stopped paying
+	// thresholds
 	// Required: true
-	StoppedPaying *int64 `json:"StoppedPaying"`
+	Thresholds *ProAnalyticsThresholds `json:"Thresholds"`
 }
 
 // Validate validates this pro analytics
 func (m *ProAnalytics) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateEconomics(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateLedgerSince(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateMRRCents(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateMonth(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -79,15 +69,15 @@ func (m *ProAnalytics) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateNetGrowth(formats); err != nil {
+	if err := m.validatePaidUsers(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateNewPaying(formats); err != nil {
+	if err := m.validatePeriod(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validatePayingKeys(formats); err != nil {
+	if err := m.validateRecommendations(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -95,11 +85,7 @@ func (m *ProAnalytics) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateRetention(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateStoppedPaying(formats); err != nil {
+	if err := m.validateThresholds(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -109,30 +95,36 @@ func (m *ProAnalytics) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *ProAnalytics) validateEconomics(formats strfmt.Registry) error {
+
+	if err := validate.Required("Economics", "body", m.Economics); err != nil {
+		return err
+	}
+
+	if m.Economics != nil {
+		if err := m.Economics.Validate(formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Economics")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Economics")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (m *ProAnalytics) validateLedgerSince(formats strfmt.Registry) error {
 	if typeutils.IsZero(m.LedgerSince) { // not required
 		return nil
 	}
 
 	if err := validate.FormatOf("LedgerSince", "body", "date-time", m.LedgerSince.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *ProAnalytics) validateMRRCents(formats strfmt.Registry) error {
-
-	if err := validate.Required("MRRCents", "body", m.MRRCents); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *ProAnalytics) validateMonth(formats strfmt.Registry) error {
-
-	if err := validate.Required("Month", "body", m.Month); err != nil {
 		return err
 	}
 
@@ -170,28 +162,73 @@ func (m *ProAnalytics) validateMonths(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ProAnalytics) validateNetGrowth(formats strfmt.Registry) error {
+func (m *ProAnalytics) validatePaidUsers(formats strfmt.Registry) error {
 
-	if err := validate.Required("NetGrowth", "body", m.NetGrowth); err != nil {
+	if err := validate.Required("PaidUsers", "body", m.PaidUsers); err != nil {
 		return err
+	}
+
+	if m.PaidUsers != nil {
+		if err := m.PaidUsers.Validate(formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("PaidUsers")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("PaidUsers")
+			}
+
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (m *ProAnalytics) validateNewPaying(formats strfmt.Registry) error {
+func (m *ProAnalytics) validatePeriod(formats strfmt.Registry) error {
 
-	if err := validate.Required("NewPaying", "body", m.NewPaying); err != nil {
+	if err := validate.Required("Period", "body", m.Period); err != nil {
 		return err
+	}
+
+	if m.Period != nil {
+		if err := m.Period.Validate(formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Period")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Period")
+			}
+
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (m *ProAnalytics) validatePayingKeys(formats strfmt.Registry) error {
+func (m *ProAnalytics) validateRecommendations(formats strfmt.Registry) error {
 
-	if err := validate.Required("PayingKeys", "body", m.PayingKeys); err != nil {
+	if err := validate.Required("Recommendations", "body", m.Recommendations); err != nil {
 		return err
+	}
+
+	if m.Recommendations != nil {
+		if err := m.Recommendations.Validate(formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Recommendations")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Recommendations")
+			}
+
+			return err
+		}
 	}
 
 	return nil
@@ -203,23 +240,15 @@ func (m *ProAnalytics) validateRenewals(formats strfmt.Registry) error {
 		return err
 	}
 
-	return nil
-}
-
-func (m *ProAnalytics) validateRetention(formats strfmt.Registry) error {
-	if typeutils.IsZero(m.Retention) { // not required
-		return nil
-	}
-
-	if m.Retention != nil {
-		if err := m.Retention.Validate(formats); err != nil {
+	if m.Renewals != nil {
+		if err := m.Renewals.Validate(formats); err != nil {
 			ve := new(errors.Validation)
 			if stderrors.As(err, &ve) {
-				return ve.ValidateName("Retention")
+				return ve.ValidateName("Renewals")
 			}
 			ce := new(errors.CompositeError)
 			if stderrors.As(err, &ce) {
-				return ce.ValidateName("Retention")
+				return ce.ValidateName("Renewals")
 			}
 
 			return err
@@ -229,10 +258,25 @@ func (m *ProAnalytics) validateRetention(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ProAnalytics) validateStoppedPaying(formats strfmt.Registry) error {
+func (m *ProAnalytics) validateThresholds(formats strfmt.Registry) error {
 
-	if err := validate.Required("StoppedPaying", "body", m.StoppedPaying); err != nil {
+	if err := validate.Required("Thresholds", "body", m.Thresholds); err != nil {
 		return err
+	}
+
+	if m.Thresholds != nil {
+		if err := m.Thresholds.Validate(formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Thresholds")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Thresholds")
+			}
+
+			return err
+		}
 	}
 
 	return nil
@@ -242,17 +286,58 @@ func (m *ProAnalytics) validateStoppedPaying(formats strfmt.Registry) error {
 func (m *ProAnalytics) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.contextValidateEconomics(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateMonths(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.contextValidateRetention(ctx, formats); err != nil {
+	if err := m.contextValidatePaidUsers(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidatePeriod(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateRecommendations(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateRenewals(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateThresholds(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *ProAnalytics) contextValidateEconomics(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Economics != nil {
+
+		if err := m.Economics.ContextValidate(ctx, formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Economics")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Economics")
+			}
+
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -285,22 +370,102 @@ func (m *ProAnalytics) contextValidateMonths(ctx context.Context, formats strfmt
 	return nil
 }
 
-func (m *ProAnalytics) contextValidateRetention(ctx context.Context, formats strfmt.Registry) error {
+func (m *ProAnalytics) contextValidatePaidUsers(ctx context.Context, formats strfmt.Registry) error {
 
-	if m.Retention != nil {
+	if m.PaidUsers != nil {
 
-		if typeutils.IsZero(m.Retention) { // not required
-			return nil
-		}
-
-		if err := m.Retention.ContextValidate(ctx, formats); err != nil {
+		if err := m.PaidUsers.ContextValidate(ctx, formats); err != nil {
 			ve := new(errors.Validation)
 			if stderrors.As(err, &ve) {
-				return ve.ValidateName("Retention")
+				return ve.ValidateName("PaidUsers")
 			}
 			ce := new(errors.CompositeError)
 			if stderrors.As(err, &ce) {
-				return ce.ValidateName("Retention")
+				return ce.ValidateName("PaidUsers")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProAnalytics) contextValidatePeriod(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Period != nil {
+
+		if err := m.Period.ContextValidate(ctx, formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Period")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Period")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProAnalytics) contextValidateRecommendations(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Recommendations != nil {
+
+		if err := m.Recommendations.ContextValidate(ctx, formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Recommendations")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Recommendations")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProAnalytics) contextValidateRenewals(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Renewals != nil {
+
+		if err := m.Renewals.ContextValidate(ctx, formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Renewals")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Renewals")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProAnalytics) contextValidateThresholds(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Thresholds != nil {
+
+		if err := m.Thresholds.ContextValidate(ctx, formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Thresholds")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Thresholds")
 			}
 
 			return err
@@ -328,6 +493,96 @@ func (m *ProAnalytics) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
+// ProAnalyticsEconomics pro analytics economics
+//
+// swagger:model ProAnalyticsEconomics
+type ProAnalyticsEconomics struct {
+
+	// expected revenue cents
+	// Required: true
+	ExpectedRevenueCents *int64 `json:"ExpectedRevenueCents"`
+
+	// forecast key cost cents
+	// Required: true
+	ForecastKeyCostCents *int64 `json:"ForecastKeyCostCents"`
+
+	// forecast profit cents
+	// Required: true
+	ForecastProfitCents *int64 `json:"ForecastProfitCents"`
+}
+
+// Validate validates this pro analytics economics
+func (m *ProAnalyticsEconomics) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateExpectedRevenueCents(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateForecastKeyCostCents(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateForecastProfitCents(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ProAnalyticsEconomics) validateExpectedRevenueCents(formats strfmt.Registry) error {
+
+	if err := validate.Required("Economics"+"."+"ExpectedRevenueCents", "body", m.ExpectedRevenueCents); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsEconomics) validateForecastKeyCostCents(formats strfmt.Registry) error {
+
+	if err := validate.Required("Economics"+"."+"ForecastKeyCostCents", "body", m.ForecastKeyCostCents); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsEconomics) validateForecastProfitCents(formats strfmt.Registry) error {
+
+	if err := validate.Required("Economics"+"."+"ForecastProfitCents", "body", m.ForecastProfitCents); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this pro analytics economics based on context it is used
+func (m *ProAnalyticsEconomics) ContextValidate(_ context.Context, _ strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *ProAnalyticsEconomics) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return jsonutils.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *ProAnalyticsEconomics) UnmarshalBinary(b []byte) error {
+	var res ProAnalyticsEconomics
+	if err := jsonutils.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
 // ProAnalyticsMonthsItems0 pro analytics months items0
 //
 // swagger:model ProAnalyticsMonthsItems0
@@ -337,8 +592,8 @@ type ProAnalyticsMonthsItems0 struct {
 	// Required: true
 	Available *bool `json:"Available"`
 
-	// charged cents
-	ChargedCents int64 `json:"ChargedCents,omitempty"`
+	// cost cents
+	CostCents int64 `json:"CostCents,omitempty"`
 
 	// expected cents
 	ExpectedCents int64 `json:"ExpectedCents,omitempty"`
@@ -347,8 +602,11 @@ type ProAnalyticsMonthsItems0 struct {
 	// Required: true
 	Month *string `json:"Month"`
 
-	// paying
-	Paying int64 `json:"Paying,omitempty"`
+	// profit cents
+	ProfitCents int64 `json:"ProfitCents,omitempty"`
+
+	// reconstructed
+	Reconstructed bool `json:"Reconstructed,omitempty"`
 }
 
 // Validate validates this pro analytics months items0
@@ -410,29 +668,69 @@ func (m *ProAnalyticsMonthsItems0) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-// ProAnalyticsRetention pro analytics retention
+// ProAnalyticsPaidUsers pro analytics paid users
 //
-// swagger:model ProAnalyticsRetention
-type ProAnalyticsRetention struct {
+// swagger:model ProAnalyticsPaidUsers
+type ProAnalyticsPaidUsers struct {
 
-	// base
+	// active
 	// Required: true
-	Base *int64 `json:"Base"`
+	Active *int64 `json:"Active"`
 
-	// kept
+	// basic
 	// Required: true
-	Kept *int64 `json:"Kept"`
+	Basic *ProTierGroup `json:"Basic"`
+
+	// net growth
+	// Required: true
+	NetGrowth *int64 `json:"NetGrowth"`
+
+	// new
+	// Required: true
+	New *int64 `json:"New"`
+
+	// priced
+	// Required: true
+	Priced *int64 `json:"Priced"`
+
+	// stopped paying
+	// Required: true
+	StoppedPaying *int64 `json:"StoppedPaying"`
+
+	// unlim
+	// Required: true
+	Unlim *ProTierGroup `json:"Unlim"`
 }
 
-// Validate validates this pro analytics retention
-func (m *ProAnalyticsRetention) Validate(formats strfmt.Registry) error {
+// Validate validates this pro analytics paid users
+func (m *ProAnalyticsPaidUsers) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateBase(formats); err != nil {
+	if err := m.validateActive(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateKept(formats); err != nil {
+	if err := m.validateBasic(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateNetGrowth(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateNew(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePriced(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStoppedPaying(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateUnlim(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -442,31 +740,161 @@ func (m *ProAnalyticsRetention) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ProAnalyticsRetention) validateBase(formats strfmt.Registry) error {
+func (m *ProAnalyticsPaidUsers) validateActive(formats strfmt.Registry) error {
 
-	if err := validate.Required("Retention"+"."+"Base", "body", m.Base); err != nil {
+	if err := validate.Required("PaidUsers"+"."+"Active", "body", m.Active); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *ProAnalyticsRetention) validateKept(formats strfmt.Registry) error {
+func (m *ProAnalyticsPaidUsers) validateBasic(formats strfmt.Registry) error {
 
-	if err := validate.Required("Retention"+"."+"Kept", "body", m.Kept); err != nil {
+	if err := validate.Required("PaidUsers"+"."+"Basic", "body", m.Basic); err != nil {
+		return err
+	}
+
+	if m.Basic != nil {
+		if err := m.Basic.Validate(formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("PaidUsers" + "." + "Basic")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("PaidUsers" + "." + "Basic")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsPaidUsers) validateNetGrowth(formats strfmt.Registry) error {
+
+	if err := validate.Required("PaidUsers"+"."+"NetGrowth", "body", m.NetGrowth); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// ContextValidate validates this pro analytics retention based on context it is used
-func (m *ProAnalyticsRetention) ContextValidate(_ context.Context, _ strfmt.Registry) error {
+func (m *ProAnalyticsPaidUsers) validateNew(formats strfmt.Registry) error {
+
+	if err := validate.Required("PaidUsers"+"."+"New", "body", m.New); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsPaidUsers) validatePriced(formats strfmt.Registry) error {
+
+	if err := validate.Required("PaidUsers"+"."+"Priced", "body", m.Priced); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsPaidUsers) validateStoppedPaying(formats strfmt.Registry) error {
+
+	if err := validate.Required("PaidUsers"+"."+"StoppedPaying", "body", m.StoppedPaying); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsPaidUsers) validateUnlim(formats strfmt.Registry) error {
+
+	if err := validate.Required("PaidUsers"+"."+"Unlim", "body", m.Unlim); err != nil {
+		return err
+	}
+
+	if m.Unlim != nil {
+		if err := m.Unlim.Validate(formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("PaidUsers" + "." + "Unlim")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("PaidUsers" + "." + "Unlim")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this pro analytics paid users based on the context it is used
+func (m *ProAnalyticsPaidUsers) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateBasic(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateUnlim(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ProAnalyticsPaidUsers) contextValidateBasic(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Basic != nil {
+
+		if err := m.Basic.ContextValidate(ctx, formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("PaidUsers" + "." + "Basic")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("PaidUsers" + "." + "Basic")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsPaidUsers) contextValidateUnlim(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Unlim != nil {
+
+		if err := m.Unlim.ContextValidate(ctx, formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("PaidUsers" + "." + "Unlim")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("PaidUsers" + "." + "Unlim")
+			}
+
+			return err
+		}
+	}
+
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *ProAnalyticsRetention) MarshalBinary() ([]byte, error) {
+func (m *ProAnalyticsPaidUsers) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -474,8 +902,635 @@ func (m *ProAnalyticsRetention) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *ProAnalyticsRetention) UnmarshalBinary(b []byte) error {
-	var res ProAnalyticsRetention
+func (m *ProAnalyticsPaidUsers) UnmarshalBinary(b []byte) error {
+	var res ProAnalyticsPaidUsers
+	if err := jsonutils.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// ProAnalyticsPeriod pro analytics period
+//
+// swagger:model ProAnalyticsPeriod
+type ProAnalyticsPeriod struct {
+
+	// end
+	// Required: true
+	// Format: date-time
+	End *strfmt.DateTime `json:"End"`
+
+	// index
+	// Required: true
+	Index *int64 `json:"Index"`
+
+	// start
+	// Required: true
+	// Format: date-time
+	Start *strfmt.DateTime `json:"Start"`
+}
+
+// Validate validates this pro analytics period
+func (m *ProAnalyticsPeriod) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateEnd(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateIndex(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStart(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ProAnalyticsPeriod) validateEnd(formats strfmt.Registry) error {
+
+	if err := validate.Required("Period"+"."+"End", "body", m.End); err != nil {
+		return err
+	}
+
+	if err := validate.FormatOf("Period"+"."+"End", "body", "date-time", m.End.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsPeriod) validateIndex(formats strfmt.Registry) error {
+
+	if err := validate.Required("Period"+"."+"Index", "body", m.Index); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsPeriod) validateStart(formats strfmt.Registry) error {
+
+	if err := validate.Required("Period"+"."+"Start", "body", m.Start); err != nil {
+		return err
+	}
+
+	if err := validate.FormatOf("Period"+"."+"Start", "body", "date-time", m.Start.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this pro analytics period based on context it is used
+func (m *ProAnalyticsPeriod) ContextValidate(_ context.Context, _ strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *ProAnalyticsPeriod) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return jsonutils.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *ProAnalyticsPeriod) UnmarshalBinary(b []byte) error {
+	var res ProAnalyticsPeriod
+	if err := jsonutils.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// ProAnalyticsRecommendations pro analytics recommendations
+//
+// swagger:model ProAnalyticsRecommendations
+type ProAnalyticsRecommendations struct {
+
+	// basic at limit
+	// Required: true
+	BasicAtLimit *ProRecommendation `json:"BasicAtLimit"`
+
+	// basic high usage
+	// Required: true
+	BasicHighUsage *ProRecommendation `json:"BasicHighUsage"`
+
+	// inactive paid
+	// Required: true
+	InactivePaid *ProRecommendation `json:"InactivePaid"`
+
+	// not renewed
+	// Required: true
+	NotRenewed *ProRecommendation `json:"NotRenewed"`
+}
+
+// Validate validates this pro analytics recommendations
+func (m *ProAnalyticsRecommendations) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateBasicAtLimit(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateBasicHighUsage(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateInactivePaid(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateNotRenewed(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ProAnalyticsRecommendations) validateBasicAtLimit(formats strfmt.Registry) error {
+
+	if err := validate.Required("Recommendations"+"."+"BasicAtLimit", "body", m.BasicAtLimit); err != nil {
+		return err
+	}
+
+	if m.BasicAtLimit != nil {
+		if err := m.BasicAtLimit.Validate(formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Recommendations" + "." + "BasicAtLimit")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Recommendations" + "." + "BasicAtLimit")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsRecommendations) validateBasicHighUsage(formats strfmt.Registry) error {
+
+	if err := validate.Required("Recommendations"+"."+"BasicHighUsage", "body", m.BasicHighUsage); err != nil {
+		return err
+	}
+
+	if m.BasicHighUsage != nil {
+		if err := m.BasicHighUsage.Validate(formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Recommendations" + "." + "BasicHighUsage")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Recommendations" + "." + "BasicHighUsage")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsRecommendations) validateInactivePaid(formats strfmt.Registry) error {
+
+	if err := validate.Required("Recommendations"+"."+"InactivePaid", "body", m.InactivePaid); err != nil {
+		return err
+	}
+
+	if m.InactivePaid != nil {
+		if err := m.InactivePaid.Validate(formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Recommendations" + "." + "InactivePaid")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Recommendations" + "." + "InactivePaid")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsRecommendations) validateNotRenewed(formats strfmt.Registry) error {
+
+	if err := validate.Required("Recommendations"+"."+"NotRenewed", "body", m.NotRenewed); err != nil {
+		return err
+	}
+
+	if m.NotRenewed != nil {
+		if err := m.NotRenewed.Validate(formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Recommendations" + "." + "NotRenewed")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Recommendations" + "." + "NotRenewed")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this pro analytics recommendations based on the context it is used
+func (m *ProAnalyticsRecommendations) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateBasicAtLimit(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateBasicHighUsage(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateInactivePaid(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateNotRenewed(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ProAnalyticsRecommendations) contextValidateBasicAtLimit(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.BasicAtLimit != nil {
+
+		if err := m.BasicAtLimit.ContextValidate(ctx, formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Recommendations" + "." + "BasicAtLimit")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Recommendations" + "." + "BasicAtLimit")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsRecommendations) contextValidateBasicHighUsage(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.BasicHighUsage != nil {
+
+		if err := m.BasicHighUsage.ContextValidate(ctx, formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Recommendations" + "." + "BasicHighUsage")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Recommendations" + "." + "BasicHighUsage")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsRecommendations) contextValidateInactivePaid(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.InactivePaid != nil {
+
+		if err := m.InactivePaid.ContextValidate(ctx, formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Recommendations" + "." + "InactivePaid")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Recommendations" + "." + "InactivePaid")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsRecommendations) contextValidateNotRenewed(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.NotRenewed != nil {
+
+		if err := m.NotRenewed.ContextValidate(ctx, formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("Recommendations" + "." + "NotRenewed")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("Recommendations" + "." + "NotRenewed")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *ProAnalyticsRecommendations) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return jsonutils.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *ProAnalyticsRecommendations) UnmarshalBinary(b []byte) error {
+	var res ProAnalyticsRecommendations
+	if err := jsonutils.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// ProAnalyticsRenewals pro analytics renewals
+//
+// swagger:model ProAnalyticsRenewals
+type ProAnalyticsRenewals struct {
+
+	// change pp
+	ChangePp *int64 `json:"ChangePp,omitempty"`
+
+	// eligible
+	// Required: true
+	Eligible *int64 `json:"Eligible"`
+
+	// good
+	// Required: true
+	Good *bool `json:"Good"`
+
+	// rate pct
+	// Required: true
+	RatePct *int64 `json:"RatePct"`
+
+	// renewed
+	// Required: true
+	Renewed *int64 `json:"Renewed"`
+
+	// status
+	// Required: true
+	// Enum: ["no_data","calculating","final"]
+	Status *string `json:"Status"`
+}
+
+// Validate validates this pro analytics renewals
+func (m *ProAnalyticsRenewals) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateEligible(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateGood(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRatePct(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRenewed(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStatus(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ProAnalyticsRenewals) validateEligible(formats strfmt.Registry) error {
+
+	if err := validate.Required("Renewals"+"."+"Eligible", "body", m.Eligible); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsRenewals) validateGood(formats strfmt.Registry) error {
+
+	if err := validate.Required("Renewals"+"."+"Good", "body", m.Good); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsRenewals) validateRatePct(formats strfmt.Registry) error {
+
+	if err := validate.Required("Renewals"+"."+"RatePct", "body", m.RatePct); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsRenewals) validateRenewed(formats strfmt.Registry) error {
+
+	if err := validate.Required("Renewals"+"."+"Renewed", "body", m.Renewed); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var proAnalyticsRenewalsTypeStatusPropEnum []any
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["no_data","calculating","final"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		proAnalyticsRenewalsTypeStatusPropEnum = append(proAnalyticsRenewalsTypeStatusPropEnum, v)
+	}
+}
+
+const (
+
+	// ProAnalyticsRenewalsStatusNoData captures enum value "no_data"
+	ProAnalyticsRenewalsStatusNoData string = "no_data"
+
+	// ProAnalyticsRenewalsStatusCalculating captures enum value "calculating"
+	ProAnalyticsRenewalsStatusCalculating string = "calculating"
+
+	// ProAnalyticsRenewalsStatusFinal captures enum value "final"
+	ProAnalyticsRenewalsStatusFinal string = "final"
+)
+
+// prop value enum
+func (m *ProAnalyticsRenewals) validateStatusEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, proAnalyticsRenewalsTypeStatusPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *ProAnalyticsRenewals) validateStatus(formats strfmt.Registry) error {
+
+	if err := validate.Required("Renewals"+"."+"Status", "body", m.Status); err != nil {
+		return err
+	}
+
+	// value enum
+	if err := m.validateStatusEnum("Renewals"+"."+"Status", "body", *m.Status); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this pro analytics renewals based on context it is used
+func (m *ProAnalyticsRenewals) ContextValidate(_ context.Context, _ strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *ProAnalyticsRenewals) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return jsonutils.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *ProAnalyticsRenewals) UnmarshalBinary(b []byte) error {
+	var res ProAnalyticsRenewals
+	if err := jsonutils.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// ProAnalyticsThresholds pro analytics thresholds
+//
+// swagger:model ProAnalyticsThresholds
+type ProAnalyticsThresholds struct {
+
+	// basic high usage pct
+	// Required: true
+	BasicHighUsagePct *int64 `json:"BasicHighUsagePct"`
+
+	// good renewal pct
+	// Required: true
+	GoodRenewalPct *int64 `json:"GoodRenewalPct"`
+
+	// inactive days
+	// Required: true
+	InactiveDays *int64 `json:"InactiveDays"`
+}
+
+// Validate validates this pro analytics thresholds
+func (m *ProAnalyticsThresholds) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateBasicHighUsagePct(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateGoodRenewalPct(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateInactiveDays(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ProAnalyticsThresholds) validateBasicHighUsagePct(formats strfmt.Registry) error {
+
+	if err := validate.Required("Thresholds"+"."+"BasicHighUsagePct", "body", m.BasicHighUsagePct); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsThresholds) validateGoodRenewalPct(formats strfmt.Registry) error {
+
+	if err := validate.Required("Thresholds"+"."+"GoodRenewalPct", "body", m.GoodRenewalPct); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ProAnalyticsThresholds) validateInactiveDays(formats strfmt.Registry) error {
+
+	if err := validate.Required("Thresholds"+"."+"InactiveDays", "body", m.InactiveDays); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this pro analytics thresholds based on context it is used
+func (m *ProAnalyticsThresholds) ContextValidate(_ context.Context, _ strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *ProAnalyticsThresholds) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return jsonutils.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *ProAnalyticsThresholds) UnmarshalBinary(b []byte) error {
+	var res ProAnalyticsThresholds
 	if err := jsonutils.ReadJSON(b, &res); err != nil {
 		return err
 	}

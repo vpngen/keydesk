@@ -43,6 +43,7 @@ type BrigadeStorageOpts struct {
 	MaxUsers               int
 	MonthlyQuotaRemaining  int
 	MaxUserInctivityPeriod time.Duration
+	ProAnalyticsThresholds ProAnalyticsConfig // recommendation thresholds (PRO brigades only)
 }
 
 // BrigadeStorage - brigade file storage.

@@ -329,11 +329,19 @@ func logInvoicePaid(db *storage.BrigadeStorage, info storage.ProBillingInfo) {
 	logProLedger(db, events...)
 }
 
-// GetProAnalytics - paying audience, MRR, churn and retention folded from the
-// ledger. Backfills the ledger from the current state on first call.
+// GetProAnalytics - the analytics page: economics of the billing period,
+// paid audience, renewals and recommendations folded from the ledger and the
+// current keys (see storage/proanalytics.go). Backfills the ledger and the
+// cycle anchor on first call.
 func GetProAnalytics(db *storage.BrigadeStorage, params operations.GetProAnalyticsParams, principal interface{}) middleware.Responder {
 	if !db.IsPRO() {
 		return operations.NewGetProAnalyticsForbidden()
+	}
+
+	now := time.Now().UTC()
+
+	if err := db.EnsureProSince(now); err != nil {
+		fmt.Fprintf(os.Stderr, "Get pro analytics: ensure pro since: %s\n", err)
 	}
 
 	if err := db.EnsureProLedger(); err != nil {
@@ -342,47 +350,100 @@ func GetProAnalytics(db *storage.BrigadeStorage, params operations.GetProAnalyti
 		return operations.NewGetProAnalyticsInternalServerError()
 	}
 
-	stats, err := db.ProAnalytics(time.Now().UTC())
+	stats, err := db.ProAnalytics(now, db.ProAnalyticsConfig())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Get pro analytics: %s\n", err)
 
 		return operations.NewGetProAnalyticsInternalServerError()
 	}
 
-	payload := &models.ProAnalytics{
-		Month:         swag.String(stats.Month),
-		PayingKeys:    swag.Int64(int64(stats.PayingKeys)),
-		MRRCents:      swag.Int64(stats.MRRCents),
-		NewPaying:     swag.Int64(int64(stats.NewPaying)),
-		StoppedPaying: swag.Int64(int64(stats.StoppedPaying)),
-		NetGrowth:     swag.Int64(int64(stats.NetGrowth)),
-		Renewals:      swag.Int64(int64(stats.Renewals)),
-		Months:        make([]*models.ProAnalyticsMonthsItems0, 0, len(stats.Months)),
+	return operations.NewGetProAnalyticsOK().WithPayload(proAnalyticsPayload(stats))
+}
+
+func proTierGroupPayload(g storage.ProTierGroup) *models.ProTierGroup {
+	return &models.ProTierGroup{
+		Count:               swag.Int64(int64(g.Count)),
+		Priced:              swag.Int64(int64(g.Priced)),
+		SharePct:            swag.Int64(int64(g.SharePct)),
+		AverageSellingCents: swag.Int64(g.AverageSellingCents),
+	}
+}
+
+func proRecommendationPayload(r storage.ProRecommendation) *models.ProRecommendation {
+	ids := r.IDs
+	if ids == nil {
+		ids = []string{}
 	}
 
-	if stats.RetentionAvailable {
-		payload.Retention = &models.ProAnalyticsRetention{
-			Base: swag.Int64(int64(stats.RetentionBase)),
-			Kept: swag.Int64(int64(stats.RetentionKept)),
-		}
+	return &models.ProRecommendation{Count: swag.Int64(int64(r.Count)), IDs: ids}
+}
+
+func proAnalyticsPayload(stats storage.ProAnalytics) *models.ProAnalytics {
+	start := strfmt.DateTime(stats.Period.Start)
+	end := strfmt.DateTime(stats.Period.End)
+
+	payload := &models.ProAnalytics{
+		Period: &models.ProAnalyticsPeriod{
+			Start: &start,
+			End:   &end,
+			Index: swag.Int64(int64(stats.Period.Index)),
+		},
+		Economics: &models.ProAnalyticsEconomics{
+			ExpectedRevenueCents: swag.Int64(stats.Economics.ExpectedRevenueCents),
+			ForecastKeyCostCents: swag.Int64(stats.Economics.ForecastKeyCostCents),
+			ForecastProfitCents:  swag.Int64(stats.Economics.ForecastProfitCents),
+		},
+		PaidUsers: &models.ProAnalyticsPaidUsers{
+			Active:        swag.Int64(int64(stats.PaidUsers.Active)),
+			New:           swag.Int64(int64(stats.PaidUsers.New)),
+			StoppedPaying: swag.Int64(int64(stats.PaidUsers.StoppedPaying)),
+			NetGrowth:     swag.Int64(int64(stats.PaidUsers.NetGrowth)),
+			Priced:        swag.Int64(int64(stats.PaidUsers.Priced)),
+			Basic:         proTierGroupPayload(stats.PaidUsers.Basic),
+			Unlim:         proTierGroupPayload(stats.PaidUsers.Unlim),
+		},
+		Renewals: &models.ProAnalyticsRenewals{
+			Status:   swag.String(stats.Renewals.Status),
+			Eligible: swag.Int64(int64(stats.Renewals.Eligible)),
+			Renewed:  swag.Int64(int64(stats.Renewals.Renewed)),
+			RatePct:  swag.Int64(int64(stats.Renewals.RatePct)),
+			Good:     swag.Bool(stats.Renewals.Good),
+		},
+		Recommendations: &models.ProAnalyticsRecommendations{
+			NotRenewed:     proRecommendationPayload(stats.Recommendations.NotRenewed),
+			BasicHighUsage: proRecommendationPayload(stats.Recommendations.BasicHighUsage),
+			BasicAtLimit:   proRecommendationPayload(stats.Recommendations.BasicAtLimit),
+			InactivePaid:   proRecommendationPayload(stats.Recommendations.InactivePaid),
+		},
+		Thresholds: &models.ProAnalyticsThresholds{
+			BasicHighUsagePct: swag.Int64(int64(stats.Config.BasicHighUsagePct)),
+			InactiveDays:      swag.Int64(int64(stats.Config.InactiveDays)),
+			GoodRenewalPct:    swag.Int64(int64(stats.Config.GoodRenewalPct)),
+		},
+		Months: make([]*models.ProAnalyticsMonthsItems0, 0, len(stats.Months)),
+	}
+
+	if stats.Renewals.ChangePp != nil {
+		payload.Renewals.ChangePp = swag.Int64(int64(*stats.Renewals.ChangePp))
 	}
 
 	if !stats.LedgerSince.IsZero() {
-		since := stats.LedgerSince
-		payload.LedgerSince = (*strfmt.DateTime)(&since)
+		since := strfmt.DateTime(stats.LedgerSince)
+		payload.LedgerSince = &since
 	}
 
 	for _, m := range stats.Months {
 		payload.Months = append(payload.Months, &models.ProAnalyticsMonthsItems0{
 			Month:         swag.String(m.Month),
 			Available:     swag.Bool(m.Available),
-			Paying:        int64(m.Paying),
+			Reconstructed: m.Reconstructed,
 			ExpectedCents: m.ExpectedCents,
-			ChargedCents:  m.ChargedCents,
+			CostCents:     m.CostCents,
+			ProfitCents:   m.ProfitCents,
 		})
 	}
 
-	return operations.NewGetProAnalyticsOK().WithPayload(payload)
+	return payload
 }
 
 func proBillingPayload(info storage.ProBillingInfo) *models.ProBilling {

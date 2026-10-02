@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	VipUsersTimeout = 10 * time.Second
+	VipUsersTimeout = 5 * time.Second
 	vipUsersMaxBody = 1 << 20
 )
 

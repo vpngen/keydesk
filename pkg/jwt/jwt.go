@@ -25,7 +25,7 @@ func checkTimeLimits(notBefore, expiresAt *jwt.NumericDate) error {
 
 	if notBefore != nil &&
 		!notBefore.Time.IsZero() &&
-		notBefore.Time.After(now) {
+		notBefore.Time.After(now.Add(ClockSkewAllowance)) {
 		return ErrTokenTooEarly
 	}
 

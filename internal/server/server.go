@@ -43,6 +43,8 @@ func NewServer(
 
 	api.PostTokenHandler = operations.PostTokenHandlerFunc(keydesk.CreateToken(db, issuer, tokenTTL))
 
+	api.PostVipUsersHandler = operations.PostVipUsersHandlerFunc(keydesk.VipUsersProxy(db, issuer.VipURL(), nil))
+
 	api.PostUserHandler = operations.PostUserHandlerFunc(func(params operations.PostUserParams, principal interface{}) middleware.Responder {
 		return keydesk.AddUser(db, params, principal, routerPublicKey, shufflerPublicKey)
 	})

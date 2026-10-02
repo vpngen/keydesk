@@ -136,6 +136,13 @@ func NewUserAPI(spec *loads.Document) *UserAPI {
 			return middleware.NotImplemented("operation PostUserUserIDTier has not yet been implemented")
 		}),
 
+		PostVipUsersHandler: PostVipUsersHandlerFunc(func(params PostVipUsersParams, principal any) middleware.Responder {
+			_ = params
+			_ = principal
+
+			return middleware.NotImplemented("operation PostVipUsers has not yet been implemented")
+		}),
+
 		GetMessagesHandler: GetMessagesHandlerFunc(func(params GetMessagesParams, principal any) middleware.Responder {
 			_ = params
 			_ = principal
@@ -229,6 +236,8 @@ type UserAPI struct {
 	PostUserUserIDExtendHandler PostUserUserIDExtendHandler
 	// PostUserUserIDTierHandler sets the operation handler for the post user user ID tier operation
 	PostUserUserIDTierHandler PostUserUserIDTierHandler
+	// PostVipUsersHandler sets the operation handler for the post vip users operation
+	PostVipUsersHandler PostVipUsersHandler
 	// GetMessagesHandler sets the operation handler for the get messages operation
 	GetMessagesHandler GetMessagesHandler
 	// MarkMessageAsReadHandler sets the operation handler for the mark message as read operation
@@ -355,6 +364,9 @@ func (o *UserAPI) Validate() error {
 	}
 	if o.PostUserUserIDTierHandler == nil {
 		unregistered = append(unregistered, "PostUserUserIDTierHandler")
+	}
+	if o.PostVipUsersHandler == nil {
+		unregistered = append(unregistered, "PostVipUsersHandler")
 	}
 	if o.GetMessagesHandler == nil {
 		unregistered = append(unregistered, "GetMessagesHandler")
@@ -516,6 +528,10 @@ func (o *UserAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/user/{UserID}/tier"] = NewPostUserUserIDTier(o.context, o.PostUserUserIDTierHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/vip/users"] = NewPostVipUsers(o.context, o.PostVipUsersHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

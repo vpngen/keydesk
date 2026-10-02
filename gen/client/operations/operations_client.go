@@ -111,6 +111,12 @@ type ClientService interface {
 
 	PostUserUserIDTierContext(ctx context.Context, params *PostUserUserIDTierParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostUserUserIDTierOK, error)
 
+	// PostVipUsers VIP keys of the brigade, fetched by the keydesk from the VIP service on behalf of the caller (same token). Same-origin for the browser, so no CORS preflight is involved. The upstream body and status are passed through as is..
+	PostVipUsers(params *PostVipUsersParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostVipUsersOK, error)
+
+	// PostVipUsersContext VIP keys of the brigade, fetched by the keydesk from the VIP service on behalf of the caller (same token). Same-origin for the browser, so no CORS preflight is involved. The upstream body and status are passed through as is..
+	PostVipUsersContext(ctx context.Context, params *PostVipUsersParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostVipUsersOK, error)
+
 	// GetMessages get messages.
 	GetMessages(params *GetMessagesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetMessagesOK, error)
 
@@ -989,6 +995,68 @@ func (a *Client) PostUserUserIDTierContext(ctx context.Context, params *PostUser
 	//
 	// a default response is provided: fill this and return an error
 	unexpectedSuccess := result.(*PostUserUserIDTierDefault)
+
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+// PostVipUsers VIP keys of the brigade, fetched by the keydesk from the VIP service on behalf of the caller (same token). Same-origin for the browser, so no CORS preflight is involved. The upstream body and status are passed through as is..
+//
+// This method does not support injected context.
+// However, timeout and opentracing contexts are honored whenever enabled.
+//
+// If you need to pass a specific context, use [Client.PostVipUsersContext] instead.
+func (a *Client) PostVipUsers(params *PostVipUsersParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostVipUsersOK, error) {
+	var ctx context.Context
+	if params != nil && params.inner.ctx != nil {
+		ctx = params.inner.ctx
+	} else {
+		ctx = context.Background()
+	}
+
+	return a.PostVipUsersContext(ctx, params, authInfo, opts...)
+}
+
+// PostVipUsersContext VIP keys of the brigade, fetched by the keydesk from the VIP service on behalf of the caller (same token). Same-origin for the browser, so no CORS preflight is involved. The upstream body and status are passed through as is..
+//
+// Do not use the deprecated [PostVipUsersParams.Context] with this method: it would be ignored.
+func (a *Client) PostVipUsersContext(ctx context.Context, params *PostVipUsersParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostVipUsersOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewPostVipUsersParams()
+	}
+
+	op := &runtime.ClientOperation{
+		ID:                 "PostVipUsers",
+		Method:             "POST",
+		PathPattern:        "/vip/users",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PostVipUsersReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Client:             params.HTTPClient,
+	}
+
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.SubmitContext(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*PostVipUsersOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+	//
+	// a default response is provided: fill this and return an error
+	unexpectedSuccess := result.(*PostVipUsersDefault)
 
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }

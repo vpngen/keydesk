@@ -263,6 +263,38 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
+  /vip/users:
+    post:
+      security:
+        - Bearer: [ ]
+      produces:
+        - application/json
+      description: >-
+        VIP keys of the brigade, fetched by the keydesk from the VIP service on
+        behalf of the caller (same token). Same-origin for the browser, so no
+        CORS preflight is involved. The upstream body and status are passed
+        through as is.
+      responses:
+        200:
+          description: Response of the VIP service.
+          schema:
+            $ref: "#/definitions/vip_users"
+        403:
+          description: 'Not a VIP brigade'
+        502:
+          description: 'VIP service unavailable'
+          schema:
+            $ref: "#/definitions/error"
+        503:
+          description: 'Maintenance'
+          schema:
+            $ref: "#/definitions/maintenance_error"
+        500:
+          description: 'Internal server error'
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
   /pro/billing:
     get:
       security:
@@ -881,6 +913,9 @@ definitions:
               type: integer
             ProfitCents:
               type: integer
+  vip_users:
+    type: object
+    additionalProperties: true
   pro_tier_group:
     type: object
     required:

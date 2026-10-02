@@ -66,16 +66,26 @@ func (i KeydeskTokenIssuer) IsNil() bool {
 	return i.key == nil
 }
 
+// VipURL - the vip_url claim value.
+func (i KeydeskTokenIssuer) VipURL() string {
+	return i.options.VipURL
+}
+
+// ClockSkewAllowance - nbf/iat are backdated by this much; exp is not.
+const ClockSkewAllowance = time.Minute
+
 func (i KeydeskTokenIssuer) CreateToken(ttl time.Duration, vip bool) KeydeskTokenClaims {
 	now := time.Now()
+	issued := now.Add(-ClockSkewAllowance)
+
 	return KeydeskTokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    i.options.Issuer,
 			Subject:   i.options.Subject,
 			Audience:  i.options.Audience,
 			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
-			NotBefore: jwt.NewNumericDate(now),
-			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(issued),
+			IssuedAt:  jwt.NewNumericDate(issued),
 			ID:        uuid.New().String(),
 		},
 		ExternalIP: i.options.ExternalIP,

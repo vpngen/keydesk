@@ -735,6 +735,51 @@ func init() {
           }
         ]
       }
+    },
+    "/vip/users": {
+      "post": {
+        "description": "VIP keys of the brigade, fetched by the keydesk from the VIP service on behalf of the caller (same token). Same-origin for the browser, so no CORS preflight is involved. The upstream body and status are passed through as is.",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response of the VIP service.",
+            "schema": {
+              "$ref": "#/definitions/vip_users"
+            }
+          },
+          "403": {
+            "description": "Not a VIP brigade"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "502": {
+            "description": "VIP service unavailable",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
     }
   },
   "definitions": {
@@ -1592,6 +1637,10 @@ func init() {
           ]
         }
       }
+    },
+    "vip_users": {
+      "type": "object",
+      "additionalProperties": true
     }
   },
   "securityDefinitions": {
@@ -2303,6 +2352,51 @@ func init() {
           },
           "500": {
             "description": "Internal server error"
+          },
+          "503": {
+            "description": "Maintenance",
+            "schema": {
+              "$ref": "#/definitions/maintenance_error"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/vip/users": {
+      "post": {
+        "description": "VIP keys of the brigade, fetched by the keydesk from the VIP service on behalf of the caller (same token). Same-origin for the browser, so no CORS preflight is involved. The upstream body and status are passed through as is.",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response of the VIP service.",
+            "schema": {
+              "$ref": "#/definitions/vip_users"
+            }
+          },
+          "403": {
+            "description": "Not a VIP brigade"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "502": {
+            "description": "VIP service unavailable",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           },
           "503": {
             "description": "Maintenance",
@@ -3428,6 +3522,10 @@ func init() {
           ]
         }
       }
+    },
+    "vip_users": {
+      "type": "object",
+      "additionalProperties": true
     }
   },
   "securityDefinitions": {

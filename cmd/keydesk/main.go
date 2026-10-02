@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -209,9 +210,10 @@ func main() {
 			filepath.Join(cfg.certDir, TLSKeyFilename),
 		); err {
 		case nil:
+			srv.Handler = redirectToHTTPS()(handler)
 			serverTLS = &http.Server{
 				TLSConfig:   &tls.Config{Certificates: []tls.Certificate{cert}},
-				Handler:     redirectToHTTPS()(handler),
+				Handler:     handler,
 				IdleTimeout: 60 * time.Minute,
 			}
 		default:
@@ -523,14 +525,14 @@ func maintenanceMiddlewareBuilder(paths ...string) middleware.Builder {
 func redirectToHTTPS() middleware.Builder {
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Redirect only if the request is not already using HTTPS
-			if r.Header.Get("X-Forwarded-Proto") != "https" && r.TLS == nil {
-				http.Redirect(w, r, "https://"+r.Host+r.RequestURI, http.StatusMovedPermanently)
+			if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") != "" || r.Header.Get("X-Forwarded-For") != "" {
+				handler.ServeHTTP(w, r)
 
 				return
 			}
 
-			handler.ServeHTTP(w, r)
+			host := strings.TrimSuffix(r.Host, ":80")
+			http.Redirect(w, r, "https://"+host+r.RequestURI, http.StatusTemporaryRedirect)
 		})
 	}
 }

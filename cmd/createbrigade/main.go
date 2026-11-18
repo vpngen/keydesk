@@ -70,6 +70,7 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	proto0Cfgs := flag.String("proto0", "", "Protocol0 configs (access_key)")
 
 	vip := flag.Bool("vip", false, "VIP brigade")
+	countryFlag = flag.String("country", "", "brigade country code for the keydesk look: ru (default) or kg")
 
 	mode := flag.String("mode", storage.ModeBrigade, "mode (brigade or vgsocket)")
 	maxUsers := flag.Uint("maxusers", storage.MaxUsers, "max users, only valid in vgsocket mode")
@@ -279,6 +280,9 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 	return vpnCfgs, config, addrPort, etcdir, dbdir, *mode, *maxUsers, *vip, nil
 }
 
+// countryFlag - keydesk look of the new brigade (ru default, kg), applied after creation.
+var countryFlag *string
+
 func main() {
 	vpnCfgs, config, addr, etcDir, dbDir, mode, maxUsers, vip, err := parseArgs()
 	if err != nil {
@@ -309,6 +313,13 @@ func main() {
 	// just do it.
 	if err := keydesk.CreateBrigade(db, vpnCfgs, config, &routerPublicKey, &shufflerPublicKey, mode, maxUsers, vip); err != nil {
 		log.Fatalf("Can't create brigade: %s\n", err)
+	}
+
+	// Kept out of CreateBrigade on purpose: the look is an add-on flag like VIP.
+	if countryFlag != nil && *countryFlag != "" {
+		if err := db.SetCountry(*countryFlag); err != nil {
+			log.Fatalf("Can't set country: %s\n", err)
+		}
 	}
 }
 

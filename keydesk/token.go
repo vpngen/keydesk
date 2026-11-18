@@ -16,6 +16,8 @@ import (
 func CreateToken(db *storage.BrigadeStorage, issuer jwtsvc.KeydeskTokenIssuer, ttlSeconds int64) func(operations.PostTokenParams) middleware.Responder {
 	return func(params operations.PostTokenParams) middleware.Responder {
 		claims := issuer.CreateToken(time.Duration(ttlSeconds)*time.Second, db.IsVIP())
+		// Country picks the keydesk web look; it is independent of VIP.
+		claims.Country = db.Country()
 
 		token, err := issuer.Sign(claims)
 		if err != nil {

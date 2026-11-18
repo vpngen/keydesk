@@ -27,6 +27,8 @@ elif [ "${cmd}" = "vipon" ]; then
     sudo -u root -g root "${basedir}/turnon_vip.sh" "$@" "-on"
 elif [ "${cmd}" = "vipoff" ]; then
     sudo -u root -g root "${basedir}/turnon_vip.sh" "$@" "-off"
+elif [ "${cmd}" = "country" ]; then
+    sudo -u root -g root "${basedir}/set_country.sh" "$@"
 else
     echo "Unknown command: ${cmd}"
     printdef

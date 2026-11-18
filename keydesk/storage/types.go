@@ -233,7 +233,8 @@ type Brigade struct {
 	BrigadeCounters
 	StatsCountersStack    `json:"counters_stack"`
 	Ver                   int                  `json:"version"`
-	VIP                   int64                `json:"vip"` // is vip brigade
+	VIP                   int64                `json:"vip"`               // is vip brigade
+	Country               string               `json:"country,omitempty"` // keydesk look: "" = ru (default), "kg"
 	BrigadeID             string               `json:"brigade_id"`
 	CreatedAt             time.Time            `json:"created_at"`
 	Mode                  Mode                 `json:"mode"`

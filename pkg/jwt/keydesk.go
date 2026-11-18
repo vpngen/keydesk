@@ -41,6 +41,7 @@ type KeydeskTokenClaims struct {
 	Vip        bool   `json:"vip"`
 	ExternalIP string `json:"external_ip,omitempty"`
 	VipURL     string `json:"vip_url,omitempty"`
+	Country    string `json:"country,omitempty"` // keydesk look; the web falls back to the default when absent
 }
 
 var (

@@ -31,6 +31,8 @@ elif [ "${cmd}" = "proon" ]; then
     sudo -u root -g root "${basedir}/turnon_pro.sh" "$@" "-on"
 elif [ "${cmd}" = "prooff" ]; then
     sudo -u root -g root "${basedir}/turnon_pro.sh" "$@" "-off"
+elif [ "${cmd}" = "country" ]; then
+    sudo -u root -g root "${basedir}/set_country.sh" "$@"
 else
     echo "Unknown command: ${cmd}"
     printdef

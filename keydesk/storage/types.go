@@ -254,6 +254,7 @@ type Brigade struct {
 	ProSince              time.Time            `json:"pro_since,omitempty"`         // PRO activation: anchor of the monthly billing cycle
 	ProBillingState       string               `json:"pro_billing_state,omitempty"` // "" (paid) | "issued" | "overdue"
 	ProInvoices           []ProInvoice         `json:"pro_invoices,omitempty"`      // local invoice history (stub billing)
+	Country               string               `json:"country,omitempty"`           // keydesk look: "" = ru (default), "kg"
 	BrigadeID             string               `json:"brigade_id"`
 	CreatedAt             time.Time            `json:"created_at"`
 	Mode                  Mode                 `json:"mode"`

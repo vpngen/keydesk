@@ -109,6 +109,12 @@ contents:
     mode: 0005
     owner: root
     group: root
+- src: bin/setcountry
+  dst: /opt/vgkeydesk/setcountry
+  file_info:
+    mode: 0005
+    owner: root
+    group: root
 - src: bin/fetchstats
   dst: /opt/vgkeydesk/fetchstats
   file_info:
@@ -123,6 +129,12 @@ contents:
     group: root
 - src: keydesk/cmd/turnon-pro/turnon_pro.sh
   dst: /opt/vgkeydesk/turnon_pro.sh
+  file_info:
+    mode: 0500
+    owner: root
+    group: root
+- src: keydesk/cmd/setcountry/set_country.sh
+  dst: /opt/vgkeydesk/set_country.sh
   file_info:
     mode: 0500
     owner: root

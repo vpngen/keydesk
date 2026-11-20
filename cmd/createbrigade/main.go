@@ -25,6 +25,9 @@ import (
 // created, so the CreateBrigade path itself stays untouched.
 var proFlag *bool
 
+// countryFlag - keydesk look of the new brigade (ru default, kg); applied after creation like proFlag.
+var countryFlag *string
+
 // Args errors.
 var (
 	ErrInvalidEndpointIPv4 = errors.New("invalid ip4 endpoint")
@@ -75,6 +78,7 @@ func parseArgs() (*storage.ConfigsImplemented, *storage.BrigadeConfig, netip.Add
 
 	vip := flag.Bool("vip", false, "VIP brigade")
 	proFlag = flag.Bool("pro", false, "PRO brigade")
+	countryFlag = flag.String("country", "", "brigade country code for the keydesk look: ru (default) or kg")
 
 	mode := flag.String("mode", storage.ModeBrigade, "mode (brigade or vgsocket)")
 	maxUsers := flag.Uint("maxusers", storage.MaxUsers, "max users, only valid in vgsocket mode")
@@ -321,6 +325,12 @@ func main() {
 	if proFlag != nil && *proFlag {
 		if err := db.SetPRO(true); err != nil {
 			log.Fatalf("Can't set PRO: %s\n", err)
+		}
+	}
+
+	if countryFlag != nil && *countryFlag != "" {
+		if err := db.SetCountry(*countryFlag); err != nil {
+			log.Fatalf("Can't set country: %s\n", err)
 		}
 	}
 }
